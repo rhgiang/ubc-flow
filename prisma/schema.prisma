@@ -110,6 +110,8 @@ model User {
   program       String?
   gradYear      Int?
   createdAt     DateTime @default(now())
+  studentIdHash String?   @unique
+  verifiedAt    DateTime?
   enrollments   Enrollment[]
   courseReviews CourseReview[]
   instructorReviews InstructorReview[]
@@ -196,4 +198,14 @@ model GradeDistribution {
   distribution Json?
 
   @@index([courseId])
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Phase 1: catalogue ----------
+
+model Subject {
+  id           String   @id @default(cuid())
+  code         String?
+  name         String
+  campus       String
+  faculty      String?
+  ubcSubjectId String
+  courses      Course[]
+
+  @@unique([ubcSubjectId, campus])
+  @@index([code])
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  number      String
+  title       String
+  description String?
+  credits     Float?
+  campus      String
+  prereqText  String?
+  coreqText   String?
+  updatedAt   DateTime @updatedAt
+  sections    Section[]
+
+  @@unique([subjectId, number])
+}
+
+model Term {
+  id          String    @id @default(cuid())
+  ubcPeriodId String    @unique
+  name        String
+  year        Int
+  session     String
+  termNumber  Int?
+  campus      String
+  sections    Section[]
+}
+
+model Section {
+  id           String   @id @default(cuid())
+  courseId     String
+  course       Course   @relation(fields: [courseId], references: [id])
+  termId       String
+  term         Term     @relation(fields: [termId], references: [id])
+  sectionCode  String
+  activity     String?
+  status       String?
+  deliveryMode String?
+  enrolTotal   Int?
+  enrolCap     Int?
+  meetingTimes MeetingTime[]
+  instructors  SectionInstructor[]
+
+  @@unique([courseId, termId, sectionCode])
+}
+
+model MeetingTime {
+  id        String   @id @default(cuid())
+  sectionId String
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  day       String
+  startTime String?
+  endTime   String?
+  building  String?
+  room      String?
+  startDate DateTime?
+  endDate   DateTime?
+}
+
+model Instructor {
+  id       String   @id @default(cuid())
+  name     String
+  slug     String   @unique
+  campus   String?
+  sections SectionInstructor[]
+}
+
+model SectionInstructor {
+  sectionId    String
+  section      Section    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  instructorId String
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
+
+  @@id([sectionId, instructorId])
+}
+
+// ---------- Later phases: created, unpopulated ----------
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  name          String?
+  program       String?
+  gradYear      Int?
+  createdAt     DateTime @default(now())
+  enrollments   Enrollment[]
+  courseReviews CourseReview[]
+  instructorReviews InstructorReview[]
+}
+
+model Enrollment {
+  id       String  @id @default(cuid())
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId String
+  termId   String
+  source   String
+  verified Boolean @default(false)
+
+  @@unique([userId, courseId, termId])
+}
+
+model CourseReview {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId      String
+  termId        String?
+  instructorId  String?
+  liked         Boolean?
+  useful        Int?
+  difficulty    Int?
+  workloadHours Int?
+  text          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, courseId])
+}
+
+model InstructorReview {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instructorId String
+  courseId     String?
+  liked        Boolean?
+  clear        Int?
+  engaging     Int?
+  text         String?
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, instructorId, courseId])
+}
+
+model SavedSchedule {
+  id       String @id @default(cuid())
+  userId   String
+  termId   String
+  name     String
+  sections ScheduleSection[]
+}
+
+model ScheduleSection {
+  scheduleId String
+  schedule   SavedSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  sectionId  String
+
+  @@id([scheduleId, sectionId])
+}
+
+model CalendarToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model GradeDistribution {
+  id           String  @id @default(cuid())
+  courseId     String
+  instructorId String?
+  termId       String?
+  average      Float?
+  median       Float?
+  high         Float?
+  low          Float?
+  count        Int?
+  distribution Json?
+
+  @@index([courseId])
+}

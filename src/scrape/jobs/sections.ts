@@ -19,7 +19,9 @@ export async function fetchSectionsForTerm(ubcPeriodId: string): Promise<RawSect
   return out;
 }
 
-export async function upsertSections(rows: RawSection[], termId: string) {
+/** Returns the count of rows actually written (reached db.section.upsert), not merely parsed. */
+export async function upsertSections(rows: RawSection[], termId: string): Promise<number> {
+  let written = 0;
   for (const row of rows) {
     // A section whose course is missing or unparseable has nothing to hang off.
     if (!row.course || row.course.campus !== CAMPUS) continue;
@@ -78,6 +80,7 @@ export async function upsertSections(rows: RawSection[], termId: string) {
         deliveryMode: row.deliveryMode,
       },
     });
+    written++;
 
     // Meetings have no natural key; replace wholesale so re-runs stay idempotent.
     await db.meetingTime.deleteMany({ where: { sectionId: section.id } });
@@ -104,6 +107,7 @@ export async function upsertSections(rows: RawSection[], termId: string) {
       });
     }
   }
+  return written;
 }
 
 export async function scrapeSections() {
@@ -137,7 +141,13 @@ export async function scrapeSections() {
       continue;
     }
 
-    await upsertSections(usable, term.id);
-    console.log(`${term.name}: ${usable.length} sections`);
+    const written = await upsertSections(usable, term.id);
+    if (written < usable.length * 0.95) {
+      console.warn(
+        `${term.name}: parsed ${usable.length} sections but only wrote ${written} — ` +
+          'check subject/instructor resolution',
+      );
+    }
+    console.log(`${term.name}: ${written} sections`);
   }
 }

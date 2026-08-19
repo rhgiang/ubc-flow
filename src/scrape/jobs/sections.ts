@@ -54,8 +54,13 @@ export async function upsertSections(rows: RawSection[], termId: string): Promis
         title: row.course.title,
         credits: row.course.credits,
         campus: CAMPUS,
+        description: row.course.bodyHtml,
       },
-      update: { title: row.course.title, credits: row.course.credits },
+      update: {
+        title: row.course.title,
+        credits: row.course.credits,
+        description: row.course.bodyHtml,
+      },
     });
 
     const section = await db.section.upsert({

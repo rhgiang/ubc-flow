@@ -151,13 +151,22 @@ secret.
 `SERVER_SECRET` lives in the environment, never in the repo. Rotating it
 invalidates all bindings, so it is rotated only deliberately.
 
-### 5.2 If the export has no student number
+### 5.2 The identity field — confirmed
 
-Unconfirmed until a real file is inspected (§8). If absent, the fallback anchor
-is an HMAC over a composite of stable fields (e.g. legal name + program +
-earliest term). This is **weaker** — composites collide and change — so the real
-file must be checked before this is finalized. This is the phase's main open
-risk.
+**Resolved by inspecting real exports (2026-08-19).** Both exports carry the
+student number in column `A` of every data row, formatted:
+
+```
+Ryan Giang (12345678) - Faculty of Science
+```
+
+The number is extracted with `/\((\d{6,10})\)/`, HMAC'd, and the raw value
+discarded immediately. No weaker composite-key fallback is needed; the earlier
+contingency for a missing student number is withdrawn.
+
+Because the field repeats on every row, the parser asserts all rows in a file
+agree on one student number and rejects the upload otherwise — a file containing
+two students is not a legitimate export.
 
 ---
 
@@ -211,29 +220,110 @@ verified rows.
 
 ---
 
-## 8. Open question — resolved by inspecting a real export
+## 7A. Confirmed export structure
 
-The `.xlsx` layout is unknown. Community tools (`workdaycal.vercel.app`,
-`jackkoskie/ubc-workday2cal`, the UBC Workday Calendar Generator extension)
-confirm the exports exist and are parseable, but none document the schema, and
-Workday tenants are configurable per institution.
+Verified against real exports on 2026-08-19. Both are single-sheet `.xlsx`
+with **headers on row 3** (rows 1-2 are title banners) and data from row 4.
 
-The user is supplying a real export. Until then the parser's internals are
-provisional. **Everything else in this spec is independent of the file and can
-be built first.**
+### 7A.1 Current Classes (`View My Courses`)
 
-Specifically to confirm against the real file:
-1. Sheet name(s) and whether headers sit on row 1.
-2. Column headers for course code, section, term, and meeting pattern.
-3. How the course code appears (`CPSC 221` vs `CPSC_V 221` vs split columns) —
-   determines the match against Phase 1's `Subject.code` + `Course.number`.
-4. **Whether a student number is present** — decides §5 vs §5.2.
-5. Whether grades appear in the Current Classes export too, or only in Academic
-   Record.
+| Col | Header | Example | Used |
+|---|---|---|---|
+| A | *(unlabelled)* | `Ryan Giang (12345678) - Faculty of Science` | identity only (§5.2) |
+| B | Course Listing | `CPSC_V 110 - Computation, Programs, and Programming` | **yes** |
+| E | Credits | `4` | no |
+| F | Grading Basis | `Graded` | no |
+| G | Section | `CPSC_V 110-L1U - Computation, Programs...` | **yes** |
+| H | Registration Status | `Registered` | **yes** — filter |
+| I | Instructional Format | `Lecture` / `Laboratory` / `Discussion` | yes |
+| J | Delivery Mode | `In Person Learning` / `Hybrid Learning` | no |
+| K | Meeting Patterns | `2026-09-09 - 2026-12-04 \| Wed Fri \| 10:00 a.m. ...` | **yes** — term inference |
+| L | Instructor | `Nick Bradley` | no (Phase 1 already has this) |
+| M/N | Start / End Date | Excel serial (`46274`) | fallback for K |
 
-**Handling:** the file is gitignored on arrival. Tests run against a **redacted
-fixture** — real structure, fabricated names and identifiers — committed in its
-place. The real file is never committed.
+**Course codes arrive in the `_V` wire format** (`CPSC_V 110`), identical to what
+Phase 1's `parseUbcCourseCode` already parses. Reuse that function; do not write
+a second course-code parser.
+
+**No grades appear in this export.** Column F is the grading *basis*, not a mark.
+
+### 7A.2 Academic Record (`View My Academic Record`)
+
+| Col | Header | Example | Used |
+|---|---|---|---|
+| A | *(unlabelled)* | `Ryan Giang (12345678) - Faculty of Science` | identity only |
+| B | Transfer Credit | `MATH_V 101 - Integral Calculus with Applications` | yes |
+| C | Credits | `3.0` | no |
+| D | **Grade** | `TR` | **never stored** (§3.1) |
+| E | Originating Coursework | `University of Alberta (Edmonton, AB, Canada)` | **yes** — exclusion signal |
+
+### 7A.3 There is no term column
+
+Neither export names a term. Term is **inferred from the meeting-pattern start
+date** in column K (falling back to the column M serial):
+
+| Start month | Term |
+|---|---|
+| Sep-Dec (9-12) | Winter Term 1 of the academic year beginning that calendar year |
+| Jan-Apr (1-4) | Winter Term 2 of the academic year beginning the *previous* calendar year |
+| May-Aug (5-8) | Summer Session of that calendar year |
+
+A single export spans multiple terms — the sample contains both 2026W1
+(Sept 2026) and 2026W2 (Jan 2027) rows. The parser must not assume one term per
+file. Inferred terms are matched against Phase 1's `Term` table by
+`year` + `session` + `termNumber`.
+
+## 7B. Transfer credit must not grant review rights
+
+Transfer rows carry grade `TR` and a non-empty **Originating Coursework**
+naming another institution. A student who took MATH 101 at the University of
+Alberta did **not** experience UBC's MATH 101, so allowing a review of it would
+produce precisely the untrustworthy review the §2.3 gate exists to prevent — and
+invisibly, since the row is otherwise indistinguishable from a completed course.
+
+**Rule: rows with grade `TR` or a non-empty Originating Coursework column are
+parsed, counted, and reported to the user, but never written as review-granting
+enrollment.**
+
+This also disposes of a data-quality problem for free: transfer records contain
+placeholder pseudo-courses (`PHYS_V 1ST`, `CHEM_V 1ST`, `WRCM_V 1ST`) whose
+"numbers" are not real catalogue entries. Excluding transfer rows removes them
+before they can appear as spurious unmatched-course noise in the §4.2 preview.
+
+## 7C. In-progress courses do grant review rights
+
+A course with registration status `Registered` whose term has not ended still
+unlocks reviewing. Requiring completion would mean nobody can review until a
+term ends, which is an unacceptable cold start; a student mid-course has genuine
+signal on workload and teaching quality. This matches UW Flow's behaviour.
+
+## 8. Remaining unknown — the completed-UBC-coursework table
+
+§7A resolves the Current Classes export completely and the Academic Record
+export **partially**. The sample record contained only a *Transfer Credit from
+Coursework* table, because that student has no completed UBC terms yet.
+
+A student with completed UBC coursework will have at least one additional table
+in the same sheet — presumably carrying term and grade columns. **Its structure
+is unverified.** The likely shape, by analogy with §7A.2, is a second banner row
+followed by its own header row and rows whose Originating Coursework column is
+empty, but this is inference, not observation.
+
+**Handling:** the parser is written table-aware rather than assuming a single
+fixed layout — it locates each table by its banner/header rows rather than by
+absolute row numbers, and ignores tables it does not recognise. An unrecognised
+table is reported in the §4.2 preview as unparsed rather than silently skipped,
+so the gap is visible the first time a senior student uploads.
+
+Obtaining a second sample from a student with completed UBC terms is the
+cheapest way to close this and should happen before launch.
+
+### 8.1 File handling
+
+Real exports are gitignored (`rgschedule/`, `*.xlsx`, with an exception for
+`tests/fixtures/**`). Tests run against **redacted fixtures** — real structure,
+fabricated names and student numbers — committed in their place. A real export
+is never committed, never written to disk by the app, and never logged.
 
 ---
 

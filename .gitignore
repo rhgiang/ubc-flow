@@ -42,3 +42,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Real Workday exports — contain a real student number, grades, and schedule.
+# Never commit these. Tests use redacted fixtures under tests/fixtures/ instead.
+rgschedule/
+*.xlsx
+!tests/fixtures/**/*.xlsx

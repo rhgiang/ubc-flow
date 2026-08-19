@@ -53,4 +53,44 @@ describe('parseBody', () => {
       'Plain text here.',
     );
   });
+
+  // Real bodies pulled verbatim from the live UBC catalogue (fix round 1):
+  // a lowercase "corequisite:" or "co-req:" mid-sentence must NOT be treated
+  // as a new clause boundary, or the real clause gets truncated / its course
+  // codes silently dropped.
+
+  it('MICB 402: does not truncate prereqText at a mid-sentence "corequisite:" mention', () => {
+    const MICB402 =
+      '<p>Molecular basis of lymphocyte development, activation and adhesion; ' +
+      'immunogenetics and the major histocompatibility complex. Consult the ' +
+      'credit exclusion list within the Faculty of Science section of the ' +
+      'calendar. [3-0-1]<i> Prerequisite: </i>One of MICB 302, BIOT 380. If ' +
+      'MICB 302 is used as the prerequisite for MICB 402, students are ' +
+      'required to take one of the following as a corequisite: BIOL 234, ' +
+      'BIOL 335, MICB 325.</p>';
+    const r = parseBody(MICB402);
+    expect(r.prereqText).toContain('BIOL 234');
+  });
+
+  it('DHYG 412: does not discard the course code after an embedded "Prerequisite: Pre or Corequisite:" label', () => {
+    const DHYG412 =
+      '<p>Critical analysis of health care trends and oral health care ' +
+      'delivery with emphasis on underserved diverse populations.<i> ' +
+      'Prerequisite: </i>Pre or Corequisite: DHYG 462</p>';
+    const r = parseBody(DHYG412);
+    expect(r.prereqText).toContain('DHYG 462');
+  });
+
+  it('UFOR 300: does not discard the course code after an embedded "Prerequisite: Pre-req or co-req:" label', () => {
+    const UFOR300 =
+      '<p>Principles and practices of individual urban tree management with ' +
+      'emphasis on underlying biological and ecological concepts, ' +
+      'plant-environment interactions above and below ground and ' +
+      'implications for establishment, evaluation, and conservation of ' +
+      'individual trees in a variety of urban situations. [3-1-0]<i> ' +
+      'Prerequisite: </i>Pre-req or co-req:  UFOR 316 and Third-year ' +
+      'standing.</p>';
+    const r = parseBody(UFOR300);
+    expect(r.prereqText).toContain('UFOR 316');
+  });
 });

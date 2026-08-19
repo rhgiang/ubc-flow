@@ -20,6 +20,12 @@ export function parseBody(html: string | null): {
   const label = /\b(Prerequisite|Corequisite|Pre-req|Co-req)s?\s*:/gi;
   const marks: { name: string; start: number; bodyStart: number }[] = [];
   for (const m of text.matchAll(label)) {
+    // A label only counts as a clause boundary at the start of a sentence —
+    // mid-sentence mentions ("...take one of the following as a corequisite:
+    // BIOL 234") are prose, not a new clause, so they must be rejected here
+    // or the real clause gets truncated / its codes silently dropped.
+    const before = text.slice(0, m.index!).trimEnd();
+    if (before.length > 0 && !/[.!?\]]$/.test(before)) continue;
     marks.push({
       name: m[1].toLowerCase().startsWith('pre') ? 'prereq' : 'coreq',
       start: m.index!,

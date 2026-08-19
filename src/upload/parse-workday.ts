@@ -1,0 +1,174 @@
+import { parseUbcCourseCode } from '@/scrape/parse-nodes';
+
+export type EnrollmentRow = {
+  subjectCode: string;
+  campus: string;
+  courseNumber: string;
+  sectionCode: string | null;
+  activity: string | null;
+  startDate: string | null;
+  termYear: number;
+  termSession: string;
+  termNumber: number | null;
+};
+
+export type ExcludedRow = {
+  raw: string;
+  reason: 'transfer_credit' | 'unparseable_course' | 'no_term';
+};
+
+export type ParsedExport = {
+  studentNumber: string | null;
+  rows: EnrollmentRow[];
+  excluded: ExcludedRow[];
+  /** Header rows found after the table we parsed — structures we don't handle yet. */
+  unparsedTables: string[];
+};
+
+const IDENTITY = /\((\d{6,10})\)/;
+
+export function parseStudentNumber(cell: string): string | null {
+  return cell.match(IDENTITY)?.[1] ?? null;
+}
+
+/** "CPSC_V 110-L1U - Computation, Programs" -> "L1U" */
+export function parseSectionCode(cell: string): string | null {
+  const m = cell.match(/^[A-Z]{2,6}_[VO]\s+\d{3}[A-Z]?-(\S+?)\s+-\s+/);
+  return m?.[1] ?? null;
+}
+
+/** "2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m." -> the date range */
+export function parseMeetingPattern(cell: string): {
+  startDate: string | null;
+  endDate: string | null;
+} {
+  const m = cell.match(/(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})/);
+  return { startDate: m?.[1] ?? null, endDate: m?.[2] ?? null };
+}
+
+/** No export carries a term column — derive it from the start date. */
+export function inferTerm(
+  isoDate: string,
+): { year: number; session: string; termNumber: number | null } | null {
+  const m = isoDate.match(/^(\d{4})-(\d{2})-\d{2}$/);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+
+  if (month >= 9) return { year, session: 'W', termNumber: 1 };
+  if (month <= 4) return { year: year - 1, session: 'W', termNumber: 2 };
+  return { year, session: 'S', termNumber: null };
+}
+
+// Real exports carry a banner/title row (e.g. "Transfer Credit from Coursework")
+// in column A above the real header row, and that banner text can itself contain
+// "Transfer Credit". Column A also holds the per-row student identity, never a
+// column label, so a genuine header's matching cell is never at index 0.
+function headerIndex(grid: string[][]): number {
+  return grid.findIndex((r) => r.some((c, i) => i > 0 && /Course Listing|Transfer Credit/i.test(c)));
+}
+
+function columnMap(header: string[]): Record<string, number> {
+  const map: Record<string, number> = {};
+  header.forEach((h, i) => {
+    const key = h.toLowerCase().trim();
+    if (key) map[key] = i;
+  });
+  return map;
+}
+
+export function parseWorkdayExport(grid: string[][]): ParsedExport {
+  const rows: EnrollmentRow[] = [];
+  const excluded: ExcludedRow[] = [];
+  const seenStudents = new Set<string>();
+
+  const hIdx = headerIndex(grid);
+  if (hIdx === -1) return { studentNumber: null, rows, excluded, unparsedTables: [] };
+
+  const cols = columnMap(grid[hIdx]);
+  const courseCol = cols['course listing'] ?? cols['transfer credit'];
+  const sectionCol = cols['section'];
+  const statusCol = cols['registration status'];
+  const activityCol = cols['instructional format'];
+  const meetingCol = cols['meeting patterns'];
+  const gradeCol = cols['grade'];
+  const originCol = cols['originating coursework'];
+
+  for (const row of grid.slice(hIdx + 1)) {
+    const identity = row[0] ?? '';
+    const student = parseStudentNumber(identity);
+    if (student) seenStudents.add(student);
+
+    const listing = courseCol === undefined ? '' : (row[courseCol] ?? '');
+    if (!listing) continue;
+
+    // Transfer credit was earned at another institution — it must never grant
+    // review rights for UBC's version of the course (spec 7B).
+    const grade = gradeCol === undefined ? '' : (row[gradeCol] ?? '');
+    const origin = originCol === undefined ? '' : (row[originCol] ?? '');
+    if (grade.trim().toUpperCase() === 'TR' || origin.trim()) {
+      excluded.push({ raw: listing, reason: 'transfer_credit' });
+      continue;
+    }
+
+    const code = parseUbcCourseCode(listing.split(' - ')[0]?.trim() ?? '');
+    if (!code) {
+      excluded.push({ raw: listing, reason: 'unparseable_course' });
+      continue;
+    }
+
+    const meeting = meetingCol === undefined
+      ? { startDate: null, endDate: null }
+      : parseMeetingPattern(row[meetingCol] ?? '');
+
+    const term = meeting.startDate ? inferTerm(meeting.startDate) : null;
+    if (!term) {
+      excluded.push({ raw: listing, reason: 'no_term' });
+      continue;
+    }
+
+    rows.push({
+      subjectCode: code.subjectCode,
+      campus: code.campus,
+      courseNumber: code.number,
+      sectionCode: sectionCol === undefined ? null : parseSectionCode(row[sectionCol] ?? ''),
+      activity: activityCol === undefined ? null : (row[activityCol] || null),
+      startDate: meeting.startDate,
+      termYear: term.year,
+      termSession: term.session,
+      termNumber: term.termNumber,
+    });
+  }
+
+  if (seenStudents.size > 1) {
+    throw new Error(
+      'Export contains more than one student — a legitimate export covers one student.',
+    );
+  }
+
+  // statusCol is read to keep the contract explicit even when unused today:
+  // every fixture row is "Registered", and in-progress rows DO grant rights.
+  void statusCol;
+
+  // Scan past the table we parsed for further header-like rows — structures we
+  // don't recognise yet (e.g. "Completed Coursework" on a senior student's
+  // export). We cannot parse a table we've never seen, but we can refuse to
+  // silently drop it. Matching is restricted to whole words: real data cells
+  // routinely contain near-hits ("Graded" in the Grading Basis column) that
+  // must not be mistaken for a new table header.
+  const HEADER_HINT = /\b(Course Listing|Transfer Credit|Completed Coursework|Grade)\b/i;
+  const unparsedTables = grid
+    .slice(hIdx + 1)
+    .map((r, i) => ({ r, absoluteIdx: hIdx + 1 + i }))
+    .filter(({ r, absoluteIdx }) => {
+      if (!r.some((c) => HEADER_HINT.test(c))) return false;
+      // A header row for a later table: matches a hint, and the row above it is
+      // blank (i.e. it is not just another data row, nor the header we already
+      // parsed at hIdx — that row is never blank).
+      const prev = grid[absoluteIdx - 1];
+      return !prev || prev.every((c) => !c);
+    })
+    .map(({ r }) => r.filter(Boolean).join(' | '));
+
+  return { studentNumber: [...seenStudents][0] ?? null, rows, excluded, unparsedTables };
+}

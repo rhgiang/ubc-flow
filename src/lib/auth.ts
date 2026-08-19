@@ -1,7 +1,6 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import { db } from '@/lib/db';
-import { verifyPassword } from '@/lib/hash';
+import { authorizeCredentials } from '@/lib/authorize-credentials';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Credentials provider only supports JWT sessions in Auth.js v5 —
@@ -11,17 +10,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       credentials: { email: {}, password: {} },
-      async authorize(creds) {
-        const email = String(creds?.email ?? '').trim().toLowerCase();
-        const password = String(creds?.password ?? '');
-        if (!email || !password) return null;
-
-        const user = await db.user.findUnique({ where: { email } });
-        if (!user?.passwordHash) return null;
-        if (!(await verifyPassword(password, user.passwordHash))) return null;
-
-        return { id: user.id, email: user.email };
-      },
+      authorize: authorizeCredentials,
     }),
   ],
   callbacks: {

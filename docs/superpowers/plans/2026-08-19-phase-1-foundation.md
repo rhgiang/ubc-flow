@@ -1360,9 +1360,23 @@ git commit -m "feat: parse UBC JSON:API course and section nodes"
 GET https://courses.students.ubc.ca/jsonapi/node/section
   ?filter[field_academic_term.meta.drupal_internal__target_id]=<UBC_PERIOD_ID>
   &filter[field_is_visible]=1
-  &include=field_course,field_status,field_instructional_method,field_delivery_mode
+  &include=field_course.field_subject,field_status,field_instructional_method,field_delivery_mode
   &page[limit]=50
 ```
+
+**Linking a section to its Subject row — do NOT match on name or code.** The nested
+include `field_course.field_subject` resolves each course to a
+`taxonomy_term--subject` whose `meta.drupal_internal__target_id` is *the same
+numeric id Task 5 stored as `Subject.ubcSubjectId`* (verified live: CPSC_V 221 ->
+1810, and the dropdown's "Computer Science (Vancouver)" is also 1810). Look the
+subject up by `ubcSubjectId_campus` and nothing else. Matching the course code
+`"CPSC"` against the dropdown name `"Computer Science (Vancouver)"` never compares
+equal, and would silently skip every section.
+
+**This task must extend Task 6's `RawCourse`** with a `ubcSubjectId: string | null`
+field, populated in `parseCourseNode` from
+`node.relationships.field_subject.data.meta.drupal_internal__target_id`. Add a
+covering test for it in `tests/parse-nodes.test.ts`.
 
 The response carries `links.next.href` for pagination — follow it until absent.
 `meta.count` reports the total matching sections (44089 across all terms at spike
@@ -1399,7 +1413,8 @@ export function sectionsUrl(ubcPeriodId: string, limit = 50): string {
   const p = new URLSearchParams({
     'filter[field_academic_term.meta.drupal_internal__target_id]': ubcPeriodId,
     'filter[field_is_visible]': '1',
-    include: 'field_course,field_status,field_instructional_method,field_delivery_mode',
+    include:
+      'field_course.field_subject,field_status,field_instructional_method,field_delivery_mode',
     'page[limit]': String(limit),
   });
   return `${BASE}?${p.toString()}`;
@@ -1552,10 +1567,24 @@ export async function upsertSections(rows: RawSection[], termId: string) {
     if (!row.course || row.course.campus !== CAMPUS) continue;
     if (!row.sectionCode) continue;
 
-    const subject = await db.subject.findFirst({
-      where: { code: row.course.subjectCode, campus: CAMPUS },
+    // Exact match on UBC's own subject id — the same value Task 5 stored from the
+    // dropdown. Never match on name or code: the dropdown says "Computer Science
+    // (Vancouver)", course rows say "CPSC", and those never compare equal.
+    if (!row.course.ubcSubjectId) continue;
+    const subject = await db.subject.findUnique({
+      where: {
+        ubcSubjectId_campus: { ubcSubjectId: row.course.ubcSubjectId, campus: CAMPUS },
+      },
     });
     if (!subject) continue;
+
+    // Subject codes appear only on course rows, never the dropdown — fill in on sight.
+    if (!subject.code) {
+      await db.subject.update({
+        where: { id: subject.id },
+        data: { code: row.course.subjectCode },
+      });
+    }
 
     const course = await db.course.upsert({
       where: { subjectId_number: { subjectId: subject.id, number: row.course.number } },
@@ -1619,24 +1648,6 @@ export async function upsertSections(rows: RawSection[], termId: string) {
   }
 }
 
-/** Subject codes appear only on course rows, never the dropdown — backfill here. */
-async function backfillSubjectCodes(rows: RawSection[]) {
-  const seen = new Map<string, string>();
-  for (const r of rows) {
-    if (r.course && r.course.campus === CAMPUS) {
-      seen.set(r.course.subjectCode, r.course.subjectCode);
-    }
-  }
-  // Subjects arrive from the dropdown with a name but no code; match on name is
-  // unreliable, so only fill codes we can attach by an existing code match.
-  for (const code of seen.keys()) {
-    await db.subject.updateMany({
-      where: { campus: CAMPUS, code: null, name: { equals: code, mode: 'insensitive' } },
-      data: { code },
-    });
-  }
-}
-
 export async function scrapeSections() {
   const now = new Date().getFullYear();
   const terms = await db.term.findMany({
@@ -1668,7 +1679,6 @@ export async function scrapeSections() {
       continue;
     }
 
-    await backfillSubjectCodes(usable);
     await upsertSections(usable, term.id);
     console.log(`${term.name}: ${usable.length} sections`);
   }

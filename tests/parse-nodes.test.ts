@@ -97,6 +97,11 @@ describe('parseSectionNode', () => {
         field_credits: '4.00',
         body: { value: '<p>Design and analysis. Prerequisite: One of CPSC_V 210.</p>' },
       },
+      relationships: {
+        field_subject: {
+          data: { type: 'taxonomy_term--subject', id: 'subject-1810', meta: { drupal_internal__target_id: 1810 } },
+        },
+      },
     },
   ]);
 
@@ -133,6 +138,36 @@ describe('parseSectionNode', () => {
     expect(r.course!.campus).toBe('V');
     expect(r.course!.title).toBe('Basic Algorithms and Data Structures');
     expect(r.course!.credits).toBe(4);
+  });
+
+  it('coerces the subject relationship meta id to a string, matching Subject.ubcSubjectId', () => {
+    const r = parseSectionNode(node, included);
+    // Verified live: CPSC_V 221's field_subject meta id is 1810, the same numeric
+    // id Task 5 stored as Subject.ubcSubjectId for "Computer Science (Vancouver)".
+    expect(r.course!.ubcSubjectId).toBe('1810');
+  });
+
+  it('returns a null ubcSubjectId when the course node has no subject relationship', () => {
+    const courseWithoutSubject = buildIncludedMap([
+      {
+        type: 'node--course',
+        id: 'course-2',
+        attributes: {
+          title: 'No Subject Course',
+          field_course_code: 'CPSC_V 999',
+          field_credits: '3.00',
+        },
+      },
+    ]);
+    const nodeWithoutSubject = {
+      ...node,
+      relationships: {
+        ...node.relationships,
+        field_course: { data: { type: 'node--course', id: 'course-2' } },
+      },
+    };
+    const r = parseSectionNode(nodeWithoutSubject as never, courseWithoutSubject);
+    expect(r.course!.ubcSubjectId).toBeNull();
   });
 
   it('resolves taxonomy relationships to names', () => {

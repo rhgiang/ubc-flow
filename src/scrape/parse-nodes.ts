@@ -4,7 +4,10 @@ export type JsonApiResource = {
   type: string;
   id: string;
   attributes: Record<string, unknown>;
-  relationships?: Record<string, { data?: { type: string; id: string } | null }>;
+  relationships?: Record<
+    string,
+    { data?: { type: string; id: string; meta?: Record<string, unknown> } | null }
+  >;
 };
 
 export type SectionNode = JsonApiResource;
@@ -25,6 +28,7 @@ export type RawCourse = {
   title: string;
   credits: number | null;
   bodyHtml: string | null;
+  ubcSubjectId: string | null;
 };
 
 export type RawSection = {
@@ -100,11 +104,20 @@ function parseCourseNode(node: JsonApiResource | null): RawCourse | null {
 
   const body = node.attributes.body as { value?: string } | null | undefined;
 
+  // Drupal embeds the subject's numeric id right on the relationship linkage
+  // (meta.drupal_internal__target_id) — no need to resolve it through `included`.
+  // This is the same id Task 5 stored as Subject.ubcSubjectId; never match subjects
+  // by name or course code instead (see parse-nodes tests / sections job).
+  const subjectTargetId = node.relationships?.field_subject?.data?.meta?.drupal_internal__target_id;
+  const ubcSubjectId =
+    subjectTargetId === null || subjectTargetId === undefined ? null : String(subjectTargetId);
+
   return {
     ...code,
     title: String(node.attributes.title ?? ''),
     credits: Number.isFinite(credits as number) ? (credits as number) : null,
     bodyHtml: body?.value ?? null,
+    ubcSubjectId,
   };
 }
 

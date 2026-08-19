@@ -56,7 +56,8 @@ describe('upsertSections', () => {
 
   it('is idempotent across repeated runs', async () => {
     await upsertSections(rows, termId);
-    await upsertSections(rows, termId);
+    const secondRunWritten = await upsertSections(rows, termId);
+    expect(secondRunWritten).toBe(1);
 
     const subject = await db.subject.findUniqueOrThrow({
       where: { ubcSubjectId_campus: { ubcSubjectId: 'ZZTEST-SUBJ', campus: 'V' } },
@@ -85,7 +86,29 @@ describe('upsertSections', () => {
 
   it('skips a section whose course failed to parse', async () => {
     const before = await db.section.count({ where: { termId } });
-    await upsertSections([{ ...rows[0], sectionCode: '999', course: null }], termId);
+    const written = await upsertSections([{ ...rows[0], sectionCode: '999', course: null }], termId);
+    expect(written).toBe(0);
+    expect(await db.section.count({ where: { termId } })).toBe(before);
+  });
+
+  // Guards against the exact silent-failure mode the safety guard exists to catch: a row
+  // that PARSES fine (course present, right campus, sectionCode present) but whose
+  // ubcSubjectId matches no Subject row in the DB — e.g. if UBC ever renamed the
+  // field_subject relationship. Without this returning 0, scrapeSections would log a
+  // "success" while writing nothing.
+  it('returns 0 for a parsed row whose subject cannot be resolved in the DB', async () => {
+    const before = await db.section.count({ where: { termId } });
+    const written = await upsertSections(
+      [
+        {
+          ...rows[0],
+          sectionCode: '888',
+          course: { ...rows[0].course!, ubcSubjectId: 'NO-SUCH-SUBJECT-ID' },
+        },
+      ],
+      termId,
+    );
+    expect(written).toBe(0);
     expect(await db.section.count({ where: { termId } })).toBe(before);
   });
 });

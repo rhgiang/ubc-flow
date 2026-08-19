@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "scrape:catalog": "tsx src/scrape/jobs/catalog.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

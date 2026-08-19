@@ -927,7 +927,7 @@ git commit -m "feat: parse Workday exports, excluding transfer credit"
 ### Task 4: Auth.js setup, signup and login
 
 **Files:**
-- Create: `src/lib/auth.ts`, `src/app/api/auth/[...nextauth]/route.ts`
+- Create: `src/lib/auth.ts`, `src/app/api/auth/[...nextauth]/route.ts`, `src/types/next-auth.d.ts`
 - Create: `src/app/(auth)/signup/page.tsx`, `src/app/(auth)/login/page.tsx`
 - Create: `src/app/actions/auth.ts`
 - Test: `tests/signup.test.ts`
@@ -1095,6 +1095,23 @@ Create `src/app/api/auth/[...nextauth]/route.ts`:
 import { handlers } from '@/lib/auth';
 
 export const { GET, POST } = handlers;
+```
+
+The `session()` callback above assigns `session.user.id`, which the default
+Auth.js types do not declare — left as-is, `npx tsc --noEmit` fails in this task
+and in every later task that reads `session.user.id` (Task 6's upload route).
+Create `src/types/next-auth.d.ts` to augment it:
+
+```ts
+import type { DefaultSession } from 'next-auth';
+
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+    } & DefaultSession['user'];
+  }
+}
 ```
 
 - [ ] **Step 6: Run tests to verify they pass**

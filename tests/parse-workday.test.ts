@@ -158,4 +158,19 @@ describe('parseWorkdayExport — unknown tables', () => {
     const grid = await readWorkbookGrid(readFileSync('tests/fixtures/workday-current.xlsx'));
     expect(parseWorkdayExport(grid).unparsedTables).toHaveLength(0);
   });
+
+  it('stops at the first table boundary instead of reading a second real table through the first table\'s column map', async () => {
+    const current = await readWorkbookGrid(readFileSync('tests/fixtures/workday-current.xlsx'));
+    const record = await readWorkbookGrid(readFileSync('tests/fixtures/workday-record.xlsx'));
+
+    const soloRows = parseWorkdayExport(current).rows;
+    const r = parseWorkdayExport([...current, ...record]);
+
+    // No rows leaked from the second table via the first table's column map.
+    expect(r.rows).toHaveLength(soloRows.length);
+    // The second table is reported, not silently dropped.
+    expect(r.unparsedTables.length).toBeGreaterThan(0);
+    // None of the transfer-credit rows from the second table appear in `rows`.
+    expect(r.rows.some((x) => x.subjectCode === 'MATH' && x.courseNumber === '101')).toBe(false);
+  });
 });

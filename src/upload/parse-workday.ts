@@ -77,6 +77,19 @@ function columnMap(header: string[]): Record<string, number> {
   return map;
 }
 
+// A header row for ANY table (the one we parse, or a further one we don't)
+// always has an empty column 0: that column holds only the per-row student
+// identity on real data rows, and headers never carry that. (A title BANNER
+// row, e.g. "Transfer Credit from Coursework", is neither — it puts its text
+// in column 0, so this predicate correctly does not treat it as a header.)
+// Matching is restricted to whole words: real data cells routinely contain
+// near-hits ("Graded" in the Grading Basis column) that must not be mistaken
+// for a new table header.
+const HEADER_HINT = /\b(Course Listing|Transfer Credit|Completed Coursework|Grade)\b/i;
+function isTableHeaderRow(row: string[]): boolean {
+  return !row[0] && row.some((c) => HEADER_HINT.test(c));
+}
+
 export function parseWorkdayExport(grid: string[][]): ParsedExport {
   const rows: EnrollmentRow[] = [];
   const excluded: ExcludedRow[] = [];
@@ -84,6 +97,20 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
 
   const hIdx = headerIndex(grid);
   if (hIdx === -1) return { studentNumber: null, rows, excluded, unparsedTables: [] };
+
+  // The current table's data ends at the next row that looks like a header for
+  // a further table (spec §8) — a senior student's export can hold more than
+  // one table, and reading past this boundary with the FIRST table's column
+  // map would misread the second table's columns as this table's, including
+  // possibly reading course-code-shaped text through a map with no
+  // gradeCol/originCol to exclude it as transfer credit.
+  let tableEnd = grid.length;
+  for (let i = hIdx + 1; i < grid.length; i++) {
+    if (isTableHeaderRow(grid[i])) {
+      tableEnd = i;
+      break;
+    }
+  }
 
   const cols = columnMap(grid[hIdx]);
   const courseCol = cols['course listing'] ?? cols['transfer credit'];
@@ -94,7 +121,7 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
   const gradeCol = cols['grade'];
   const originCol = cols['originating coursework'];
 
-  for (const row of grid.slice(hIdx + 1)) {
+  for (const row of grid.slice(hIdx + 1, tableEnd)) {
     const identity = row[0] ?? '';
     const student = parseStudentNumber(identity);
     if (student) seenStudents.add(student);
@@ -150,25 +177,14 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
   // every fixture row is "Registered", and in-progress rows DO grant rights.
   void statusCol;
 
-  // Scan past the table we parsed for further header-like rows — structures we
-  // don't recognise yet (e.g. "Completed Coursework" on a senior student's
-  // export). We cannot parse a table we've never seen, but we can refuse to
-  // silently drop it. Matching is restricted to whole words: real data cells
-  // routinely contain near-hits ("Graded" in the Grading Basis column) that
-  // must not be mistaken for a new table header.
-  const HEADER_HINT = /\b(Course Listing|Transfer Credit|Completed Coursework|Grade)\b/i;
+  // Everything from tableEnd on is outside the table we parsed. Report every
+  // further header row we find there — structures we don't recognise yet
+  // (e.g. "Completed Coursework" on a senior student's export). We cannot
+  // parse a table we've never seen, but we can refuse to silently drop it.
   const unparsedTables = grid
-    .slice(hIdx + 1)
-    .map((r, i) => ({ r, absoluteIdx: hIdx + 1 + i }))
-    .filter(({ r, absoluteIdx }) => {
-      if (!r.some((c) => HEADER_HINT.test(c))) return false;
-      // A header row for a later table: matches a hint, and the row above it is
-      // blank (i.e. it is not just another data row, nor the header we already
-      // parsed at hIdx — that row is never blank).
-      const prev = grid[absoluteIdx - 1];
-      return !prev || prev.every((c) => !c);
-    })
-    .map(({ r }) => r.filter(Boolean).join(' | '));
+    .slice(tableEnd)
+    .filter((r) => isTableHeaderRow(r))
+    .map((r) => r.filter(Boolean).join(' | '));
 
   return { studentNumber: [...seenStudents][0] ?? null, rows, excluded, unparsedTables };
 }

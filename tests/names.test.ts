@@ -29,11 +29,23 @@ describe('normalizeInstructorName', () => {
   });
 
   it('strips accents for the slug but keeps them in the name', () => {
-    const r = normalizeInstructorName('Muller, Jorg');
+    const r = normalizeInstructorName('Müller, Jörg');
+    expect(r.name).toBe('Jörg Müller');
     expect(r.slug).toBe('jorg-muller');
+  });
+
+  it('strips accents for the slug but keeps them in the name (second case)', () => {
+    const r = normalizeInstructorName('François Côté');
+    expect(r.name).toBe('François Côté');
+    expect(r.slug).toBe('francois-cote');
   });
 
   it('handles a single-token name', () => {
     expect(normalizeInstructorName('Plato')).toEqual({ name: 'Plato', slug: 'plato' });
+  });
+
+  it('returns an empty slug for blank input, which callers must filter', () => {
+    expect(normalizeInstructorName('')).toEqual({ name: '', slug: '' });
+    expect(normalizeInstructorName('   ')).toEqual({ name: '', slug: '' });
   });
 });

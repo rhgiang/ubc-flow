@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 
+export const revalidate = 3600;
+
 export default async function Explore() {
   const subjects = await db.subject.findMany({
     where: { campus: 'V', code: { not: null } },

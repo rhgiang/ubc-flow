@@ -25,17 +25,26 @@ export function buildSearchWhere(query: string): Prisma.CourseWhereInput {
   return { title: { contains: q, mode: 'insensitive' } };
 }
 
-export async function searchCourses(query: string, limit = 25): Promise<CourseHit[]> {
-  const courses = await db.course.findMany({
-    where: { ...buildSearchWhere(query), campus: 'V' },
-    include: { subject: true },
-    take: limit,
-    orderBy: [{ subject: { code: 'asc' } }, { number: 'asc' }],
-  });
+export type SearchResult = { hits: CourseHit[]; total: number };
 
-  return courses.map((c) => ({
-    code: `${c.subject.code} ${c.number}`,
-    title: c.title,
-    subjectName: c.subject.name,
-  }));
+export async function searchCourses(query: string, limit = 25): Promise<SearchResult> {
+  const where = { ...buildSearchWhere(query), campus: 'V' };
+  const [courses, total] = await Promise.all([
+    db.course.findMany({
+      where,
+      include: { subject: true },
+      take: limit,
+      orderBy: [{ subject: { code: 'asc' } }, { number: 'asc' }],
+    }),
+    db.course.count({ where }),
+  ]);
+
+  return {
+    hits: courses.map((c) => ({
+      code: `${c.subject.code} ${c.number}`,
+      title: c.title,
+      subjectName: c.subject.name,
+    })),
+    total,
+  };
 }

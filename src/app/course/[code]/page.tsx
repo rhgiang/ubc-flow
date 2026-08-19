@@ -21,7 +21,11 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
           meetingTimes: true,
           instructors: { include: { instructor: true } },
         },
-        orderBy: { sectionCode: 'asc' },
+        orderBy: [
+          { term: { year: 'desc' } },
+          { term: { termNumber: 'desc' } },
+          { sectionCode: 'asc' },
+        ],
       },
     },
   });

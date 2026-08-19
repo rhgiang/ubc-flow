@@ -7,7 +7,8 @@ export default async function Home({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q = '' } = await searchParams;
-  const results = q ? await searchCourses(q) : [];
+  const { hits, total } = q ? await searchCourses(q) : { hits: [], total: 0 };
+  const truncated = q !== '' && hits.length < total;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
@@ -27,10 +28,12 @@ export default async function Home({
       {q && (
         <section className="mt-10">
           <p className="text-sm text-slate-500">
-            {results.length} result{results.length === 1 ? '' : 's'} for “{q}”
+            {truncated
+              ? `Showing ${hits.length} of ${total} results for “${q}” — refine your search to narrow this down`
+              : `${total} result${total === 1 ? '' : 's'} for “${q}”`}
           </p>
           <ul className="mt-4 divide-y">
-            {results.map((r) => (
+            {hits.map((r) => (
               <li key={r.code} className="py-3">
                 <Link
                   href={`/course/${r.code.toLowerCase().replace(' ', '-')}`}

@@ -46,6 +46,8 @@ model Term {
   session     String
   termNumber  Int?
   campus      String
+  startDate   DateTime?
+  endDate     DateTime?
   sections    Section[]
 }
 

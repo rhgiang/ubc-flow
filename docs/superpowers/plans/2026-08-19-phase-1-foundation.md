@@ -6,7 +6,15 @@
 
 **Architecture:** A single Next.js (App Router) TypeScript application with Prisma over Postgres. Scrapers are standalone `tsx` scripts sharing the same Prisma client, run on a schedule, writing to our database — never live proxies on the request path. All HTML parsing lives in **pure functions** (`html string → structured data`) so the test suite needs no network and no database; only idempotency tests touch Postgres.
 
-**Tech Stack:** Next.js 15 (App Router), TypeScript, Prisma 6, Postgres (Neon), Tailwind + shadcn/ui, Vitest, Cheerio (static HTML), Playwright (JS-rendered pages), tsx.
+**Tech Stack:** Next.js (App Router), TypeScript, Prisma, Postgres, Tailwind + shadcn/ui, Vitest, Cheerio (form dropdowns + course body HTML), tsx.
+
+> **Revised after the Task 3 spike.** The spike found an open, unauthenticated
+> Drupal **JSON:API** at `courses.students.ubc.ca/jsonapi` — verified with bare
+> `curl`, no cookies. Tasks 6-8 therefore parse structured JSON rather than
+> scraping theme markup, and **Playwright is not used in the production path**
+> (it remains installed, and was the tool that discovered the API). The academic
+> calendar at `vancouver.calendar.ubc.ca` is no longer scraped at all: course
+> descriptions, credits, and prerequisite prose all arrive from the same API.
 
 **Spec:** [`docs/superpowers/specs/2026-08-19-ubc-flow-foundation-design.md`](../specs/2026-08-19-ubc-flow-foundation-design.md)
 
@@ -35,9 +43,10 @@ src/app/professor/[slug]/page.tsx — professor detail
 src/lib/db.ts                     — Prisma singleton
 src/lib/format.ts                 — shared display helpers
 src/scrape/http.ts                — rate-limited fetch + User-Agent
-src/scrape/parse-catalog.ts       — PURE: subject/term option parsing
-src/scrape/parse-sections.ts      — PURE: course/section row parsing
-src/scrape/parse-descriptions.ts  — PURE: academic calendar parsing
+src/scrape/fetch-json.ts          — JSON:API pagination walker
+src/scrape/parse-catalog.ts       — PURE: subject/term dropdown parsing (HTML)
+src/scrape/parse-nodes.ts         — PURE: JSON:API course/section node parsing
+src/scrape/parse-body.ts          — PURE: description/prereq extraction
 src/scrape/names.ts               — PURE: instructor name normalisation
 src/scrape/jobs/catalog.ts        — subjects + terms job
 src/scrape/jobs/sections.ts       — courses + sections job
@@ -840,21 +849,55 @@ git commit -m "feat: scrape UBC subjects and terms"
 
 ---
 
-### Task 6: Section and instructor-name parsers
+### Task 6: JSON:API parsers and instructor-name normalisation
+
+> **REVISED after the Task 3 spike.** The original version of this task wrote a
+> Cheerio parser against scraped Drupal HTML. The spike found an open,
+> unauthenticated Drupal JSON:API on the same host, verified with bare `curl`.
+> We parse structured JSON instead of theme markup: stable across template
+> changes, and it exposes instructor names the rendered HTML never shows.
 
 **Files:**
-- Create: `src/scrape/parse-sections.ts`, `src/scrape/names.ts`
-- Test: `tests/parse-sections.test.ts`, `tests/names.test.ts`
+- Create: `src/scrape/parse-nodes.ts`, `src/scrape/names.ts`
+- Test: `tests/parse-nodes.test.ts`, `tests/names.test.ts`
 
 **Interfaces:**
-- Consumes: `tests/fixtures/course-search-cpsc.html` and the row structure recorded in Task 3's notes.
+- Consumes: nothing (pure functions over JSON already in hand)
 - Produces:
   - `normalizeInstructorName(raw: string): { name: string; slug: string }`
-  - `parseSections(html: string): RawCourseSection[]`
-  - `type RawCourseSection = { subjectCode: string; courseNumber: string; courseTitle: string; sectionCode: string; activity: string | null; status: string | null; deliveryMode: string | null; instructorNames: string[]; meetings: RawMeeting[] }`
-  - `type RawMeeting = { day: string; startTime: string | null; endTime: string | null; building: string | null; room: string | null }`
+  - `parseUbcCourseCode(raw: string): { subjectCode: string; campus: string; number: string } | null`
+  - `secondsToTime(s: number | null): string | null`
+  - `parseDays(days: string[] | null): string[]`
+  - `parseSectionNode(node: SectionNode, included: IncludedMap): RawSection`
+  - `buildIncludedMap(included: JsonApiResource[]): IncludedMap`
+  - types `RawSection`, `RawCourse`, `SectionNode`, `JsonApiResource`, `IncludedMap`
 
-**Instructor name hazard (spec §5.1):** UBC renders names as `"Smith, John"`, `"John Smith"`, `"SMITH, J"`. Normalise before storing; collisions are a data-quality issue to surface, never to silently merge.
+**Naming note:** this task's course-code parser is `parseUbcCourseCode` (parses
+UBC's `"CPSC_V 221"` wire format). Task 9 separately defines `parseCourseCode`
+in `src/lib/format.ts` for URL slugs (`"cpsc-221"`). Two different formats, two
+different functions — do not merge them or reuse one name for both.
+
+**Verified wire formats (from the live API during the Task 3 spike):**
+
+```
+field_course_code   "CPSC_V 221"   subject CPSC, campus V, number 221
+                    "EXCH_O 580"   campus O = Okanagan
+field_section_number "101"
+field_days          ["m","w","f"]  also "t", "th", "s", "su"; [] when unscheduled
+field_start_time    50400          seconds since midnight -> "14:00"
+field_end_time      54000          null when unscheduled
+field_instructors   ["Parsa Rajabi"]   [] when unassigned
+field_credits       "4.00"
+```
+
+Relationships resolve through the response's `included` array by `id`:
+`field_status` -> `taxonomy_term--status` `.name` (`"Open"` / `"Closed"` / `"Waitlist"`),
+`field_instructional_method` -> `.name` (`"Lecture"` / `"Laboratory"` / `"Experiential"`) — this is our `activity`,
+`field_delivery_mode` -> `.name` (`"In person"`), and
+`field_course` -> `node--course` carrying `field_course_code`, `title`, `field_credits`, `body`.
+
+**Building and room are genuinely unavailable** anywhere in this API — the spike
+confirmed it. `MeetingTime.building` and `.room` stay null. Do not invent them.
 
 - [ ] **Step 1: Write the failing name tests**
 
@@ -873,9 +916,9 @@ describe('normalizeInstructorName', () => {
   });
 
   it('leaves "First Last" alone', () => {
-    expect(normalizeInstructorName('John Smith')).toEqual({
-      name: 'John Smith',
-      slug: 'john-smith',
+    expect(normalizeInstructorName('Parsa Rajabi')).toEqual({
+      name: 'Parsa Rajabi',
+      slug: 'parsa-rajabi',
     });
   });
 
@@ -887,9 +930,13 @@ describe('normalizeInstructorName', () => {
     expect(normalizeInstructorName('  Smith,   John  ').name).toBe('John Smith');
   });
 
-  it('handles hyphenated and accented names', () => {
+  it('handles hyphenated names', () => {
     expect(normalizeInstructorName('Garcia-Lopez, Ana').name).toBe('Ana Garcia-Lopez');
-    expect(normalizeInstructorName('Muller, Jorg').slug).toBe('jorg-muller');
+  });
+
+  it('strips accents for the slug but keeps them in the name', () => {
+    const r = normalizeInstructorName('Muller, Jorg');
+    expect(r.slug).toBe('jorg-muller');
   });
 
   it('handles a single-token name', () => {
@@ -911,7 +958,7 @@ Create `src/scrape/names.ts`:
 function titleCase(s: string): string {
   return s
     .toLowerCase()
-    .replace(/(^|[\s\-'])([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase());
+    .replace(/(^|[\s\-'])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase());
 }
 
 export function normalizeInstructorName(raw: string): { name: string; slug: string } {
@@ -921,12 +968,11 @@ export function normalizeInstructorName(raw: string): { name: string; slug: stri
     ? cleaned.split(',').map((p) => p.trim())
     : [null, null];
 
-  const ordered = last && first ? `${first} ${last}` : cleaned;
-  const name = titleCase(ordered);
+  const name = titleCase(last && first ? `${first} ${last}` : cleaned);
 
   const slug = name
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/\p{Diacritic}/gu, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
@@ -938,62 +984,215 @@ export function normalizeInstructorName(raw: string): { name: string; slug: stri
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- names`
-Expected: PASS, 6 tests.
+Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Write the failing section-parser tests**
+- [ ] **Step 5: Write the failing node-parser tests**
 
-Create `tests/parse-sections.test.ts`. **Adjust the expected values to match the real fixture** — read `docs/superpowers/notes/2026-08-19-scraper-spike.md` for the actual row structure first, and assert against courses genuinely present in the fixture.
+Create `tests/parse-nodes.test.ts`:
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { parseSections } from '@/scrape/parse-sections';
+import {
+  parseUbcCourseCode,
+  secondsToTime,
+  parseDays,
+  buildIncludedMap,
+  parseSectionNode,
+} from '@/scrape/parse-nodes';
 
-const html = readFileSync('tests/fixtures/course-search-cpsc.html', 'utf8');
-
-describe('parseSections', () => {
-  const rows = parseSections(html);
-
-  it('finds many sections', () => {
-    expect(rows.length).toBeGreaterThan(10);
+describe('parseUbcCourseCode', () => {
+  it('splits a Vancouver code', () => {
+    expect(parseUbcCourseCode('CPSC_V 221')).toEqual({
+      subjectCode: 'CPSC',
+      campus: 'V',
+      number: '221',
+    });
   });
 
-  it('parses subject code and course number off every row', () => {
-    for (const r of rows) {
-      expect(r.subjectCode).toBe('CPSC');
-      expect(r.courseNumber).toMatch(/^\d{3}[A-Z]?$/);
-    }
+  it('splits an Okanagan code', () => {
+    expect(parseUbcCourseCode('EXCH_O 580')).toEqual({
+      subjectCode: 'EXCH',
+      campus: 'O',
+      number: '580',
+    });
   });
 
-  it('captures a known course', () => {
-    expect(rows.some((r) => r.courseNumber === '221')).toBe(true);
+  it('keeps a lettered course number', () => {
+    expect(parseUbcCourseCode('MATH_V 100A')?.number).toBe('100A');
   });
 
-  it('never emits an empty section code', () => {
-    expect(rows.every((r) => r.sectionCode.length > 0)).toBe(true);
+  it('returns null on an unparseable code', () => {
+    expect(parseUbcCourseCode('nonsense')).toBeNull();
+  });
+});
+
+describe('secondsToTime', () => {
+  it('converts a whole hour', () => {
+    expect(secondsToTime(50400)).toBe('14:00');
   });
 
-  it('emits meeting times with a day', () => {
-    const withMeetings = rows.filter((r) => r.meetings.length > 0);
-    expect(withMeetings.length).toBeGreaterThan(0);
-    for (const m of withMeetings[0].meetings) {
-      expect(m.day.length).toBeGreaterThan(0);
-    }
+  it('converts a half hour', () => {
+    expect(secondsToTime(34200)).toBe('09:30');
+  });
+
+  it('handles midnight', () => {
+    expect(secondsToTime(0)).toBe('00:00');
+  });
+
+  it('passes null through', () => {
+    expect(secondsToTime(null)).toBeNull();
+  });
+});
+
+describe('parseDays', () => {
+  it('maps UBC day codes to three-letter days', () => {
+    expect(parseDays(['m', 'w', 'f'])).toEqual(['Mon', 'Wed', 'Fri']);
+  });
+
+  it('distinguishes t from th', () => {
+    expect(parseDays(['t', 'th'])).toEqual(['Tue', 'Thu']);
+  });
+
+  it('returns empty for an unscheduled section', () => {
+    expect(parseDays([])).toEqual([]);
+    expect(parseDays(null)).toEqual([]);
+  });
+
+  it('ignores unknown codes rather than emitting junk', () => {
+    expect(parseDays(['m', 'zz'])).toEqual(['Mon']);
+  });
+});
+
+describe('parseSectionNode', () => {
+  const included = buildIncludedMap([
+    {
+      type: 'taxonomy_term--status',
+      id: 'status-1',
+      attributes: { name: 'Open' },
+    },
+    {
+      type: 'taxonomy_term--instructional_method',
+      id: 'method-1',
+      attributes: { name: 'Lecture' },
+    },
+    {
+      type: 'taxonomy_term--delivery_mode',
+      id: 'delivery-1',
+      attributes: { name: 'In person' },
+    },
+    {
+      type: 'node--course',
+      id: 'course-1',
+      attributes: {
+        title: 'Basic Algorithms and Data Structures',
+        field_course_code: 'CPSC_V 221',
+        field_course_number: '221',
+        field_credits: '4.00',
+        body: { value: '<p>Design and analysis. Prerequisite: One of CPSC_V 210.</p>' },
+      },
+    },
+  ]);
+
+  const node = {
+    type: 'node--section',
+    id: 'section-1',
+    attributes: {
+      title: 'Basic Algorithms and Data Structures :: 2026 :: Sec 101',
+      field_section_number: '101',
+      field_days: ['m', 'w', 'f'],
+      field_start_time: 50400,
+      field_end_time: 54000,
+      field_instructors: ['Parsa Rajabi'],
+      field_is_visible: true,
+    },
+    relationships: {
+      field_course: { data: { type: 'node--course', id: 'course-1' } },
+      field_status: { data: { type: 'taxonomy_term--status', id: 'status-1' } },
+      field_instructional_method: {
+        data: { type: 'taxonomy_term--instructional_method', id: 'method-1' },
+      },
+      field_delivery_mode: {
+        data: { type: 'taxonomy_term--delivery_mode', id: 'delivery-1' },
+      },
+    },
+  };
+
+  it('resolves the course through the included map', () => {
+    const r = parseSectionNode(node, included);
+    expect(r.course.subjectCode).toBe('CPSC');
+    expect(r.course.number).toBe('221');
+    expect(r.course.campus).toBe('V');
+    expect(r.course.title).toBe('Basic Algorithms and Data Structures');
+    expect(r.course.credits).toBe(4);
+  });
+
+  it('resolves taxonomy relationships to names', () => {
+    const r = parseSectionNode(node, included);
+    expect(r.status).toBe('Open');
+    expect(r.activity).toBe('Lecture');
+    expect(r.deliveryMode).toBe('In person');
+  });
+
+  it('expands one meeting row per scheduled day', () => {
+    const r = parseSectionNode(node, included);
+    expect(r.meetings).toEqual([
+      { day: 'Mon', startTime: '14:00', endTime: '15:00', building: null, room: null },
+      { day: 'Wed', startTime: '14:00', endTime: '15:00', building: null, room: null },
+      { day: 'Fri', startTime: '14:00', endTime: '15:00', building: null, room: null },
+    ]);
+  });
+
+  it('normalises instructor names', () => {
+    expect(parseSectionNode(node, included).instructorNames).toEqual(['Parsa Rajabi']);
+  });
+
+  it('returns null course for a section whose course is missing from included', () => {
+    const orphan = {
+      ...node,
+      relationships: { ...node.relationships, field_course: { data: null } },
+    };
+    expect(parseSectionNode(orphan as never, included).course).toBeNull();
+  });
+
+  it('handles an unscheduled section with no days or times', () => {
+    const unscheduled = {
+      ...node,
+      attributes: {
+        ...node.attributes,
+        field_days: [],
+        field_start_time: null,
+        field_end_time: null,
+        field_instructors: [],
+      },
+    };
+    const r = parseSectionNode(unscheduled as never, included);
+    expect(r.meetings).toEqual([]);
+    expect(r.instructorNames).toEqual([]);
   });
 });
 ```
 
 - [ ] **Step 6: Run tests to verify they fail**
 
-Run: `npm test -- parse-sections`
-Expected: FAIL — cannot resolve `@/scrape/parse-sections`.
+Run: `npm test -- parse-nodes`
+Expected: FAIL — cannot resolve `@/scrape/parse-nodes`.
 
-- [ ] **Step 7: Implement the section parser**
+- [ ] **Step 7: Implement the node parsers**
 
-Create `src/scrape/parse-sections.ts`. **The selectors below are a starting template — replace them with the real ones recorded in Task 3's spike notes.** The exported types and function signature must not change.
+Create `src/scrape/parse-nodes.ts`:
 
 ```ts
-import * as cheerio from 'cheerio';
+import { normalizeInstructorName } from '@/scrape/names';
+
+export type JsonApiResource = {
+  type: string;
+  id: string;
+  attributes: Record<string, unknown>;
+  relationships?: Record<string, { data?: { type: string; id: string } | null }>;
+};
+
+export type SectionNode = JsonApiResource;
+export type IncludedMap = Map<string, JsonApiResource>;
 
 export type RawMeeting = {
   day: string;
@@ -1003,179 +1202,267 @@ export type RawMeeting = {
   room: string | null;
 };
 
-export type RawCourseSection = {
+export type RawCourse = {
   subjectCode: string;
-  courseNumber: string;
-  courseTitle: string;
+  campus: string;
+  number: string;
+  title: string;
+  credits: number | null;
+  bodyHtml: string | null;
+};
+
+export type RawSection = {
   sectionCode: string;
   activity: string | null;
   status: string | null;
   deliveryMode: string | null;
   instructorNames: string[];
   meetings: RawMeeting[];
+  course: RawCourse | null;
 };
 
-const clean = (s: string) => s.replace(/\s+/g, ' ').trim();
-const orNull = (s: string) => (clean(s).length ? clean(s) : null);
+const DAY_MAP: Record<string, string> = {
+  m: 'Mon',
+  t: 'Tue',
+  w: 'Wed',
+  th: 'Thu',
+  f: 'Fri',
+  s: 'Sat',
+  su: 'Sun',
+};
 
-/** "CPSC 221 101" -> { subjectCode, courseNumber, sectionCode } */
-export function parseSectionName(raw: string) {
-  const m = clean(raw).match(/^([A-Z]{2,5})\s+(\d{3}[A-Z]?)\s+(\S+)$/);
+/** "CPSC_V 221" -> subject CPSC, campus V, number 221 */
+export function parseUbcCourseCode(
+  raw: string,
+): { subjectCode: string; campus: string; number: string } | null {
+  const m = String(raw).trim().match(/^([A-Z]{2,6})_([VO])\s+(\d{3}[A-Z]?)$/);
   if (!m) return null;
-  return { subjectCode: m[1], courseNumber: m[2], sectionCode: m[3] };
+  return { subjectCode: m[1], campus: m[2], number: m[3] };
 }
 
-/** "Mon Wed Fri 09:00 - 10:00 SWNG 222" */
-export function parseMeeting(raw: string): RawMeeting[] {
-  const text = clean(raw);
-  const days = text.match(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/g) ?? [];
-  const time = text.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
-  const place = text.match(/\b([A-Z]{3,5})\s+(\w+)\s*$/);
+/** Seconds since midnight -> "HH:MM". */
+export function secondsToTime(s: number | null): string | null {
+  if (s === null || s === undefined || !Number.isFinite(s)) return null;
+  const h = Math.floor(s / 3600);
+  const min = Math.floor((s % 3600) / 60);
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
 
-  return days.map((day) => ({
+/** ["m","w","f"] -> ["Mon","Wed","Fri"]; unknown codes are dropped. */
+export function parseDays(days: string[] | null): string[] {
+  if (!days) return [];
+  return days.map((d) => DAY_MAP[String(d).toLowerCase()]).filter(Boolean);
+}
+
+export function buildIncludedMap(included: JsonApiResource[]): IncludedMap {
+  return new Map(included.map((r) => [`${r.type}:${r.id}`, r]));
+}
+
+function related(
+  node: JsonApiResource,
+  field: string,
+  included: IncludedMap,
+): JsonApiResource | null {
+  const ref = node.relationships?.[field]?.data;
+  if (!ref) return null;
+  return included.get(`${ref.type}:${ref.id}`) ?? null;
+}
+
+function termName(node: JsonApiResource, field: string, included: IncludedMap): string | null {
+  const r = related(node, field, included);
+  const name = r?.attributes?.name;
+  return typeof name === 'string' ? name : null;
+}
+
+function parseCourseNode(node: JsonApiResource | null): RawCourse | null {
+  if (!node) return null;
+  const code = parseUbcCourseCode(String(node.attributes.field_course_code ?? ''));
+  if (!code) return null;
+
+  const rawCredits = node.attributes.field_credits;
+  const credits = rawCredits === null || rawCredits === undefined ? null : Number(rawCredits);
+
+  const body = node.attributes.body as { value?: string } | null | undefined;
+
+  return {
+    ...code,
+    title: String(node.attributes.title ?? ''),
+    credits: Number.isFinite(credits as number) ? (credits as number) : null,
+    bodyHtml: body?.value ?? null,
+  };
+}
+
+export function parseSectionNode(node: SectionNode, included: IncludedMap): RawSection {
+  const a = node.attributes;
+
+  const startTime = secondsToTime((a.field_start_time as number | null) ?? null);
+  const endTime = secondsToTime((a.field_end_time as number | null) ?? null);
+
+  const meetings = parseDays((a.field_days as string[] | null) ?? null).map((day) => ({
     day,
-    startTime: time?.[1] ?? null,
-    endTime: time?.[2] ?? null,
-    building: place?.[1] ?? null,
-    room: place?.[2] ?? null,
+    startTime,
+    endTime,
+    // The API exposes no location anywhere — confirmed during the Task 3 spike.
+    building: null,
+    room: null,
   }));
-}
 
-export function parseSections(html: string): RawCourseSection[] {
-  const $ = cheerio.load(html);
-  const out: RawCourseSection[] = [];
+  const instructorNames = ((a.field_instructors as string[] | null) ?? [])
+    .map((n) => normalizeInstructorName(n).name)
+    .filter(Boolean);
 
-  $('table tbody tr').each((_, tr) => {
-    const cells = $(tr).find('td').toArray().map((td) => clean($(td).text()));
-    if (cells.length < 4) return;
-
-    const name = parseSectionName(cells[0]);
-    if (!name) return;
-
-    out.push({
-      ...name,
-      courseTitle: cells[1] ?? '',
-      activity: orNull(cells[2] ?? ''),
-      status: orNull(cells[3] ?? ''),
-      deliveryMode: orNull(cells[4] ?? ''),
-      instructorNames: (cells[6] ?? '')
-        .split(';')
-        .map(clean)
-        .filter(Boolean),
-      meetings: parseMeeting(cells[5] ?? ''),
-    });
-  });
-
-  return out;
+  return {
+    sectionCode: String(a.field_section_number ?? ''),
+    activity: termName(node, 'field_instructional_method', included),
+    status: termName(node, 'field_status', included),
+    deliveryMode: termName(node, 'field_delivery_mode', included),
+    instructorNames,
+    meetings,
+    course: parseCourseNode(related(node, 'field_course', included)),
+  };
 }
 ```
 
-- [ ] **Step 8: Iterate until tests pass**
+- [ ] **Step 8: Run tests to verify they pass**
 
-Run: `npm test -- parse-sections`
-
-Inspect the fixture's real markup and adjust selectors and cell indices until all assertions pass. Expected: PASS, 5 tests.
+Run: `npm test -- parse-nodes`
+Expected: PASS, 18 tests across both files.
 
 - [ ] **Step 9: Commit**
 
 ```bash
-git add src/scrape/parse-sections.ts src/scrape/names.ts tests/parse-sections.test.ts tests/names.test.ts
-git commit -m "feat: parse UBC course sections and normalise instructor names"
+git add src/scrape/parse-nodes.ts src/scrape/names.ts tests/parse-nodes.test.ts tests/names.test.ts
+git commit -m "feat: parse UBC JSON:API course and section nodes"
 ```
 
 ---
 
 ### Task 7: Section scrape job with safety guard
 
+> **REVISED after the Task 3 spike.** No Playwright, no HTML scraping. One
+> paginated JSON:API walk per term yields sections *and* their courses together.
+
 **Files:**
-- Create: `src/scrape/fetch-sections.ts`, `src/scrape/jobs/sections.ts`
+- Create: `src/scrape/fetch-json.ts`, `src/scrape/jobs/sections.ts`, `src/scrape/jobs/sections.run.ts`
 - Test: `tests/upsert-sections.test.ts`
 - Modify: `package.json`
 
 **Interfaces:**
-- Consumes: `parseSections`, `normalizeInstructorName`, `db`.
+- Consumes: `parseSectionNode`, `buildIncludedMap`, `RawSection` (Task 6); `normalizeInstructorName` (Task 6); `fetchText`/`USER_AGENT` (Task 5); `db` (Task 2).
 - Produces:
-  - `fetchSectionsHtml(campus: string, ubcPeriodId: string, ubcSubjectId: string): Promise<string>`
-  - `upsertSections(rows: RawCourseSection[], termId: string, campus: string): Promise<void>`
+  - `fetchSectionsForTerm(ubcPeriodId: string): Promise<RawSection[]>`
+  - `upsertSections(rows: RawSection[], termId: string): Promise<void>`
   - `npm run scrape:sections`
 
-**Why the numeric subject ID, not the code:** `Subject.code` (`CPSC`) is null until a
-course row backfills it (Task 2 note), so a code-driven scrape cannot bootstrap — on
-the first run there is no code to search with, and no way to obtain one. The numeric
-`ubcSubjectId` comes from the dropdown in Task 5 and is always present, so the scrape
-drives off `#edit-subject` and the code falls out of the returned rows.
+**Verified endpoint (bare `curl`, no cookies, no session):**
 
-**Safety guard (spec §6.2):** a run yielding fewer than 80% of the previous run's section count for a subject must abort without writing, so an upstream markup change degrades to stale data rather than wiping the catalogue.
+```
+GET https://courses.students.ubc.ca/jsonapi/node/section
+  ?filter[field_academic_term.meta.drupal_internal__target_id]=<UBC_PERIOD_ID>
+  &filter[field_is_visible]=1
+  &include=field_course,field_status,field_instructional_method,field_delivery_mode
+  &page[limit]=50
+```
 
-- [ ] **Step 1: Implement the fetcher**
+The response carries `links.next.href` for pagination — follow it until absent.
+`meta.count` reports the total matching sections (44089 across all terms at spike
+time). The `field_academic_term` relationship's `drupal_internal__target_id`
+matches the `academic_period` ids Task 5 already stored on `Term.ubcPeriodId`, so
+no extra lookup is needed.
 
-Create `src/scrape/fetch-sections.ts`. Use the method chosen in Task 3. Playwright version:
+**Deduplication (important):** filtering `node--course` by `field_course_code`
+returned **8 nodes** for `"CPSC_V 221"` — course nodes are per-instance
+(`field_course_instance_id`), not one per course. Upserting on
+`(subjectId, number)` collapses them correctly; never assume one node per course.
+
+**Campus scope:** v1 is Vancouver only. Skip any row whose parsed
+`course.campus !== 'V'`.
+
+- [ ] **Step 1: Implement the JSON fetcher**
+
+Create `src/scrape/fetch-json.ts`:
 
 ```ts
-import { chromium } from 'playwright';
-import { USER_AGENT } from '@/scrape/http';
+import { fetchText } from '@/scrape/http';
+import type { JsonApiResource } from '@/scrape/parse-nodes';
 
-const SEARCH_URL = 'https://courses.students.ubc.ca/course-search';
+const BASE = 'https://courses.students.ubc.ca/jsonapi/node/section';
 
-export async function fetchSectionsHtml(
-  campus: string,
+type JsonApiPage = {
+  data: JsonApiResource[];
+  included?: JsonApiResource[];
+  links?: { next?: { href: string } };
+  meta?: { count?: number };
+};
+
+export function sectionsUrl(ubcPeriodId: string, limit = 50): string {
+  const p = new URLSearchParams({
+    'filter[field_academic_term.meta.drupal_internal__target_id]': ubcPeriodId,
+    'filter[field_is_visible]': '1',
+    include: 'field_course,field_status,field_instructional_method,field_delivery_mode',
+    'page[limit]': String(limit),
+  });
+  return `${BASE}?${p.toString()}`;
+}
+
+/** Walks every page of one term, yielding each page's data + included together. */
+export async function* sectionPages(
   ubcPeriodId: string,
-  ubcSubjectId: string,
-): Promise<string> {
-  const browser = await chromium.launch();
-  try {
-    const page = await browser.newPage({ userAgent: USER_AGENT });
-    await page.goto(SEARCH_URL, { waitUntil: 'domcontentloaded' });
-    await page.check(campus === 'V' ? '#edit-campus-1' : '#edit-campus-2');
-    await page.selectOption('#edit-academic-period', ubcPeriodId);
-    // Numeric subject ID, not the code — the code is unknown on a cold database.
-    await page.selectOption('#edit-subject', ubcSubjectId);
-    await page.click('#edit-submit-new-course-search');
-    await page.waitForLoadState('networkidle');
-    return await page.content();
-  } finally {
-    await browser.close();
+): AsyncGenerator<{ data: JsonApiResource[]; included: JsonApiResource[] }> {
+  let url: string | undefined = sectionsUrl(ubcPeriodId);
+  while (url) {
+    const page = JSON.parse(await fetchText(url)) as JsonApiPage;
+    yield { data: page.data ?? [], included: page.included ?? [] };
+    url = page.links?.next?.href;
   }
 }
 ```
-
-If Task 3 chose AJAX replay, replace this function's body with that request. **Keep the signature identical** — Task 7's job code depends on it.
 
 - [ ] **Step 2: Write the failing idempotency test**
 
 Create `tests/upsert-sections.test.ts`. This test touches Postgres.
 
 ```ts
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { db } from '@/lib/db';
 import { upsertSections } from '@/scrape/jobs/sections';
-import type { RawCourseSection } from '@/scrape/parse-sections';
+import type { RawSection } from '@/scrape/parse-nodes';
 
-const rows: RawCourseSection[] = [
+const rows: RawSection[] = [
   {
-    subjectCode: 'TEST',
-    courseNumber: '101',
-    courseTitle: 'Test Course',
     sectionCode: '101',
     activity: 'Lecture',
-    status: 'Available',
-    deliveryMode: 'In-Person',
-    instructorNames: ['Smith, John'],
+    status: 'Open',
+    deliveryMode: 'In person',
+    instructorNames: ['John Smith'],
     meetings: [
-      { day: 'Mon', startTime: '09:00', endTime: '10:00', building: 'SWNG', room: '222' },
+      { day: 'Mon', startTime: '14:00', endTime: '15:00', building: null, room: null },
+      { day: 'Wed', startTime: '14:00', endTime: '15:00', building: null, room: null },
     ],
+    course: {
+      subjectCode: 'ZZTEST',
+      campus: 'V',
+      number: '101',
+      title: 'Test Course',
+      credits: 3,
+      bodyHtml: '<p>A test course.</p>',
+    },
   },
 ];
 
 describe('upsertSections', () => {
   let termId: string;
-  let subjectId: string;
 
   beforeAll(async () => {
+    await db.subject.upsert({
+      where: { ubcSubjectId_campus: { ubcSubjectId: 'ZZTEST-SUBJ', campus: 'V' } },
+      create: { ubcSubjectId: 'ZZTEST-SUBJ', name: 'Test Subject', campus: 'V', code: 'ZZTEST' },
+      update: { code: 'ZZTEST' },
+    });
     const term = await db.term.upsert({
-      where: { ubcPeriodId: 'TEST-PERIOD' },
+      where: { ubcPeriodId: 'ZZTEST-PERIOD' },
       create: {
-        ubcPeriodId: 'TEST-PERIOD',
+        ubcPeriodId: 'ZZTEST-PERIOD',
         name: 'Test Term',
         year: 2026,
         session: 'W',
@@ -1185,32 +1472,45 @@ describe('upsertSections', () => {
       update: {},
     });
     termId = term.id;
-    const subject = await db.subject.upsert({
-      where: { ubcSubjectId_campus: { ubcSubjectId: 'TEST-SUBJ', campus: 'V' } },
-      create: { ubcSubjectId: 'TEST-SUBJ', name: 'Testing', campus: 'V', code: 'TEST' },
-      update: {},
-    });
-    subjectId = subject.id;
+  });
+
+  afterAll(async () => {
+    await db.$disconnect();
   });
 
   it('is idempotent across repeated runs', async () => {
-    await upsertSections(rows, termId, 'V');
-    await upsertSections(rows, termId, 'V');
+    await upsertSections(rows, termId);
+    await upsertSections(rows, termId);
 
-    const courses = await db.course.count({ where: { subjectId } });
-    const sections = await db.section.count({ where: { termId } });
-    const meetings = await db.meetingTime.count();
-    const instructors = await db.instructor.count({ where: { slug: 'john-smith' } });
+    const subject = await db.subject.findUniqueOrThrow({
+      where: { ubcSubjectId_campus: { ubcSubjectId: 'ZZTEST-SUBJ', campus: 'V' } },
+    });
+    expect(await db.course.count({ where: { subjectId: subject.id } })).toBe(1);
+    expect(await db.section.count({ where: { termId } })).toBe(1);
 
-    expect(courses).toBe(1);
-    expect(sections).toBe(1);
-    expect(meetings).toBe(1);
-    expect(instructors).toBe(1);
+    const section = await db.section.findFirstOrThrow({ where: { termId } });
+    expect(await db.meetingTime.count({ where: { sectionId: section.id } })).toBe(2);
+    expect(await db.sectionInstructor.count({ where: { sectionId: section.id } })).toBe(1);
+    expect(await db.instructor.count({ where: { slug: 'john-smith' } })).toBe(1);
   });
 
-  it('backfills the subject code from the course rows', async () => {
-    const subject = await db.subject.findUnique({ where: { id: subjectId } });
-    expect(subject?.code).toBe('TEST');
+  it('updates a changed section in place rather than duplicating it', async () => {
+    await upsertSections(
+      [{ ...rows[0], status: 'Waitlist', meetings: [rows[0].meetings[0]] }],
+      termId,
+    );
+
+    expect(await db.section.count({ where: { termId } })).toBe(1);
+    const section = await db.section.findFirstOrThrow({ where: { termId } });
+    expect(section.status).toBe('Waitlist');
+    // Meetings are replaced wholesale, so the dropped day must be gone.
+    expect(await db.meetingTime.count({ where: { sectionId: section.id } })).toBe(1);
+  });
+
+  it('skips a section whose course failed to parse', async () => {
+    const before = await db.section.count({ where: { termId } });
+    await upsertSections([{ ...rows[0], sectionCode: '999', course: null }], termId);
+    expect(await db.section.count({ where: { termId } })).toBe(before);
   });
 });
 ```
@@ -1226,36 +1526,47 @@ Create `src/scrape/jobs/sections.ts`:
 
 ```ts
 import { db } from '@/lib/db';
-import { fetchSectionsHtml } from '@/scrape/fetch-sections';
-import { parseSections, type RawCourseSection } from '@/scrape/parse-sections';
+import { sectionPages } from '@/scrape/fetch-json';
+import {
+  buildIncludedMap,
+  parseSectionNode,
+  type RawSection,
+} from '@/scrape/parse-nodes';
 import { normalizeInstructorName } from '@/scrape/names';
 
 const CAMPUS = 'V';
 const MIN_RETAINED_FRACTION = 0.8;
 
-export async function upsertSections(
-  rows: RawCourseSection[],
-  termId: string,
-  campus: string,
-) {
+export async function fetchSectionsForTerm(ubcPeriodId: string): Promise<RawSection[]> {
+  const out: RawSection[] = [];
+  for await (const { data, included } of sectionPages(ubcPeriodId)) {
+    const map = buildIncludedMap(included);
+    for (const node of data) out.push(parseSectionNode(node, map));
+  }
+  return out;
+}
+
+export async function upsertSections(rows: RawSection[], termId: string) {
   for (const row of rows) {
+    // A section whose course is missing or unparseable has nothing to hang off.
+    if (!row.course || row.course.campus !== CAMPUS) continue;
+    if (!row.sectionCode) continue;
+
     const subject = await db.subject.findFirst({
-      where: { code: row.subjectCode, campus },
+      where: { code: row.course.subjectCode, campus: CAMPUS },
     });
-    if (!subject) {
-      console.warn(`No subject for ${row.subjectCode} (${campus}), skipping`);
-      continue;
-    }
+    if (!subject) continue;
 
     const course = await db.course.upsert({
-      where: { subjectId_number: { subjectId: subject.id, number: row.courseNumber } },
+      where: { subjectId_number: { subjectId: subject.id, number: row.course.number } },
       create: {
         subjectId: subject.id,
-        number: row.courseNumber,
-        title: row.courseTitle,
-        campus,
+        number: row.course.number,
+        title: row.course.title,
+        credits: row.course.credits,
+        campus: CAMPUS,
       },
-      update: { title: row.courseTitle },
+      update: { title: row.course.title, credits: row.course.credits },
     });
 
     const section = await db.section.upsert({
@@ -1291,9 +1602,10 @@ export async function upsertSections(
 
     for (const raw of row.instructorNames) {
       const { name, slug } = normalizeInstructorName(raw);
+      if (!slug) continue;
       const instructor = await db.instructor.upsert({
         where: { slug },
-        create: { name, slug, campus },
+        create: { name, slug, campus: CAMPUS },
         update: {},
       });
       await db.sectionInstructor.upsert({
@@ -1307,60 +1619,63 @@ export async function upsertSections(
   }
 }
 
-/** Subject codes only appear in course rows, never the dropdown — backfill here. */
-async function backfillSubjectCode(ubcSubjectId: string, campus: string, code: string) {
-  await db.subject.update({
-    where: { ubcSubjectId_campus: { ubcSubjectId, campus } },
-    data: { code },
-  });
+/** Subject codes appear only on course rows, never the dropdown — backfill here. */
+async function backfillSubjectCodes(rows: RawSection[]) {
+  const seen = new Map<string, string>();
+  for (const r of rows) {
+    if (r.course && r.course.campus === CAMPUS) {
+      seen.set(r.course.subjectCode, r.course.subjectCode);
+    }
+  }
+  // Subjects arrive from the dropdown with a name but no code; match on name is
+  // unreliable, so only fill codes we can attach by an existing code match.
+  for (const code of seen.keys()) {
+    await db.subject.updateMany({
+      where: { campus: CAMPUS, code: null, name: { equals: code, mode: 'insensitive' } },
+      data: { code },
+    });
+  }
 }
 
 export async function scrapeSections() {
   const now = new Date().getFullYear();
   const terms = await db.term.findMany({
     where: { campus: CAMPUS, year: { gte: now - 2, lte: now + 1 } },
+    orderBy: { year: 'asc' },
   });
-  const subjects = await db.subject.findMany({ where: { campus: CAMPUS } });
 
   for (const term of terms) {
-    for (const subject of subjects) {
-      const label = subject.code ?? subject.name;
-      let rows: RawCourseSection[];
-      try {
-        rows = parseSections(
-          await fetchSectionsHtml(CAMPUS, term.ubcPeriodId, subject.ubcSubjectId),
-        );
-      } catch (e) {
-        console.error(`Fetch failed for ${label} ${term.name}:`, e);
-        continue;
-      }
-
-      if (rows.length === 0) continue;
-
-      // Codes only exist in course rows; backfill before upserting, which looks up by code.
-      if (!subject.code) {
-        await backfillSubjectCode(subject.ubcSubjectId, CAMPUS, rows[0].subjectCode);
-      }
-
-      const previous = await db.section.count({
-        where: { termId: term.id, course: { subjectId: subject.id } },
-      });
-      if (previous > 0 && rows.length < previous * MIN_RETAINED_FRACTION) {
-        console.error(
-          `ABORT ${label} ${term.name}: parsed ${rows.length} sections vs ${previous} previously. ` +
-            'UBC markup likely changed — refusing to write.',
-        );
-        continue;
-      }
-
-      await upsertSections(rows, term.id, CAMPUS);
-      console.log(`${term.name} ${label}: ${rows.length} sections`);
+    let rows: RawSection[];
+    try {
+      rows = await fetchSectionsForTerm(term.ubcPeriodId);
+    } catch (e) {
+      console.error(`Fetch failed for ${term.name}:`, e);
+      continue;
     }
+
+    const usable = rows.filter((r) => r.course && r.course.campus === CAMPUS);
+    if (usable.length === 0) {
+      console.log(`${term.name}: no Vancouver sections, skipping`);
+      continue;
+    }
+
+    const previous = await db.section.count({ where: { termId: term.id } });
+    if (previous > 0 && usable.length < previous * MIN_RETAINED_FRACTION) {
+      console.error(
+        `ABORT ${term.name}: parsed ${usable.length} sections vs ${previous} previously. ` +
+          'UBC API likely changed — refusing to write.',
+      );
+      continue;
+    }
+
+    await backfillSubjectCodes(usable);
+    await upsertSections(usable, term.id);
+    console.log(`${term.name}: ${usable.length} sections`);
   }
 }
 ```
 
-Append a CLI entrypoint in a separate file so importing the module in tests does not trigger a scrape. Create `src/scrape/jobs/sections.run.ts`:
+Create `src/scrape/jobs/sections.run.ts`:
 
 ```ts
 import { db } from '@/lib/db';
@@ -1378,9 +1693,11 @@ scrapeSections()
 - [ ] **Step 5: Run the test to verify it passes**
 
 Run: `npm test -- upsert-sections`
-Expected: PASS, 2 tests.
+Expected: PASS, 3 tests.
 
 - [ ] **Step 6: Add the npm script**
+
+Add to `package.json` scripts:
 
 ```json
 "scrape:sections": "tsx src/scrape/jobs/sections.run.ts"
@@ -1388,141 +1705,207 @@ Expected: PASS, 2 tests.
 
 - [ ] **Step 7: Run a limited real scrape**
 
-Temporarily narrow `scrapeSections` to one subject and one term — filter `subjects` to
-`s.ubcSubjectId === '1810'` (Computer Science, Vancouver) and `terms` to the newest — then run:
+Temporarily narrow `scrapeSections`'s `terms` query to a single current term
+(e.g. `where: { ubcPeriodId: '1453' }`) and run:
 
 ```bash
 npm run scrape:sections
 ```
 
-Expected: prints a section count > 10. Verify in `npx prisma studio` that `Course`, `Section`, `MeetingTime`, and `Instructor` are populated. Then remove the narrowing.
+Expected: prints a section count in the thousands. Verify with:
 
-- [ ] **Step 8: Commit**
+```bash
+docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c \
+  "select (select count(*) from \"Course\") courses, (select count(*) from \"Section\") sections, (select count(*) from \"Instructor\") instructors, (select count(*) from \"MeetingTime\") meetings;"
+```
+
+All four counts must be greater than zero. Then remove the narrowing.
+
+- [ ] **Step 8: Verify idempotency against real data**
+
+Re-run `npm run scrape:sections` with the same narrowing and confirm the four
+counts above are unchanged.
+
+- [ ] **Step 9: Commit**
 
 ```bash
 git add src/scrape package.json tests/upsert-sections.test.ts
-git commit -m "feat: scrape UBC course sections with markup-change guard"
+git commit -m "feat: scrape UBC sections from JSON:API with change guard"
 ```
 
 ---
 
-### Task 8: Course description enrichment
+### Task 8: Course description and prerequisite extraction
+
+> **REVISED after the Task 3 spike.** The academic calendar
+> (`vancouver.calendar.ubc.ca`) is no longer scraped at all. The course `body`
+> field already arrives with the Task 7 JSON:API walk and contains the full
+> description *including* the prerequisite sentence.
 
 **Files:**
-- Create: `src/scrape/parse-descriptions.ts`, `src/scrape/jobs/descriptions.ts`
-- Test: `tests/parse-descriptions.test.ts`
+- Create: `src/scrape/parse-body.ts`, `src/scrape/jobs/descriptions.ts`, `src/scrape/jobs/descriptions.run.ts`
+- Test: `tests/parse-body.test.ts`
 - Modify: `package.json`
 
 **Interfaces:**
-- Consumes: `db`, `fetchSectionsHtml` pattern from Task 7 (the calendar is JS-rendered too — see spec §3.2).
+- Consumes: `db` (Task 2); `fetchSectionsForTerm` (Task 7) is NOT used — this job reads `bodyHtml` already stored, see Step 5.
 - Produces:
-  - `parseCourseDescriptions(html: string): RawDescription[]`
-  - `type RawDescription = { subjectCode: string; courseNumber: string; title: string; description: string | null; credits: number | null; prereqText: string | null; coreqText: string | null }`
+  - `parseBody(html: string | null): { description: string | null; prereqText: string | null; coreqText: string | null }`
   - `npm run scrape:descriptions`
 
-**Source:** `https://vancouver.calendar.ubc.ca/course-descriptions/subject/<code>` — note the subject index returned only 3 nav links to a plain GET, so this page is JS-rendered. Capture a fixture with Playwright exactly as in Task 3 before writing the parser.
+**Real body value observed for `CPSC_V 221`:**
 
-- [ ] **Step 1: Capture a fixture**
+```html
+<p>Design and analysis of basic algorithms and data structures; algorithm analysis
+methods, searching and sorting algorithms, basic data structures, graphs and
+concurrency. [3-2-0] Prerequisite: One of CPSC_V 210, CPEN_V 221 and either (a) one
+of CPSC_V 121, MATH_V 220, MATH_O 220 or (b) a score of 68% or higher in MATH_V 226.</p>
+```
 
-Write a throwaway script using `chromium` to save `https://vancouver.calendar.ubc.ca/course-descriptions/subject/cpsc` (confirm the real URL pattern — the lowercase `/subject/cpsc` form 404'd during research; find the working one from the index page in a browser) to `tests/fixtures/calendar-cpsc.html`. Confirm it contains `CPSC 221` and prose containing `Prerequisite`.
+Note the `[3-2-0]` lecture-lab-tutorial hours marker and that the prerequisite
+sentence runs to the end of the paragraph — it contains internal periods
+("(a) one of..."), so a naive split on `.` will truncate it. `prereqText` stays
+raw prose; Phase 6 parses it into a tree.
 
-- [ ] **Step 2: Write the failing tests**
+- [ ] **Step 1: Write the failing tests**
 
-Create `tests/parse-descriptions.test.ts`:
+Create `tests/parse-body.test.ts`:
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { parseCourseDescriptions } from '@/scrape/parse-descriptions';
+import { parseBody } from '@/scrape/parse-body';
 
-const html = readFileSync('tests/fixtures/calendar-cpsc.html', 'utf8');
+const CPSC221 =
+  '<p>Design and analysis of basic algorithms and data structures; algorithm ' +
+  'analysis methods, searching and sorting algorithms, basic data structures, ' +
+  'graphs and concurrency. [3-2-0] Prerequisite: One of CPSC_V 210, CPEN_V 221 ' +
+  'and either (a) one of CPSC_V 121, MATH_V 220, MATH_O 220 or (b) a score of ' +
+  '68% or higher in MATH_V 226.</p>';
 
-describe('parseCourseDescriptions', () => {
-  const rows = parseCourseDescriptions(html);
-
-  it('finds many courses', () => {
-    expect(rows.length).toBeGreaterThan(10);
+describe('parseBody', () => {
+  it('extracts the description without the prerequisite sentence', () => {
+    const r = parseBody(CPSC221);
+    expect(r.description).toContain('Design and analysis of basic algorithms');
+    expect(r.description).not.toContain('Prerequisite');
   });
 
-  it('extracts credits as a number', () => {
-    const withCredits = rows.filter((r) => r.credits !== null);
-    expect(withCredits.length).toBeGreaterThan(0);
-    expect(withCredits[0].credits).toBeGreaterThan(0);
+  it('captures the whole prerequisite clause including internal periods', () => {
+    const r = parseBody(CPSC221);
+    expect(r.prereqText).toContain('One of CPSC_V 210');
+    expect(r.prereqText).toContain('MATH_V 226');
   });
 
-  it('captures prerequisite prose verbatim when present', () => {
-    const withPrereq = rows.filter((r) => r.prereqText);
-    expect(withPrereq.length).toBeGreaterThan(0);
-    expect(withPrereq[0].prereqText).not.toMatch(/^Prerequisite:\s*$/);
+  it('strips the hours marker from the description', () => {
+    expect(parseBody(CPSC221).description).not.toContain('[3-2-0]');
   });
 
-  it('never returns an empty course number', () => {
-    expect(rows.every((r) => r.courseNumber.length > 0)).toBe(true);
+  it('returns nulls for a missing body', () => {
+    expect(parseBody(null)).toEqual({
+      description: null,
+      prereqText: null,
+      coreqText: null,
+    });
+  });
+
+  it('handles a body with no prerequisite', () => {
+    const r = parseBody('<p>An introductory survey course.</p>');
+    expect(r.description).toBe('An introductory survey course.');
+    expect(r.prereqText).toBeNull();
+  });
+
+  it('captures a corequisite separately from a prerequisite', () => {
+    const r = parseBody(
+      '<p>Some description. Prerequisite: MATH_V 100. Corequisite: PHYS_V 101.</p>',
+    );
+    expect(r.prereqText).toContain('MATH_V 100');
+    expect(r.coreqText).toContain('PHYS_V 101');
+    expect(r.prereqText).not.toContain('PHYS_V 101');
+  });
+
+  it('strips html tags from the description', () => {
+    expect(parseBody('<p>Plain <em>text</em> here.</p>').description).toBe(
+      'Plain text here.',
+    );
   });
 });
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [ ] **Step 2: Run tests to verify they fail**
 
-Run: `npm test -- parse-descriptions`
-Expected: FAIL — cannot resolve `@/scrape/parse-descriptions`.
+Run: `npm test -- parse-body`
+Expected: FAIL — cannot resolve `@/scrape/parse-body`.
 
-- [ ] **Step 4: Implement the parser**
+- [ ] **Step 3: Implement the body parser**
 
-Create `src/scrape/parse-descriptions.ts`. Adjust selectors to the real fixture; keep the signature.
+Create `src/scrape/parse-body.ts`:
 
 ```ts
 import * as cheerio from 'cheerio';
 
-export type RawDescription = {
-  subjectCode: string;
-  courseNumber: string;
-  title: string;
+const clean = (s: string) => s.replace(/\s+/g, ' ').trim();
+const orNull = (s: string) => (s.length ? s : null);
+
+/**
+ * Splits a course body into description / prerequisite / corequisite.
+ * Prereq and coreq clauses run to the end of the text or to the start of the
+ * next labelled clause — never to the first period, which appears inside them.
+ */
+export function parseBody(html: string | null): {
   description: string | null;
-  credits: number | null;
   prereqText: string | null;
   coreqText: string | null;
-};
+} {
+  if (!html) return { description: null, prereqText: null, coreqText: null };
 
-const clean = (s: string) => s.replace(/\s+/g, ' ').trim();
+  const text = clean(cheerio.load(html).root().text());
 
-/** "CPSC 221 (4) Basic Algorithms and Data Structures" */
-export function parseCourseHeading(raw: string) {
-  const m = clean(raw).match(/^([A-Z]{2,5})\s+(\d{3}[A-Z]?)\s*(?:\((\d+(?:\.\d+)?)\))?\s*(.*)$/);
-  if (!m) return null;
-  return {
-    subjectCode: m[1],
-    courseNumber: m[2],
-    credits: m[3] ? Number(m[3]) : null,
-    title: m[4] ?? '',
-  };
-}
+  const label = /\b(Prerequisite|Corequisite|Pre-req|Co-req)s?\s*:/gi;
+  const marks: { name: string; start: number; bodyStart: number }[] = [];
+  for (const m of text.matchAll(label)) {
+    marks.push({
+      name: m[1].toLowerCase().startsWith('pre') ? 'prereq' : 'coreq',
+      start: m.index!,
+      bodyStart: m.index! + m[0].length,
+    });
+  }
 
-export function parseCourseDescriptions(html: string): RawDescription[] {
-  const $ = cheerio.load(html);
-  const out: RawDescription[] = [];
+  const sliceTo = (i: number) => (i + 1 < marks.length ? marks[i + 1].start : text.length);
 
-  $('.course-description, article, .node--type-course').each((_, el) => {
-    const heading = parseCourseHeading($(el).find('h3, h2, .course-title').first().text());
-    if (!heading) return;
-
-    const body = clean($(el).text());
-    const prereq = body.match(/Prerequisite:\s*([^.]*\.)/i)?.[1] ?? null;
-    const coreq = body.match(/Corequisite:\s*([^.]*\.)/i)?.[1] ?? null;
-    const description =
-      clean($(el).find('p').first().text()) || null;
-
-    out.push({ ...heading, description, prereqText: prereq, coreqText: coreq });
+  let prereqText: string | null = null;
+  let coreqText: string | null = null;
+  marks.forEach((mark, i) => {
+    const value = orNull(clean(text.slice(mark.bodyStart, sliceTo(i))));
+    if (mark.name === 'prereq') prereqText ??= value;
+    else coreqText ??= value;
   });
 
-  return out;
+  const descriptionEnd = marks.length ? marks[0].start : text.length;
+  const description = orNull(
+    clean(text.slice(0, descriptionEnd).replace(/\[\d+-\d+-\d+\]/g, '')),
+  );
+
+  return { description, prereqText, coreqText };
 }
 ```
 
-- [ ] **Step 5: Iterate until tests pass**
+- [ ] **Step 4: Run tests to verify they pass**
 
-Run: `npm test -- parse-descriptions`
-Expected: PASS, 4 tests. Adjust selectors against the fixture as needed.
+Run: `npm test -- parse-body`
+Expected: PASS, 7 tests.
+
+- [ ] **Step 5: Store the raw body during the section scrape**
+
+`parseBody` needs the raw HTML. Modify Task 7's `upsertSections` in
+`src/scrape/jobs/sections.ts` so the course upsert also writes the raw body into
+`Course.description` as a staging value:
+
+In BOTH the `create` and `update` objects of the `db.course.upsert` call, add:
+
+```ts
+        description: row.course.bodyHtml,
+```
+
+This stores raw HTML temporarily; Step 6's job replaces it with cleaned text.
 
 - [ ] **Step 6: Write the enrichment job**
 
@@ -1530,47 +1913,45 @@ Create `src/scrape/jobs/descriptions.ts`:
 
 ```ts
 import { db } from '@/lib/db';
-import { parseCourseDescriptions } from '@/scrape/parse-descriptions';
-import { fetchCalendarHtml } from '@/scrape/fetch-sections';
+import { parseBody } from '@/scrape/parse-body';
 
+/** Converts the raw body HTML staged by the section scrape into clean fields. */
 export async function scrapeDescriptions() {
-  const subjects = await db.subject.findMany({
-    where: { campus: 'V', code: { not: null } },
+  const courses = await db.course.findMany({
+    where: { campus: 'V', description: { startsWith: '<' } },
+    select: { id: true, description: true },
   });
 
-  for (const subject of subjects) {
-    let rows;
-    try {
-      rows = parseCourseDescriptions(await fetchCalendarHtml(subject.code!));
-    } catch (e) {
-      console.error(`Calendar fetch failed for ${subject.code}:`, e);
-      continue;
-    }
-
-    for (const row of rows) {
-      const course = await db.course.findFirst({
-        where: { subjectId: subject.id, number: row.courseNumber },
-      });
-      if (!course) continue;
-
-      await db.course.update({
-        where: { id: course.id },
-        data: {
-          description: row.description,
-          credits: row.credits,
-          prereqText: row.prereqText,
-          coreqText: row.coreqText,
-        },
-      });
-    }
-    console.log(`${subject.code}: enriched ${rows.length} courses`);
+  let updated = 0;
+  for (const course of courses) {
+    const { description, prereqText, coreqText } = parseBody(course.description);
+    await db.course.update({
+      where: { id: course.id },
+      data: { description, prereqText, coreqText },
+    });
+    updated += 1;
   }
+
+  console.log(`Enriched ${updated} courses.`);
 }
 ```
 
-Add `fetchCalendarHtml(subjectCode: string): Promise<string>` to `src/scrape/fetch-sections.ts`, mirroring `fetchSectionsHtml` but navigating to the calendar URL confirmed in Step 1 and returning `page.content()`.
+Create `src/scrape/jobs/descriptions.run.ts`:
 
-Create `src/scrape/jobs/descriptions.run.ts` following the Task 7 entrypoint pattern, and add:
+```ts
+import { db } from '@/lib/db';
+import { scrapeDescriptions } from '@/scrape/jobs/descriptions';
+
+scrapeDescriptions()
+  .then(() => db.$disconnect())
+  .catch(async (e) => {
+    console.error(e);
+    await db.$disconnect();
+    process.exit(1);
+  });
+```
+
+Add to `package.json` scripts:
 
 ```json
 "scrape:descriptions": "tsx src/scrape/jobs/descriptions.run.ts"
@@ -1578,14 +1959,30 @@ Create `src/scrape/jobs/descriptions.run.ts` following the Task 7 entrypoint pat
 
 - [ ] **Step 7: Run it for real**
 
-Run: `npm run scrape:descriptions`
-Expected: prints per-subject counts. Confirm in Prisma Studio that `Course.description` and `Course.credits` are populated.
+```bash
+npm run scrape:descriptions
+```
 
-- [ ] **Step 8: Commit**
+Expected: prints an enriched count greater than zero. Verify:
 
 ```bash
-git add src/scrape tests/parse-descriptions.test.ts tests/fixtures package.json
-git commit -m "feat: enrich courses with calendar descriptions and prerequisites"
+docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c \
+  "select number, left(description,60) as descr, left(\"prereqText\",50) as prereq from \"Course\" where \"prereqText\" is not null limit 5;"
+```
+
+Confirm descriptions carry no HTML tags and prerequisites read as prose.
+
+- [ ] **Step 8: Confirm the job is idempotent**
+
+Re-run `npm run scrape:descriptions`. The second run must report `Enriched 0
+courses.` — cleaned descriptions no longer start with `<`, so they are not
+re-selected.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add src/scrape tests/parse-body.test.ts package.json
+git commit -m "feat: extract course descriptions and prerequisites from body"
 ```
 
 ---

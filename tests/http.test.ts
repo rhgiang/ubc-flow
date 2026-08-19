@@ -31,4 +31,27 @@ describe('fetchText', () => {
     await fetchText('https://example.com/b');
     expect(Date.now() - start).toBeGreaterThanOrEqual(950);
   });
+
+  it('serializes concurrent callers instead of colliding', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () => new Response('ok', { status: 200 }),
+    );
+    const start = Date.now();
+    await Promise.all([
+      fetchText('https://example.com/a'),
+      fetchText('https://example.com/b'),
+      fetchText('https://example.com/c'),
+    ]);
+    // Three calls, each >=1s apart from the previous, is >=~2s total.
+    expect(Date.now() - start).toBeGreaterThanOrEqual(1900);
+  });
+
+  it('does not let a rejected call poison later calls', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockImplementationOnce(async () => new Response('nope', { status: 500 }))
+      .mockImplementation(async () => new Response('ok', { status: 200 }));
+
+    await expect(fetchText('https://example.com/fails')).rejects.toThrow(/500/);
+    await expect(fetchText('https://example.com/ok')).resolves.toBe('ok');
+  });
 });

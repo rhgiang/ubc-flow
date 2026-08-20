@@ -4,6 +4,10 @@ export type WeekGridEntry = ScheduleEntry & { id: string; location?: string | nu
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;
 const HOUR_PX = 48;
+// Always visible so the grid is a stable reference frame while searching and
+// adding sections, not just whatever the current selection happens to span.
+const BASE_START_HOUR = 7;
+const BASE_END_HOUR = 17;
 
 /** "14:30" -> 870. */
 function toMinutes(hhmm: string): number {
@@ -18,9 +22,11 @@ function formatHour(h: number): string {
 }
 
 /**
- * Weekly Mon-Fri timetable. Rows span only the hours the schedule actually
- * covers. A conflicting block is still rendered — flagged with a red border
- * and an explanatory title, never hidden (conflicts are advisory only).
+ * Weekly Mon-Fri timetable. Rows always span at least 7 AM-5 PM as a stable
+ * baseline, expanding beyond it only when a real meeting falls outside that
+ * range — never clipping data to fit. A conflicting block is still rendered —
+ * flagged with a red border and an explanatory title, never hidden
+ * (conflicts are advisory only).
  */
 export default function WeekGrid({ entries }: { entries: WeekGridEntry[] }) {
   const timed = entries.filter(
@@ -29,10 +35,6 @@ export default function WeekGrid({ entries }: { entries: WeekGridEntry[] }) {
   );
   const timedSet = new Set<WeekGridEntry>(timed);
   const untimed = entries.filter((e) => !timedSet.has(e));
-
-  if (timed.length === 0) {
-    return <p className="text-sm text-slate-500">No scheduled meeting times yet.</p>;
-  }
 
   // findConflicts returns pairs referencing the same objects passed in, so we
   // can key off object identity to know which blocks to flag.
@@ -44,8 +46,8 @@ export default function WeekGrid({ entries }: { entries: WeekGridEntry[] }) {
 
   const starts = timed.map((e) => toMinutes(e.startTime));
   const ends = timed.map((e) => toMinutes(e.endTime));
-  const minHour = Math.floor(Math.min(...starts) / 60);
-  const maxHour = Math.ceil(Math.max(...ends) / 60);
+  const minHour = Math.min(BASE_START_HOUR, ...(starts.length ? [Math.floor(Math.min(...starts) / 60)] : []));
+  const maxHour = Math.max(BASE_END_HOUR, ...(ends.length ? [Math.ceil(Math.max(...ends) / 60)] : []));
   const hours = Array.from({ length: maxHour - minHour }, (_, i) => minHour + i);
   const gridStartMin = minHour * 60;
   const totalHeight = hours.length * HOUR_PX;

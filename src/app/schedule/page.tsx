@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import Button from '@/components/Button';
 import { createSchedule } from '@/app/actions/schedule';
+import { isPlannableTerm } from '@/schedule/terms';
 
 export default async function SchedulePage() {
   const session = await auth();
@@ -25,6 +26,9 @@ export default async function SchedulePage() {
   ]);
 
   const termById = new Map(terms.map((t) => [t.id, t]));
+  // Existing schedules (termById, above) still show their real term even if
+  // it's since passed — only NEW schedules are restricted to what's ahead.
+  const plannableTerms = terms.filter(isPlannableTerm);
   const sorted = [...schedules].sort((a, b) => {
     const ta = termById.get(a.termId);
     const tb = termById.get(b.termId);
@@ -75,7 +79,7 @@ export default async function SchedulePage() {
             required
             className="mt-1 rounded-lg border px-3 py-2 text-sm"
           >
-            {terms.map((t) => (
+            {plannableTerms.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
               </option>

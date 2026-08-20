@@ -19,6 +19,8 @@ export type RawMeeting = {
   endTime: string | null;
   building: string | null;
   room: string | null;
+  startDate: Date | null;
+  endDate: Date | null;
 };
 
 export type RawCourse = {
@@ -127,6 +129,16 @@ export function parseSectionNode(node: SectionNode, included: IncludedMap): RawS
   const startTime = secondsToTime((a.field_start_time as number | null) ?? null);
   const endTime = secondsToTime((a.field_end_time as number | null) ?? null);
 
+  // Section-level, not per-day: one enrolment period shared by every meeting.
+  // Needed for a correct RRULE UNTIL — half-term sections are real and common.
+  // Prisma's DateTime? columns reject a plain "YYYY-MM-DD" string (it wants a
+  // full ISO-8601 datetime), so convert to a real Date here rather than in the
+  // upsert path.
+  const rawStartDate = a.field_start_date as string | null | undefined;
+  const rawEndDate = a.field_end_date as string | null | undefined;
+  const startDate = rawStartDate ? new Date(rawStartDate) : null;
+  const endDate = rawEndDate ? new Date(rawEndDate) : null;
+
   const meetings = parseDays((a.field_days as string[] | null) ?? null).map((day) => ({
     day,
     startTime,
@@ -134,6 +146,8 @@ export function parseSectionNode(node: SectionNode, included: IncludedMap): RawS
     // The API exposes no location anywhere — confirmed during the Task 3 spike.
     building: null,
     room: null,
+    startDate,
+    endDate,
   }));
 
   const instructorNames = ((a.field_instructors as string[] | null) ?? [])

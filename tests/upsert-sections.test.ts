@@ -11,8 +11,8 @@ const rows: RawSection[] = [
     deliveryMode: 'In person',
     instructorNames: ['John Smith'],
     meetings: [
-      { day: 'Mon', startTime: '14:00', endTime: '15:00', building: null, room: null },
-      { day: 'Wed', startTime: '14:00', endTime: '15:00', building: null, room: null },
+      { day: 'Mon', startTime: '14:00', endTime: '15:00', building: null, room: null, startDate: new Date('2026-09-08'), endDate: new Date('2026-12-05') },
+      { day: 'Wed', startTime: '14:00', endTime: '15:00', building: null, room: null, startDate: new Date('2026-09-08'), endDate: new Date('2026-12-05') },
     ],
     course: {
       subjectCode: 'ZZTEST',

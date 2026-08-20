@@ -5,8 +5,10 @@ import type { ParsedExport } from '@/upload/parse-workday';
 
 const A = 'zz-import-a@example.com';
 const B = 'zz-import-b@example.com';
+const C = 'zz-import-c@example.com';
 let userA: string;
 let userB: string;
+let userC: string;
 
 const parsed: ParsedExport = {
   studentNumber: '99999999',
@@ -40,14 +42,15 @@ const parsed: ParsedExport = {
 
 beforeAll(async () => {
   process.env.SERVER_SECRET ??= 'test-secret';
-  await db.user.deleteMany({ where: { email: { in: [A, B] } } });
+  await db.user.deleteMany({ where: { email: { in: [A, B, C] } } });
   userA = (await db.user.create({ data: { email: A } })).id;
   userB = (await db.user.create({ data: { email: B } })).id;
+  userC = (await db.user.create({ data: { email: C } })).id;
 });
 
 afterAll(async () => {
-  await db.enrollment.deleteMany({ where: { userId: { in: [userA, userB] } } });
-  await db.user.deleteMany({ where: { email: { in: [A, B] } } });
+  await db.enrollment.deleteMany({ where: { userId: { in: [userA, userB, userC] } } });
+  await db.user.deleteMany({ where: { email: { in: [A, B, C] } } });
   await db.$disconnect();
 });
 
@@ -85,5 +88,32 @@ describe('importExport', () => {
   it('refuses to bind the same student number to a second account', async () => {
     await expect(importExport(userB, parsed)).rejects.toThrow(/already/i);
     expect(await db.enrollment.count({ where: { userId: userB } })).toBe(0);
+  });
+
+  it('refuses to rebind an already-verified account to a different, unclaimed student number', async () => {
+    const first: ParsedExport = {
+      studentNumber: '11111111',
+      rows: [],
+      excluded: [],
+      unparsedTables: [],
+    };
+    const r1 = await importExport(userC, first);
+    expect(r1.boundStudent).toBe(true);
+
+    const bound = await db.user.findUniqueOrThrow({ where: { id: userC } });
+    expect(bound.studentIdHash).toMatch(/^[0-9a-f]{64}$/);
+
+    const second: ParsedExport = {
+      studentNumber: '22222222',
+      rows: [],
+      excluded: [],
+      unparsedTables: [],
+    };
+    await expect(importExport(userC, second)).rejects.toThrow(/already linked to a different/i);
+
+    // The digest must be UNCHANGED after the rejected rebind attempt — not
+    // silently overwritten with the second student's identity.
+    const after = await db.user.findUniqueOrThrow({ where: { id: userC } });
+    expect(after.studentIdHash).toBe(bound.studentIdHash);
   });
 });

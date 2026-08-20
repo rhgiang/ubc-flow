@@ -25,6 +25,18 @@ export async function importExport(
       throw new Error('That student number is already linked to another account.');
     }
 
+    // Once bound, an account's digest may never change to a DIFFERENT one —
+    // only re-confirm the same one. Enrollments accumulate additively and are
+    // never cleared on rebind, so an unguarded change would let one account
+    // silently absorb a second, unrelated student's identity and history.
+    const self = await db.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { studentIdHash: true },
+    });
+    if (self.studentIdHash && self.studentIdHash !== digest) {
+      throw new Error('This account is already linked to a different student number.');
+    }
+
     await db.user.update({
       where: { id: userId },
       data: { studentIdHash: digest, verifiedAt: new Date() },

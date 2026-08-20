@@ -4,19 +4,24 @@ import { db } from '@/lib/db';
 import Button from '@/components/Button';
 import WeekGrid, { type WeekGridEntry } from '@/components/WeekGrid';
 import { findConflicts } from '@/schedule/conflicts';
+import { searchSectionsForTerm } from '@/lib/search';
 import {
   renameSchedule,
   deleteSchedule,
+  addSection,
   removeSection,
   getSubscribeUrl,
 } from '@/app/actions/schedule';
 
 export default async function SchedulePlannerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
   const { id } = await params;
+  const { q = '' } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
 
@@ -58,10 +63,18 @@ export default async function SchedulePlannerPage({
   const conflicts = findConflicts(entries);
 
   const scheduleId = schedule.id;
+  const addedIds = new Set(sectionIds);
+  const results = q ? await searchSectionsForTerm(q, schedule.termId) : [];
 
   const subscribe = await getSubscribeUrl(scheduleId);
-  const subscribeUrl = subscribe.ok
-    ? `${process.env.NEXTAUTH_URL ?? 'http://localhost:3000'}/api/calendar/${subscribe.token}`
+  const base = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
+  const subscribeUrl = subscribe.ok ? `${base}/api/calendar/${subscribe.token}` : null;
+  // webcal:// makes iOS/macOS/Outlook offer a real subscription rather than a
+  // one-off download, so the feed keeps updating — the whole point of it.
+  const webcalUrl = subscribeUrl ? subscribeUrl.replace(/^https?:\/\//, 'webcal://') : null;
+  // Google Calendar ignores webcal:// and needs its own deep link.
+  const googleUrl = subscribeUrl
+    ? `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl ?? subscribeUrl)}`
     : null;
 
   async function renameAction(formData: FormData) {
@@ -80,8 +93,13 @@ export default async function SchedulePlannerPage({
     await removeSection(scheduleId, String(formData.get('sectionId') ?? ''));
   }
 
+  async function addAction(formData: FormData) {
+    'use server';
+    await addSection(scheduleId, String(formData.get('sectionId') ?? ''));
+  }
+
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-6 py-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm text-slate-500">{term?.name ?? 'Unknown term'}</p>
@@ -107,8 +125,63 @@ export default async function SchedulePlannerPage({
         </Button>
       </form>
 
+      <div className="mt-8 grid gap-8 lg:grid-cols-[320px_1fr]">
+        {/* Search sidebar — GET form, same ?q= pattern as the site-wide
+            search, so it needs no client-side JS. */}
+        <aside>
+          <h2 className="text-lg font-semibold">Add sections</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Searching {term?.name ?? 'this term'} only.
+          </p>
+          <form className="mt-3 flex gap-2">
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder="e.g. CPSC 221"
+              className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm"
+            />
+            <Button type="submit" variant="secondary">
+              Search
+            </Button>
+          </form>
+
+          {q && (
+            <p className="mt-3 text-xs text-slate-500">
+              {results.length} section{results.length === 1 ? '' : 's'} found
+            </p>
+          )}
+
+          <ul className="mt-3 max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+            {results.map((r) => {
+              const added = addedIds.has(r.sectionId);
+              return (
+                <li key={r.sectionId} className="rounded-lg border p-3 text-sm">
+                  <p className="font-medium">
+                    {r.code} {r.sectionCode}
+                  </p>
+                  <p className="truncate text-xs text-slate-600">{r.title}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {r.activity ?? '—'} · {r.meetings}
+                  </p>
+                  {added ? (
+                    <p className="mt-2 text-xs font-medium text-slate-400">Already added</p>
+                  ) : (
+                    <form action={addAction} className="mt-2">
+                      <input type="hidden" name="sectionId" value={r.sectionId} />
+                      <Button type="submit" variant="secondary">
+                        Add
+                      </Button>
+                    </form>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </aside>
+
+        <div>
       {conflicts.length > 0 && (
-        <div className="mt-6 rounded-lg border border-red-600 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-red-600 bg-red-50 p-4 text-sm text-red-800">
           <p className="font-medium">
             {conflicts.length} scheduling conflict{conflicts.length === 1 ? '' : 's'} detected
           </p>
@@ -122,7 +195,9 @@ export default async function SchedulePlannerPage({
         </div>
       )}
 
-      <h2 className="mt-8 text-xl font-semibold">Weekly view</h2>
+      <h2 className={`text-xl font-semibold ${conflicts.length > 0 ? 'mt-8' : ''}`}>
+        Weekly view
+      </h2>
       <div className="mt-4">
         <WeekGrid entries={entries} />
       </div>
@@ -151,22 +226,43 @@ export default async function SchedulePlannerPage({
         </ul>
       )}
 
-      <h2 className="mt-8 text-xl font-semibold">Subscribe in your calendar</h2>
+      <h2 className="mt-8 text-xl font-semibold">Add to your calendar</h2>
       {subscribeUrl ? (
         <>
           <p className="mt-2 text-sm text-slate-600">
-            Paste this URL into your calendar app&apos;s &quot;subscribe by URL&quot; feature. It
-            updates automatically as you edit this schedule — no need to re-export.
+            These subscribe to a live feed — your calendar keeps updating as you edit this
+            schedule, with no need to re-export.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <a
+              href={webcalUrl ?? subscribeUrl}
+              className="rounded-lg bg-blue-700 px-5 py-2 text-sm text-white"
+            >
+              Add to Apple / Outlook
+            </a>
+            <a
+              href={googleUrl ?? subscribeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border px-5 py-2 text-sm text-slate-700"
+            >
+              Add to Google Calendar
+            </a>
+          </div>
+          <p className="mt-4 text-xs text-slate-500">
+            Or paste this URL into any calendar app&apos;s &quot;subscribe by URL&quot; option:
           </p>
           <input
             readOnly
             value={subscribeUrl}
-            className="mt-2 w-full rounded-lg border bg-slate-50 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border bg-slate-50 px-3 py-2 text-sm"
           />
         </>
       ) : (
         <p className="mt-2 text-sm text-red-700">Could not create a subscribe link.</p>
       )}
+        </div>
+      </div>
     </main>
   );
 }

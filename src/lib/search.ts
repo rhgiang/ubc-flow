@@ -25,6 +25,52 @@ export function buildSearchWhere(query: string): Prisma.CourseWhereInput {
   return { title: { contains: q, mode: 'insensitive' } };
 }
 
+export type SectionHit = {
+  sectionId: string;
+  code: string;
+  title: string;
+  sectionCode: string;
+  activity: string | null;
+  meetings: string;
+};
+
+/**
+ * Sections of matching courses within ONE term, for the schedule planner's
+ * search sidebar. Term-scoped because a section from another term would never
+ * render on that schedule's weekly grid.
+ *
+ * Reuses buildSearchWhere so "cpsc 221", "cpsc", and title prose all behave
+ * exactly as they do in the site-wide course search.
+ */
+export async function searchSectionsForTerm(
+  query: string,
+  termId: string,
+  limit = 40,
+): Promise<SectionHit[]> {
+  const q = query.trim();
+  if (!q) return [];
+
+  const sections = await db.section.findMany({
+    where: { termId, course: { ...buildSearchWhere(q), campus: 'V' } },
+    include: { meetingTimes: true, course: { include: { subject: true } } },
+    take: limit,
+    orderBy: [{ course: { number: 'asc' } }, { sectionCode: 'asc' }],
+  });
+
+  return sections.map((s) => ({
+    sectionId: s.id,
+    code: `${s.course.subject.code ?? ''} ${s.course.number}`.trim(),
+    title: s.course.title,
+    sectionCode: s.sectionCode,
+    activity: s.activity,
+    meetings:
+      s.meetingTimes
+        .filter((m) => m.startTime && m.endTime)
+        .map((m) => `${m.day} ${m.startTime}–${m.endTime}`)
+        .join(', ') || 'No fixed time',
+  }));
+}
+
 export type SearchResult = { hits: CourseHit[]; total: number };
 
 export async function searchCourses(query: string, limit = 25): Promise<SearchResult> {

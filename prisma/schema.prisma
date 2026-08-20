@@ -135,7 +135,6 @@ model CourseReview {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   courseId      String
   termId        String?
-  instructorId  String?
   liked         Boolean?
   useful        Int?
   difficulty    Int?
@@ -152,7 +151,7 @@ model InstructorReview {
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   instructorId String
-  courseId     String?
+  courseId     String
   liked        Boolean?
   clear        Int?
   engaging     Int?

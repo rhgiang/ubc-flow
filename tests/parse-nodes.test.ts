@@ -180,10 +180,60 @@ describe('parseSectionNode', () => {
   it('expands one meeting row per scheduled day', () => {
     const r = parseSectionNode(node, included);
     expect(r.meetings).toEqual([
-      { day: 'Mon', startTime: '14:00', endTime: '15:00', building: null, room: null },
-      { day: 'Wed', startTime: '14:00', endTime: '15:00', building: null, room: null },
-      { day: 'Fri', startTime: '14:00', endTime: '15:00', building: null, room: null },
+      { day: 'Mon', startTime: '14:00', endTime: '15:00', building: null, room: null, startDate: null, endDate: null },
+      { day: 'Wed', startTime: '14:00', endTime: '15:00', building: null, room: null, startDate: null, endDate: null },
+      { day: 'Fri', startTime: '14:00', endTime: '15:00', building: null, room: null, startDate: null, endDate: null },
     ]);
+  });
+
+  it('captures the section date range onto every meeting row', () => {
+    const node = {
+      type: 'node--section',
+      id: 'section-dates',
+      attributes: {
+        field_section_number: '101',
+        field_days: ['m', 'w'],
+        field_start_time: 50400,
+        field_end_time: 54000,
+        field_start_date: '2027-01-06',
+        field_end_date: '2027-02-12',
+        field_instructors: [],
+      },
+      relationships: {
+        field_course: { data: { type: 'node--course', id: 'course-1' } },
+      },
+    };
+
+    const r = parseSectionNode(node as never, included);
+    expect(r.meetings).toHaveLength(2);
+    // Same range on every day of the section — they share one enrolment period.
+    // Prisma's DateTime? columns need a real Date, not a plain date string
+    // (verified against the live backfill), so parseSectionNode converts here.
+    for (const m of r.meetings) {
+      expect(m.startDate).toEqual(new Date('2027-01-06'));
+      expect(m.endDate).toEqual(new Date('2027-02-12'));
+    }
+  });
+
+  it('leaves meeting dates null when the section has none', () => {
+    const node = {
+      type: 'node--section',
+      id: 'section-nodates',
+      attributes: {
+        field_section_number: '102',
+        field_days: ['f'],
+        field_start_time: 50400,
+        field_end_time: 54000,
+        field_instructors: [],
+      },
+      relationships: {
+        field_course: { data: { type: 'node--course', id: 'course-1' } },
+      },
+    };
+
+    const r = parseSectionNode(node as never, included);
+    expect(r.meetings[0].startDate).toBeNull();
+    expect(r.meetings[0].endDate).toBeNull();
   });
 
   it('normalises instructor names', () => {

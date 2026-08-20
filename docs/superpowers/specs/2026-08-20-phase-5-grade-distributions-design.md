@@ -89,9 +89,9 @@ duplicate every row**. Every other ingest in this codebase is an idempotent upse
 model GradeDistribution {
   id           String  @id @default(cuid())
   courseId     String
-  termId       String?
+  termId       String  @default("")   // NOT NULL — see below
   sectionCode  String            // NEW
-  detail       String?           // NEW — see 4.2
+  detail       String  @default("")   // NEW — see 4.2, NOT NULL
   average      Float?
   median       Float?
   high         Float?
@@ -127,6 +127,12 @@ ordering carries no meaning to lean on.
 `(course, term, section, detail)`. A co-taught section is still *one* section with
 *one* distribution — the join table records who taught it without duplicating the
 grades themselves, which would inflate every course average.
+
+**`termId` and `detail` are NOT NULL, using `""` as the "none" sentinel.** Prisma
+refuses a nullable field inside a compound-key `where` clause — the identical
+constraint Phase 3 hit with `InstructorReview.courseId`. Since both participate in
+the unique key above, nullable versions would make the ingest upsert fail to
+compile.
 
 `@@index([instructorId])` on the join table serves the professor page's lookup.
 

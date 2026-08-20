@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
+import { isPlannableTerm } from '@/schedule/terms';
 
 type Result = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; scheduleId: string } | { ok: false; error: string };
@@ -28,6 +29,11 @@ export async function createScheduleFor(
   const clean = name.trim();
   if (!clean) return { ok: false, error: 'Give the schedule a name.' };
   if (clean.length > 80) return { ok: false, error: 'That name is too long.' };
+
+  const term = await db.term.findUnique({ where: { id: termId }, select: { year: true } });
+  if (!term || !isPlannableTerm(term)) {
+    return { ok: false, error: 'That term is not available to plan a schedule for.' };
+  }
 
   const schedule = await db.savedSchedule.create({
     data: { userId, termId, name: clean },

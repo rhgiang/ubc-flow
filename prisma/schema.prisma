@@ -115,6 +115,7 @@ model User {
   enrollments   Enrollment[]
   courseReviews CourseReview[]
   instructorReviews InstructorReview[]
+  schedules SavedSchedule[]
 }
 
 model Enrollment {
@@ -162,11 +163,15 @@ model InstructorReview {
 }
 
 model SavedSchedule {
-  id       String @id @default(cuid())
+  id       String            @id @default(cuid())
   userId   String
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   termId   String
   name     String
   sections ScheduleSection[]
+  token    CalendarToken?
+
+  @@index([userId])
 }
 
 model ScheduleSection {
@@ -178,10 +183,11 @@ model ScheduleSection {
 }
 
 model CalendarToken {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  createdAt DateTime @default(now())
+  id         String        @id @default(cuid())
+  scheduleId String        @unique
+  schedule   SavedSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  token      String        @unique
+  createdAt  DateTime      @default(now())
 }
 
 model GradeDistribution {

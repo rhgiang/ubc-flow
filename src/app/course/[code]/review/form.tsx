@@ -55,7 +55,7 @@ function ScoreGroup({
             type="button"
             onClick={() => onChange(n)}
             className={`h-9 w-9 rounded-lg border text-sm ${
-              value === n ? 'bg-blue-700 text-white' : 'text-slate-700'
+              value !== null && n <= value ? 'bg-blue-700 text-white' : 'text-slate-700'
             }`}
           >
             {n}

@@ -6,6 +6,14 @@ import { auth } from '@/lib/auth';
 import { canReview } from '@/lib/gate';
 import { aggregateCourseReviews } from '@/reviews/aggregate';
 
+// Lecture/lab/tutorial first, in the order a student encounters them;
+// anything else (Thesis, Independent Study, ...) sorts after, alphabetically.
+const ACTIVITY_ORDER = ['Lecture', 'Laboratory', 'Discussion', 'Recitation', 'Seminar'];
+function activityRank(activity: string | null): number {
+  const i = ACTIVITY_ORDER.indexOf(activity ?? '');
+  return i === -1 ? ACTIVITY_ORDER.length : i;
+}
+
 export default async function CoursePage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const parsed = parseCourseCode(code);
@@ -33,6 +41,17 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
     },
   });
   if (!course) notFound();
+
+  // Group lectures with lectures, labs with labs, etc. within each term.
+  // Re-derives the term ordering too (not just activity), since a plain
+  // comparator replaces Prisma's orderBy rather than refining it.
+  course.sections.sort(
+    (a, b) =>
+      b.term.year - a.term.year ||
+      (b.term.termNumber ?? 0) - (a.term.termNumber ?? 0) ||
+      activityRank(a.activity) - activityRank(b.activity) ||
+      a.sectionCode.localeCompare(b.sectionCode),
+  );
 
   const reviews = await db.courseReview.findMany({
     where: { courseId: course.id },

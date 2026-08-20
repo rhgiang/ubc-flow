@@ -5,6 +5,7 @@ import { parseCourseCode, formatMeeting } from '@/lib/format';
 import { auth } from '@/lib/auth';
 import { canReview } from '@/lib/gate';
 import { aggregateCourseReviews } from '@/reviews/aggregate';
+import { addSection } from '@/app/actions/schedule';
 
 // Lecture/lab/tutorial first, in the order a student encounters them;
 // anything else (Thesis, Independent Study, ...) sorts after, alphabetically.
@@ -80,6 +81,12 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
         select: { id: true },
       })
     : null;
+  const mySchedules = session?.user?.id
+    ? await db.savedSchedule.findMany({
+        where: { userId: session.user.id },
+        select: { id: true, name: true, termId: true },
+      })
+    : [];
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -174,34 +181,74 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
                 <th className="py-2 pr-4">Activity</th>
                 <th className="py-2 pr-4">Times</th>
                 <th className="py-2">Instructor</th>
+                {session?.user?.id && <th className="py-2 pl-4">Schedule</th>}
               </tr>
             </thead>
             <tbody>
-              {course.sections.map((s) => (
-                <tr key={s.id} className="border-b last:border-0">
-                  <td className="py-2 pr-4 font-medium">{s.sectionCode}</td>
-                  <td className="py-2 pr-4">{s.term.name}</td>
-                  <td className="py-2 pr-4">{s.activity ?? '—'}</td>
-                  <td className="py-2 pr-4">
-                    {s.meetingTimes.length
-                      ? s.meetingTimes.map((m) => formatMeeting(m)).join(', ')
-                      : '—'}
-                  </td>
-                  <td className="py-2">
-                    {s.instructors.length
-                      ? s.instructors.map((si) => (
-                          <Link
-                            key={si.instructorId}
-                            href={`/professor/${si.instructor.slug}`}
-                            className="text-blue-700 hover:underline"
-                          >
-                            {si.instructor.name}
+              {course.sections.map((s) => {
+                const matchingSchedules = mySchedules.filter((sc) => sc.termId === s.termId);
+
+                async function addToScheduleAction(formData: FormData) {
+                  'use server';
+                  const scheduleId = String(formData.get('scheduleId') ?? '');
+                  if (scheduleId) await addSection(scheduleId, s.id);
+                }
+
+                return (
+                  <tr key={s.id} className="border-b last:border-0">
+                    <td className="py-2 pr-4 font-medium">{s.sectionCode}</td>
+                    <td className="py-2 pr-4">{s.term.name}</td>
+                    <td className="py-2 pr-4">{s.activity ?? '—'}</td>
+                    <td className="py-2 pr-4">
+                      {s.meetingTimes.length
+                        ? s.meetingTimes.map((m) => formatMeeting(m)).join(', ')
+                        : '—'}
+                    </td>
+                    <td className="py-2">
+                      {s.instructors.length
+                        ? s.instructors.map((si) => (
+                            <Link
+                              key={si.instructorId}
+                              href={`/professor/${si.instructor.slug}`}
+                              className="text-blue-700 hover:underline"
+                            >
+                              {si.instructor.name}
+                            </Link>
+                          ))
+                        : '—'}
+                    </td>
+                    {session?.user?.id && (
+                      <td className="py-2 pl-4">
+                        {matchingSchedules.length > 0 ? (
+                          <form action={addToScheduleAction} className="flex items-center gap-1">
+                            {matchingSchedules.length > 1 ? (
+                              <select
+                                name="scheduleId"
+                                className="rounded border px-1 py-0.5 text-xs"
+                              >
+                                {matchingSchedules.map((sc) => (
+                                  <option key={sc.id} value={sc.id}>
+                                    {sc.name}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input type="hidden" name="scheduleId" value={matchingSchedules[0].id} />
+                            )}
+                            <button type="submit" className="text-xs text-blue-700 hover:underline">
+                              + Add
+                            </button>
+                          </form>
+                        ) : (
+                          <Link href="/schedule" className="text-xs text-blue-700 hover:underline">
+                            Create a schedule
                           </Link>
-                        ))
-                      : '—'}
-                  </td>
-                </tr>
-              ))}
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

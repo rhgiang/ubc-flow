@@ -89,7 +89,6 @@ duplicate every row**. Every other ingest in this codebase is an idempotent upse
 model GradeDistribution {
   id           String  @id @default(cuid())
   courseId     String
-  instructorId String?
   termId       String?
   sectionCode  String            // NEW
   detail       String?           // NEW — see 4.2
@@ -99,20 +98,37 @@ model GradeDistribution {
   low          Float?
   count        Int?
   distribution Json?
+  instructors  GradeDistributionInstructor[]   // NEW — see 3.3
 
   @@unique([courseId, termId, sectionCode, detail])
   @@index([courseId])
+}
+
+// A section has ONE grade distribution but may be CO-TAUGHT. Verified in real
+// data: 7 of 127 CPSC 2025W rows list multiple semicolon-separated professors.
+model GradeDistributionInstructor {
+  distributionId String
+  distribution   GradeDistribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  instructorId   String
+  instructor     Instructor        @relation(fields: [instructorId], references: [id])
+
+  @@id([distributionId, instructorId])
   @@index([instructorId])
 }
 ```
 
-**`instructorId` is deliberately not part of the unique key.** It is nullable
-(§5 — a professor may not match), and including a nullable column in a compound
-unique key caused a real, caught problem in Phase 3 with `InstructorReview.courseId`.
-The section identity is `(course, term, section, detail)`; the instructor is an
-attribute of that section, not part of what makes it unique.
+**The single `instructorId` column from the Phase 1 stub is replaced by a join
+table.** The stub assumed one professor per section; the real data disproves that.
+Taking only the first listed name would silently attribute a co-taught course to
+one person — and the same pairing appears in *both orders* across rows, so
+ordering carries no meaning to lean on.
 
-`@@index([instructorId])` is added because the professor page queries by it.
+**Section identity excludes the instructor entirely.** It is
+`(course, term, section, detail)`. A co-taught section is still *one* section with
+*one* distribution — the join table records who taught it without duplicating the
+grades themselves, which would inflate every course average.
+
+`@@index([instructorId])` on the join table serves the professor page's lookup.
 
 ### 3.2 `distribution` keeps nulls
 
@@ -155,14 +171,20 @@ The CSV's `Professor` column is a name string from a *different source* than the
 agree — `"Firas Moosvi"` versus `"Moosvi, Firas"`, or a middle initial present in
 one source only.
 
-**Rule: normalize, match exactly, report misses.**
+**Rule: split, normalize, match exactly, report misses.**
 
-Phase 1's existing `normalizeInstructorName` already handles `Last, First` ordering
-and diacritics and produces a slug. Reuse it — do not write a second name parser —
-and match that slug against `Instructor.slug`.
+The `Professor` field may hold **several names separated by `; `** — verified in
+real data (`"Norman Hutchinson; Maryam Raiyat Aliabadi; Ibtissem Bouacheria"`), and
+it may also be **entirely blank** (5 of 127 CPSC 2025W rows). So:
 
-A row whose professor does not match is **still ingested**, with `instructorId`
-left null: the course-level distribution is correct regardless of whether we can
+1. Split on `;` and trim.
+2. Run each name through Phase 1's existing `normalizeInstructorName`, which already
+   handles `Last, First` ordering and diacritics and produces a slug. Reuse it — do
+   not write a second name parser.
+3. Match each slug against `Instructor.slug`, creating one join-table row per match.
+
+A row whose professor is blank or matches nothing is **still ingested**, with no
+join rows: the course-level distribution is correct regardless of whether we can
 attribute it to a specific instructor. Unmatched names are counted and reported by
 the job, never silently dropped — the same posture as the Workday importer's
 unmatched courses in Phase 2.
@@ -233,7 +255,8 @@ src/app/professor/[slug]/page.tsx — MODIFY: average section
 | Idempotency | Re-running ingest must not duplicate rows. Upsert on `(courseId, termId, sectionCode, detail)`. |
 | Suppressed data | Nulls stay null. Never inferred, interpolated, or rendered as zero. |
 | Attribution | Any page showing grade data credits the source repo. |
-| Instructor matching | Exact match on normalized slug only. Never fuzzy. Unmatched rows still ingest with a null `instructorId` and are reported. |
+| Instructor matching | Split on `;`, exact match on normalized slug only. Never fuzzy. Unmatched or blank professors still ingest, with no join rows, and are reported. |
+| Co-taught sections | One distribution row, N join rows. Never duplicate the distribution per instructor — that would inflate course averages. |
 | `<50` semantics | Treated as a student count, never a percentage. |
 | Politeness | Fetches go through the existing rate-limited `fetchText`. |
 | Empty state | No data shows an explicit message, never `0.0`. |

@@ -7,7 +7,7 @@ const rows = parseGradeCsv(csv);
 
 describe('parseGradeCsv', () => {
   it('parses every data row, skipping the header', () => {
-    expect(rows).toHaveLength(6);
+    expect(rows).toHaveLength(7);
   });
 
   it('extracts course identity', () => {
@@ -75,6 +75,22 @@ describe('parseGradeCsv', () => {
   });
 
   it('tolerates a trailing newline', () => {
-    expect(parseGradeCsv(`${csv}\n`)).toHaveLength(6);
+    expect(parseGradeCsv(`${csv}\n`)).toHaveLength(7);
+  });
+
+  it('does not let a comma inside a quoted title shift downstream columns', () => {
+    // Real upstream data: CPSC 110's title is quoted because it contains
+    // commas. A naive line.split(',') breaks inside the quotes and shifts
+    // every numeric column that follows — this reproduces that exact shape.
+    const row = rows.find((r) => r.courseNumber === '110')!;
+    expect(row.title).toBe('Computation, Programs, and Programming');
+    expect(row.professors).toEqual(['Nick Bradley']);
+    expect(row.reported).toBe(50);
+    expect(row.average).toBeCloseTo(79.1);
+    expect(row.median).toBeCloseTo(84);
+    expect(row.high).toBe(99);
+    expect(row.low).toBe(0);
+    expect(row.distribution['<50']).toBe(2);
+    expect(row.distribution['90-100']).toBe(3);
   });
 });

@@ -37,12 +37,41 @@ function str(value: string | undefined): string {
 }
 
 /**
- * Minimal CSV split. This source has no quoted fields or embedded commas —
- * verified against real files — so a full CSV parser would be a dependency
- * bought for nothing.
+ * CSV split, quote-aware. The upstream feed quotes the Title field whenever
+ * it contains a comma (e.g. "Thermodynamics, Kinetics and Organic
+ * Chemistry") — a plain `line.split(',')` splits inside the quotes and
+ * shifts every downstream column for every row of that course. Handles
+ * standard CSV quoting: commas inside a quoted field aren't delimiters, and
+ * `""` inside a quoted field is an escaped literal quote. Still no parsing
+ * library — this format doesn't need one.
  */
 function splitLine(line: string): string[] {
-  return line.split(',');
+  const fields: string[] = [];
+  let field = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        field += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      fields.push(field);
+      field = '';
+    } else {
+      field += ch;
+    }
+  }
+  fields.push(field);
+  return fields;
 }
 
 export function parseGradeCsv(text: string): RawGradeRow[] {

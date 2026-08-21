@@ -34,6 +34,7 @@ model Course {
   coreqText   String?
   updatedAt   DateTime @updatedAt
   sections    Section[]
+  gradeDistributions GradeDistribution[]
 
   @@unique([subjectId, number])
 }
@@ -88,6 +89,7 @@ model Instructor {
   slug     String   @unique
   campus   String?
   sections SectionInstructor[]
+  gradeDistributions GradeDistributionInstructor[]
 }
 
 model SectionInstructor {
@@ -193,8 +195,19 @@ model CalendarToken {
 model GradeDistribution {
   id           String  @id @default(cuid())
   courseId     String
-  instructorId String?
-  termId       String?
+  course       Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  /**
+   * NOT NULL via a string default, since Prisma rejects a nullable field in
+   * a compound-key where clause. The ingest job always sets this explicitly
+   * — the real Term id when one matches (year, session, campus), or
+   * "unmatched-<year><session>" when our Term catalogue doesn't cover that
+   * period (it only tracks current/near-term periods, not history) — never
+   * this bare "" default, which exists only as the column's safety net.
+   */
+  termId       String  @default("")
+  sectionCode  String
+  /** "" when the source's Detail column is blank — see note above. */
+  detail       String  @default("")
   average      Float?
   median       Float?
   high         Float?
@@ -202,7 +215,23 @@ model GradeDistribution {
   count        Int?
   distribution Json?
 
+  instructors GradeDistributionInstructor[]
+
+  @@unique([courseId, termId, sectionCode, detail])
   @@index([courseId])
+}
+
+// A section has ONE distribution but may be CO-TAUGHT — verified in real data
+// (7 of 127 CPSC 2025W rows list several professors). Duplicating the
+// distribution per instructor would inflate every course average.
+model GradeDistributionInstructor {
+  distributionId String
+  distribution   GradeDistribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  instructorId   String
+  instructor     Instructor        @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+
+  @@id([distributionId, instructorId])
+  @@index([instructorId])
 }
 
 model VerificationToken {

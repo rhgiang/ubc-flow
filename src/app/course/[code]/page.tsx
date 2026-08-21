@@ -5,7 +5,11 @@ import { parseCourseCode, formatMeeting } from '@/lib/format';
 import { auth } from '@/lib/auth';
 import { canReview } from '@/lib/gate';
 import { aggregateCourseReviews } from '@/reviews/aggregate';
+import { aggregateDistributions } from '@/grades/aggregate';
+import GradeChart from '@/components/GradeChart';
 import { addSection } from '@/app/actions/schedule';
+
+const GRADE_DATA_SOURCE = 'https://github.com/DonneyF/ubc-pair-grade-data';
 
 // Lecture/lab/tutorial first, in the order a student encounters them;
 // anything else (Thesis, Independent Study, ...) sorts after, alphabetically.
@@ -70,6 +74,18 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
   });
 
   const stats = aggregateCourseReviews(reviews);
+
+  const gradeRows = await db.gradeDistribution.findMany({
+    where: { courseId: course.id },
+    select: { average: true, count: true, distribution: true },
+  });
+  const grades = aggregateDistributions(
+    gradeRows.map((g) => ({
+      average: g.average,
+      count: g.count,
+      distribution: g.distribution as Record<string, number | null> | null,
+    })),
+  );
 
   const session = await auth();
   const mayReview = session?.user?.id
@@ -166,6 +182,51 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
             </li>
           ))}
         </ul>
+      )}
+
+      <h2 className="mt-10 text-xl font-semibold">Grades</h2>
+      {grades.sectionCount === 0 ? (
+        <p className="mt-2 text-slate-500">No grade data available.</p>
+      ) : (
+        <>
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="rounded-lg border p-4">
+              <p className="text-xs text-slate-500">Average</p>
+              <p className="text-lg font-semibold">
+                {grades.average !== null ? `${grades.average.toFixed(1)}%` : '—'}
+              </p>
+            </div>
+            <div className="rounded-lg border p-4">
+              <p className="text-xs text-slate-500">Students</p>
+              <p className="text-lg font-semibold">{grades.studentCount}</p>
+            </div>
+            <div className="rounded-lg border p-4">
+              <p className="text-xs text-slate-500">Sections</p>
+              <p className="text-lg font-semibold">{grades.sectionCount}</p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-lg border p-4">
+            <GradeChart distribution={grades.distribution} />
+          </div>
+          {grades.suppressed && (
+            <p className="mt-2 text-sm text-slate-500">
+              Some grade ranges were withheld by UBC to protect student privacy and are not
+              shown above.
+            </p>
+          )}
+          <p className="mt-2 text-xs text-slate-500">
+            Grade data from{' '}
+            <a
+              href={GRADE_DATA_SOURCE}
+              className="text-blue-700 hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              ubc-pair-grade-data
+            </a>
+            .
+          </p>
+        </>
       )}
 
       <h2 className="mt-10 text-xl font-semibold">Sections</h2>

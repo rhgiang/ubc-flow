@@ -1,0 +1,2 @@
+ALTER TABLE "Course" ADD COLUMN "prereqTree" JSONB;
+ALTER TABLE "Course" ADD COLUMN "coreqTree" JSONB;

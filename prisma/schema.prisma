@@ -32,6 +32,10 @@ model Course {
   campus      String
   prereqText  String?
   coreqText   String?
+  /** Requirement tree parsed from prereqText — see src/prereqs/parse.ts. */
+  prereqTree  Json?
+  /** Requirement tree parsed from coreqText — same shape as prereqTree. */
+  coreqTree   Json?
   updatedAt   DateTime @updatedAt
   sections    Section[]
   gradeDistributions GradeDistribution[]

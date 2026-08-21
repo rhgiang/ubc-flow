@@ -48,20 +48,29 @@ export async function ingestRows(rows: RawGradeRow[]): Promise<IngestResult> {
       select: { id: true },
     });
 
+    // Our Term catalogue only covers current/near-term periods (Phase 1
+    // scraped current terms, not history), while grade data spans several
+    // past years. Falling back to a bare "" sentinel for every unmatched
+    // year would collapse ALL unmatched years onto the same compound key,
+    // silently overwriting one year's grades with the next's. Encode the
+    // row's own year+session into the sentinel so distinct years stay
+    // distinct even without a real Term match.
+    const termId = term?.id ?? `unmatched-${row.year}${row.session}`;
+
     const distribution = await db.gradeDistribution.upsert({
       where: {
         // "" sentinels, not null: Prisma rejects nullable fields in a
         // compound-key where clause (same constraint Phase 3 hit).
         courseId_termId_sectionCode_detail: {
           courseId: course.id,
-          termId: term?.id ?? '',
+          termId,
           sectionCode: row.sectionCode,
           detail: row.detail ?? '',
         },
       },
       create: {
         courseId: course.id,
-        termId: term?.id ?? '',
+        termId,
         sectionCode: row.sectionCode,
         detail: row.detail ?? '',
         average: row.average,

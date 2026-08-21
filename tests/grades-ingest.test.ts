@@ -6,7 +6,6 @@ import type { RawGradeRow } from '@/grades/parse-csv';
 let courseId: string;
 let subjectCode: string;
 let courseNumber: string;
-let instructorSlug: string;
 let instructorName: string;
 
 beforeAll(async () => {
@@ -19,7 +18,6 @@ beforeAll(async () => {
   courseNumber = course.number;
 
   const instructor = await db.instructor.findFirstOrThrow();
-  instructorSlug = instructor.slug;
   instructorName = instructor.name;
 
   await db.gradeDistribution.deleteMany({ where: { courseId } });

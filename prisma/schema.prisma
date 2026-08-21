@@ -196,7 +196,14 @@ model GradeDistribution {
   id           String  @id @default(cuid())
   courseId     String
   course       Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  /** "" when no term in our catalogue matches — see note above. */
+  /**
+   * NOT NULL via a string default, since Prisma rejects a nullable field in
+   * a compound-key where clause. The ingest job always sets this explicitly
+   * — the real Term id when one matches (year, session, campus), or
+   * "unmatched-<year><session>" when our Term catalogue doesn't cover that
+   * period (it only tracks current/near-term periods, not history) — never
+   * this bare "" default, which exists only as the column's safety net.
+   */
   termId       String  @default("")
   sectionCode  String
   /** "" when the source's Detail column is blank — see note above. */

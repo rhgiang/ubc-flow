@@ -63,9 +63,6 @@ function countResolved(tree: Requirement | null): number {
 
 export async function buildRequirementTrees(): Promise<BuildResult> {
   const courses = await db.course.findMany({
-    where: {
-      OR: [{ prereqText: { not: null } }, { coreqText: { not: null } }],
-    },
     select: { id: true, prereqText: true, coreqText: true },
   });
 

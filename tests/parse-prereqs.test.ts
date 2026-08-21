@@ -159,4 +159,13 @@ describe('parseRequirements', () => {
     };
     walk(r);
   });
+
+  it('treats a trailing bare segment after an OR list as part of the same OR', () => {
+    // Real row: SOCI 381, SOCI 382, SOCI 383 (and others like COMM 307).
+    // "One of A, B, C and D" where D has no explicit "one of" is still a
+    // 4-way OR, not "one of A,B,C PLUS mandatory D".
+    const r = parseRequirements('One of SOCI 100, SOCI 101, SOCI 102 and SOCI 217.')!;
+    expect(r.type).toBe('or');
+    expect(codes(r)).toEqual(['SOCI 100', 'SOCI 101', 'SOCI 102', 'SOCI 217']);
+  });
 });

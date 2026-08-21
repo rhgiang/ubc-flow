@@ -77,7 +77,26 @@ function parseClause(clause: string): Requirement | null {
   if (BAILOUT.test(text) || AMBIGUOUS.test(text)) return { type: 'note', text };
   if (extractCodes(text).length === 0) return { type: 'note', text };
 
-  const groups = splitOnAnd(text)
+  const segments = splitOnAnd(text);
+
+  // Special case: "One of A, B, C and D" where D is bare (no "one of"/"all of")
+  // is a 4-way OR, not "one of A,B,C PLUS mandatory D". Detect when the first
+  // segment declares "one of" but a later segment is bare (declares neither).
+  if (segments.length > 1) {
+    const firstHasOneOf = /\bone of\b/i.test(segments[0]);
+    const hasBareLater = segments.slice(1).some(
+      (seg) => !/\b(?:one of|all of)\b/i.test(seg)
+    );
+    if (firstHasOneOf && hasBareLater) {
+      const codes = extractCodes(text);
+      return flatten({
+        type: 'or',
+        items: codes.map(toCourseNode),
+      });
+    }
+  }
+
+  const groups = segments
     .map(parseGroup)
     .filter((g): g is Requirement => g !== null);
 

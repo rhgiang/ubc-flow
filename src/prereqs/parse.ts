@@ -1,0 +1,106 @@
+export type Requirement =
+  | { type: 'course'; code: string; courseId: string | null }
+  | { type: 'and'; items: Requirement[] }
+  | { type: 'or'; items: Requirement[] }
+  | { type: 'note'; text: string };
+
+/** SUBJ[_CAMPUS] NNN[letter] — e.g. CPSC 221, CHEM_V 121, MATH_O 200, FNEL 201A. */
+const COURSE_CODE = /\b[A-Z]{2,5}(?:_[A-Z])?\s?\d{2,3}[A-Z]?\b/g;
+
+/**
+ * Eligibility language. A clause containing any of this is NOT a course
+ * dependency — it is standing, permission, a grade floor, or a program
+ * restriction. Parse nothing from it; keep the sentence verbatim.
+ */
+const BAILOUT =
+  /\b(standing|permission|restrict\w*|credits?|average|score|instructor|majors?|programs?|enrol\w*|department|faculty|recommend\w*)\b/i;
+
+/**
+ * Grouping we do not positively handle: lettered alternatives, "either", and a
+ * standalone "or". Checked BEFORE the One of/All of rules, because real rows
+ * like KIN 211 open with "All of" and then use (a)/(b) alternatives — reading
+ * that as a flat AND would tell a student to take every listed course.
+ */
+const AMBIGUOUS = /\([a-z]\)|\beither\b|\bany\b|\bor\b/i;
+
+function stripEquivalency(text: string): string {
+  // "Equivalency: CHEM_V 141" is a credit exclusion, not a requirement.
+  return text.replace(/\bEquivalenc(?:y|ies)\s*:[^.]*\.?/gi, ' ');
+}
+
+function toCourseNode(raw: string): Requirement {
+  const m = raw.match(/^([A-Z]{2,5})(?:_([A-Z]))?\s?(\d{2,3}[A-Z]?)$/);
+  if (!m) return { type: 'course', code: raw, courseId: null };
+  const [, subject, campus, number] = m;
+  // Vancouver is this app's default and its suffix is noise; Okanagan must stay
+  // visible, since it is a different campus and never resolves to a link.
+  const code = campus === 'O' ? `${subject}_O ${number}` : `${subject} ${number}`;
+  return { type: 'course', code, courseId: null };
+}
+
+function extractCodes(text: string): string[] {
+  return [...text.matchAll(COURSE_CODE)].map((m) => m[0]);
+}
+
+/** Collapse a group into its single child, and merge same-type nesting. */
+function flatten(node: Requirement): Requirement {
+  if (node.type !== 'and' && node.type !== 'or') return node;
+  const items: Requirement[] = [];
+  for (const item of node.items) {
+    const f = flatten(item);
+    if (f.type === node.type) items.push(...f.items);
+    else items.push(f);
+  }
+  return items.length === 1 ? items[0] : { ...node, items };
+}
+
+/** One segment: "one of A, B" -> OR; "A, B" -> AND; "A" -> the course itself. */
+function parseGroup(segment: string): Requirement | null {
+  const text = segment.trim().replace(/^[,;\s]+|[,;.\s]+$/g, '');
+  if (!text) return null;
+
+  const codes = extractCodes(text);
+  if (codes.length === 0) return null;
+
+  const nodes = codes.map(toCourseNode);
+  if (nodes.length === 1) return nodes[0];
+
+  const isOr = /\bone of\b/i.test(text);
+  return { type: isOr ? 'or' : 'and', items: nodes };
+}
+
+function parseClause(clause: string): Requirement | null {
+  const text = clause.trim().replace(/[.\s]+$/, '');
+  if (!text) return null;
+
+  // Order matters — see AMBIGUOUS above.
+  if (BAILOUT.test(text) || AMBIGUOUS.test(text)) return { type: 'note', text };
+  if (extractCodes(text).length === 0) return { type: 'note', text };
+
+  const groups = splitOnAnd(text)
+    .map(parseGroup)
+    .filter((g): g is Requirement => g !== null);
+
+  if (groups.length === 0) return { type: 'note', text };
+  return flatten(groups.length === 1 ? groups[0] : { type: 'and', items: groups });
+}
+
+function splitOnAnd(text: string): string[] {
+  return text.split(/\s+and\s+/i);
+}
+
+export function parseRequirements(text: string | null): Requirement | null {
+  if (!text || !text.trim()) return null;
+
+  const clauses = stripEquivalency(text)
+    .split(/[.;]/)
+    .map((c) => c.trim())
+    .filter(Boolean);
+
+  const items = clauses
+    .map(parseClause)
+    .filter((r): r is Requirement => r !== null);
+
+  if (items.length === 0) return null;
+  return flatten(items.length === 1 ? items[0] : { type: 'and', items });
+}

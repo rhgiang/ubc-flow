@@ -79,6 +79,24 @@ describe('ingestRows', () => {
     expect(await db.gradeDistribution.count({ where: { courseId } })).toBe(2);
   });
 
+  it('keeps distinct years separate even when neither matches a real Term', async () => {
+    // Our Term catalogue only covers current/near-term periods, so historical
+    // grade-data years (e.g. 2021, 2022) never resolve to a real term. Both
+    // rows share course+section+detail; only the year differs. If the
+    // unmatched-term sentinel doesn't encode the year, the second upsert
+    // would silently overwrite the first (the exact bug found during the
+    // real Task 6 ingest, where 2021-2024 grades collided into single rows).
+    await ingestRows([makeRow({ sectionCode: '950', year: 2021, average: 55 })]);
+    await ingestRows([makeRow({ sectionCode: '950', year: 2022, average: 91 })]);
+    const found = await db.gradeDistribution.findMany({
+      where: { courseId, sectionCode: '950' },
+      orderBy: { average: 'asc' },
+    });
+    expect(found).toHaveLength(2);
+    expect(found[0].average).toBeCloseTo(55);
+    expect(found[1].average).toBeCloseTo(91);
+  });
+
   it('skips rows whose course is not in our catalogue, and counts them', async () => {
     const r = await ingestRows([makeRow({ subject: 'ZZNOPE', courseNumber: '999' })]);
     expect(r.written).toBe(0);

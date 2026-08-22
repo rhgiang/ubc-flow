@@ -46,6 +46,10 @@ export async function importExport(
 
   const unmatched: string[] = [];
   let matched = 0;
+  // A course can have more than one registration row (lecture + lab), each
+  // contributing its own meeting — cleared once per (course, term) so a
+  // second row this run appends instead of wiping the first's meeting.
+  const clearedMeetings = new Set<string>();
 
   for (const row of parsed.rows) {
     const course = await db.course.findFirst({
@@ -87,6 +91,28 @@ export async function importExport(
       update: { verified: true },
     });
     matched += 1;
+
+    if (row.days.length > 0) {
+      const key = `${course.id}:${term.id}`;
+      if (!clearedMeetings.has(key)) {
+        await db.enrollmentMeeting.deleteMany({
+          where: { userId, courseId: course.id, termId: term.id },
+        });
+        clearedMeetings.add(key);
+      }
+      await db.enrollmentMeeting.create({
+        data: {
+          userId,
+          courseId: course.id,
+          termId: term.id,
+          sectionCode: row.sectionCode,
+          activity: row.activity,
+          days: row.days,
+          startTime: row.meetingStartTime,
+          endTime: row.meetingEndTime,
+        },
+      });
+    }
   }
 
   return { matched, unmatched, excluded: parsed.excluded.length, boundStudent };

@@ -43,8 +43,37 @@ describe('parseMeetingPattern', () => {
     expect(r.endDate).toBe('2026-12-04');
   });
 
-  it('returns nulls when no dates are present', () => {
-    expect(parseMeetingPattern('')).toEqual({ startDate: null, endDate: null });
+  it('extracts days and converts the time range to 24-hour', () => {
+    const r = parseMeetingPattern('2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m. - 11:30 a.m. | UBCV');
+    expect(r.days).toEqual(['Wed', 'Fri']);
+    expect(r.startTime).toBe('10:00');
+    expect(r.endTime).toBe('11:30');
+  });
+
+  it('converts a p.m. time range correctly, including the 12 p.m./a.m. edge cases', () => {
+    const r = parseMeetingPattern('2026-09-09 - 2026-12-04 | Mon | 12:00 p.m. - 1:30 p.m.');
+    expect(r.startTime).toBe('12:00');
+    expect(r.endTime).toBe('13:30');
+    const midnight = parseMeetingPattern('2026-09-09 - 2026-12-04 | Mon | 12:00 a.m. - 1:00 a.m.');
+    expect(midnight.startTime).toBe('00:00');
+  });
+
+  it('reads only the first block when a cell has multiple date-range blocks', () => {
+    const r = parseMeetingPattern(
+      '2027-01-06 - 2027-02-12 | Mon Wed Fri | 10:00 a.m. - 11:00 a.m.\n\n2027-02-22 - 2027-04-12 | Mon Wed Fri | 10:00 a.m. - 11:00 a.m.',
+    );
+    expect(r.startDate).toBe('2027-01-06');
+    expect(r.days).toEqual(['Mon', 'Wed', 'Fri']);
+  });
+
+  it('returns nulls and an empty day list when no dates are present', () => {
+    expect(parseMeetingPattern('')).toEqual({
+      startDate: null,
+      endDate: null,
+      days: [],
+      startTime: null,
+      endTime: null,
+    });
   });
 });
 

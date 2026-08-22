@@ -10,6 +10,9 @@ export type EnrollmentRow = {
   termYear: number;
   termSession: string;
   termNumber: number | null;
+  days: string[];
+  meetingStartTime: string | null;
+  meetingEndTime: string | null;
 };
 
 export type ExcludedRow = {
@@ -37,13 +40,48 @@ export function parseSectionCode(cell: string): string | null {
   return m?.[1] ?? null;
 }
 
-/** "2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m." -> the date range */
+const DAY_ABBREVIATIONS = new Set(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+
+/** "10:00 a.m." -> "10:00", "3:30 p.m." -> "15:30". Null on anything else. */
+function to24Hour(t: string): string | null {
+  const m = t.trim().match(/^(\d{1,2}):(\d{2})\s*([ap])\.?m\.?$/i);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const isPM = m[3].toLowerCase() === 'p';
+  if (isPM && h !== 12) h += 12;
+  if (!isPM && h === 12) h = 0;
+  return `${String(h).padStart(2, '0')}:${m[2]}`;
+}
+
+/**
+ * "2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m. - 11:30 a.m. | UBCV | ..."
+ * -> the date range plus the weekly day/time pattern.
+ *
+ * A cell can hold more than one date-range block, blank-line separated
+ * (e.g. a course split around reading week) — every block for one section
+ * repeats the same days/time, so only the first block's days/time are read.
+ */
 export function parseMeetingPattern(cell: string): {
   startDate: string | null;
   endDate: string | null;
+  days: string[];
+  startTime: string | null;
+  endTime: string | null;
 } {
-  const m = cell.match(/(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})/);
-  return { startDate: m?.[1] ?? null, endDate: m?.[2] ?? null };
+  const dateMatch = cell.match(/(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})/);
+
+  const firstBlock = cell.split(/\n\s*\n/)[0] ?? '';
+  const segments = firstBlock.split('|').map((s) => s.trim());
+  const days = (segments[1] ?? '').split(/\s+/).filter((d) => DAY_ABBREVIATIONS.has(d));
+  const timeMatch = segments[2]?.match(/^(.+?)\s*-\s*(.+)$/);
+
+  return {
+    startDate: dateMatch?.[1] ?? null,
+    endDate: dateMatch?.[2] ?? null,
+    days,
+    startTime: timeMatch ? to24Hour(timeMatch[1]) : null,
+    endTime: timeMatch ? to24Hour(timeMatch[2]) : null,
+  };
 }
 
 /** No export carries a term column — derive it from the start date. */
@@ -145,7 +183,7 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
     }
 
     const meeting = meetingCol === undefined
-      ? { startDate: null, endDate: null }
+      ? { startDate: null, endDate: null, days: [], startTime: null, endTime: null }
       : parseMeetingPattern(row[meetingCol] ?? '');
 
     const term = meeting.startDate ? inferTerm(meeting.startDate) : null;
@@ -161,6 +199,9 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
       sectionCode: sectionCol === undefined ? null : parseSectionCode(row[sectionCol] ?? ''),
       activity: activityCol === undefined ? null : (row[activityCol] || null),
       startDate: meeting.startDate,
+      days: meeting.days,
+      meetingStartTime: meeting.startTime,
+      meetingEndTime: meeting.endTime,
       termYear: term.year,
       termSession: term.session,
       termNumber: term.termNumber,

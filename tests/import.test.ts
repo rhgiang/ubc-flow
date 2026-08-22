@@ -20,6 +20,9 @@ const parsed: ParsedExport = {
       sectionCode: '103',
       activity: 'Lecture',
       startDate: '2026-09-08',
+      days: ['Mon', 'Wed', 'Fri'],
+      meetingStartTime: '10:00',
+      meetingEndTime: '11:00',
       termYear: 2026,
       termSession: 'W',
       termNumber: 1,
@@ -31,6 +34,9 @@ const parsed: ParsedExport = {
       sectionCode: null,
       activity: null,
       startDate: '2026-09-08',
+      days: [],
+      meetingStartTime: null,
+      meetingEndTime: null,
       termYear: 2026,
       termSession: 'W',
       termNumber: 1,
@@ -50,6 +56,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await db.enrollment.deleteMany({ where: { userId: { in: [userA, userB, userC] } } });
+  await db.enrollmentMeeting.deleteMany({ where: { userId: { in: [userA, userB, userC] } } });
   await db.user.deleteMany({ where: { email: { in: [A, B, C] } } });
   await db.$disconnect();
 });
@@ -83,6 +90,14 @@ describe('importExport', () => {
   it('is idempotent — re-importing does not duplicate enrollments', async () => {
     await importExport(userA, parsed);
     expect(await db.enrollment.count({ where: { userId: userA } })).toBe(1);
+  });
+
+  it('writes the meeting pattern for the matched course, replacing on re-import', async () => {
+    const rows = await db.enrollmentMeeting.findMany({ where: { userId: userA } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].days).toEqual(['Mon', 'Wed', 'Fri']);
+    expect(rows[0].startTime).toBe('10:00');
+    expect(rows[0].endTime).toBe('11:00');
   });
 
   it('refuses to bind the same student number to a second account', async () => {

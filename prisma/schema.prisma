@@ -119,6 +119,7 @@ model User {
   studentIdHash String?   @unique
   verifiedAt    DateTime?
   enrollments   Enrollment[]
+  enrollmentMeetings EnrollmentMeeting[]
   courseReviews CourseReview[]
   instructorReviews InstructorReview[]
   schedules SavedSchedule[]
@@ -134,6 +135,29 @@ model Enrollment {
   verified Boolean @default(false)
 
   @@unique([userId, courseId, termId])
+}
+
+/**
+ * One row per meeting pattern parsed straight from a Workday export's
+ * "Meeting Patterns" cell (see src/upload/parse-workday.ts) — the real
+ * weekly day/time data Enrollment itself doesn't carry. A course with a
+ * lecture + lab produces two rows; re-uploading replaces a (user, course,
+ * term)'s rows wholesale rather than merging, since a dropped/changed
+ * section should not leave a stale meeting behind.
+ */
+model EnrollmentMeeting {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  termId      String
+  sectionCode String?
+  activity    String?
+  days        String[]
+  startTime   String?
+  endTime     String?
+
+  @@index([userId, termId])
 }
 
 model CourseReview {

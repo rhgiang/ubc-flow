@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import { searchCourses } from '@/lib/search';
+import { auth } from '@/lib/auth';
+import AuthPanel from '@/components/AuthPanel';
+import SearchBar from '@/components/SearchBar';
 
 export default async function Home({
   searchParams,
@@ -9,50 +12,65 @@ export default async function Home({
   const { q = '' } = await searchParams;
   const { hits, total } = q ? await searchCourses(q) : { hits: [], total: 0 };
   const truncated = q !== '' && hits.length < total;
+  const session = await auth();
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="text-4xl font-semibold">UBC Flow</h1>
-      <p className="mt-2 text-slate-600">Find courses and professors at UBC.</p>
+    <main
+      className={
+        q
+          ? 'flex-1 overflow-y-auto px-6 py-16'
+          : 'flex flex-1 flex-col items-center justify-center px-6'
+      }
+    >
+      <div
+        className={`mx-auto w-full max-w-2xl text-center ${
+          // With no login panel below it, the block reads as sitting too low
+          // dead-centered in the viewport — nudge it up to roughly where it
+          // sits when the panel is present.
+          !q && session?.user ? 'mb-24' : ''
+        }`}
+      >
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          Search and explore course and professor reviews from UBC students
+        </h1>
 
-      <form className="mt-8 flex gap-2">
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Try CPSC 221, or “data structures”"
-          className="flex-1 rounded-lg border px-4 py-2"
-        />
-        <button className="rounded-lg bg-blue-700 px-5 py-2 text-white">Search</button>
-      </form>
+        <SearchBar defaultValue={q} />
+
+        {!q && !session?.user && (
+          <div className="mt-10 flex justify-center">
+            <AuthPanel initialMode="login" />
+          </div>
+        )}
+      </div>
 
       {q && (
-        <section className="mt-10">
-          <p className="text-sm text-slate-500">
+        <section className="mx-auto mt-10 max-w-2xl text-left">
+          <p className="text-sm text-text-secondary">
             {truncated
-              ? `Showing ${hits.length} of ${total} results for “${q}” — refine your search to narrow this down`
-              : `${total} result${total === 1 ? '' : 's'} for “${q}”`}
+              ? `Showing ${hits.length} of ${total} results for "${q}" — refine your search to narrow this down`
+              : `${total} result${total === 1 ? '' : 's'} for "${q}"`}
           </p>
-          <ul className="mt-4 divide-y">
+          <ul className="mt-4 divide-y divide-border">
             {hits.map((r) => (
               <li key={r.code} className="py-3">
                 <Link
                   href={`/course/${r.code.toLowerCase().replace(' ', '-')}`}
-                  className="font-medium text-blue-700 hover:underline"
+                  className="font-medium text-foreground hover:underline"
                 >
                   {r.code}
                 </Link>
-                <span className="ml-2 text-slate-700">{r.title}</span>
+                <span className="ml-2 text-text-secondary">{r.title}</span>
               </li>
             ))}
           </ul>
+
+          <p className="mt-8">
+            <Link href="/explore" className="text-sm text-foreground hover:underline">
+              Browse all subjects →
+            </Link>
+          </p>
         </section>
       )}
-
-      <p className="mt-12">
-        <Link href="/explore" className="text-blue-700 hover:underline">
-          Browse all subjects →
-        </Link>
-      </p>
     </main>
   );
 }

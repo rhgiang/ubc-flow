@@ -1,20 +1,77 @@
 @import "tailwindcss";
 @source not "../../tests";
 
+/*
+ * Design tokens sourced from the reference system at
+ * styles.refero.design/style/a9941737-7a01-47b0-b187-df2bb16b27d8
+ * (their named palette: Obsidian/Tar/Carbon/Smoke/Ash/Graphite/Bone/Pearl/Chalk).
+ * Dark is the anchor palette; light is a deliberate inversion reusing the
+ * same named colors, not a separate palette.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #ffffff; /* Chalk */
+  --surface: #f7f6f4; /* light neutral, Bone-family */
+  --surface-muted: #efeeec;
+  --foreground: #000000; /* Obsidian */
+  --foreground-muted: #141414; /* Carbon */
+  --text-secondary: #615f5c; /* Smoke */
+  --text-tertiary: #878581; /* Ash */
+  --border: #d9d9d9; /* Pearl */
+  --border-hairline: rgba(0, 0, 0, 0.1);
+
+  /* UBC's official brand blue — used for active/selected states and
+     primary actions. Same values in both themes; a brand color shouldn't
+     flip with light/dark the way the monochrome tokens above do. */
+  --brand: #002145; /* UBC Blue */
+  --brand-hover: #04316b;
+  --brand-foreground: #ffffff;
+
+  /* Pill radius is mandatory per the reference system. */
+  --radius-pill: 100px;
+  --radius-card: 10px;
+  --radius-input: 6px;
+}
+
+/*
+ * Dark mode uses Apple's system dark palette (charcoal, not pure black) per
+ * explicit request — the reference system's own Obsidian (#000) read as too
+ * harsh. systemBackground/secondarySystemBackground/tertiarySystemBackground
+ * and separator, from Apple's HIG dark appearance.
+ */
+:root[data-theme="dark"] {
+  --background: #1c1c1e;
+  --surface: #2c2c2e;
+  --surface-muted: #3a3a3c;
+  --foreground: #ffffff;
+  --foreground-muted: #f2f2f7;
+  --text-secondary: #ababaf;
+  --text-tertiary: #8e8e93;
+  --border: #48484a;
+  --border-hairline: rgba(255, 255, 255, 0.12);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-border: var(--border);
+  --color-border-hairline: var(--border-hairline);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-foreground: var(--brand-foreground);
+  --radius-pill: var(--radius-pill);
+  --radius-card: var(--radius-card);
+  --radius-input: var(--radius-input);
+  --font-sans: var(--font-inter);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }

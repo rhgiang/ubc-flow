@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { signOut } from 'next-auth/react';
 
 type ImportResult = {
   matched: number;
@@ -121,6 +122,14 @@ export default function OnboardingPage() {
         We only read which courses you took. Your grades and student number are never
         stored, and the file itself is never saved.
       </p>
+
+      <button
+        type="button"
+        onClick={() => signOut({ redirectTo: '/' })}
+        className="mt-8 text-sm text-slate-500 hover:text-slate-700 hover:underline"
+      >
+        Sign out
+      </button>
     </main>
   );
 }

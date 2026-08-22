@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { listCourses, listProfessors, PAGE_SIZE, type CourseSort, type ProfessorSort } from '@/lib/explore';
 import { getCurrentAndNextTerm } from '@/schedule/terms';
 import ExploreSubjectSelect from '@/components/ExploreSubjectSelect';
+import ExploreSearchInput from '@/components/ExploreSearchInput';
 
 export const revalidate = 60;
 
@@ -120,15 +121,9 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             </Link>
           </div>
 
-          <form className="mt-4">
-            <input type="hidden" name="tab" value={tab} />
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder={tab === 'courses' ? 'Search course' : 'Search professor'}
-              className="w-full rounded-pill border border-border bg-surface px-4 py-2.5 text-sm text-foreground placeholder:text-text-tertiary focus:border-foreground focus:outline-none"
-            />
-          </form>
+          <div className="mt-4">
+            <ExploreSearchInput />
+          </div>
 
           <div className="mt-4 overflow-x-auto rounded-card border border-border">
             <table className="w-full text-left text-sm">

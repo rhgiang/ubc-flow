@@ -5,7 +5,7 @@ import { useAuthOverlay } from '@/components/AuthOverlayContext';
 import AuthPanel from '@/components/AuthPanel';
 
 export default function AuthOverlay() {
-  const { mode, close } = useAuthOverlay();
+  const { mode, onSuccess, close } = useAuthOverlay();
 
   useEffect(() => {
     if (mode === null) return;
@@ -31,7 +31,14 @@ export default function AuthOverlay() {
         if (e.target === e.currentTarget) close();
       }}
     >
-      <AuthPanel initialMode={mode} onSuccess={close} onClose={close} />
+      <AuthPanel
+        initialMode={mode}
+        onSuccess={() => {
+          onSuccess?.();
+          close();
+        }}
+        onClose={close}
+      />
     </div>
   );
 }

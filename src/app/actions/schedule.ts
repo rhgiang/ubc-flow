@@ -5,10 +5,17 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { isPlannableTerm } from '@/schedule/terms';
+import { searchSectionsForTerm, type SectionHit } from '@/lib/search';
 
 type Result = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; scheduleId: string } | { ok: false; error: string };
 type TokenResult = { ok: true; token: string } | { ok: false; error: string };
+// needsAuth distinguishes "you're not signed in" from a validation error, so
+// the guest schedule builder knows to prompt sign-in rather than just show
+// the message inline.
+type SaveResult =
+  | { ok: true; scheduleId: string }
+  | { ok: false; error: string; needsAuth?: true };
 
 const NOT_YOURS = 'That schedule does not belong to you.';
 
@@ -37,6 +44,39 @@ export async function createScheduleFor(
 
   const schedule = await db.savedSchedule.create({
     data: { userId, termId, name: clean },
+    select: { id: true },
+  });
+  return { ok: true, scheduleId: schedule.id };
+}
+
+/**
+ * Creates the schedule and all of its sections in one call — the guest
+ * builder's save step, where sections were only ever held in client state
+ * (never persisted per-add the way the logged-in-only /schedule/[id] editor
+ * does), so there's one write instead of N.
+ */
+async function createScheduleWithSectionsFor(
+  userId: string,
+  termId: string,
+  name: string,
+  sectionIds: string[],
+): Promise<CreateResult> {
+  const clean = name.trim();
+  if (!clean) return { ok: false, error: 'Give the schedule a name.' };
+  if (clean.length > 80) return { ok: false, error: 'That name is too long.' };
+
+  const term = await db.term.findUnique({ where: { id: termId }, select: { year: true } });
+  if (!term || !isPlannableTerm(term)) {
+    return { ok: false, error: 'That term is not available to plan a schedule for.' };
+  }
+
+  const schedule = await db.savedSchedule.create({
+    data: {
+      userId,
+      termId,
+      name: clean,
+      sections: { create: [...new Set(sectionIds)].map((sectionId) => ({ sectionId })) },
+    },
     select: { id: true },
   });
   return { ok: true, scheduleId: schedule.id };
@@ -153,4 +193,22 @@ export async function getSubscribeUrl(scheduleId: string): Promise<TokenResult> 
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Sign in to subscribe.' };
   return getOrCreateTokenFor(userId, scheduleId);
+}
+
+/** The guest schedule builder's search box — term-scoped section lookup, callable directly from a client component. */
+export async function searchSections(query: string, termId: string): Promise<SectionHit[]> {
+  return searchSectionsForTerm(query, termId);
+}
+
+/** Save step for a schedule built up entirely in client state (no account needed until now). */
+export async function saveGuestSchedule(
+  termId: string,
+  name: string,
+  sectionIds: string[],
+): Promise<SaveResult> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Sign in to save your schedule.', needsAuth: true };
+  const result = await createScheduleWithSectionsFor(userId, termId, name, sectionIds);
+  if (result.ok) revalidatePath('/schedule');
+  return result;
 }

@@ -1,48 +1,91 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Button from '@/components/Button';
+import ScheduleHeader from '@/components/schedule/ScheduleHeader';
+import SchedulePanelTabs from '@/components/schedule/SchedulePanelTabs';
 import WeekGrid, { type WeekGridEntry } from '@/components/WeekGrid';
 import { findConflicts } from '@/schedule/conflicts';
-import { searchSections, saveGuestSchedule } from '@/app/actions/schedule';
+import { diffSections } from '@/schedule/buffer';
+import {
+  saveGuestSchedule,
+  replaceScheduleSections,
+  deleteSchedule,
+} from '@/app/actions/schedule';
 import type { SectionHit } from '@/lib/search';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
 
-type Term = { id: string; name: string };
+export type BuilderMode = { kind: 'draft' } | { kind: 'saved'; scheduleId: string };
 
+/**
+ * The single schedule builder, behind both /schedule/new (draft) and
+ * /schedule/[id] (saved).
+ *
+ * Both modes hold the working section set in client state and commit only on
+ * Save (spec §3.1): it matches Workday's own Save/Cancel model, it gives one
+ * rendering path for both modes, and it stops a bulk Workday import from
+ * firing a burst of writes for edits the student hasn't agreed to yet.
+ */
 export default function ScheduleBuilder({
+  mode,
   initialName,
   initialTermId,
+  initialSections,
   terms,
 }: {
+  mode: BuilderMode;
   initialName: string;
   initialTermId: string;
-  terms: Term[];
+  initialSections: SectionHit[];
+  terms: { id: string; name: string }[];
 }) {
   const [name, setName] = useState(initialName);
-  const [termId, setTermId] = useState(initialTermId || (terms[0]?.id ?? ''));
-  const [chosen, setChosen] = useState<SectionHit[]>([]);
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SectionHit[]>([]);
-  const [searching, setSearching] = useState(false);
+  // On /schedule/new with no termId query param, initialTermId is '' — falling
+  // back to terms[0] must feed BOTH the initial state and the dirty
+  // comparison, or a pristine page reports dirty against '' the instant terms
+  // load and arms the beforeunload guard before the student has done anything.
+  const effectiveInitialTermId = initialTermId || (terms[0]?.id ?? '');
+  const [termId, setTermId] = useState(effectiveInitialTermId);
+  const [chosen, setChosen] = useState<SectionHit[]>(initialSections);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { open } = useAuthOverlay();
 
-  const chosenIds = new Set(chosen.map((c) => c.sectionId));
+  const scheduleId = mode.kind === 'saved' ? mode.scheduleId : null;
+  const initialIds = useMemo(
+    () => initialSections.map((s) => s.sectionId),
+    [initialSections],
+  );
 
-  async function onSearch(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSearching(true);
-    setResults(await searchSections(query, termId));
-    setSearching(false);
-  }
+  const dirty = useMemo(() => {
+    const { added, removed } = diffSections(
+      initialIds,
+      chosen.map((c) => c.sectionId),
+    );
+    return (
+      added.length > 0 ||
+      removed.length > 0 ||
+      name.trim() !== initialName.trim() ||
+      termId !== effectiveInitialTermId
+    );
+  }, [initialIds, chosen, name, initialName, termId, effectiveInitialTermId]);
+
+  // Buffered edits live only in memory, so leaving the page drops them. Without
+  // this guard an imported schedule can vanish on a stray back-navigation.
+  useEffect(() => {
+    if (!dirty) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [dirty]);
 
   function addSection(hit: SectionHit) {
-    if (chosenIds.has(hit.sectionId)) return;
-    setChosen((prev) => [...prev, hit]);
+    setChosen((prev) =>
+      prev.some((s) => s.sectionId === hit.sectionId) ? prev : [...prev, hit],
+    );
   }
 
   function removeSection(sectionId: string) {
@@ -52,11 +95,20 @@ export default function ScheduleBuilder({
   async function trySave() {
     setSaving(true);
     setError(null);
-    const result = await saveGuestSchedule(
-      termId,
-      name,
-      chosen.map((c) => c.sectionId),
-    );
+    const sectionIds = chosen.map((c) => c.sectionId);
+
+    if (scheduleId) {
+      const result = await replaceScheduleSections(scheduleId, name, sectionIds);
+      setSaving(false);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+      return;
+    }
+
+    const result = await saveGuestSchedule(termId, name, sectionIds);
     if (result.ok) {
       router.push(`/schedule/${result.scheduleId}`);
       return;
@@ -67,6 +119,16 @@ export default function ScheduleBuilder({
       return;
     }
     setError(result.error);
+  }
+
+  async function onDelete() {
+    if (!scheduleId) return;
+    const result = await deleteSchedule(scheduleId);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    router.push('/schedule');
   }
 
   const entries: WeekGridEntry[] = chosen.flatMap((s) =>
@@ -83,90 +145,43 @@ export default function ScheduleBuilder({
   const conflicts = findConflicts(entries);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex max-w-sm flex-1 flex-wrap gap-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Schedule name"
-            required
-            maxLength={80}
-            className="flex-1 rounded-lg border px-3 py-2 text-lg font-semibold"
+    <main className="flex min-h-0 w-full flex-1 flex-col">
+      <ScheduleHeader
+        name={name}
+        onNameChange={setName}
+        termId={termId}
+        onTermChange={setTermId}
+        terms={terms}
+        scheduleId={scheduleId}
+        canSave={chosen.length > 0 && name.trim().length > 0 && termId !== ''}
+        saving={saving}
+        dirty={dirty}
+        onSave={trySave}
+        onDelete={onDelete}
+      />
+
+      {error && (
+        <p className="border-b border-border px-6 py-2 text-sm text-red-600">{error}</p>
+      )}
+
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <aside className="w-full shrink-0 overflow-y-auto border-b border-border lg:w-[340px] lg:border-b-0 lg:border-r">
+          <SchedulePanelTabs
+            termId={termId}
+            chosen={chosen}
+            onAdd={addSection}
+            onRemove={removeSection}
           />
-          <select
-            value={termId}
-            onChange={(e) => setTermId(e.target.value)}
-            className="rounded-lg border px-3 py-2 text-sm"
-          >
-            {terms.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <Button type="button" onClick={trySave} disabled={saving || !name.trim() || !termId}>
-          {saving ? 'Saving…' : 'Save schedule'}
-        </Button>
-      </div>
-      {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
-      <p className="mt-2 text-xs text-slate-500">
-        Build your schedule freely — you&apos;ll only be asked to sign in when you save it.
-      </p>
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-[320px_1fr]">
-        <aside>
-          <h2 className="text-lg font-semibold">Add sections</h2>
-          <form onSubmit={onSearch} className="mt-3 flex gap-2">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="e.g. CPSC 221"
-              className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm"
-            />
-            <Button type="submit" variant="secondary" disabled={searching || !termId}>
-              Search
-            </Button>
-          </form>
-
-          <ul className="mt-3 max-h-[60vh] space-y-2 overflow-y-auto pr-1">
-            {results.map((r) => {
-              const added = chosenIds.has(r.sectionId);
-              return (
-                <li key={r.sectionId} className="rounded-lg border p-3 text-sm">
-                  <p className="font-medium">
-                    {r.code} {r.sectionCode}
-                  </p>
-                  <p className="truncate text-xs text-slate-600">{r.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {r.activity ?? '—'} · {r.meetings}
-                  </p>
-                  {added ? (
-                    <p className="mt-2 text-xs font-medium text-slate-400">Already added</p>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="mt-2"
-                      onClick={() => addSection(r)}
-                    >
-                      Add
-                    </Button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
         </aside>
 
-        <div>
+        <div className="min-w-0 flex-1 overflow-auto p-4">
           {conflicts.length > 0 && (
-            <div className="rounded-lg border border-red-600 bg-red-50 p-4 text-sm text-red-800">
+            <div className="mb-4 rounded-card border border-red-600 bg-red-50 p-3 text-sm text-red-800">
               <p className="font-medium">
-                {conflicts.length} scheduling conflict{conflicts.length === 1 ? '' : 's'} detected
+                {conflicts.length} scheduling conflict
+                {conflicts.length === 1 ? '' : 's'} detected
               </p>
-              <ul className="mt-2 space-y-1">
+              <ul className="mt-1 space-y-0.5 text-xs">
                 {conflicts.map((c, i) => (
                   <li key={i}>
                     {c.a.label} overlaps {c.b.label} on {c.a.day}
@@ -176,37 +191,7 @@ export default function ScheduleBuilder({
             </div>
           )}
 
-          <h2 className={`text-xl font-semibold ${conflicts.length > 0 ? 'mt-8' : ''}`}>
-            Weekly view
-          </h2>
-          <div className="mt-4">
-            <WeekGrid entries={entries} />
-          </div>
-
-          <h2 className="mt-8 text-xl font-semibold">Sections</h2>
-          {chosen.length === 0 ? (
-            <p className="mt-2 text-slate-500">No sections added yet. Search on the left.</p>
-          ) : (
-            <ul className="mt-4 divide-y">
-              {chosen.map((s) => (
-                <li key={s.sectionId} className="flex items-center justify-between py-3">
-                  <div>
-                    <p className="font-medium">
-                      {s.code} {s.sectionCode}
-                    </p>
-                    <p className="text-sm text-slate-500">{s.activity ?? '—'}</p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => removeSection(s.sectionId)}
-                  >
-                    Remove
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <WeekGrid entries={entries} />
         </div>
       </div>
     </main>

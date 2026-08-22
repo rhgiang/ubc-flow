@@ -7,6 +7,7 @@ import { canReview } from '@/lib/gate';
 import { aggregateCourseReviews, aggregateInstructorReviews } from '@/reviews/aggregate';
 import { aggregateDistributions } from '@/grades/aggregate';
 import GradeChart from '@/components/GradeChart';
+import { addSection } from '@/app/actions/schedule';
 import RatingsBox from '@/components/RatingsBox';
 import CourseScheduleBox from '@/components/CourseScheduleBox';
 import RequirementSidebar from '@/components/RequirementSidebar';
@@ -123,6 +124,25 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
         select: { id: true },
       })
     : null;
+  const mySchedules = session?.user?.id
+    ? await db.savedSchedule.findMany({
+        where: { userId: session.user.id },
+        select: { id: true, name: true, termId: true },
+      })
+    : [];
+
+  // One server action per section, closing over its id — same mechanism the
+  // old inline sections table used, just built ahead of the client
+  // CourseScheduleBox so the actions can be passed down as props.
+  const addToScheduleActions: Record<string, (formData: FormData) => Promise<void>> = {};
+  for (const s of course.sections) {
+    const sectionId = s.id;
+    addToScheduleActions[sectionId] = async function addToScheduleAction(formData: FormData) {
+      'use server';
+      const scheduleId = String(formData.get('scheduleId') ?? '');
+      if (scheduleId) await addSection(scheduleId, sectionId);
+    };
+  }
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -264,6 +284,8 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
             instructors: s.instructors,
             term: s.term,
           }))}
+          mySchedules={session?.user?.id ? mySchedules : undefined}
+          addToScheduleActions={addToScheduleActions}
         />
       </div>
 

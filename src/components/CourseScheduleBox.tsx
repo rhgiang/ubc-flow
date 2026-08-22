@@ -16,7 +16,20 @@ type SectionRow = {
   term: { id: string; name: string; year: number; session: string; termNumber: number | null };
 };
 
-export default function CourseScheduleBox({ sections }: { sections: SectionRow[] }) {
+// The signed-in user's own saved schedules, for the "add this section" cell.
+// Undefined (not an empty array) means signed out — that's what hides the
+// column, same gating the old inline sections table used.
+type ScheduleOption = { id: string; name: string; termId: string };
+
+export default function CourseScheduleBox({
+  sections,
+  mySchedules,
+  addToScheduleActions,
+}: {
+  sections: SectionRow[];
+  mySchedules?: ScheduleOption[];
+  addToScheduleActions?: Record<string, (formData: FormData) => Promise<void>>;
+}) {
   const [collapsed, setCollapsed] = useState(false);
 
   const upcoming = sections.filter((s) => isUpcomingTerm(s.term));
@@ -85,36 +98,70 @@ export default function CourseScheduleBox({ sections }: { sections: SectionRow[]
                       <th className="px-4 py-2 font-medium">Enrolled</th>
                       <th className="px-4 py-2 font-medium">Time</th>
                       <th className="px-4 py-2 font-medium">Instructor</th>
+                      {mySchedules && <th className="px-4 py-2 font-medium">Schedule</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {active?.rows.map((s) => (
-                      <tr key={s.id} className="border-t border-border">
-                        <td className="px-4 py-2 font-medium text-foreground">{s.sectionCode}</td>
-                        <td className="px-4 py-2 text-text-secondary">{s.activity ?? '—'}</td>
-                        <td className="px-4 py-2 text-text-secondary">
-                          {s.enrolTotal !== null && s.enrolCap !== null
-                            ? `${s.enrolTotal}/${s.enrolCap}`
-                            : '—'}
-                        </td>
-                        <td className="px-4 py-2 text-text-secondary">
-                          {s.meetingTimes.length ? s.meetingTimes.map((m) => formatMeeting(m)).join(', ') : '—'}
-                        </td>
-                        <td className="px-4 py-2">
-                          {s.instructors.length
-                            ? s.instructors.map((si) => (
-                                <Link
-                                  key={si.instructorId}
-                                  href={`/professor/${si.instructor.slug}`}
-                                  className="text-brand hover:underline"
-                                >
-                                  {si.instructor.name}
+                    {active?.rows.map((s) => {
+                      const matchingSchedules = mySchedules?.filter((sc) => sc.termId === s.term.id) ?? [];
+                      const addToSchedule = addToScheduleActions?.[s.id];
+                      return (
+                        <tr key={s.id} className="border-t border-border">
+                          <td className="px-4 py-2 font-medium text-foreground">{s.sectionCode}</td>
+                          <td className="px-4 py-2 text-text-secondary">{s.activity ?? '—'}</td>
+                          <td className="px-4 py-2 text-text-secondary">
+                            {s.enrolTotal !== null && s.enrolCap !== null
+                              ? `${s.enrolTotal}/${s.enrolCap}`
+                              : '—'}
+                          </td>
+                          <td className="px-4 py-2 text-text-secondary">
+                            {s.meetingTimes.length ? s.meetingTimes.map((m) => formatMeeting(m)).join(', ') : '—'}
+                          </td>
+                          <td className="px-4 py-2">
+                            {s.instructors.length
+                              ? s.instructors.map((si) => (
+                                  <Link
+                                    key={si.instructorId}
+                                    href={`/professor/${si.instructor.slug}`}
+                                    className="text-brand hover:underline"
+                                  >
+                                    {si.instructor.name}
+                                  </Link>
+                                ))
+                              : '—'}
+                          </td>
+                          {mySchedules && (
+                            <td className="px-4 py-2">
+                              {matchingSchedules.length > 0 && addToSchedule ? (
+                                <form action={addToSchedule} className="flex items-center gap-1">
+                                  {matchingSchedules.length > 1 ? (
+                                    <select
+                                      name="scheduleId"
+                                      className="rounded border border-border px-1 py-0.5 text-xs"
+                                    >
+                                      {matchingSchedules.map((sc) => (
+                                        <option key={sc.id} value={sc.id}>
+                                          {sc.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <input type="hidden" name="scheduleId" value={matchingSchedules[0].id} />
+                                  )}
+                                  <button type="submit" className="text-xs text-brand hover:underline">
+                                    + Add
+                                  </button>
+                                </form>
+                              ) : (
+                                <Link href="/schedule" className="text-xs text-brand hover:underline">
+                                  Create a schedule
                                 </Link>
-                              ))
-                            : '—'}
-                        </td>
-                      </tr>
-                    ))}
+                              )}
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

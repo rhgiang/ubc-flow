@@ -54,7 +54,7 @@ function ScoreGroup({
             key={n}
             type="button"
             onClick={() => onChange(n)}
-            className={`h-9 w-9 rounded-lg border text-sm ${
+            className={`h-9 w-9 rounded-lg border text-sm transition-transform duration-150 ease-out hover:scale-110 active:scale-100 ${
               value !== null && n <= value ? 'bg-blue-700 text-white' : 'text-slate-700'
             }`}
           >
@@ -82,7 +82,7 @@ function LikedToggle({
         <button
           type="button"
           onClick={() => onChange(true)}
-          className={`rounded-lg border px-4 py-1.5 text-sm ${
+          className={`rounded-lg border px-4 py-1.5 text-sm transition-transform duration-150 ease-out hover:scale-[1.03] active:scale-100 ${
             value === true ? 'bg-blue-700 text-white' : 'text-slate-700'
           }`}
         >
@@ -91,7 +91,7 @@ function LikedToggle({
         <button
           type="button"
           onClick={() => onChange(false)}
-          className={`rounded-lg border px-4 py-1.5 text-sm ${
+          className={`rounded-lg border px-4 py-1.5 text-sm transition-transform duration-150 ease-out hover:scale-[1.03] active:scale-100 ${
             value === false ? 'bg-blue-700 text-white' : 'text-slate-700'
           }`}
         >
@@ -334,7 +334,7 @@ export function ReviewForm({
           <button
             type="submit"
             disabled={busy}
-            className="rounded-lg bg-blue-700 px-5 py-2 text-white disabled:opacity-50"
+            className="rounded-lg bg-blue-700 px-5 py-2 text-white transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100 disabled:opacity-50"
           >
             {busy ? 'Saving…' : existing ? 'Update review' : 'Submit review'}
           </button>
@@ -343,7 +343,7 @@ export function ReviewForm({
               type="button"
               onClick={onDelete}
               disabled={busy}
-              className="rounded-lg border px-5 py-2 text-slate-700 disabled:opacity-50"
+              className="rounded-lg border px-5 py-2 text-slate-700 transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100 disabled:opacity-50"
             >
               Delete review
             </button>

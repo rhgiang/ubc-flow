@@ -318,7 +318,10 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
                             ) : (
                               <input type="hidden" name="scheduleId" value={matchingSchedules[0].id} />
                             )}
-                            <button type="submit" className="text-xs text-blue-700 hover:underline">
+                            <button
+                              type="submit"
+                              className="inline-block text-xs text-blue-700 transition-transform duration-150 ease-out hover:scale-105 hover:underline active:scale-100"
+                            >
                               + Add
                             </button>
                           </form>

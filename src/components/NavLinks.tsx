@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
 
-const BASE = 'rounded-full border px-4 py-2 text-sm font-medium transition-colors';
+const BASE =
+  'rounded-full border px-4 py-2 text-sm font-medium transition duration-150 ease-out hover:scale-[1.02] active:scale-100';
 const INACTIVE = 'border-border text-foreground hover:bg-surface-muted';
 const ACTIVE = 'border-brand bg-brand text-brand-foreground';
 

@@ -99,7 +99,7 @@ export default function AuthPanel({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-full p-1 text-text-secondary hover:bg-surface-muted hover:text-foreground"
+            className="rounded-full p-1 text-text-secondary transition-transform duration-150 ease-out hover:scale-110 hover:bg-surface-muted hover:text-foreground active:scale-100"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
               <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
@@ -121,7 +121,7 @@ export default function AuthPanel({
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             disabled={busy}
-            className="w-full rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover disabled:opacity-50"
+            className="w-full rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50"
           >
             {busy ? 'Logging in…' : 'Log In'}
           </button>
@@ -140,7 +140,7 @@ export default function AuthPanel({
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             disabled={busy}
-            className="w-full rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover disabled:opacity-50"
+            className="w-full rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50"
           >
             {busy ? 'Creating…' : 'Sign Up'}
           </button>
@@ -157,7 +157,7 @@ export default function AuthPanel({
       <div className="space-y-2">
         <button
           type="button"
-          className="flex w-full items-center justify-center gap-2 rounded-pill border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted"
+          className="flex w-full items-center justify-center gap-2 rounded-pill border border-border px-5 py-2.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4">
             <path
@@ -181,7 +181,7 @@ export default function AuthPanel({
         </button>
         <button
           type="button"
-          className="flex w-full items-center justify-center gap-2 rounded-pill border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted"
+          className="flex w-full items-center justify-center gap-2 rounded-pill border border-border px-5 py-2.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
         >
           <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
             <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zm3.395-3.156c.833-1.01 1.39-2.415 1.234-3.815-1.196.052-2.64.803-3.5 1.812-.773.895-1.44 2.325-1.26 3.7 1.352.104 2.72-.688 3.526-1.697" />
@@ -200,7 +200,7 @@ export default function AuthPanel({
                 setError(null);
                 setMode('signup');
               }}
-              className="font-medium text-brand hover:underline"
+              className="inline-block font-medium text-brand transition-transform duration-150 ease-out hover:scale-105 hover:underline active:scale-100"
             >
               Sign up
             </button>
@@ -214,7 +214,7 @@ export default function AuthPanel({
                 setError(null);
                 setMode('login');
               }}
-              className="font-medium text-brand hover:underline"
+              className="inline-block font-medium text-brand transition-transform duration-150 ease-out hover:scale-105 hover:underline active:scale-100"
             >
               Log in
             </button>

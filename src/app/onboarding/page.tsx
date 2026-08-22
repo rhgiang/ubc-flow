@@ -69,7 +69,7 @@ export default function OnboardingPage() {
         />
         <button
           disabled={busy}
-          className="rounded-lg bg-blue-700 px-5 py-2 text-white disabled:opacity-50"
+          className="rounded-lg bg-blue-700 px-5 py-2 text-white transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100 disabled:opacity-50"
         >
           {busy ? 'Reading…' : 'Upload'}
         </button>
@@ -126,7 +126,7 @@ export default function OnboardingPage() {
       <button
         type="button"
         onClick={() => signOut({ redirectTo: '/' })}
-        className="mt-8 text-sm text-slate-500 hover:text-slate-700 hover:underline"
+        className="mt-8 inline-block text-sm text-slate-500 transition-transform duration-150 ease-out hover:scale-105 hover:text-slate-700 hover:underline active:scale-100"
       >
         Sign out
       </button>

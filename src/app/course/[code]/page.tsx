@@ -12,6 +12,7 @@ import RatingsBox from '@/components/RatingsBox';
 import CourseScheduleBox from '@/components/CourseScheduleBox';
 import RequirementSidebar from '@/components/RequirementSidebar';
 import ReviewCard from '@/components/ReviewCard';
+import { isUpcomingTerm } from '@/schedule/terms';
 import type { Requirement } from '@/prereqs/parse';
 
 const GRADE_DATA_SOURCE = 'https://github.com/DonneyF/ubc-pair-grade-data';
@@ -136,6 +137,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
   // CourseScheduleBox so the actions can be passed down as props.
   const addToScheduleActions: Record<string, (formData: FormData) => Promise<void>> = {};
   for (const s of course.sections) {
+    if (!isUpcomingTerm(s.term)) continue;
     const sectionId = s.id;
     addToScheduleActions[sectionId] = async function addToScheduleAction(formData: FormData) {
       'use server';
@@ -171,7 +173,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
           reviewCount={stats.count}
           metrics={[
             { label: 'Useful', mean: stats.useful, histogram: stats.histograms.useful },
-            { label: 'Easy', mean: stats.difficulty, histogram: stats.histograms.difficulty },
+            { label: 'Difficulty', mean: stats.difficulty, histogram: stats.histograms.difficulty },
           ]}
         />
       </div>
@@ -291,17 +293,9 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
 
       <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_300px]">
         <div>
-          <div className="flex gap-2 border-b border-border">
-            <button
-              type="button"
-              className="border-b-2 border-brand px-4 py-2 text-sm font-semibold text-foreground"
-            >
-              Course reviews ({stats.count})
-            </button>
-            <span className="px-4 py-2 text-sm font-semibold text-text-secondary">
-              Professor reviews ({instructorStats.count})
-            </span>
-          </div>
+          <h3 className="text-lg font-semibold text-foreground">
+            Course reviews ({stats.count})
+          </h3>
 
           {stats.count === 0 ? (
             <p className="mt-4 text-sm text-text-secondary">No reviews yet.</p>
@@ -315,7 +309,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
                   tags={[
                     ...(r.liked !== null ? [{ label: 'Liked', value: r.liked ? 'Yes' : 'No' }] : []),
                     ...(r.useful !== null ? [{ label: 'Useful', value: `${r.useful + 1}/5` }] : []),
-                    ...(r.difficulty !== null ? [{ label: 'Easy', value: `${r.difficulty + 1}/5` }] : []),
+                    ...(r.difficulty !== null ? [{ label: 'Difficulty', value: `${r.difficulty + 1}/5` }] : []),
                     ...(r.workloadHours !== null
                       ? [{ label: 'Workload', value: `${r.workloadHours} hrs/wk` }]
                       : []),
@@ -326,7 +320,13 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
             </ul>
           )}
 
-          {instructorStats.count > 0 && (
+          <h3 className="mt-10 text-lg font-semibold text-foreground">
+            Professor reviews ({instructorStats.count})
+          </h3>
+
+          {instructorStats.count === 0 ? (
+            <p className="mt-4 text-sm text-text-secondary">No reviews yet.</p>
+          ) : (
             <ul className="mt-4 space-y-4">
               {instructorReviews.map((r) => (
                 <ReviewCard
@@ -349,6 +349,8 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
           courseCode={`${course.subject.code} ${course.number}`}
           prereqTree={course.prereqTree as unknown as Requirement | null}
           coreqTree={course.coreqTree as unknown as Requirement | null}
+          prereqText={course.prereqText}
+          coreqText={course.coreqText}
           antireqs={antireqs}
           leadsTo={leadsTo}
         />

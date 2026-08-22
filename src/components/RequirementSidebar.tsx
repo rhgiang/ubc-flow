@@ -18,27 +18,63 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+// Small print under a parsed tree (or in place of one the parser bailed on) —
+// the parser is heuristic (see BAILOUT/AMBIGUOUS in src/prereqs/parse.ts) and
+// can misread an ambiguous clause, so the raw calendar text stays one glance
+// away for a reader to double-check.
+function RawTextFootnote({ text }: { text: string }) {
+  return (
+    <p className="mt-2 text-xs text-text-secondary">As published in the calendar: {text}</p>
+  );
+}
+
 export default function RequirementSidebar({
   courseCode,
   prereqTree,
   coreqTree,
+  prereqText,
+  coreqText,
   antireqs,
   leadsTo,
 }: {
   courseCode: string;
   prereqTree: Requirement | null;
   coreqTree: Requirement | null;
+  prereqText: string | null;
+  coreqText: string | null;
   antireqs: AntireqRef[];
   leadsTo: LeadsToRef[];
 }) {
   return (
     <aside className="rounded-card border border-border p-5">
       <Section title={`${courseCode} prerequisites`}>
-        {prereqTree ? <RequirementTree node={prereqTree} /> : 'No prerequisites'}
+        {!prereqText ? (
+          'No prerequisites'
+        ) : (
+          <>
+            {prereqTree ? (
+              <RequirementTree node={prereqTree} />
+            ) : (
+              <span>Could not be parsed into a structured list.</span>
+            )}
+            <RawTextFootnote text={prereqText} />
+          </>
+        )}
       </Section>
 
       <Section title={`${courseCode} corequisites`}>
-        {coreqTree ? <RequirementTree node={coreqTree} /> : 'No corequisites'}
+        {!coreqText ? (
+          'No corequisites'
+        ) : (
+          <>
+            {coreqTree ? (
+              <RequirementTree node={coreqTree} />
+            ) : (
+              <span>Could not be parsed into a structured list.</span>
+            )}
+            <RawTextFootnote text={coreqText} />
+          </>
+        )}
       </Section>
 
       <Section title={`${courseCode} antirequisites`}>

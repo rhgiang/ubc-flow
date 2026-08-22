@@ -79,7 +79,7 @@ export default function CourseScheduleBox({
                     type="button"
                     onClick={() => setActiveTermId(term.id)}
                     className={`shrink-0 px-4 py-2 text-sm font-medium ${
-                      activeTermId === term.id
+                      active?.term.id === term.id
                         ? 'border-b-2 border-brand text-foreground'
                         : 'text-text-secondary hover:text-foreground'
                     }`}

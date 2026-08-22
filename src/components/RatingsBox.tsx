@@ -9,10 +9,12 @@ export default function RatingsBox({
   likedPercent,
   reviewCount,
   metrics,
+  redditHref,
 }: {
   likedPercent: number | null;
   reviewCount: number;
   metrics: [Metric, Metric];
+  redditHref?: string;
 }) {
   const [open, setOpen] = useState<number | null>(null);
 
@@ -107,9 +109,21 @@ export default function RatingsBox({
         ))}
       </div>
 
-      <p className="w-full text-xs text-text-secondary">
-        Based on {reviewCount} review{reviewCount === 1 ? '' : 's'}
-      </p>
+      <div className="flex w-full items-center justify-between">
+        <p className="text-xs text-text-secondary">
+          Based on {reviewCount} review{reviewCount === 1 ? '' : 's'}
+        </p>
+        {redditHref && (
+          <a
+            href={redditHref}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-brand hover:underline"
+          >
+            Search Reddit
+          </a>
+        )}
+      </div>
     </div>
   );
 }

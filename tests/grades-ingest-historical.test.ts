@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { db } from '@/lib/db';
-import { historicalGradesUrl, fetchHistoricalGrades } from '@/grades/jobs/ingest-historical';
+import {
+  historicalGradesUrl,
+  historicalGradesDistributionsUrl,
+  fetchHistoricalGrades,
+  fetchHistoricalGradesByTerm,
+  averageFromBuckets,
+} from '@/grades/jobs/ingest-historical';
 
 afterAll(async () => {
   await db.$disconnect();
@@ -78,5 +84,118 @@ describe('fetchHistoricalGrades', () => {
     expect(result).not.toBeNull();
     expect(result!.average_past_5_yrs).toBeNull();
     expect(result!.average).toBeGreaterThan(0);
+  });
+});
+
+describe('historicalGradesDistributionsUrl', () => {
+  it('builds the verified real distributions endpoint', () => {
+    expect(historicalGradesDistributionsUrl('UBCV', 'CPSC', '110')).toBe(
+      'https://ubcgrades.com/api/v2/course-statistics/distributions/UBCV/CPSC/110',
+    );
+  });
+});
+
+describe('averageFromBuckets', () => {
+  it('uses the granular sub-50 buckets and ignores the redundant "<50%" rollup when both are present', () => {
+    // Real CPSC 110 W2009 entry — "<50%": 8 exactly equals the sum of the
+    // five granular sub-50 buckets (1+1+1+2+3), confirming it's a redundant
+    // rollup here, not additional students.
+    const grades = {
+      '0-9%': 1,
+      '10-19%': 1,
+      '20-29%': 1,
+      '30-39%': 2,
+      '40-49%': 3,
+      '50-54%': 5,
+      '55-59%': 4,
+      '60-63%': 2,
+      '64-67%': 7,
+      '68-71%': 3,
+      '72-75%': 4,
+      '76-79%': 8,
+      '80-84%': 7,
+      '85-89%': 6,
+      '90-100%': 20,
+      '<50%': 8,
+    };
+    expect(averageFromBuckets(grades)).toBeCloseTo(73.43, 1);
+  });
+
+  it('falls back to the "<50%" rollup when the granular sub-50 buckets are all null', () => {
+    // Real CPSC 110 W2014 entry — UBC stopped reporting the granular
+    // sub-50 breakdown; only "<50%" has a real count.
+    const grades = {
+      '0-9%': null,
+      '10-19%': null,
+      '20-29%': null,
+      '30-39%': null,
+      '40-49%': null,
+      '50-54%': 3,
+      '55-59%': 6,
+      '60-63%': 9,
+      '64-67%': 6,
+      '68-71%': 9,
+      '72-75%': 13,
+      '76-79%': 18,
+      '80-84%': 21,
+      '85-89%': 23,
+      '90-100%': 37,
+      '<50%': 17,
+    };
+    expect(averageFromBuckets(grades)).toBeCloseTo(74.59, 1);
+  });
+
+  it('returns null when every bucket is null', () => {
+    const grades = Object.fromEntries(
+      ['0-9%', '10-19%', '20-29%', '30-39%', '40-49%', '50-54%', '<50%'].map((b) => [b, null]),
+    );
+    expect(averageFromBuckets(grades)).toBeNull();
+  });
+});
+
+describe('fetchHistoricalGradesByTerm', () => {
+  it('computes one average per term from the real distributions response shape', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            campus: 'UBCV',
+            course: '110',
+            detail: '',
+            grades: {
+              '0-9%': 1,
+              '10-19%': 1,
+              '20-29%': 1,
+              '30-39%': 2,
+              '40-49%': 3,
+              '50-54%': 5,
+              '55-59%': 4,
+              '60-63%': 2,
+              '64-67%': 7,
+              '68-71%': 3,
+              '72-75%': 4,
+              '76-79%': 8,
+              '80-84%': 7,
+              '85-89%': 6,
+              '90-100%': 20,
+              '<50%': 8,
+            },
+            session: 'W',
+            subject: 'CPSC',
+            year: '2009',
+          },
+        ]),
+        { status: 200 },
+      ),
+    );
+    const result = await fetchHistoricalGradesByTerm('CPSC', '110');
+    expect(result).toEqual([{ year: 2009, session: 'W', average: expect.any(Number) }]);
+    expect(result[0].average).toBeCloseTo(73.43, 1);
+  });
+
+  it('returns an empty array for a course with no distribution history, not an error', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('Not Found', { status: 404 }));
+    const result = await fetchHistoricalGradesByTerm('ZZZZ', '999');
+    expect(result).toEqual([]);
   });
 });

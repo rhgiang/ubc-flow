@@ -12,6 +12,7 @@ import RatingsBox from '@/components/RatingsBox';
 import CourseScheduleBox from '@/components/CourseScheduleBox';
 import RequirementSidebar from '@/components/RequirementSidebar';
 import ReviewCard from '@/components/ReviewCard';
+import HistoricalGradesTimeline from '@/components/HistoricalGradesTimeline';
 import { isUpcomingTerm } from '@/schedule/terms';
 import type { Requirement } from '@/prereqs/parse';
 
@@ -97,6 +98,11 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
     where: { courseId: course.id },
   });
 
+  const historicalGradesByTerm = await db.courseHistoricalGradesByTerm.findMany({
+    where: { courseId: course.id },
+    select: { year: true, session: true, average: true },
+  });
+
   const leadsToEdges = await db.coursePrereqEdge.findMany({
     where: { requiredCourseId: course.id },
     include: { course: { include: { subject: true } } },
@@ -146,6 +152,8 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
     };
   }
 
+  const redditHref = `https://www.reddit.com/r/UBC/search/?q=${encodeURIComponent(`${course.subject.code} ${course.number}`)}`;
+
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
       <p className="text-sm text-slate-500">{course.subject.name}</p>
@@ -158,6 +166,15 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
         <p className="mt-2 text-sm text-slate-500">{course.credits} credits</p>
       )}
       {course.description && <p className="mt-6 leading-relaxed">{course.description}</p>}
+
+      <a
+        href={redditHref}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-4 inline-flex items-center gap-1.5 text-sm text-brand hover:underline"
+      >
+        Search Reddit for {course.subject.code} {course.number}
+      </a>
 
       <div className="mt-10 flex items-center justify-between">
         <h2 className="text-xl font-semibold">Ratings</h2>
@@ -175,6 +192,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
             { label: 'Useful', mean: stats.useful, histogram: stats.histograms.useful },
             { label: 'Difficulty', mean: stats.difficulty, histogram: stats.histograms.difficulty },
           ]}
+          redditHref={redditHref}
         />
       </div>
 
@@ -206,7 +224,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
           {historicalGrades && (
             <div className="mt-6 rounded-card border border-border p-4">
               <p className="text-sm font-semibold text-foreground">Historical Averages</p>
-              <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-5">
                 <div>
                   <p className="text-xs text-text-secondary">Overall average</p>
                   <p className="text-lg font-semibold text-foreground">
@@ -237,7 +255,18 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
                       : '—'}
                   </p>
                 </div>
+                <div>
+                  <p className="text-xs text-text-secondary">Std. deviation</p>
+                  <p className="text-lg font-semibold text-foreground">
+                    {historicalGrades.stddev !== null ? historicalGrades.stddev.toFixed(1) : '—'}
+                  </p>
+                </div>
               </div>
+
+              <div className="mt-5">
+                <HistoricalGradesTimeline terms={historicalGradesByTerm} />
+              </div>
+
               <p className="mt-3 text-xs text-text-secondary">
                 Historical data from{' '}
                 <a

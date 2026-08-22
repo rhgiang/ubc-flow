@@ -11,12 +11,15 @@ export type InstructorReviewRow = {
   engaging: number | null;
 };
 
+export type Histogram = Record<1 | 2 | 3 | 4 | 5, number>;
+
 export type CourseAggregate = {
   count: number;
   likedPercent: number | null;
   useful: number | null;
   difficulty: number | null;
   workloadHours: number | null;
+  histograms: { useful: Histogram; difficulty: Histogram };
 };
 
 export type InstructorAggregate = {
@@ -24,6 +27,7 @@ export type InstructorAggregate = {
   likedPercent: number | null;
   clear: number | null;
   engaging: number | null;
+  histograms: { clear: Histogram; engaging: Histogram };
 };
 
 /** Storage is 0-4; users see 1-5. Convert only at the boundary. */
@@ -54,6 +58,23 @@ function likedPercent(values: (boolean | null)[]): number | null {
   return Math.round((present.filter(Boolean).length / present.length) * 100);
 }
 
+function emptyHistogram(): Histogram {
+  return { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+}
+
+/** Counts each 0-4 stored rating into its 1-5 display bucket. Nulls are
+ * excluded entirely — an unrated review contributes to no bucket, never a
+ * fabricated "1". */
+function histogramOf(values: (number | null)[]): Histogram {
+  const h = emptyHistogram();
+  for (const v of values) {
+    if (v === null || v === undefined) continue;
+    const display = (v + 1) as 1 | 2 | 3 | 4 | 5;
+    if (display >= 1 && display <= 5) h[display] += 1;
+  }
+  return h;
+}
+
 export function aggregateCourseReviews(rows: CourseReviewRow[]): CourseAggregate {
   return {
     count: rows.length,
@@ -62,6 +83,10 @@ export function aggregateCourseReviews(rows: CourseReviewRow[]): CourseAggregate
     difficulty: meanDisplay(rows.map((r) => r.difficulty)),
     // Workload is raw hours, not a 1-5 score — no display offset.
     workloadHours: meanOf(rows.map((r) => r.workloadHours)),
+    histograms: {
+      useful: histogramOf(rows.map((r) => r.useful)),
+      difficulty: histogramOf(rows.map((r) => r.difficulty)),
+    },
   };
 }
 
@@ -71,5 +96,9 @@ export function aggregateInstructorReviews(rows: InstructorReviewRow[]): Instruc
     likedPercent: likedPercent(rows.map((r) => r.liked)),
     clear: meanDisplay(rows.map((r) => r.clear)),
     engaging: meanDisplay(rows.map((r) => r.engaging)),
+    histograms: {
+      clear: histogramOf(rows.map((r) => r.clear)),
+      engaging: histogramOf(rows.map((r) => r.engaging)),
+    },
   };
 }

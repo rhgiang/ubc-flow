@@ -14,7 +14,8 @@
     "scrape:descriptions": "tsx src/scrape/jobs/descriptions.run.ts",
     "enrich:prereqs": "tsx src/prereqs/jobs/build.run.ts",
     "scrape:all": "npm run scrape:catalog && npm run scrape:sections && npm run scrape:descriptions && npm run enrich:prereqs",
-    "ingest:grades": "tsx src/grades/jobs/ingest.run.ts"
+    "ingest:grades": "tsx src/grades/jobs/ingest.run.ts",
+    "ingest:historical-grades": "tsx src/grades/jobs/ingest-historical.run.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

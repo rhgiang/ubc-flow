@@ -13,7 +13,14 @@ export default async function NewSchedulePage({
     where: { campus: 'V' },
     orderBy: [{ year: 'desc' }, { termNumber: 'desc' }],
   });
-  const plannableTerms = terms.filter(isPlannableTerm);
 
-  return <ScheduleBuilder initialName={name} initialTermId={termId} terms={plannableTerms} />;
+  return (
+    <ScheduleBuilder
+      mode={{ kind: 'draft' }}
+      initialName={name}
+      initialTermId={termId}
+      initialSections={[]}
+      terms={terms.filter(isPlannableTerm)}
+    />
+  );
 }

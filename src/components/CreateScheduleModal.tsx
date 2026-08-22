@@ -18,7 +18,7 @@ export default function CreateScheduleModal({ terms }: { terms: Term[] }) {
         onClick={() => setOpen(true)}
         className="rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100"
       >
-        Create Saved Schedule
+        Build Schedule
       </button>
 
       {open && (

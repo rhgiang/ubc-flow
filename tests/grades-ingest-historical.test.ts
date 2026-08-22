@@ -145,6 +145,35 @@ describe('averageFromBuckets', () => {
     expect(averageFromBuckets(grades)).toBeCloseTo(74.59, 1);
   });
 
+  it('ignores a bucket returned as "" instead of a number', () => {
+    // Real COMM 202 2015W entry: the API emits "" for the 50-54% bucket.
+    // Treating "" as a count turns the running total into a string via
+    // `count += ""`, so every later += concatenates and the result comes out
+    // as ~8e-19 rather than a grade. Must land in the normal 70s-80s range.
+    const grades = {
+      '0-9%': null,
+      '10-19%': null,
+      '20-29%': null,
+      '30-39%': null,
+      '40-49%': null,
+      '50-54%': '',
+      '55-59%': 9,
+      '60-63%': 23,
+      '64-67%': 46,
+      '68-71%': 58,
+      '72-75%': 102,
+      '76-79%': 119,
+      '80-84%': 160,
+      '85-89%': 192,
+      '90-100%': 190,
+      '<50%': 6,
+    };
+    const avg = averageFromBuckets(grades);
+    expect(avg).not.toBeNull();
+    expect(avg!).toBeGreaterThan(70);
+    expect(avg!).toBeLessThan(90);
+  });
+
   it('returns null when every bucket is null', () => {
     const grades = Object.fromEntries(
       ['0-9%', '10-19%', '20-29%', '30-39%', '40-49%', '50-54%', '<50%'].map((b) => [b, null]),

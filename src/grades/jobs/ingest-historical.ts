@@ -57,7 +57,10 @@ export async function fetchHistoricalGrades(
 type DistributionEntry = {
   year: string;
   session: string;
-  grades: Record<string, number | null>;
+  // Values are usually number|null, but the API also emits "" for some
+  // buckets — see toCount below. Typed loosely so that reality can't be
+  // silently coerced past the type checker.
+  grades: Record<string, unknown>;
 };
 
 // Non-"<50%" buckets, with their midpoint grade — used to compute a
@@ -86,26 +89,41 @@ const SUB_50_BUCKETS = ['0-9%', '10-19%', '20-29%', '30-39%', '40-49%'];
 const SUB_50_MIDPOINT = 25; // midpoint of the rolled-up "<50%" bucket's 0-49 range
 
 /**
+ * A bucket count, or null for anything that isn't a real number.
+ *
+ * Individual buckets come back as "" (empty string) for some terms, the same
+ * way the summary endpoint returns "" for stats it can't compute. A bare
+ * `!= null` check lets "" through, and `count += ""` silently switches count
+ * from number to string — every later `+=` then CONCATENATES, so the final
+ * weightedSum/count divides by a giant numeric string and yields ~1e-19
+ * instead of a grade. Guard on the type, never on nullishness alone.
+ */
+function toCount(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+/**
  * A term's average from its raw grade-bucket counts. In earlier years UBC
  * reported the sub-50% range as five granular buckets; in later years those
  * are all null and only the rolled-up "<50%" bucket has a real count — using
  * both at once would double-count the same students, so "<50%" is only used
  * as a fallback when none of the granular sub-50 buckets have data.
  */
-export function averageFromBuckets(grades: Record<string, number | null>): number | null {
-  const hasGranularSub50 = SUB_50_BUCKETS.some((b) => grades[b] != null);
+export function averageFromBuckets(grades: Record<string, unknown>): number | null {
+  const hasGranularSub50 = SUB_50_BUCKETS.some((b) => toCount(grades[b]) !== null);
 
   let weightedSum = 0;
   let count = 0;
   for (const [bucket, midpoint] of Object.entries(BUCKET_MIDPOINTS)) {
-    const value = grades[bucket];
-    if (value == null) continue;
+    const value = toCount(grades[bucket]);
+    if (value === null) continue;
     weightedSum += value * midpoint;
     count += value;
   }
-  if (!hasGranularSub50 && grades['<50%'] != null) {
-    weightedSum += grades['<50%'] * SUB_50_MIDPOINT;
-    count += grades['<50%'];
+  const sub50 = toCount(grades['<50%']);
+  if (!hasGranularSub50 && sub50 !== null) {
+    weightedSum += sub50 * SUB_50_MIDPOINT;
+    count += sub50;
   }
 
   return count > 0 ? weightedSum / count : null;

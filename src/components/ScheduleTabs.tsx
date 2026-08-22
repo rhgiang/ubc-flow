@@ -3,12 +3,29 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import ScheduleRowActions from '@/components/ScheduleRowActions';
+import WeekGrid, { type WeekGridEntry } from '@/components/WeekGrid';
 
 export type SectionLite = { id: string; label: string; href: string };
 export type ScheduleRow = { id: string; name: string; sections: SectionLite[] };
 export type TermGroup = { termId: string; termName: string; rows: ScheduleRow[] };
+export type CalendarTermGroup = { termId: string; termName: string; entries: WeekGridEntry[] };
 
 const VISIBLE_SECTIONS = 3;
+type Tab = 'upcoming' | 'past' | 'calendar';
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`border-b-2 pb-2 text-sm font-medium ${
+        active ? 'border-brand text-brand' : 'border-transparent text-text-secondary'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 function SectionList({ sections }: { sections: SectionLite[] }) {
   if (sections.length === 0) {
@@ -82,51 +99,67 @@ function TermTable({ group, first }: { group: TermGroup; first: boolean }) {
   );
 }
 
+function CalendarTerm({ group, first }: { group: CalendarTermGroup; first: boolean }) {
+  return (
+    <div className={first ? '' : 'mt-8'}>
+      <h3 className="text-sm font-medium text-foreground">{group.termName}</h3>
+      {group.entries.length === 0 ? (
+        <p className="mt-2 text-sm text-text-tertiary">
+          No enrolled courses on record for this term — upload your Workday export from Account.
+        </p>
+      ) : (
+        <div className="mt-2">
+          <WeekGrid entries={group.entries} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ScheduleTabs({
   program,
   upcoming,
   past,
+  calendar,
 }: {
   program: string | null;
   upcoming: TermGroup[];
   past: TermGroup[];
+  calendar: CalendarTermGroup[];
 }) {
-  const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
+  const [tab, setTab] = useState<Tab>('upcoming');
   const groups = tab === 'upcoming' ? upcoming : past;
 
   return (
     <div className="mt-8">
       <div className="flex gap-6 border-b border-border">
-        <button
-          type="button"
-          onClick={() => setTab('upcoming')}
-          className={`border-b-2 pb-2 text-sm font-medium ${
-            tab === 'upcoming' ? 'border-brand text-brand' : 'border-transparent text-text-secondary'
-          }`}
-        >
+        <TabButton active={tab === 'upcoming'} onClick={() => setTab('upcoming')}>
           Upcoming Saved Schedules
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('past')}
-          className={`border-b-2 pb-2 text-sm font-medium ${
-            tab === 'past' ? 'border-brand text-brand' : 'border-transparent text-text-secondary'
-          }`}
-        >
+        </TabButton>
+        <TabButton active={tab === 'past'} onClick={() => setTab('past')}>
           Past Saved Schedules
-        </button>
+        </TabButton>
+        <TabButton active={tab === 'calendar'} onClick={() => setTab('calendar')}>
+          View Calendar
+        </TabButton>
       </div>
 
       <div className="mt-6">
-        {program && <p className="mb-2 font-semibold text-foreground">{program}</p>}
-        {groups.length === 0 ? (
-          <p className="text-text-secondary">
-            {tab === 'upcoming'
-              ? 'No upcoming saved schedules yet — create one above.'
-              : 'No past saved schedules.'}
-          </p>
+        {tab === 'calendar' ? (
+          calendar.map((g, i) => <CalendarTerm key={g.termId} group={g} first={i === 0} />)
         ) : (
-          groups.map((g, i) => <TermTable key={g.termId} group={g} first={i === 0} />)
+          <>
+            {program && <p className="mb-2 font-semibold text-foreground">{program}</p>}
+            {groups.length === 0 ? (
+              <p className="text-text-secondary">
+                {tab === 'upcoming'
+                  ? 'No upcoming saved schedules yet — create one above.'
+                  : 'No past saved schedules.'}
+              </p>
+            ) : (
+              groups.map((g, i) => <TermTable key={g.termId} group={g} first={i === 0} />)
+            )}
+          </>
         )}
       </div>
     </div>

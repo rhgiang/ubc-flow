@@ -17,7 +17,7 @@ export default async function SchedulePage() {
   const session = await auth();
   const userId = session?.user?.id;
 
-  const [user, schedules, terms] = await Promise.all([
+  const [user, schedules, terms, meetings] = await Promise.all([
     userId ? db.user.findUnique({ where: { id: userId }, select: { program: true } }) : null,
     userId
       ? db.savedSchedule.findMany({ where: { userId }, include: { sections: true } })
@@ -29,6 +29,10 @@ export default async function SchedulePage() {
       where: { campus: 'V' },
       orderBy: [{ year: 'desc' }, { termNumber: 'desc' }],
     }),
+    // Meeting patterns parsed straight from the student's Workday export
+    // (see src/upload/import.ts) — the real day/time data behind "View
+    // Calendar", independent of anything saved in the schedule builder.
+    userId ? db.enrollmentMeeting.findMany({ where: { userId } }) : Promise.resolve([]),
   ]);
 
   const termById = new Map(terms.map((t) => [t.id, t]));
@@ -75,8 +79,42 @@ export default async function SchedulePage() {
     bucket.set(s.termId, group);
   }
 
+  // "View Calendar" — real weekly grids for the upcoming plannable terms,
+  // built from the Workday-parsed meeting patterns rather than anything
+  // saved in the schedule builder.
+  const meetingCourseIds = [...new Set(meetings.map((m) => m.courseId))];
+  const meetingCourses = meetingCourseIds.length
+    ? await db.course.findMany({
+        where: { id: { in: meetingCourseIds } },
+        include: { subject: true },
+      })
+    : [];
+  const courseById = new Map(meetingCourses.map((c) => [c.id, c]));
+
+  const calendarByTerm = new Map<string, CalendarTermGroup>(
+    [...plannableTerms]
+      .sort((a, b) => a.year - b.year || (a.termNumber ?? 0) - (b.termNumber ?? 0))
+      .map((t) => [t.id, { termId: t.id, termName: t.name, entries: [] }]),
+  );
+  for (const m of meetings) {
+    const group = calendarByTerm.get(m.termId);
+    const course = courseById.get(m.courseId);
+    if (!group || !course) continue;
+    const label = `${course.subject.code}_${course.campus} ${course.number}${m.sectionCode ? `-${m.sectionCode}` : ''}`;
+    m.days.forEach((day, i) => {
+      group.entries.push({
+        id: `${m.id}-${i}`,
+        sectionId: m.id,
+        label,
+        day,
+        startTime: m.startTime,
+        endTime: m.endTime,
+      } satisfies WeekGridEntry);
+    });
+  }
+
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
+    <main className="mx-auto w-full max-w-4xl px-6 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold text-foreground">My Schedules</h1>
         <CreateScheduleModal terms={plannableTerms} />
@@ -93,6 +131,7 @@ export default async function SchedulePage() {
         program={user?.program ?? null}
         upcoming={[...upcomingByTerm.values()]}
         past={[...pastByTerm.values()]}
+        calendar={[...calendarByTerm.values()]}
       />
     </main>
   );

@@ -1,0 +1,65 @@
+'use client';
+
+import { groupSectionsByCourse } from '@/schedule/group';
+import type { SectionHit } from '@/lib/search';
+
+export default function SavedCoursesPanel({
+  chosen,
+  onRemove,
+}: {
+  chosen: SectionHit[];
+  onRemove: (sectionId: string) => void;
+}) {
+  const groups = groupSectionsByCourse(chosen);
+
+  if (groups.length === 0) {
+    return (
+      <div className="p-4">
+        <p className="text-sm text-text-secondary">
+          No courses yet. Use <span className="font-medium text-foreground">Find Courses</span> to
+          add sections.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4">
+      <p className="text-sm font-medium text-foreground">Total Courses: {groups.length}</p>
+
+      <div className="mt-3 space-y-2">
+        {groups.map((group) => (
+          <details key={group.code} open className="rounded-card border border-border">
+            <summary className="cursor-pointer px-3 py-2">
+              <span className="text-sm font-medium text-foreground">{group.code}</span>
+              <span className="ml-2 text-xs text-text-secondary">{group.title}</span>
+            </summary>
+
+            <ul className="border-t border-border">
+              {group.sections.map((section) => (
+                <li
+                  key={section.sectionId}
+                  className="flex items-start justify-between gap-2 border-b border-border px-3 py-2 last:border-b-0"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-foreground">{section.sectionCode}</p>
+                    <p className="text-xs text-text-secondary">{section.activity ?? '—'}</p>
+                    <p className="text-xs text-text-tertiary">{section.meetings}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(section.sectionId)}
+                    aria-label={`Remove ${group.code} ${section.sectionCode}`}
+                    className="shrink-0 rounded-pill border border-border px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-surface-muted"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -61,8 +61,8 @@ function TermTable({ group, first }: { group: TermGroup; first: boolean }) {
   return (
     <div className={first ? '' : 'mt-6'}>
       <h3 className="text-sm font-medium text-foreground">{group.termName}</h3>
-      <div className="mt-2 overflow-hidden rounded-card border border-border">
-        <div className="flex items-center justify-between border-b border-border bg-surface-muted px-4 py-2 text-xs text-text-tertiary">
+      <div className="mt-2 rounded-card border border-border">
+        <div className="flex items-center justify-between rounded-t-card border-b border-border bg-surface-muted px-4 py-2 text-xs text-text-tertiary">
           <span>Saved Schedules</span>
           <span>
             {group.rows.length} item{group.rows.length === 1 ? '' : 's'}

@@ -32,7 +32,7 @@ function termFullLabel(t: HistoricalGradeTerm): string {
  * thickness, and all text lives in HTML rather than the stretched SVG.
  */
 export default function HistoricalGradesTimeline({ terms }: { terms: HistoricalGradeTerm[] }) {
-  const [showAll, setShowAll] = useState(true);
+  const [showAll, setShowAll] = useState(false);
 
   const sorted = [...terms].sort(
     (a, b) => a.year - b.year || a.session.localeCompare(b.session),

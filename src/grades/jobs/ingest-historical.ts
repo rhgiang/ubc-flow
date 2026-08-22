@@ -8,14 +8,21 @@ export function historicalGradesUrl(campus: string, subject: string, number: str
 }
 
 type ApiResponse = {
-  average: number;
-  average_past_5_yrs: number;
-  min_course_avg: number;
-  max_course_avg: number;
-  stdev: number;
+  average: number | null;
+  average_past_5_yrs: number | null;
+  min_course_avg: number | null;
+  max_course_avg: number | null;
+  stdev: number | null;
 };
 
 export type HistoricalGradesResponse = ApiResponse | null;
+
+// ponytail: the real API returns "" (not null) for stats it can't compute
+// (e.g. average_past_5_yrs on a course with too little history) — coerce any
+// non-finite-number field to null before it reaches Prisma's Float? columns.
+function toNullableFloat(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
 
 /** A 404 means "no grade history for this course" — normal, not an error,
  * same posture as every other "not every X exists" job in this codebase. */
@@ -25,7 +32,14 @@ export async function fetchHistoricalGrades(
 ): Promise<HistoricalGradesResponse> {
   try {
     const text = await fetchText(historicalGradesUrl('UBCV', subject, number));
-    return JSON.parse(text) as ApiResponse;
+    const raw = JSON.parse(text) as Record<string, unknown>;
+    return {
+      average: toNullableFloat(raw.average),
+      average_past_5_yrs: toNullableFloat(raw.average_past_5_yrs),
+      min_course_avg: toNullableFloat(raw.min_course_avg),
+      max_course_avg: toNullableFloat(raw.max_course_avg),
+      stdev: toNullableFloat(raw.stdev),
+    };
   } catch {
     return null;
   }

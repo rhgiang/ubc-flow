@@ -28,4 +28,13 @@ describe('fetchHistoricalGrades', () => {
     const result = await fetchHistoricalGrades('ZZZZ', '999');
     expect(result).toBeNull();
   });
+
+  it('coerces a non-numeric field to null instead of returning "" or throwing', async () => {
+    // Real response confirmed live: BAEN 507 has too little history for a
+    // 5-year average, so the API returns average_past_5_yrs: "" (a string).
+    const result = await fetchHistoricalGrades('BAEN', '507');
+    expect(result).not.toBeNull();
+    expect(result!.average_past_5_yrs).toBeNull();
+    expect(result!.average).toBeGreaterThan(0);
+  });
 });

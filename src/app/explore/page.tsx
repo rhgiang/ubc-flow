@@ -1,29 +1,326 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
+import { listCourses, listProfessors, PAGE_SIZE, type CourseSort, type ProfessorSort } from '@/lib/explore';
+import { getCurrentAndNextTerm } from '@/schedule/terms';
+import ExploreSubjectSelect from '@/components/ExploreSubjectSelect';
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
-export default async function Explore() {
-  const subjects = await db.subject.findMany({
-    where: { campus: 'V', code: { not: null } },
-    include: { _count: { select: { courses: true } } },
-    orderBy: { code: 'asc' },
-  });
+type Tab = 'courses' | 'professors';
+
+type SP = {
+  tab?: string;
+  q?: string;
+  subject?: string;
+  level?: string; // comma-separated: "1,2,3"
+  term?: string; // "this" | "next"
+  requirements?: string; // "none" | "has"
+  sort?: string;
+  page?: string;
+};
+
+/** Builds an href for the current page with one or more params overridden —
+ * every filter/sort control is a plain link, no client JS needed. */
+function hrefWith(sp: SP, overrides: Partial<Record<keyof SP, string | null>>): string {
+  const merged: Record<string, string | null | undefined> = { ...sp, ...overrides };
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(merged)) {
+    if (value) params.set(key, String(value));
+  }
+  // Any filter/sort change resets pagination — staying on page 4 of a
+  // narrower result set would silently show nothing.
+  if (!('page' in overrides)) params.delete('page');
+  const qs = params.toString();
+  return qs ? `/explore?${qs}` : '/explore';
+}
+
+const LEVELS = [1, 2, 3, 4, 5] as const;
+
+export default async function ExplorePage({ searchParams }: { searchParams: Promise<SP> }) {
+  const sp = await searchParams;
+  const tab: Tab = sp.tab === 'professors' ? 'professors' : 'courses';
+  const q = sp.q?.trim() ?? '';
+  const levels = (sp.level ?? '')
+    .split(',')
+    .map(Number)
+    .filter((n) => LEVELS.includes(n as (typeof LEVELS)[number]));
+  const requirements = sp.requirements === 'none' || sp.requirements === 'has' ? sp.requirements : undefined;
+  const page = Math.max(1, Number(sp.page) || 1);
+
+  const [terms, subjects, courseTotal, professorTotal] = await Promise.all([
+    db.term.findMany({ where: { campus: 'V' } }),
+    db.subject.findMany({ where: { campus: 'V', code: { not: null } }, orderBy: { code: 'asc' } }),
+    db.course.count({ where: { campus: 'V' } }),
+    db.instructor.count({ where: { campus: 'V' } }),
+  ]);
+  const { current, next } = getCurrentAndNextTerm(terms);
+  const termId = sp.term === 'this' ? current?.id : sp.term === 'next' ? next?.id : undefined;
+
+  const courseResult =
+    tab === 'courses'
+      ? await listCourses({
+          q,
+          subject: sp.subject,
+          levels,
+          termId,
+          requirements,
+          sort: sp.sort as CourseSort | undefined,
+          page,
+        })
+      : null;
+  const professorResult =
+    tab === 'professors'
+      ? await listProfessors({ q, teachesSubject: sp.subject, sort: sp.sort as ProfessorSort | undefined, page })
+      : null;
+
+  const total = tab === 'courses' ? courseResult!.total : professorResult!.total;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasFilters = Boolean(q || sp.subject || levels.length || sp.term || requirements);
+
+  const SORT_HEADERS: { key: CourseSort | ProfessorSort; label: string }[] =
+    tab === 'courses'
+      ? [
+          { key: 'code', label: 'Course code' },
+          { key: 'name', label: 'Course name' },
+          { key: 'ratings', label: 'Ratings' },
+          { key: 'useful', label: 'Useful' },
+          { key: 'difficulty', label: 'Easy' },
+          { key: 'liked', label: 'Liked' },
+        ]
+      : [
+          { key: 'name', label: 'Professor name' },
+          { key: 'ratings', label: 'Ratings' },
+          { key: 'clear', label: 'Clear' },
+          { key: 'engaging', label: 'Engaging' },
+          { key: 'liked', label: 'Liked' },
+        ];
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <h1 className="text-3xl font-semibold">Browse subjects</h1>
-      <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-        {subjects.map((s) => (
-          <li key={s.id} className="rounded-lg border p-4">
-            <Link href={`/?q=${s.code}`} className="font-medium text-blue-700 hover:underline">
-              {s.code}
+    <main className="mx-auto max-w-6xl px-6 py-10">
+      <h1 className="text-3xl font-semibold">Explore</h1>
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_300px]">
+        <div>
+          <div className="flex rounded-card border border-border overflow-hidden">
+            <Link
+              href={hrefWith(sp, { tab: null })}
+              className={`flex-1 px-4 py-3 text-center text-sm font-semibold ${
+                tab === 'courses' ? 'bg-surface text-foreground' : 'bg-surface-muted text-text-secondary'
+              }`}
+            >
+              Courses ({courseTotal})
             </Link>
-            <p className="text-sm text-slate-700">{s.name}</p>
-            <p className="mt-1 text-xs text-slate-500">{s._count.courses} courses</p>
-          </li>
-        ))}
-      </ul>
+            <Link
+              href={hrefWith(sp, { tab: 'professors' })}
+              className={`flex-1 px-4 py-3 text-center text-sm font-semibold ${
+                tab === 'professors' ? 'bg-surface text-foreground' : 'bg-surface-muted text-text-secondary'
+              }`}
+            >
+              Professors ({professorTotal})
+            </Link>
+          </div>
+
+          <form className="mt-4">
+            <input type="hidden" name="tab" value={tab} />
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder={tab === 'courses' ? 'Search course' : 'Search professor'}
+              className="w-full rounded-pill border border-border bg-surface px-4 py-2.5 text-sm text-foreground placeholder:text-text-tertiary focus:border-foreground focus:outline-none"
+            />
+          </form>
+
+          <div className="mt-4 overflow-x-auto rounded-card border border-border">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-border text-xs text-text-secondary">
+                <tr>
+                  {SORT_HEADERS.map((h) => (
+                    <th key={h.key} className="px-4 py-3 font-medium">
+                      <Link href={hrefWith(sp, { sort: h.key })} className="hover:text-foreground">
+                        {h.label}
+                      </Link>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tab === 'courses'
+                  ? courseResult!.rows.map((r) => (
+                      <tr key={r.code} className="border-b border-border last:border-0">
+                        <td className="px-4 py-3">
+                          <Link
+                            href={`/course/${r.code.toLowerCase().replace(' ', '-')}`}
+                            className="font-medium text-brand hover:underline"
+                          >
+                            {r.code}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-foreground">{r.title}</td>
+                        <td className="px-4 py-3 text-text-secondary">{r.reviewCount}</td>
+                        <td className="px-4 py-3 text-text-secondary">
+                          {r.useful !== null ? `${r.useful.toFixed(1)}/5` : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-text-secondary">
+                          {r.difficulty !== null ? `${r.difficulty.toFixed(1)}/5` : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-text-secondary">
+                          {r.likedPercent !== null ? `${r.likedPercent}%` : '—'}
+                        </td>
+                      </tr>
+                    ))
+                  : professorResult!.rows.map((r) => (
+                      <tr key={r.slug} className="border-b border-border last:border-0">
+                        <td className="px-4 py-3">
+                          <Link href={`/professor/${r.slug}`} className="font-medium text-brand hover:underline">
+                            {r.name}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-text-secondary">{r.reviewCount}</td>
+                        <td className="px-4 py-3 text-text-secondary">
+                          {r.clear !== null ? `${r.clear.toFixed(1)}/5` : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-text-secondary">
+                          {r.engaging !== null ? `${r.engaging.toFixed(1)}/5` : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-text-secondary">
+                          {r.likedPercent !== null ? `${r.likedPercent}%` : '—'}
+                        </td>
+                      </tr>
+                    ))}
+              </tbody>
+            </table>
+            {total === 0 && (
+              <p className="p-6 text-center text-sm text-text-secondary">
+                No {tab === 'courses' ? 'courses' : 'professors'} match these filters.
+              </p>
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm">
+              <Link
+                href={hrefWith(sp, { page: String(page - 1) })}
+                aria-disabled={page <= 1}
+                className={`rounded-pill border border-border px-4 py-2 ${
+                  page <= 1 ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
+                }`}
+              >
+                Previous
+              </Link>
+              <span className="text-text-secondary">
+                Page {page} of {totalPages}
+              </span>
+              <Link
+                href={hrefWith(sp, { page: String(page + 1) })}
+                aria-disabled={page >= totalPages}
+                className={`rounded-pill border border-border px-4 py-2 ${
+                  page >= totalPages ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
+                }`}
+              >
+                Next
+              </Link>
+            </div>
+          )}
+        </div>
+
+        <aside className="h-fit rounded-card border border-border p-5">
+          <p className="text-sm font-semibold text-foreground">Filter your results</p>
+
+          {tab === 'courses' ? (
+            <>
+              <p className="mt-4 text-xs font-medium text-text-secondary">Course level</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {LEVELS.map((lvl) => {
+                  const active = levels.includes(lvl);
+                  const nextLevels = active ? levels.filter((l) => l !== lvl) : [...levels, lvl];
+                  return (
+                    <Link
+                      key={lvl}
+                      href={hrefWith(sp, { level: nextLevels.join(',') || null })}
+                      className={`rounded-pill border px-3 py-1 text-xs font-medium ${
+                        active
+                          ? 'border-brand bg-brand text-brand-foreground'
+                          : 'border-border text-foreground hover:bg-surface-muted'
+                      }`}
+                    >
+                      {lvl >= 5 ? '5XX+' : `${lvl}XX`}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              <p className="mt-5 text-xs font-medium text-text-secondary">Offered in</p>
+              <div className="mt-2 flex flex-col gap-1.5">
+                {current && (
+                  <Link
+                    href={hrefWith(sp, { term: sp.term === 'this' ? null : 'this' })}
+                    className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
+                      sp.term === 'this'
+                        ? 'border-brand bg-brand text-brand-foreground'
+                        : 'border-border text-foreground hover:bg-surface-muted'
+                    }`}
+                  >
+                    This term ({current.name.replace(' (UBC-V)', '')})
+                  </Link>
+                )}
+                {next && (
+                  <Link
+                    href={hrefWith(sp, { term: sp.term === 'next' ? null : 'next' })}
+                    className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
+                      sp.term === 'next'
+                        ? 'border-brand bg-brand text-brand-foreground'
+                        : 'border-border text-foreground hover:bg-surface-muted'
+                    }`}
+                  >
+                    Next term ({next.name.replace(' (UBC-V)', '')})
+                  </Link>
+                )}
+              </div>
+
+              <p className="mt-5 text-xs font-medium text-text-secondary">Requirements</p>
+              <div className="mt-2 flex flex-col gap-1.5">
+                <Link
+                  href={hrefWith(sp, { requirements: requirements === 'none' ? null : 'none' })}
+                  className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
+                    requirements === 'none'
+                      ? 'border-brand bg-brand text-brand-foreground'
+                      : 'border-border text-foreground hover:bg-surface-muted'
+                  }`}
+                >
+                  No prerequisites
+                </Link>
+                <Link
+                  href={hrefWith(sp, { requirements: requirements === 'has' ? null : 'has' })}
+                  className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
+                    requirements === 'has'
+                      ? 'border-brand bg-brand text-brand-foreground'
+                      : 'border-border text-foreground hover:bg-surface-muted'
+                  }`}
+                >
+                  Has prerequisites
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="mt-4 text-xs font-medium text-text-secondary">Teaches</p>
+              <ExploreSubjectSelect subjects={subjects} value={sp.subject ?? ''} />
+            </>
+          )}
+
+          {hasFilters && (
+            <Link
+              href="/explore"
+              className="mt-6 flex items-center justify-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-xs font-medium text-brand-foreground hover:bg-brand-hover"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
+                <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+              </svg>
+              Clear filter
+            </Link>
+          )}
+        </aside>
+      </div>
     </main>
   );
 }

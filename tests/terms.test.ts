@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getCurrentAndNextTerm } from '@/schedule/terms';
+import { getCurrentAndNextTerm, isUpcomingTerm } from '@/schedule/terms';
 
 const TERMS = [
   { id: 'w1-25', year: 2025, session: 'W', termNumber: 1 },
@@ -53,5 +53,22 @@ describe('getCurrentAndNextTerm', () => {
     const { current, next } = getCurrentAndNextTerm(TERMS.slice(0, 4)); // no w2-26
     expect(current?.id).toBe('w1-26');
     expect(next).toBeNull();
+  });
+});
+
+describe('isUpcomingTerm', () => {
+  it('is true for the current term and every term after it, in August', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 22));
+    expect(isUpcomingTerm(TERMS.find((t) => t.id === 's-26')!)).toBe(true);
+    expect(isUpcomingTerm(TERMS.find((t) => t.id === 'w1-26')!)).toBe(true);
+    expect(isUpcomingTerm(TERMS.find((t) => t.id === 'w2-26')!)).toBe(true);
+  });
+
+  it('is false for a term that has already passed, in August', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 22));
+    expect(isUpcomingTerm(TERMS.find((t) => t.id === 'w2-25')!)).toBe(false);
+    expect(isUpcomingTerm(TERMS.find((t) => t.id === 'w1-25')!)).toBe(false);
   });
 });

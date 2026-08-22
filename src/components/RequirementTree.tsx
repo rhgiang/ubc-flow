@@ -10,16 +10,16 @@ export default function RequirementTree({ node }: { node: Requirement }) {
   if (node.type === 'course') {
     // An unresolved code still shows — we just cannot link it (spec 5.2).
     return node.courseId ? (
-      <Link href={href(node.code)} className="text-blue-700 hover:underline">
+      <Link href={href(node.code)} className="text-brand hover:underline">
         {node.code}
       </Link>
     ) : (
-      <span className="text-slate-700">{node.code}</span>
+      <span className="text-foreground">{node.code}</span>
     );
   }
 
   if (node.type === 'note') {
-    return <span className="text-slate-600">{node.text}</span>;
+    return <span className="text-text-secondary">{node.text}</span>;
   }
 
   // ponytail: the page casts stored JSON `as unknown as Requirement`, so a
@@ -32,7 +32,7 @@ export default function RequirementTree({ node }: { node: Requirement }) {
 
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+      <p className="text-xs font-medium uppercase tracking-wide text-text-secondary">
         {node.type === 'or' ? 'One of' : 'All of'}
       </p>
       <ul className="mt-1 space-y-1 border-l pl-4">

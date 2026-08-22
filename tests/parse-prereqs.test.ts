@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseRequirements, type Requirement } from '@/prereqs/parse';
+import { parseRequirements, extractAntireqCodes, type Requirement } from '@/prereqs/parse';
 
 /** Collect every course code in a tree, for terse assertions. */
 function codes(node: Requirement | null): string[] {
@@ -216,5 +216,34 @@ describe('parseRequirements', () => {
     // (Finding 3). The whole clause must bail to a note instead.
     const r = parseRequirements('BIOL_V 112 and BIOL _V 121')!;
     expect(r.type).toBe('note');
+  });
+});
+
+describe('extractAntireqCodes', () => {
+  it('extracts a single equivalency code with no space before the number', () => {
+    // Real row: FIPR 437.
+    expect(extractAntireqCodes('FIPR 337. Equivalency: FILM437')).toEqual(['FILM 437']);
+  });
+
+  it('extracts an equivalency code with a campus suffix', () => {
+    // Real row: COMM 396.
+    expect(extractAntireqCodes('COMM 196. Equivalency: COMM_V 390')).toEqual(['COMM 390']);
+  });
+
+  it('extracts multiple comma-separated equivalency codes', () => {
+    // Real row: LLED 402 (from Phase 6 research).
+    expect(
+      extractAntireqCodes(
+        'Fourth-year standing. Equivalency: APSC402, ASTU402, FRST402, LFS 402, PHAR402',
+      ),
+    ).toEqual(['APSC 402', 'ASTU 402', 'FRST 402', 'LFS 402', 'PHAR 402']);
+  });
+
+  it('returns an empty array when there is no Equivalency clause', () => {
+    expect(extractAntireqCodes('CPSC_V 221 and one of MATH_V 200, MATH_V 217.')).toEqual([]);
+  });
+
+  it('returns an empty array for null input', () => {
+    expect(extractAntireqCodes(null)).toEqual([]);
   });
 });

@@ -97,3 +97,41 @@ describe('aggregateInstructorReviews', () => {
     expect(a.likedPercent).toBe(50);
   });
 });
+
+describe('aggregateCourseReviews histograms', () => {
+  it('counts each display-scale rating (1-5) for useful and difficulty', () => {
+    // Stored 0-4 -> displayed 1-5.
+    const rows = [
+      { liked: true, useful: 4, difficulty: 0, workloadHours: null },
+      { liked: true, useful: 4, difficulty: 0, workloadHours: null },
+      { liked: false, useful: 0, difficulty: 3, workloadHours: null },
+    ];
+    const { histograms } = aggregateCourseReviews(rows);
+    expect(histograms.useful).toEqual({ 1: 1, 2: 0, 3: 0, 4: 0, 5: 2 });
+    expect(histograms.difficulty).toEqual({ 1: 2, 2: 0, 3: 0, 4: 1, 5: 0 });
+  });
+
+  it('excludes null ratings from the histogram, not as a 0 bucket', () => {
+    const { histograms } = aggregateCourseReviews([
+      { liked: null, useful: null, difficulty: null, workloadHours: null },
+    ]);
+    expect(histograms.useful).toEqual({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
+  });
+
+  it('returns all-zero histograms for no reviews, never undefined', () => {
+    const { histograms } = aggregateCourseReviews([]);
+    expect(histograms.useful).toEqual({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
+    expect(histograms.difficulty).toEqual({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
+  });
+});
+
+describe('aggregateInstructorReviews histograms', () => {
+  it('counts clear and engaging ratings', () => {
+    const { histograms } = aggregateInstructorReviews([
+      { liked: true, clear: 4, engaging: 4 },
+      { liked: true, clear: 2, engaging: 4 },
+    ]);
+    expect(histograms.clear).toEqual({ 1: 0, 2: 0, 3: 1, 4: 0, 5: 1 });
+    expect(histograms.engaging).toEqual({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 2 });
+  });
+});

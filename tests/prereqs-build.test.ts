@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import { resolveTree, buildRequirementTrees } from '@/prereqs/jobs/build';
+import { resolveTree, buildRequirementTrees, resolveAntireqCodes } from '@/prereqs/jobs/build';
 import { parseRequirements } from '@/prereqs/parse';
 
 afterAll(async () => {
@@ -123,4 +123,22 @@ describe('buildRequirementTrees', () => {
     },
     180_000,
   );
+});
+
+describe('resolveAntireqCodes', () => {
+  it('resolves a real Vancouver course code', async () => {
+    const [ref] = await resolveAntireqCodes(['ECON 101']);
+    expect(ref.code).toBe('ECON 101');
+    expect(ref.courseId).not.toBeNull();
+  });
+
+  it('leaves an Okanagan code unresolved but present', async () => {
+    const [ref] = await resolveAntireqCodes(['MGMT_O 301']);
+    expect(ref.code).toBe('MGMT_O 301');
+    expect(ref.courseId).toBeNull();
+  });
+
+  it('returns an empty array for an empty input', async () => {
+    expect(await resolveAntireqCodes([])).toEqual([]);
+  });
 });

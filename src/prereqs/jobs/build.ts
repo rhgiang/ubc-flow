@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import { parseRequirements, type Requirement } from '@/prereqs/parse';
+import { parseRequirements, extractAntireqCodes, type Requirement } from '@/prereqs/parse';
 
 export type BuildResult = {
   updated: number;
@@ -61,6 +61,42 @@ function countResolved(tree: Requirement | null): number {
   return tree.items.reduce((n, i) => n + countResolved(i), 0);
 }
 
+export type AntireqRef = { code: string; courseId: string | null };
+
+export async function resolveAntireqCodes(codes: string[]): Promise<AntireqRef[]> {
+  const refs: AntireqRef[] = [];
+  for (const code of codes) {
+    const parts = vancouverCode(code);
+    if (!parts) {
+      refs.push({ code, courseId: null });
+      continue;
+    }
+    const course = await db.course.findFirst({
+      where: { number: parts.number, campus: 'V', subject: { code: parts.subject } },
+      select: { id: true },
+    });
+    refs.push({ code, courseId: course?.id ?? null });
+  }
+  return refs;
+}
+
+/** Every resolved courseId referenced anywhere in a tree, deduplicated —
+ * the set of edges buildRequirementTrees writes to CoursePrereqEdge. */
+function collectResolvedCourseIds(tree: Requirement | null): Set<string> {
+  const ids = new Set<string>();
+  function walk(node: Requirement | null) {
+    if (!node) return;
+    if (node.type === 'course') {
+      if (node.courseId) ids.add(node.courseId);
+      return;
+    }
+    if (node.type === 'note') return;
+    node.items.forEach(walk);
+  }
+  walk(tree);
+  return ids;
+}
+
 export async function buildRequirementTrees(): Promise<BuildResult> {
   const courses = await db.course.findMany({
     select: { id: true, prereqText: true, coreqText: true },
@@ -70,9 +106,14 @@ export async function buildRequirementTrees(): Promise<BuildResult> {
   let updated = 0;
   let resolved = 0;
 
+  // Wholesale rebuild — matches how prereqTree/coreqTree are already
+  // overwritten every run (Global Constraints).
+  await db.coursePrereqEdge.deleteMany({});
+
   for (const course of courses) {
     const prereqTree = await resolveTree(parseRequirements(course.prereqText), unresolved);
     const coreqTree = await resolveTree(parseRequirements(course.coreqText), unresolved);
+    const antireqRefs = await resolveAntireqCodes(extractAntireqCodes(course.prereqText));
 
     await db.course.update({
       where: { id: course.id },
@@ -82,8 +123,20 @@ export async function buildRequirementTrees(): Promise<BuildResult> {
       data: {
         prereqTree: prereqTree ?? Prisma.DbNull,
         coreqTree: coreqTree ?? Prisma.DbNull,
+        antireqCodes: antireqRefs.length ? antireqRefs : Prisma.DbNull,
       },
     });
+
+    const requiredIds = collectResolvedCourseIds(prereqTree);
+    if (requiredIds.size > 0) {
+      await db.coursePrereqEdge.createMany({
+        data: [...requiredIds].map((requiredCourseId) => ({
+          courseId: course.id,
+          requiredCourseId,
+        })),
+        skipDuplicates: true,
+      });
+    }
 
     resolved += countResolved(prereqTree) + countResolved(coreqTree);
     updated += 1;

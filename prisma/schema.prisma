@@ -36,9 +36,16 @@ model Course {
   prereqTree  Json?
   /** Requirement tree parsed from coreqText — same shape as prereqTree. */
   coreqTree   Json?
+  /** Resolved-or-not course refs from "Equivalency:" clauses — see
+    * src/prereqs/parse.ts:extractAntireqCodes. Same array shape a flat
+    * Requirement course list would use: {code, courseId}[]. */
+  antireqCodes Json?
   updatedAt   DateTime @updatedAt
   sections    Section[]
   gradeDistributions GradeDistribution[]
+  historicalGrades  CourseHistoricalGrades?
+  prereqEdgesFrom   CoursePrereqEdge[] @relation("PrereqEdgeFrom")
+  prereqEdgesTo     CoursePrereqEdge[] @relation("PrereqEdgeTo")
 
   @@unique([subjectId, number])
 }
@@ -260,6 +267,30 @@ model GradeDistributionInstructor {
 
   @@id([distributionId, instructorId])
   @@index([instructorId])
+}
+
+model CourseHistoricalGrades {
+  courseId          String   @id
+  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  average           Float?
+  averagePast5Years Float?
+  minSectionAverage Float?
+  maxSectionAverage Float?
+  stddev            Float?
+  updatedAt         DateTime @updatedAt
+}
+
+// Reverse index for "leads to": which courses require courseId as a
+// prerequisite. Built during enrich:prereqs's existing tree-walk (Task 2),
+// not computed by scanning prereqTree JSON at page-render time.
+model CoursePrereqEdge {
+  courseId         String
+  course           Course  @relation("PrereqEdgeFrom", fields: [courseId], references: [id], onDelete: Cascade)
+  requiredCourseId String
+  requiredCourse   Course  @relation("PrereqEdgeTo", fields: [requiredCourseId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, requiredCourseId])
+  @@index([requiredCourseId])
 }
 
 model VerificationToken {

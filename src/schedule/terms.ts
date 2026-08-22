@@ -34,17 +34,17 @@ function currentOrdinal(): number {
   return now.getFullYear() * 10 + 1;
 }
 
+/** Term hasn't started (by the same coarse month-based "now" as currentOrdinal) — used to split saved schedules into Upcoming vs Past tabs, and by CourseScheduleBox to show only current/upcoming terms. */
+export function isUpcomingTerm<T extends TermLike>(term: T): boolean {
+  return ordinal(term) >= currentOrdinal();
+}
+
 /**
  * "This term" and "next term" for the explore-page filter — the two terms
  * chronologically nearest to today, not just "any current-year term" like
  * isPlannableTerm above (that's a coarser, deliberately permissive rule for
  * the schedule planner).
  */
-/** Term hasn't started (by the same coarse month-based "now" as currentOrdinal) — used to split saved schedules into Upcoming vs Past tabs. */
-export function isUpcomingTerm<T extends TermLike>(term: T): boolean {
-  return ordinal(term) >= currentOrdinal();
-}
-
 export function getCurrentAndNextTerm<T extends TermLike>(
   terms: T[],
 ): { current: T | null; next: T | null } {

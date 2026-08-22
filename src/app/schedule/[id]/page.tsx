@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import ScheduleBuilder from '@/components/ScheduleBuilder';
 import { isPlannableTerm } from '@/schedule/terms';
-import type { SectionHit } from '@/lib/search';
+import { toSectionHit, type SectionHit } from '@/lib/search';
 
 export default async function SchedulePlannerPage({
   params,
@@ -34,25 +34,7 @@ export default async function SchedulePlannerPage({
     : [];
 
   // Same shape searchSectionsForTerm produces, so the builder holds one type.
-  const initialSections: SectionHit[] = sections.map((s) => ({
-    sectionId: s.id,
-    code: `${s.course.subject.code ?? ''} ${s.course.number}`.trim(),
-    title: s.course.title,
-    sectionCode: s.sectionCode,
-    activity: s.activity,
-    meetings:
-      s.meetingTimes
-        .filter((m) => m.startTime && m.endTime)
-        .map((m) => `${m.day} ${m.startTime}–${m.endTime}`)
-        .join(', ') || 'No fixed time',
-    meetingTimes: s.meetingTimes.map((m) => ({
-      day: m.day,
-      startTime: m.startTime,
-      endTime: m.endTime,
-      building: m.building,
-      room: m.room,
-    })),
-  }));
+  const initialSections: SectionHit[] = sections.map(toSectionHit);
 
   const terms = await db.term.findMany({
     where: { campus: 'V' },

@@ -150,14 +150,6 @@ async function currentUserId(): Promise<string | null> {
   return session?.user?.id ?? null;
 }
 
-export async function createSchedule(termId: string, name: string): Promise<CreateResult> {
-  const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Sign in to build a schedule.' };
-  const result = await createScheduleFor(userId, termId, name);
-  if (result.ok) revalidatePath('/schedule');
-  return result;
-}
-
 export async function renameSchedule(scheduleId: string, name: string): Promise<Result> {
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Sign in to manage schedules.' };
@@ -178,14 +170,6 @@ export async function addSection(scheduleId: string, sectionId: string): Promise
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Sign in to build a schedule.' };
   const result = await addSectionFor(userId, scheduleId, sectionId);
-  if (result.ok) revalidatePath(`/schedule/${scheduleId}`);
-  return result;
-}
-
-export async function removeSection(scheduleId: string, sectionId: string): Promise<Result> {
-  const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Sign in to build a schedule.' };
-  const result = await removeSectionFor(userId, scheduleId, sectionId);
   if (result.ok) revalidatePath(`/schedule/${scheduleId}`);
   return result;
 }
@@ -250,6 +234,7 @@ export async function replaceScheduleSectionsFor(
       ? [
           db.scheduleSection.createMany({
             data: added.map((sectionId) => ({ scheduleId, sectionId })),
+            skipDuplicates: true,
           }),
         ]
       : []),

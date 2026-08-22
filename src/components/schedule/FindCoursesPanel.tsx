@@ -21,6 +21,12 @@ export default function FindCoursesPanel({
   const [results, setResults] = useState<SectionHit[]>([]);
   const [searching, setSearching] = useState(false);
 
+  // Stale sections from a previous term must never stay clickable while the
+  // new term's results are still in flight.
+  useEffect(() => {
+    setResults([]);
+  }, [termId]);
+
   useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed || !termId) {

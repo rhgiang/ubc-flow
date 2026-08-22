@@ -101,32 +101,40 @@ export default function ScheduleBuilder({
     setError(null);
     const sectionIds = chosen.map((c) => c.sectionId);
 
-    if (scheduleId) {
-      const result = await replaceScheduleSections(scheduleId, name, sectionIds);
-      setSaving(false);
-      if (!result.ok) {
-        setError(result.error);
+    try {
+      if (scheduleId) {
+        const result = await replaceScheduleSections(scheduleId, name, sectionIds);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        router.refresh();
         return;
       }
-      router.refresh();
-      return;
-    }
 
-    const result = await saveGuestSchedule(termId, name, sectionIds);
-    if (result.ok) {
-      router.push(`/schedule/${result.scheduleId}`);
-      return;
+      const result = await saveGuestSchedule(termId, name, sectionIds);
+      if (result.ok) {
+        router.push(`/schedule/${result.scheduleId}`);
+        return;
+      }
+      if (result.needsAuth) {
+        open('login', trySave);
+        return;
+      }
+      setError(result.error);
+    } catch {
+      setError('Could not save your schedule. Your changes are still here — try again.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    if (result.needsAuth) {
-      open('login', trySave);
-      return;
-    }
-    setError(result.error);
   }
 
   async function onDelete() {
     if (!scheduleId) return;
+    const confirmed = window.confirm(
+      `Delete "${name}"? This cannot be undone.`,
+    );
+    if (!confirmed) return;
     const result = await deleteSchedule(scheduleId);
     if (!result.ok) {
       setError(result.error);

@@ -7,6 +7,7 @@ import {
   addSectionFor,
   removeSectionFor,
   getOrCreateTokenFor,
+  replaceScheduleSectionsFor,
 } from '@/app/actions/schedule';
 
 const OWNER = 'zz-sched-owner@example.com';
@@ -111,5 +112,72 @@ describe('behaviour', () => {
 
     expect(await db.scheduleSection.count({ where: { scheduleId: created.scheduleId } })).toBe(0);
     expect(await db.calendarToken.count({ where: { scheduleId: created.scheduleId } })).toBe(0);
+  });
+});
+
+describe('replaceScheduleSectionsFor', () => {
+  it('applies a buffered add, a rename, and a removal in one call', async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Buffer A');
+    if (!created.ok) throw new Error(created.error);
+    const id = created.scheduleId;
+
+    const added = await replaceScheduleSectionsFor(ownerId, id, 'Buffer B', [sectionId]);
+    expect(added).toEqual({ ok: true });
+
+    const afterAdd = await db.savedSchedule.findUniqueOrThrow({
+      where: { id },
+      include: { sections: true },
+    });
+    expect(afterAdd.name).toBe('Buffer B');
+    expect(afterAdd.sections.map((s) => s.sectionId)).toEqual([sectionId]);
+
+    const cleared = await replaceScheduleSectionsFor(ownerId, id, 'Buffer B', []);
+    expect(cleared).toEqual({ ok: true });
+
+    const afterClear = await db.savedSchedule.findUniqueOrThrow({
+      where: { id },
+      include: { sections: true },
+    });
+    expect(afterClear.sections).toEqual([]);
+  });
+
+  it('is a no-op when the buffer matches what is stored', async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Buffer C');
+    if (!created.ok) throw new Error(created.error);
+    const id = created.scheduleId;
+
+    await replaceScheduleSectionsFor(ownerId, id, 'Buffer C', [sectionId]);
+    const again = await replaceScheduleSectionsFor(ownerId, id, 'Buffer C', [sectionId]);
+    expect(again).toEqual({ ok: true });
+
+    const row = await db.savedSchedule.findUniqueOrThrow({
+      where: { id },
+      include: { sections: true },
+    });
+    expect(row.sections.map((s) => s.sectionId)).toEqual([sectionId]);
+  });
+
+  it("refuses a schedule that isn't yours and changes nothing", async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Buffer D');
+    if (!created.ok) throw new Error(created.error);
+    const id = created.scheduleId;
+
+    const result = await replaceScheduleSectionsFor(strangerId, id, 'Hijacked', [sectionId]);
+    expect(result.ok).toBe(false);
+
+    const row = await db.savedSchedule.findUniqueOrThrow({
+      where: { id },
+      include: { sections: true },
+    });
+    expect(row.name).toBe('Buffer D');
+    expect(row.sections).toEqual([]);
+  });
+
+  it('rejects a blank name', async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Buffer E');
+    if (!created.ok) throw new Error(created.error);
+
+    const result = await replaceScheduleSectionsFor(ownerId, created.scheduleId, '   ', []);
+    expect(result.ok).toBe(false);
   });
 });

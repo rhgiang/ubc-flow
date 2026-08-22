@@ -91,6 +91,7 @@ export default function FindCoursesPanel({
                       type="button"
                       disabled={added}
                       onClick={() => onAdd(section)}
+                      aria-label={`Add ${group.code} ${section.sectionCode}`}
                       className="shrink-0 rounded-pill border border-border px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-surface-muted disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent"
                     >
                       {added ? 'Added' : 'Add'}

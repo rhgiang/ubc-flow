@@ -63,13 +63,17 @@ export default function ScheduleBuilder({
       initialIds,
       chosen.map((c) => c.sectionId),
     );
+    // Term is read-only for a saved schedule (its sections are term-scoped,
+    // so re-pointing termId would orphan them — Save never persists it), so
+    // a term change there must never be reported as dirty. In draft mode
+    // nothing is persisted yet, so termId still counts.
     return (
       added.length > 0 ||
       removed.length > 0 ||
       name.trim() !== initialName.trim() ||
-      termId !== effectiveInitialTermId
+      (scheduleId === null && termId !== effectiveInitialTermId)
     );
-  }, [initialIds, chosen, name, initialName, termId, effectiveInitialTermId]);
+  }, [initialIds, chosen, name, initialName, scheduleId, termId, effectiveInitialTermId]);
 
   // Buffered edits live only in memory, so leaving the page drops them. Without
   // this guard an imported schedule can vanish on a stray back-navigation.

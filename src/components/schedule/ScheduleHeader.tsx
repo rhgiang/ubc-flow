@@ -49,7 +49,11 @@ export default function ScheduleHeader({
             id="builderTerm"
             value={termId}
             onChange={(e) => onTermChange(e.target.value)}
-            className="rounded-input border border-border bg-background px-2 py-1 text-xs text-foreground focus:border-foreground focus:outline-none"
+            disabled={scheduleId !== null}
+            title={
+              scheduleId !== null ? 'Term is fixed for a saved schedule' : undefined
+            }
+            className="rounded-input border border-border bg-background px-2 py-1 text-xs text-foreground focus:border-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           >
             {terms.map((t) => (
               <option key={t.id} value={t.id}>
@@ -57,7 +61,10 @@ export default function ScheduleHeader({
               </option>
             ))}
           </select>
-          {activeTerm === undefined && (
+          {scheduleId !== null && (
+            <span className="text-xs text-text-tertiary">Term is fixed for a saved schedule</span>
+          )}
+          {scheduleId === null && activeTerm === undefined && (
             <span className="text-xs text-text-tertiary">Select a term</span>
           )}
         </div>

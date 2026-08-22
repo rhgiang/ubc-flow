@@ -12,14 +12,16 @@ export function buildSearchWhere(query: string): Prisma.CourseWhereInput {
   if (codeAndNumber) {
     return {
       AND: [
-        { subject: { code: codeAndNumber[1].toUpperCase() } },
+        { subject: { code: { startsWith: codeAndNumber[1].toUpperCase() } } },
         { number: { startsWith: codeAndNumber[2].toUpperCase() } },
       ],
     };
   }
 
+  // startsWith, not an exact match — a live-typed query like "c" or "cp"
+  // needs to match "CPSC" before the whole code is typed.
   if (/^[a-z]{2,5}$/i.test(q)) {
-    return { subject: { code: q.toUpperCase() } };
+    return { subject: { code: { startsWith: q.toUpperCase() } } };
   }
 
   return { title: { contains: q, mode: 'insensitive' } };

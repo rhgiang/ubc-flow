@@ -168,4 +168,53 @@ describe('parseRequirements', () => {
     expect(r.type).toBe('or');
     expect(codes(r)).toEqual(['SOCI 100', 'SOCI 101', 'SOCI 102', 'SOCI 217']);
   });
+
+  it('bails to a note on a numeric quantifier ("Three of") instead of a hard AND', () => {
+    // Real row: VISA 401F. The real requirement is "any 3 of these 16" — the
+    // bare-list AND default must not claim all 16 are mandatory (Finding 1).
+    const r = parseRequirements(
+      'Three of VISA_V 310, VISA_V 311, VISA_V 320, VISA_V 321, VISA_V 330, VISA_V 331, VISA_V 340, VISA_V 341, VISA_V 350, VISA_V 351, VISA_V 352, VISA_V 360, VISA_V 361, VISA_V 370, VISA_V 375, VISA_V 390.',
+    )!;
+    expect(r.type).toBe('note');
+  });
+
+  it('bails both clauses to notes on "Two of" plus its "Or" continuation', () => {
+    // Real row: POLI 310. Real requirement is "any 2 of these 4"; the second
+    // clause already correctly bailed before this fix, the first did not
+    // (Finding 1) — both must end up as notes, never a 4-way hard AND.
+    const r = parseRequirements(
+      'Two of POLI 100, POLI 101, POLI 110, POLI 240. Or third-year standing or higher.',
+    )!;
+    expect(r.type).toBe('and');
+    expect(r.type === 'and' && r.items.every((i) => i.type === 'note')).toBe(true);
+  });
+
+  it('bails to a note rather than over-collapsing into a flat OR', () => {
+    // Real row: ELEC 391. Real requirement is "(one of 3) AND (two of 4)" —
+    // before this fix, the OR-collapse heuristic (for "One of A, B and C")
+    // wrongly fired on the "two of" segment and flattened all 7 codes into a
+    // single OR, which would tell a student one course out of any of the 7
+    // satisfies the whole requirement (Finding 2 — over-permissive, worse
+    // than Finding 1's over-restrictive AND). Catching "two of" in the
+    // ambiguity guard makes the whole clause bail before that logic runs.
+    const r = parseRequirements(
+      'One of CPEN_V 291, ELEC_V 291, ELEC_V 292 and two of ELEC_V 301, ELEC_V 341, ELEC_V 311, ELEC_V 342.',
+    )!;
+    expect(r.type).toBe('note');
+  });
+
+  it('still parses "one of" normally — the quantifier guard must not catch it', () => {
+    const r = parseRequirements('One of FRST 201, NRES 201.')!;
+    expect(r.type).toBe('or');
+  });
+
+  it('bails a whole clause to a note when one and-segment fails to parse', () => {
+    // Real row: BEST 201. A source typo — a stray space inside "BIOL _V 121"
+    // — breaks the course-code regex for that segment. Before this fix, the
+    // failed segment was silently dropped, leaving a bare `course` node for
+    // BIOL 112 with BIOL 121 vanished and no indication anything was missing
+    // (Finding 3). The whole clause must bail to a note instead.
+    const r = parseRequirements('BIOL_V 112 and BIOL _V 121')!;
+    expect(r.type).toBe('note');
+  });
 });

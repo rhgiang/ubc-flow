@@ -22,6 +22,14 @@ export default function RequirementTree({ node }: { node: Requirement }) {
     return <span className="text-slate-600">{node.text}</span>;
   }
 
+  // ponytail: the page casts stored JSON `as unknown as Requirement`, so a
+  // corrupted row or a future schema change could hand us a `type` this
+  // component doesn't recognize. Render nothing rather than assume it's a
+  // group and crash reading `.items`.
+  if (node.type !== 'and' && node.type !== 'or') {
+    return null;
+  }
+
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">

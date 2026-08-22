@@ -8,6 +8,8 @@ import { aggregateCourseReviews } from '@/reviews/aggregate';
 import { aggregateDistributions } from '@/grades/aggregate';
 import GradeChart from '@/components/GradeChart';
 import { addSection } from '@/app/actions/schedule';
+import RequirementTree from '@/components/RequirementTree';
+import type { Requirement } from '@/prereqs/parse';
 
 const GRADE_DATA_SOURCE = 'https://github.com/DonneyF/ubc-pair-grade-data';
 
@@ -117,11 +119,31 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
       )}
       {course.description && <p className="mt-6 leading-relaxed">{course.description}</p>}
 
-      {course.prereqText && (
-        <p className="mt-4 text-sm text-slate-600">
-          <span className="font-medium">Prerequisites: </span>
-          {course.prereqText}
-        </p>
+      {(course.prereqText || course.coreqText) && (
+        <div className="mt-6 space-y-4">
+          {(
+            [
+              ['Prerequisites', course.prereqTree, course.prereqText],
+              ['Corequisites', course.coreqTree, course.coreqText],
+            ] as const
+          ).map(([label, tree, text]) =>
+            text ? (
+              <div key={label} className="rounded-lg border p-4">
+                <p className="text-sm font-medium">{label}</p>
+                {tree && (
+                  <div className="mt-2 text-sm">
+                    <RequirementTree node={tree as unknown as Requirement} />
+                  </div>
+                )}
+                {/* The calendar is the authority; our parse is an
+                    interpretation, so the original stays one glance away. */}
+                <p className="mt-3 text-xs text-slate-500">
+                  As published in the calendar: {text}
+                </p>
+              </div>
+            ) : null,
+          )}
+        </div>
       )}
 
       <div className="mt-10 flex items-center justify-between">

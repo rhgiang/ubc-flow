@@ -34,6 +34,22 @@ function stripEquivalency(text: string): string {
   return text.replace(/\bEquivalenc(?:y|ies)\s*:[^.]*\.?/gi, ' ');
 }
 
+/**
+ * The codes inside an "Equivalency:" clause — captured, not discarded, the
+ * way stripEquivalency (used by parseRequirements) throws them away. These
+ * are credit exclusions, not prerequisites, so they never enter a
+ * Requirement tree — they're a separate flat list (spec §4.1).
+ */
+export function extractAntireqCodes(text: string | null): string[] {
+  if (!text) return [];
+  const matches = text.match(/\bEquivalenc(?:y|ies)\s*:[^.]*\.?/gi);
+  if (!matches) return [];
+  return matches.flatMap((clause) => extractCodes(clause)).map((c) => {
+    const node = toCourseNode(c);
+    return node.type === 'course' ? node.code : c;
+  });
+}
+
 function toCourseNode(raw: string): Requirement {
   const m = raw.match(/^([A-Z]{2,5})(?:_([A-Z]))?\s?(\d{2,3}[A-Z]?)$/);
   if (!m) return { type: 'course', code: raw, courseId: null };

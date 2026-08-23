@@ -4,7 +4,12 @@ import Link from 'next/link';
 import GradeChart from '@/components/GradeChart';
 import HistoricalGradesTimeline from '@/components/HistoricalGradesTimeline';
 import RequirementTree from '@/components/RequirementTree';
-import type { CourseDetail, CourseSectionDetail, InstructorRatingSummary } from '@/lib/course-detail';
+import type {
+  CourseDetail,
+  CourseSectionDetail,
+  InstructorGradeHistory,
+  InstructorRatingSummary,
+} from '@/lib/course-detail';
 import type { SectionHit } from '@/lib/search';
 
 /** The overlay's own section shape widened back to the builder's SectionHit,
@@ -51,6 +56,26 @@ function ratingLine(r: InstructorRatingSummary): string {
   if (r.clear !== null) parts.push(`clear ${r.clear.toFixed(1)}/5`);
   if (r.engaging !== null) parts.push(`engaging ${r.engaging.toFixed(1)}/5`);
   parts.push(`${r.count} review${r.count === 1 ? '' : 's'}`);
+  return parts.join(' · ');
+}
+
+/**
+ * "86.5% avg · +5.7 vs course · 3 terms, 740 students".
+ *
+ * An average GRADE from UBC's published distributions — deliberately not
+ * framed as a rating. The delta is what makes it readable: an 86.5% means
+ * little until you know the course itself averages 80.8%.
+ */
+function gradeLine(g: InstructorGradeHistory, courseAverage: number | null): string {
+  const parts = [`${g.average.toFixed(1)}% avg`];
+  if (courseAverage !== null) {
+    const delta = g.average - courseAverage;
+    const sign = delta >= 0 ? '+' : '';
+    parts.push(`${sign}${delta.toFixed(1)} vs course`);
+  }
+  parts.push(
+    `${g.offerings} term${g.offerings === 1 ? '' : 's'}, ${g.students} student${g.students === 1 ? '' : 's'}`,
+  );
   return parts.join(' · ');
 }
 
@@ -134,6 +159,19 @@ export default function CourseInfoContent({
                             ) : (
                               <span className="ml-1.5 text-text-tertiary">No reviews yet</span>
                             )}
+                            {i.grades && (
+                              <span
+                                className="ml-1.5 text-text-tertiary"
+                                title={
+                                  i.grades.coTaught
+                                    ? 'Average grade in this course. Some offerings were co-taught, so the figure is shared with another instructor.'
+                                    : 'Average grade students received in this course under this instructor'
+                                }
+                              >
+                                {gradeLine(i.grades, detail.courseAverage)}
+                                {i.grades.coTaught && ' *'}
+                              </span>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -172,7 +210,7 @@ export default function CourseInfoContent({
         ) : (
           <>
             <div className="mt-2 grid grid-cols-3 gap-2">
-              <Stat label="Average" value={pct(detail.grades.average)} />
+              <Stat label="Average (since 2021)" value={pct(detail.grades.average)} />
               <Stat label="Students" value={String(detail.grades.studentCount)} />
               <Stat label="Sections" value={String(detail.grades.sectionCount)} />
             </div>
@@ -183,13 +221,20 @@ export default function CourseInfoContent({
         )}
 
         {detail.historical && (
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <Stat label="All-time avg" value={pct(detail.historical.average)} />
-            <Stat label="Past 5 years" value={pct(detail.historical.averagePast5Years)} />
-            <Stat label="Std dev" value={
-              detail.historical.stddev !== null ? detail.historical.stddev.toFixed(1) : '—'
-            } />
-          </div>
+          <>
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <Stat label="All-time avg" value={pct(detail.historical.average)} />
+              <Stat label="Past 5 years" value={pct(detail.historical.averagePast5Years)} />
+              <Stat label="Std dev" value={
+                detail.historical.stddev !== null ? detail.historical.stddev.toFixed(1) : '—'
+              } />
+            </div>
+            <p className="mt-2 text-xs text-text-tertiary">
+              Since-2021 figures come from UBC&apos;s published section data; the all-time
+              and 5-year averages come from ubcgrades.com and reach back further, so they
+              will differ.
+            </p>
+          </>
         )}
 
         {detail.historicalByTerm.length > 0 && (

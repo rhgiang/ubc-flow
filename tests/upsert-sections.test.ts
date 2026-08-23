@@ -50,7 +50,30 @@ describe('upsertSections', () => {
     termId = term.id;
   });
 
+  // These rows go into the same database the app reads, so leaving them
+  // behind is not a tidiness issue: "Test Term" is a plannable 2026 Winter
+  // term, so it showed up in the builder's Academic Period dropdown for real
+  // users. Torn down in dependency order — sections and their children first,
+  // then the course, subject and term that own them.
   afterAll(async () => {
+    const subject = await db.subject.findUnique({
+      where: { ubcSubjectId_campus: { ubcSubjectId: 'ZZTEST-SUBJ', campus: 'V' } },
+      select: { id: true },
+    });
+
+    const sections = await db.section.findMany({ where: { termId }, select: { id: true } });
+    const sectionIds = sections.map((s) => s.id);
+    await db.meetingTime.deleteMany({ where: { sectionId: { in: sectionIds } } });
+    await db.sectionInstructor.deleteMany({ where: { sectionId: { in: sectionIds } } });
+    await db.section.deleteMany({ where: { termId } });
+
+    if (subject) {
+      await db.course.deleteMany({ where: { subjectId: subject.id } });
+      await db.subject.delete({ where: { id: subject.id } });
+    }
+    await db.term.deleteMany({ where: { ubcPeriodId: 'ZZTEST-PERIOD' } });
+    await db.instructor.deleteMany({ where: { slug: 'john-smith' } });
+
     await db.$disconnect();
   });
 

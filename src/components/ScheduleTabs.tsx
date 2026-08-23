@@ -34,11 +34,12 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 }
 
 function SectionList({ sections }: { sections: SectionLite[] }) {
+  const [expanded, setExpanded] = useState(false);
   if (sections.length === 0) {
     return <span className="text-sm text-text-tertiary">No sections added</span>;
   }
-  const shown = sections.slice(0, VISIBLE_SECTIONS);
-  const rest = sections.slice(VISIBLE_SECTIONS);
+  const hidden = sections.length - VISIBLE_SECTIONS;
+  const shown = expanded ? sections : sections.slice(0, VISIBLE_SECTIONS);
 
   return (
     <div className="space-y-1">
@@ -47,17 +48,18 @@ function SectionList({ sections }: { sections: SectionLite[] }) {
           {s.label}
         </Link>
       ))}
-      {rest.length > 0 && (
-        <details>
-          <summary className="cursor-pointer text-xs text-text-tertiary">More ({rest.length})</summary>
-          <div className="mt-1 space-y-1">
-            {rest.map((s) => (
-              <Link key={s.id} href={s.href} className="block truncate text-sm text-brand-accent hover:underline">
-                {s.label}
-              </Link>
-            ))}
-          </div>
-        </details>
+      {/* A plain button rather than <details>/<summary>: a summary always
+          renders above its own content, so "See less" could never sit at the
+          bottom of the list it collapses. */}
+      {hidden > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="text-xs text-text-tertiary transition-colors hover:text-foreground"
+        >
+          {expanded ? 'See less' : `More (${hidden})`}
+        </button>
       )}
     </div>
   );

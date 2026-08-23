@@ -26,6 +26,33 @@
   --brand-hover: #04316b;
   --brand-foreground: #ffffff;
 
+  /* Course-block palette for the schedule calendar — muted pastels with a
+     saturated accent bar, assigned per course by src/schedule/colors.ts.
+     Applied via inline style (var(--course-N-bg)), never generated classes:
+     the slot is computed at runtime and Tailwind cannot emit dynamic classes. */
+  --course-1-bg: #e8f0fe;
+  --course-1-accent: #3b6fd4;
+  --course-2-bg: #e9f2ec;
+  --course-2-accent: #4a8265;
+  --course-3-bg: #fbeee7;
+  --course-3-accent: #b56a42;
+  --course-4-bg: #f0ecfa;
+  --course-4-accent: #7256b8;
+  --course-5-bg: #fdf3e0;
+  --course-5-accent: #b3812a;
+  --course-6-bg: #e5f3f4;
+  --course-6-accent: #3a8a90;
+  --course-7-bg: #fceef1;
+  --course-7-accent: #c05572;
+  --course-8-bg: #eef0f3;
+  --course-8-accent: #5b6b7f;
+
+  /* Advisory-conflict colours. Previously raw red-* utilities, which had no
+     dark-mode value and rendered as a near-white block on charcoal. */
+  --danger: #b91c1c;
+  --danger-surface: #fef2f2;
+  --danger-border: #dc2626;
+
   /* Pill radius is mandatory per the reference system. */
   --radius-pill: 100px;
   --radius-card: 10px;
@@ -48,6 +75,29 @@
   --text-tertiary: #8e8e93;
   --border: #48484a;
   --border-hairline: rgba(255, 255, 255, 0.12);
+
+  /* Low-chroma tints so a block reads as coloured against charcoal without
+     glowing. Accents stay bright enough to carry the identity at 3px wide. */
+  --course-1-bg: #1e2a3d;
+  --course-1-accent: #6f9ae8;
+  --course-2-bg: #1e2b25;
+  --course-2-accent: #79b393;
+  --course-3-bg: #33241c;
+  --course-3-accent: #d9976a;
+  --course-4-bg: #272040;
+  --course-4-accent: #a48fe0;
+  --course-5-bg: #332a19;
+  --course-5-accent: #e0b158;
+  --course-6-bg: #172b2d;
+  --course-6-accent: #6fb9bf;
+  --course-7-bg: #331f26;
+  --course-7-accent: #e08aa1;
+  --course-8-bg: #22272e;
+  --course-8-accent: #93a4b8;
+
+  --danger: #f87171;
+  --danger-surface: #3b1f1f;
+  --danger-border: #7f3535;
 }
 
 @theme inline {
@@ -63,6 +113,9 @@
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
   --color-brand-foreground: var(--brand-foreground);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-danger-border: var(--danger-border);
   --radius-pill: var(--radius-pill);
   --radius-card: var(--radius-card);
   --radius-input: var(--radius-input);

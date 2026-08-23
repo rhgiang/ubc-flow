@@ -1,8 +1,18 @@
 import { db } from '@/lib/db';
 import { aggregateDistributions, type GradeSummary } from '@/grades/aggregate';
+import { aggregateInstructorReviews } from '@/reviews/aggregate';
 import type { SectionMeetingTime } from '@/lib/search';
 import type { HistoricalGradeTerm } from '@/components/HistoricalGradesTimeline';
 import type { Requirement } from '@/prereqs/parse';
+
+/** Our own verified-enrolment reviews for one instructor, across all their
+ *  courses — the same basis the professor page uses. Null when unrated. */
+export type InstructorRatingSummary = {
+  count: number;
+  likedPercent: number | null;
+  clear: number | null;
+  engaging: number | null;
+};
 
 export type CourseSectionDetail = {
   sectionId: string;
@@ -15,7 +25,7 @@ export type CourseSectionDetail = {
   meetingTimes: SectionMeetingTime[];
   enrolTotal: number | null;
   enrolCap: number | null;
-  instructors: { name: string; slug: string }[];
+  instructors: { name: string; slug: string; rating: InstructorRatingSummary | null }[];
 };
 
 export type CourseDetail = {
@@ -81,6 +91,38 @@ export async function loadCourseDetail(
 
   const code = `${course.subject.code ?? ''} ${course.number}`.trim();
 
+  // Ratings are keyed on instructor, not on (instructor, course) — the data is
+  // sparse enough that a per-course split would almost always be empty, and
+  // this matches what the professor page already shows.
+  const instructorIds = [
+    ...new Set(sectionRows.flatMap((s) => s.instructors.map((si) => si.instructorId))),
+  ];
+  const reviewRows = instructorIds.length
+    ? await db.instructorReview.findMany({
+        where: { instructorId: { in: instructorIds } },
+        select: { instructorId: true, liked: true, clear: true, engaging: true },
+      })
+    : [];
+
+  const reviewsByInstructor = new Map<string, typeof reviewRows>();
+  for (const r of reviewRows) {
+    const list = reviewsByInstructor.get(r.instructorId) ?? [];
+    list.push(r);
+    reviewsByInstructor.set(r.instructorId, list);
+  }
+
+  const ratingFor = (instructorId: string): InstructorRatingSummary | null => {
+    const rows = reviewsByInstructor.get(instructorId);
+    if (!rows || rows.length === 0) return null;
+    const agg = aggregateInstructorReviews(rows);
+    return {
+      count: agg.count,
+      likedPercent: agg.likedPercent,
+      clear: agg.clear,
+      engaging: agg.engaging,
+    };
+  };
+
   return {
     courseId: course.id,
     code,
@@ -110,6 +152,7 @@ export async function loadCourseDetail(
       instructors: s.instructors.map((si) => ({
         name: si.instructor.name,
         slug: si.instructor.slug,
+        rating: ratingFor(si.instructorId),
       })),
     })),
     grades: aggregateDistributions(

@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import ScheduleRowActions from '@/components/ScheduleRowActions';
-import WeekGrid, { type WeekGridEntry } from '@/components/WeekGrid';
+import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 
 export type SectionLite = { id: string; label: string; href: string };
 export type ScheduleRow = { id: string; name: string; sections: SectionLite[] };
 export type TermGroup = { termId: string; termName: string; rows: ScheduleRow[] };
-export type CalendarTermGroup = { termId: string; termName: string; entries: WeekGridEntry[] };
+export type CalendarTermGroup = { termId: string; termName: string; entries: CalendarEntry[] };
 
 const VISIBLE_SECTIONS = 3;
 type Tab = 'upcoming' | 'past' | 'calendar';
@@ -109,7 +109,7 @@ function CalendarTerm({ group, first }: { group: CalendarTermGroup; first: boole
         </p>
       ) : (
         <div className="mt-2">
-          <WeekGrid entries={group.entries} />
+          <ScheduleCalendar entries={group.entries} />
         </div>
       )}
     </div>

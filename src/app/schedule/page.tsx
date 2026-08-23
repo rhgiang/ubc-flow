@@ -6,7 +6,7 @@ import ScheduleTabs, {
   type TermGroup,
   type CalendarTermGroup,
 } from '@/components/ScheduleTabs';
-import type { WeekGridEntry } from '@/components/WeekGrid';
+import type { CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 import { isPlannableTerm, isUpcomingTerm } from '@/schedule/terms';
 
 function courseHref(subjectCode: string, number: string): string {
@@ -106,10 +106,11 @@ export default async function SchedulePage() {
         id: `${m.id}-${i}`,
         sectionId: m.id,
         label,
+        courseCode: `${course.subject.code}_${course.campus} ${course.number}`,
         day,
         startTime: m.startTime,
         endTime: m.endTime,
-      } satisfies WeekGridEntry);
+      } satisfies CalendarEntry);
     });
   }
 

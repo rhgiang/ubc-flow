@@ -268,4 +268,17 @@ describe('replaceScheduleSectionsFor staleness', () => {
     const result = await replaceScheduleSectionsFor(ownerId, id, 'Stale C', [sectionId], [second.id, sectionId]);
     expect(result).toEqual({ ok: true });
   });
+
+  it('accepts a second save that follows the first without a reload', async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Twice');
+    if (!created.ok) throw new Error(created.error);
+    const id = created.scheduleId;
+
+    const first = await replaceScheduleSectionsFor(ownerId, id, 'Twice', [sectionId], []);
+    expect(first).toEqual({ ok: true });
+
+    // The client now knows its own save is the baseline.
+    const second = await replaceScheduleSectionsFor(ownerId, id, 'Twice', [], [sectionId]);
+    expect(second).toEqual({ ok: true });
+  });
 });

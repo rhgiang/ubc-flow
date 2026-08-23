@@ -59,6 +59,10 @@ export default function ScheduleBuilder({
   const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
   const [infoDocked, setInfoDocked] = useState(false);
   const [importOpen, setImportOpen] = useState(openImport);
+  // A successful save moves the baseline immediately. router.refresh() is not
+  // awaited, so the refreshed initialSections prop lands later — without this,
+  // a quick second Save would send a stale baseline and be refused as stale.
+  const [savedBaseline, setSavedBaseline] = useState<{ ids: string[]; name: string } | null>(null);
   const router = useRouter();
   const { open } = useAuthOverlay();
   const { setDirty } = useUnsavedChanges();
@@ -68,10 +72,18 @@ export default function ScheduleBuilder({
     () => initialSections.map((s) => s.sectionId),
     [initialSections],
   );
+  const baselineIds = savedBaseline?.ids ?? initialIds;
+  const baselineName = savedBaseline?.name ?? initialName;
+
+  // Clear the local override once the real props catch up, so a genuine
+  // external change is still authoritative on the next load.
+  useEffect(() => {
+    setSavedBaseline(null);
+  }, [initialIds, initialName]);
 
   const dirty = useMemo(() => {
     const { added, removed } = diffSections(
-      initialIds,
+      baselineIds,
       chosen.map((c) => c.sectionId),
     );
     // Term is read-only for a saved schedule (its sections are term-scoped,
@@ -81,10 +93,10 @@ export default function ScheduleBuilder({
     return (
       added.length > 0 ||
       removed.length > 0 ||
-      name.trim() !== initialName.trim() ||
+      name.trim() !== baselineName.trim() ||
       (scheduleId === null && termId !== effectiveInitialTermId)
     );
-  }, [initialIds, chosen, name, initialName, scheduleId, termId, effectiveInitialTermId]);
+  }, [baselineIds, chosen, name, baselineName, scheduleId, termId, effectiveInitialTermId]);
 
   // Buffered edits live only in memory, so leaving the page drops them. Without
   // this guard an imported schedule can vanish on a stray back-navigation.
@@ -136,11 +148,12 @@ export default function ScheduleBuilder({
 
     try {
       if (scheduleId) {
-        const result = await replaceScheduleSections(scheduleId, name, sectionIds, initialIds);
+        const result = await replaceScheduleSections(scheduleId, name, sectionIds, baselineIds);
         if (!result.ok) {
           setError(result.error);
           return;
         }
+        setSavedBaseline({ ids: sectionIds, name: name.trim() });
         router.refresh();
         return;
       }

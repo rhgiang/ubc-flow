@@ -14,6 +14,7 @@ export default function ScheduleHeader({
   dirty,
   onSave,
   onDelete,
+  onImport,
 }: {
   name: string;
   onNameChange: (name: string) => void;
@@ -26,6 +27,7 @@ export default function ScheduleHeader({
   dirty: boolean;
   onSave: () => void;
   onDelete: () => void;
+  onImport: () => void;
 }) {
   const activeTerm = terms.find((t) => t.id === termId);
 
@@ -74,6 +76,14 @@ export default function ScheduleHeader({
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={onImport}
+            className="rounded-pill border border-border px-5 py-2 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
+          >
+            Import from Workday
+          </button>
+
+          <button
+            type="button"
             onClick={onSave}
             disabled={!canSave || saving}
             className="rounded-pill bg-brand px-5 py-2 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50 disabled:hover:scale-100"
@@ -86,7 +96,7 @@ export default function ScheduleHeader({
             <button
               type="button"
               onClick={onDelete}
-              className="rounded-pill border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted"
+              className="rounded-pill border border-border px-5 py-2 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:border-danger-border hover:bg-danger-surface hover:text-danger active:scale-100"
             >
               Delete Schedule
             </button>

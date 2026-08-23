@@ -116,14 +116,14 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
             <button
               type="button"
               onClick={() => setRenaming(false)}
-              className="rounded-pill px-3 py-1 text-xs text-text-secondary hover:bg-surface-muted"
+              className="rounded-pill px-3 py-1 text-xs text-text-secondary transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="rounded-pill bg-brand px-3 py-1 text-xs font-medium text-brand-foreground hover:bg-brand-hover disabled:opacity-50"
+              className="rounded-pill bg-brand px-3 py-1 text-xs font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50 disabled:hover:scale-100"
             >
               {busy ? 'Saving…' : 'Save'}
             </button>

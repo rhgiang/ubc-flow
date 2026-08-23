@@ -70,7 +70,7 @@ export default function SavedCoursesPanel({
                     type="button"
                     onClick={() => onRemove(section.sectionId)}
                     aria-label={`Remove ${group.code} ${section.sectionCode}`}
-                    className="shrink-0 rounded-pill border border-border px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-surface-muted"
+                    className="shrink-0 rounded-pill border border-border px-3 py-1 text-xs font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
                   >
                     Remove
                   </button>

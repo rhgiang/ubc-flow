@@ -44,7 +44,7 @@ export default function CalendarSubscribeMenu({ scheduleId }: { scheduleId: stri
       <button
         type="button"
         onClick={toggle}
-        className="rounded-pill border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-surface-muted"
+        className="rounded-pill border border-border px-3 py-1.5 text-xs font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
       >
         Add to calendar ▾
       </button>

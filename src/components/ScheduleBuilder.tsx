@@ -220,6 +220,7 @@ export default function ScheduleBuilder({
         dirty={dirty}
         onSave={trySave}
         onDelete={onDelete}
+        onImport={() => setImportOpen(true)}
       />
 
       {error && (

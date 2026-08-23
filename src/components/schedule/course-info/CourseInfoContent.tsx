@@ -4,7 +4,7 @@ import Link from 'next/link';
 import GradeChart from '@/components/GradeChart';
 import HistoricalGradesTimeline from '@/components/HistoricalGradesTimeline';
 import RequirementTree from '@/components/RequirementTree';
-import type { CourseDetail, CourseSectionDetail } from '@/lib/course-detail';
+import type { CourseDetail, CourseSectionDetail, InstructorRatingSummary } from '@/lib/course-detail';
 import type { SectionHit } from '@/lib/search';
 
 /** The overlay's own section shape widened back to the builder's SectionHit,
@@ -33,6 +33,25 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function pct(v: number | null): string {
   return v !== null ? `${v.toFixed(1)}%` : '—';
+}
+
+/**
+ * A SEARCH link on RateMyProfessors, scoped to UBC (school 1413). Built from
+ * the name — this app makes no request to RMP. Their robots.txt disallows
+ * automated clients, so their ratings are not ingested; a student who wants
+ * one follows this link and reads it in RMP's own context.
+ */
+function rmpSearchHref(name: string): string {
+  return `https://www.ratemyprofessors.com/search/professors/1413?q=${encodeURIComponent(name)}`;
+}
+
+function ratingLine(r: InstructorRatingSummary): string {
+  const parts: string[] = [];
+  if (r.likedPercent !== null) parts.push(`${r.likedPercent}% liked`);
+  if (r.clear !== null) parts.push(`clear ${r.clear.toFixed(1)}/5`);
+  if (r.engaging !== null) parts.push(`engaging ${r.engaging.toFixed(1)}/5`);
+  parts.push(`${r.count} review${r.count === 1 ? '' : 's'}`);
+  return parts.join(' · ');
 }
 
 /** "DMP 310, HENN 202" — de-duplicated, since a section's meetings often repeat a room. */
@@ -89,19 +108,35 @@ export default function CourseInfoContent({
                       <p className="text-xs text-text-tertiary">{location}</p>
                     )}
                     {s.instructors.length > 0 && (
-                      <p className="text-xs text-text-secondary">
-                        {s.instructors.map((i, idx) => (
-                          <span key={i.slug}>
-                            {idx > 0 && ', '}
+                      <ul className="mt-0.5 space-y-0.5">
+                        {s.instructors.map((i) => (
+                          <li key={i.slug} className="text-xs">
                             <Link
                               href={`/professor/${i.slug}`}
                               className="text-brand-accent hover:underline"
                             >
                               {i.name}
                             </Link>
-                          </span>
+                            <a
+                              href={rmpSearchHref(i.name)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Look up ${i.name} on RateMyProfessors`}
+                              title="Look up on RateMyProfessors"
+                              className="ml-1.5 text-text-tertiary hover:text-foreground"
+                            >
+                              ↗
+                            </a>
+                            {i.rating ? (
+                              <span className="ml-1.5 text-text-secondary">
+                                {ratingLine(i.rating)}
+                              </span>
+                            ) : (
+                              <span className="ml-1.5 text-text-tertiary">No reviews yet</span>
+                            )}
+                          </li>
                         ))}
-                      </p>
+                      </ul>
                     )}
                     {s.enrolCap !== null && (
                       <p className="text-xs text-text-tertiary">

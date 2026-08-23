@@ -3,17 +3,36 @@ import { fetchText } from '@/scrape/http';
 import { normalizeInstructorName } from '@/scrape/names';
 import { parseGradeCsv, type RawGradeRow } from '@/grades/parse-csv';
 
-const BASE =
-  'https://raw.githubusercontent.com/DonneyF/ubc-pair-grade-data/master/tableau-dashboard-v2/UBCV';
+const REPO = 'https://raw.githubusercontent.com/DonneyF/ubc-pair-grade-data/master';
+const V1_BASE = `${REPO}/tableau-dashboard/UBCV`;
+const V2_BASE = `${REPO}/tableau-dashboard-v2/UBCV`;
+
+/**
+ * The pre-2021 export. Its columns differ slightly from the current one
+ * (Enrolled/Std dev rather than Reported/Median) — parseGradeCsv looks
+ * columns up by header name and handles both.
+ *
+ * Stops at 2020W even though the directory also holds 2021S and 2021W:
+ * those two sessions exist in BOTH exports, and ingesting them twice would
+ * double every 2021 section's students in the aggregate. V2 is the
+ * authoritative copy for them.
+ */
+export const V1_SESSIONS = [
+  '2014S', '2014W', '2015S', '2015W', '2016S', '2016W', '2017S',
+  '2017W', '2018S', '2018W', '2019S', '2019W', '2020S', '2020W',
+] as const;
 
 /** Sessions available in the current format — verified 2026-08-20. */
-export const SESSIONS = [
+export const V2_SESSIONS = [
   '2021S', '2021W', '2022S', '2022W', '2023S',
   '2023W', '2024S', '2024W', '2025S', '2025W',
 ] as const;
 
+export const SESSIONS = [...V1_SESSIONS, ...V2_SESSIONS] as const;
+
 export function gradeCsvUrl(session: string, subject: string): string {
-  return `${BASE}/${session}/UBCV-${session}-${subject}.csv`;
+  const base = (V1_SESSIONS as readonly string[]).includes(session) ? V1_BASE : V2_BASE;
+  return `${base}/${session}/UBCV-${session}-${subject}.csv`;
 }
 
 export type IngestResult = {
@@ -28,6 +47,13 @@ export async function ingestRows(rows: RawGradeRow[]): Promise<IngestResult> {
   const unmatched = new Set<string>();
 
   for (const row of rows) {
+    // The pre-2021 export carries an "OVERALL" rollup row per course whose
+    // count is the sum of that course's real sections. Storing it as a
+    // section would double every student in studentCount and in every
+    // distribution bucket, and inflate sectionCount. The rollup is
+    // recomputed by aggregateDistributions anyway.
+    if (row.sectionCode === 'OVERALL') continue;
+
     const course = await db.course.findFirst({
       where: {
         number: row.courseNumber,

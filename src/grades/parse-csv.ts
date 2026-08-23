@@ -89,7 +89,12 @@ export function parseGradeCsv(text: string): RawGradeRow[] {
   const iSection = index('Section');
   const iTitle = index('Title');
   const iProf = index('Professor');
-  const iReported = index('Reported');
+  // The current export calls the student count "Reported"; the pre-2021
+  // export (tableau-dashboard, 2014-2020) calls it "Enrolled". Falling back
+  // matters more than it looks: a null count drops the row from
+  // aggregateDistributions' weighted average entirely, so without this every
+  // pre-2021 section would load but contribute nothing to a course average.
+  const iReported = index('Reported') !== -1 ? index('Reported') : index('Enrolled');
   const iAvg = index('Avg');
   const iMedian = index('Median');
   const iHigh = index('High');

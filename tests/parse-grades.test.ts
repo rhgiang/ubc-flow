@@ -94,3 +94,40 @@ describe('parseGradeCsv', () => {
     expect(row.distribution['90-100']).toBe(3);
   });
 });
+
+// The pre-2021 export (tableau-dashboard) differs from the current one:
+// the student count is "Enrolled" rather than "Reported", and there is a
+// "Std dev" column where the newer files carry Median/percentiles.
+describe('parseGradeCsv on the pre-2021 (v1) export', () => {
+  const v1 = readFileSync('tests/fixtures/grades-sample-v1.csv', 'utf8');
+  const v1Rows = parseGradeCsv(v1);
+
+  it('reads the student count from Enrolled when Reported is absent', () => {
+    // Without this the count is null, and a null count drops the row from
+    // aggregateDistributions' weighted average entirely — the whole of
+    // 2014-2020 would silently stop counting toward a course average.
+    expect(v1Rows[0].reported).toBe(85);
+    expect(v1Rows[1].reported).toBe(121);
+  });
+
+  it('parses identity and statistics despite the reordered columns', () => {
+    expect(v1Rows[0].subject).toBe('CPSC');
+    expect(v1Rows[0].courseNumber).toBe('100');
+    expect(v1Rows[0].sectionCode).toBe('101');
+    expect(v1Rows[0].year).toBe(2016);
+    expect(v1Rows[0].average).toBeCloseTo(81.6);
+    expect(v1Rows[0].high).toBe(99);
+    expect(v1Rows[0].low).toBe(55);
+    expect(v1Rows[0].distribution['90-100']).toBe(21);
+  });
+
+  it('leaves median null — the v1 export has no Median column', () => {
+    expect(v1Rows[0].median).toBeNull();
+  });
+
+  it('still surfaces the OVERALL rollup row for the caller to filter', () => {
+    // Parsing stays faithful to the file; dropping the rollup is the
+    // ingest's decision (it is not a real section), not the parser's.
+    expect(v1Rows.map((r) => r.sectionCode)).toContain('OVERALL');
+  });
+});

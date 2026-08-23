@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { db } from '@/lib/db';
-import { gradeCsvUrl, ingestRows } from '@/grades/jobs/ingest';
+import { gradeCsvUrl, ingestRows, SESSIONS, V1_SESSIONS } from '@/grades/jobs/ingest';
 import type { RawGradeRow } from '@/grades/parse-csv';
 
 let courseId: string;
@@ -54,6 +54,26 @@ describe('gradeCsvUrl', () => {
     expect(gradeCsvUrl('2025W', 'CPSC')).toBe(
       'https://raw.githubusercontent.com/DonneyF/ubc-pair-grade-data/master/tableau-dashboard-v2/UBCV/2025W/UBCV-2025W-CPSC.csv',
     );
+  });
+
+  it('routes a pre-2021 session to the v1 export directory', () => {
+    expect(gradeCsvUrl('2016W', 'CPSC')).toBe(
+      'https://raw.githubusercontent.com/DonneyF/ubc-pair-grade-data/master/tableau-dashboard/UBCV/2016W/UBCV-2016W-CPSC.csv',
+    );
+  });
+
+  it('takes 2021, which exists in both exports, from v2 only', () => {
+    // Ingesting 2021 from both would double every section's students.
+    expect(gradeCsvUrl('2021W', 'CPSC')).toContain('tableau-dashboard-v2');
+    expect(V1_SESSIONS as readonly string[]).not.toContain('2021W');
+    expect(V1_SESSIONS as readonly string[]).not.toContain('2021S');
+  });
+
+  it('covers every session from 2014S through 2025W exactly once', () => {
+    expect(SESSIONS).toHaveLength(24);
+    expect(new Set(SESSIONS).size).toBe(24);
+    expect(SESSIONS[0]).toBe('2014S');
+    expect(SESSIONS[SESSIONS.length - 1]).toBe('2025W');
   });
 });
 
@@ -133,6 +153,17 @@ describe('ingestRows', () => {
       include: { instructors: true },
     });
     expect(row.instructors).toHaveLength(0);
+  });
+
+  it('skips the v1 export\'s OVERALL rollup rather than storing it as a section', async () => {
+    // The pre-2021 files carry one OVERALL row per course whose count is the
+    // sum of its real sections. Stored as a section it would double the
+    // course's students and every distribution bucket.
+    const r = await ingestRows([makeRow({ sectionCode: 'OVERALL', reported: 999 })]);
+    expect(r.written).toBe(0);
+    expect(
+      await db.gradeDistribution.count({ where: { courseId, sectionCode: 'OVERALL' } }),
+    ).toBe(0);
   });
 
   it('stores suppressed buckets as null, not zero', async () => {

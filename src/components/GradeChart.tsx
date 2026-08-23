@@ -40,7 +40,7 @@ export default function GradeChart({
             <div className="group relative flex w-full flex-1 items-end justify-center">
               <div
                 role="tooltip"
-                className="pointer-events-none absolute bottom-full mb-1 whitespace-nowrap rounded bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
+                className="pointer-events-none absolute bottom-full mb-1 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
               >
                 {suppressed
                   ? `${bucket}: withheld by UBC for privacy`
@@ -49,21 +49,21 @@ export default function GradeChart({
               <div
                 className={
                   suppressed
-                    ? 'w-full rounded-t border border-dashed border-slate-400 bg-slate-200'
-                    : 'w-full rounded-t bg-blue-700'
+                    ? 'w-full rounded-t border border-dashed border-border bg-surface-muted'
+                    : 'w-full rounded-t bg-brand-accent'
                 }
                 style={{
                   height,
                   ...(suppressed
                     ? {
                         backgroundImage:
-                          'repeating-linear-gradient(45deg, transparent, transparent 3px, rgb(148 163 184) 3px, rgb(148 163 184) 4px)',
+                          'repeating-linear-gradient(45deg, transparent, transparent 3px, var(--border) 3px, var(--border) 4px)',
                       }
                     : {}),
                 }}
               />
             </div>
-            <span className="text-[10px] text-slate-500">{bucket}</span>
+            <span className="text-[10px] text-text-tertiary">{bucket}</span>
           </div>
         );
       })}

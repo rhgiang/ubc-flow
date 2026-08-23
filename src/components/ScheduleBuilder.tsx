@@ -246,6 +246,7 @@ export default function ScheduleBuilder({
         addedSectionIds={new Set(chosen.map((c) => c.sectionId))}
         onAddSection={addSection}
         onRemoveSection={removeSection}
+        onDock={() => {}}
         onClose={() => setInfoCourseId(null)}
       />
 

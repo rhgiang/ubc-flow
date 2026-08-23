@@ -19,6 +19,7 @@ export default function CourseInfoOverlay({
   addedSectionIds,
   onAddSection,
   onRemoveSection,
+  onDock,
   onClose,
 }: {
   courseId: string | null;
@@ -26,6 +27,7 @@ export default function CourseInfoOverlay({
   addedSectionIds: Set<string>;
   onAddSection?: (hit: SectionHit) => void;
   onRemoveSection?: (sectionId: string) => void;
+  onDock: () => void;
   onClose: () => void;
 }) {
   const { detail, loading } = useCourseDetail(courseId, termId);
@@ -68,16 +70,30 @@ export default function CourseInfoOverlay({
                   <p className="mt-0.5 text-xs text-text-tertiary">{detail.credits} credits</p>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close"
-                className="shrink-0 rounded-full p-1 text-text-secondary hover:bg-surface-muted hover:text-foreground"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
-                  <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
-                </svg>
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={onDock}
+                  aria-label="Show this course beside the calendar"
+                  title="Show beside the calendar"
+                  className="shrink-0 rounded-full p-1 text-text-secondary hover:bg-surface-muted hover:text-foreground"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <path d="M15 4v16" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="shrink-0 rounded-full p-1 text-text-secondary hover:bg-surface-muted hover:text-foreground"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
+                    <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <CourseInfoContent

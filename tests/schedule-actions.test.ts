@@ -128,7 +128,7 @@ describe('replaceScheduleSectionsFor', () => {
     if (!created.ok) throw new Error(created.error);
     const id = created.scheduleId;
 
-    const added = await replaceScheduleSectionsFor(ownerId, id, 'Buffer B', [sectionId]);
+    const added = await replaceScheduleSectionsFor(ownerId, id, 'Buffer B', [sectionId], []);
     expect(added).toEqual({ ok: true });
 
     const afterAdd = await db.savedSchedule.findUniqueOrThrow({
@@ -138,7 +138,7 @@ describe('replaceScheduleSectionsFor', () => {
     expect(afterAdd.name).toBe('Buffer B');
     expect(afterAdd.sections.map((s) => s.sectionId)).toEqual([sectionId]);
 
-    const cleared = await replaceScheduleSectionsFor(ownerId, id, 'Buffer B', []);
+    const cleared = await replaceScheduleSectionsFor(ownerId, id, 'Buffer B', [], [sectionId]);
     expect(cleared).toEqual({ ok: true });
 
     const afterClear = await db.savedSchedule.findUniqueOrThrow({
@@ -153,8 +153,8 @@ describe('replaceScheduleSectionsFor', () => {
     if (!created.ok) throw new Error(created.error);
     const id = created.scheduleId;
 
-    await replaceScheduleSectionsFor(ownerId, id, 'Buffer C', [sectionId]);
-    const again = await replaceScheduleSectionsFor(ownerId, id, 'Buffer C', [sectionId]);
+    await replaceScheduleSectionsFor(ownerId, id, 'Buffer C', [sectionId], []);
+    const again = await replaceScheduleSectionsFor(ownerId, id, 'Buffer C', [sectionId], [sectionId]);
     expect(again).toEqual({ ok: true });
 
     const row = await db.savedSchedule.findUniqueOrThrow({
@@ -169,7 +169,7 @@ describe('replaceScheduleSectionsFor', () => {
     if (!created.ok) throw new Error(created.error);
     const id = created.scheduleId;
 
-    const result = await replaceScheduleSectionsFor(strangerId, id, 'Hijacked', [sectionId]);
+    const result = await replaceScheduleSectionsFor(strangerId, id, 'Hijacked', [sectionId], []);
     expect(result.ok).toBe(false);
 
     const row = await db.savedSchedule.findUniqueOrThrow({
@@ -184,7 +184,7 @@ describe('replaceScheduleSectionsFor', () => {
     const created = await createScheduleFor(ownerId, termId, 'Buffer E');
     if (!created.ok) throw new Error(created.error);
 
-    const result = await replaceScheduleSectionsFor(ownerId, created.scheduleId, '   ', []);
+    const result = await replaceScheduleSectionsFor(ownerId, created.scheduleId, '   ', [], []);
     expect(result.ok).toBe(false);
   });
 
@@ -192,9 +192,13 @@ describe('replaceScheduleSectionsFor', () => {
     const created = await createScheduleFor(ownerId, termId, 'Cross-term OK');
     if (!created.ok) throw new Error(created.error);
 
-    const result = await replaceScheduleSectionsFor(ownerId, created.scheduleId, 'Cross-term OK', [
-      sectionId,
-    ]);
+    const result = await replaceScheduleSectionsFor(
+      ownerId,
+      created.scheduleId,
+      'Cross-term OK',
+      [sectionId],
+      [],
+    );
     expect(result).toEqual({ ok: true });
 
     const row = await db.savedSchedule.findUniqueOrThrow({
@@ -209,7 +213,7 @@ describe('replaceScheduleSectionsFor', () => {
     if (!created.ok) throw new Error(created.error);
     const id = created.scheduleId;
 
-    const result = await replaceScheduleSectionsFor(ownerId, id, 'Renamed', [otherTermSectionId]);
+    const result = await replaceScheduleSectionsFor(ownerId, id, 'Renamed', [otherTermSectionId], []);
     expect(result.ok).toBe(false);
 
     const row = await db.savedSchedule.findUniqueOrThrow({
@@ -218,5 +222,50 @@ describe('replaceScheduleSectionsFor', () => {
     });
     expect(row.name).toBe('Cross-term Bad');
     expect(row.sections).toEqual([]);
+  });
+});
+
+describe('replaceScheduleSectionsFor staleness', () => {
+  it('saves when the stored set matches what the caller loaded with', async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Stale A');
+    if (!created.ok) throw new Error(created.error);
+
+    const result = await replaceScheduleSectionsFor(ownerId, created.scheduleId, 'Stale A', [sectionId], []);
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('refuses when the schedule changed elsewhere since it was loaded', async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Stale B');
+    if (!created.ok) throw new Error(created.error);
+    const id = created.scheduleId;
+
+    // Someone else (e.g. the course page) adds a section after the builder loaded.
+    await addSectionFor(ownerId, id, sectionId);
+
+    // The builder still believes the schedule was empty.
+    const result = await replaceScheduleSectionsFor(ownerId, id, 'Stale B', [], []);
+    expect(result.ok).toBe(false);
+
+    // And the concurrent add must survive.
+    const row = await db.savedSchedule.findUniqueOrThrow({
+      where: { id },
+      include: { sections: true },
+    });
+    expect(row.sections.map((s) => s.sectionId)).toEqual([sectionId]);
+  });
+
+  it('ignores ordering when comparing the baseline', async () => {
+    const second = await db.section.findFirstOrThrow({
+      where: { termId, id: { not: sectionId } },
+      select: { id: true },
+    });
+    const created = await createScheduleFor(ownerId, termId, 'Stale C');
+    if (!created.ok) throw new Error(created.error);
+    const id = created.scheduleId;
+
+    await replaceScheduleSectionsFor(ownerId, id, 'Stale C', [sectionId, second.id], []);
+    // Same set, reversed order — must be accepted.
+    const result = await replaceScheduleSectionsFor(ownerId, id, 'Stale C', [sectionId], [second.id, sectionId]);
+    expect(result).toEqual({ ok: true });
   });
 });

@@ -136,7 +136,7 @@ export default function ScheduleBuilder({
 
     try {
       if (scheduleId) {
-        const result = await replaceScheduleSections(scheduleId, name, sectionIds);
+        const result = await replaceScheduleSections(scheduleId, name, sectionIds, initialIds);
         if (!result.ok) {
           setError(result.error);
           return;

@@ -222,11 +222,29 @@ export async function replaceScheduleSectionsFor(
   scheduleId: string,
   name: string,
   sectionIds: string[],
+  expectedSectionIds: string[],
 ): Promise<Result> {
   if (!(await owns(userId, scheduleId))) return { ok: false, error: NOT_YOURS };
   const clean = name.trim();
   if (!clean) return { ok: false, error: 'Give the schedule a name.' };
   if (clean.length > 80) return { ok: false, error: 'That name is too long.' };
+
+  const existing = await db.scheduleSection.findMany({
+    where: { scheduleId },
+    select: { sectionId: true },
+  });
+
+  const storedIds = existing.map((s) => s.sectionId);
+  const expected = new Set(expectedSectionIds);
+  const stored = new Set(storedIds);
+  const unchanged =
+    expected.size === stored.size && [...stored].every((id) => expected.has(id));
+  if (!unchanged) {
+    return {
+      ok: false,
+      error: 'This schedule changed somewhere else. Reload the page before saving.',
+    };
+  }
 
   const ids = [...new Set(sectionIds)];
   if (ids.length > 0) {
@@ -240,14 +258,7 @@ export async function replaceScheduleSectionsFor(
     }
   }
 
-  const existing = await db.scheduleSection.findMany({
-    where: { scheduleId },
-    select: { sectionId: true },
-  });
-  const { added, removed } = diffSections(
-    existing.map((s) => s.sectionId),
-    sectionIds,
-  );
+  const { added, removed } = diffSections(existing.map((s) => s.sectionId), sectionIds);
 
   // One transaction: a half-applied Save would leave the student looking at a
   // schedule that is neither what they had nor what they asked for.
@@ -273,10 +284,17 @@ export async function replaceScheduleSections(
   scheduleId: string,
   name: string,
   sectionIds: string[],
+  expectedSectionIds: string[],
 ): Promise<Result> {
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Sign in to save your schedule.' };
-  const result = await replaceScheduleSectionsFor(userId, scheduleId, name, sectionIds);
+  const result = await replaceScheduleSectionsFor(
+    userId,
+    scheduleId,
+    name,
+    sectionIds,
+    expectedSectionIds,
+  );
   if (result.ok) {
     revalidatePath('/schedule');
     revalidatePath(`/schedule/${scheduleId}`);

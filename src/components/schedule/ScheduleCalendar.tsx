@@ -10,6 +10,8 @@ export type CalendarEntry = ScheduleEntry & {
   location?: string | null;
   /** Colour is keyed on this when present, else on `label`. */
   courseCode?: string | null;
+  /** Set when the block should be clickable to open the course overlay. */
+  courseId?: string | null;
 };
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;

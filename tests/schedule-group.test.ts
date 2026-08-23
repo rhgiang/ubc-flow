@@ -5,6 +5,7 @@ import type { SectionHit } from '@/lib/search';
 function hit(code: string, sectionCode: string, title = `${code} title`): SectionHit {
   return {
     sectionId: `${code}-${sectionCode}`,
+    courseId: `course-${code}`,
     code,
     title,
     sectionCode,
@@ -34,5 +35,10 @@ describe('groupSectionsByCourse', () => {
 
   it('returns nothing for no hits', () => {
     expect(groupSectionsByCourse([])).toEqual([]);
+  });
+
+  it('carries the courseId of the course it grouped', () => {
+    const groups = groupSectionsByCourse([hit('CPSC 110', '101'), hit('CPSC 110', 'L1A')]);
+    expect(groups[0].courseId).toBe('course-CPSC 110');
   });
 });

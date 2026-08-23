@@ -150,6 +150,7 @@ export default function ScheduleBuilder({
       sectionId: s.sectionId,
       label: `${s.code} ${s.sectionCode}`,
       courseCode: s.code,
+      courseId: s.courseId,
       day: m.day,
       startTime: m.startTime,
       endTime: m.endTime,

@@ -115,6 +115,7 @@ export default async function SchedulePage() {
         // "CPSC 110") — no campus suffix — so a course gets the same colour
         // slot in both consumers.
         courseCode: `${course.subject.code} ${course.number}`,
+        courseId: m.courseId,
         day,
         startTime: m.startTime,
         endTime: m.endTime,

@@ -37,6 +37,8 @@ export type SectionMeetingTime = {
 
 export type SectionHit = {
   sectionId: string;
+  /** The COURSE this section belongs to — what the info overlay loads on. */
+  courseId: string;
   code: string;
   title: string;
   sectionCode: string;
@@ -57,6 +59,7 @@ type SectionRowForHit = Prisma.SectionGetPayload<{
 export function toSectionHit(s: SectionRowForHit): SectionHit {
   return {
     sectionId: s.id,
+    courseId: s.courseId,
     code: `${s.course.subject.code ?? ''} ${s.course.number}`.trim(),
     title: s.course.title,
     sectionCode: s.sectionCode,

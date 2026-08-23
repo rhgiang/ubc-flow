@@ -255,6 +255,12 @@ export default function ScheduleCalendar({
                         onKeyDown={
                           onSelectCourse && e.courseId
                             ? (ev) => {
+                                // Only when the BLOCK itself is focused — a keydown
+                                // bubbling up from the nested remove button must not
+                                // also open the overlay (click and keydown are
+                                // independent events, so the button's onClick
+                                // stopPropagation does not cover this path).
+                                if (ev.target !== ev.currentTarget) return;
                                 if (ev.key === 'Enter' || ev.key === ' ') {
                                   ev.preventDefault();
                                   onSelectCourse(e.courseId!);

@@ -12,10 +12,12 @@ export default function FindCoursesPanel({
   termId,
   addedIds,
   onAdd,
+  onInfo,
 }: {
   termId: string;
   addedIds: Set<string>;
   onAdd: (hit: SectionHit) => void;
+  onInfo: (courseId: string) => void;
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SectionHit[]>([]);
@@ -78,6 +80,18 @@ export default function FindCoursesPanel({
               <span className="ml-2 text-xs text-text-tertiary">
                 ({group.sections.length})
               </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onInfo(group.courseId);
+                }}
+                aria-label={`Course information for ${group.code}`}
+                className="ml-2 rounded-full border border-border px-1.5 text-xs text-text-secondary transition-colors hover:bg-surface-muted hover:text-foreground"
+              >
+                i
+              </button>
             </summary>
 
             <ul className="border-t border-border">

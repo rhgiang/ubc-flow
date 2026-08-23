@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import ScheduleHeader from '@/components/schedule/ScheduleHeader';
 import SchedulePanelTabs from '@/components/schedule/SchedulePanelTabs';
 import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/ScheduleCalendar';
+import CourseInfoOverlay from '@/components/schedule/CourseInfoOverlay';
 import { findConflicts } from '@/schedule/conflicts';
 import { diffSections } from '@/schedule/buffer';
 import {
@@ -50,6 +51,7 @@ export default function ScheduleBuilder({
   const [chosen, setChosen] = useState<SectionHit[]>(initialSections);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
   const router = useRouter();
   const { open } = useAuthOverlay();
 
@@ -187,6 +189,7 @@ export default function ScheduleBuilder({
             chosen={chosen}
             onAdd={addSection}
             onRemove={removeSection}
+            onInfo={setInfoCourseId}
           />
         </aside>
 
@@ -211,9 +214,19 @@ export default function ScheduleBuilder({
             entries={entries}
             onRemove={removeSection}
             showNowIndicator={showNowIndicator}
+            onSelectCourse={setInfoCourseId}
           />
         </div>
       </div>
+
+      <CourseInfoOverlay
+        courseId={infoCourseId}
+        termId={termId}
+        addedSectionIds={new Set(chosen.map((c) => c.sectionId))}
+        onAddSection={addSection}
+        onRemoveSection={removeSection}
+        onClose={() => setInfoCourseId(null)}
+      />
     </main>
   );
 }

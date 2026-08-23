@@ -66,6 +66,7 @@ export default function ScheduleCalendar({
   entries,
   onRemove,
   showNowIndicator = false,
+  onSelectCourse,
 }: {
   entries: CalendarEntry[];
   onRemove?: (sectionId: string) => void;
@@ -73,6 +74,7 @@ export default function ScheduleCalendar({
    *  indicator). Also gates the 60s clock timer so calendars for terms that
    *  haven't started don't run a redundant interval. */
   showNowIndicator?: boolean;
+  onSelectCourse?: (courseId: string) => void;
 }) {
   // Both the indicator position AND which column counts as "today" are
   // resolved only after mount. The server's clock and timezone need not match
@@ -234,7 +236,7 @@ export default function ScheduleCalendar({
                         }
                         className={`group absolute overflow-hidden rounded-md pl-2 pr-1 py-1 text-[11px] leading-tight ${
                           conflictLabels ? 'ring-1 ring-danger-border' : ''
-                        }`}
+                        } ${onSelectCourse && e.courseId ? 'cursor-pointer' : ''}`}
                         style={{
                           top,
                           height,
@@ -243,11 +245,31 @@ export default function ScheduleCalendar({
                           background: `var(--course-${slot}-bg)`,
                           boxShadow: `inset 3px 0 0 0 var(--course-${slot}-accent)`,
                         }}
+                        onClick={
+                          onSelectCourse && e.courseId
+                            ? () => onSelectCourse(e.courseId!)
+                            : undefined
+                        }
+                        role={onSelectCourse && e.courseId ? 'button' : undefined}
+                        tabIndex={onSelectCourse && e.courseId ? 0 : undefined}
+                        onKeyDown={
+                          onSelectCourse && e.courseId
+                            ? (ev) => {
+                                if (ev.key === 'Enter' || ev.key === ' ') {
+                                  ev.preventDefault();
+                                  onSelectCourse(e.courseId!);
+                                }
+                              }
+                            : undefined
+                        }
                       >
                         {onRemove && (
                           <button
                             type="button"
-                            onClick={() => onRemove(e.sectionId)}
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              onRemove(e.sectionId);
+                            }}
                             aria-label={`Remove ${e.label}`}
                             className="pointer-events-none absolute right-0.5 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100"
                           >

@@ -7,9 +7,11 @@ import type { SectionHit } from '@/lib/search';
 export default function SavedCoursesPanel({
   chosen,
   onRemove,
+  onInfo,
 }: {
   chosen: SectionHit[];
   onRemove: (sectionId: string) => void;
+  onInfo: (courseId: string) => void;
 }) {
   const groups = groupSectionsByCourse(chosen);
 
@@ -39,6 +41,18 @@ export default function SavedCoursesPanel({
               />
               <span className="text-sm font-medium text-foreground">{group.code}</span>
               <span className="text-xs text-text-secondary">{group.title}</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onInfo(group.courseId);
+                }}
+                aria-label={`Course information for ${group.code}`}
+                className="ml-2 rounded-full border border-border px-1.5 text-xs text-text-secondary transition-colors hover:bg-surface-muted hover:text-foreground"
+              >
+                i
+              </button>
             </summary>
 
             <ul className="border-t border-border">

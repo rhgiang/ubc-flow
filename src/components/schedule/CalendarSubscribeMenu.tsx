@@ -50,7 +50,7 @@ export default function CalendarSubscribeMenu({ scheduleId }: { scheduleId: stri
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-card border border-border bg-surface shadow-lg">
+        <div className="absolute right-0 top-full z-30 mt-1 w-56 overflow-hidden rounded-card border border-border bg-surface shadow-lg">
           <a
             href={webcalUrl ?? undefined}
             aria-disabled={!webcalUrl}

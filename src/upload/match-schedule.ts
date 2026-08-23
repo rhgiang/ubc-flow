@@ -23,6 +23,25 @@ function label(row: EnrollmentRow): string {
 }
 
 /**
+ * The catalogue carries no room at all — UBC's course API exposes no location
+ * anywhere (see scrape/parse-nodes) — and lags on instructors, but the
+ * student's own Workday export has both. Fill only what the catalogue left
+ * empty, so the catalogue stays authoritative wherever it has an answer.
+ */
+function withExportDetails(hit: SectionHit, row: EnrollmentRow): SectionHit {
+  return {
+    ...hit,
+    meetingTimes: hit.meetingTimes.map((m) =>
+      m.building || m.room || !row.days.includes(m.day)
+        ? m
+        : { ...m, building: row.building, room: row.room },
+    ),
+    instructors:
+      hit.instructors.length > 0 || !row.instructor ? hit.instructors : [row.instructor],
+  };
+}
+
+/**
  * Resolves parsed Workday registration rows to catalogue sections. Writes
  * nothing — this exists so a student can preview their real timetable in the
  * builder without the identity binding that /api/upload performs.
@@ -105,7 +124,7 @@ export async function matchWorkdayRows(rows: EnrollmentRow[]): Promise<ScheduleI
     // can appear more than once.
     if (seen.has(section.id)) continue;
     seen.add(section.id);
-    bucket.matched.push(toSectionHit(section));
+    bucket.matched.push(withExportDetails(toSectionHit(section), row));
   }
 
   // Most sections first: whichever term the export is mostly about is the one

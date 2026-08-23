@@ -192,7 +192,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
             { label: 'Useful', mean: stats.useful, histogram: stats.histograms.useful },
             { label: 'Difficulty', mean: stats.difficulty, histogram: stats.histograms.difficulty },
           ]}
-          redditHref={redditHref}
+          externalLink={{ href: redditHref, label: 'Search Reddit' }}
         />
       </div>
 

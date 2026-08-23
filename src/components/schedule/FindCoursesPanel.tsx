@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { searchSections } from '@/app/actions/schedule';
 import { groupSectionsByCourse } from '@/schedule/group';
+import { courseColorIndex } from '@/schedule/colors';
 import type { SectionHit } from '@/lib/search';
 
 // Matches SearchBar's debounce so the whole app feels consistent while typing.
@@ -72,9 +73,19 @@ export default function FindCoursesPanel({
       )}
 
       <div className="mt-3 space-y-2">
-        {groups.map((group) => (
-          <details key={group.code} className="rounded-card border border-border">
-            <summary className="cursor-pointer px-3 py-2">
+        {groups.map((group) => {
+          const slot = courseColorIndex(group.code);
+          return (
+          <details key={group.code} className="overflow-hidden rounded-card border border-border">
+            {/* Same pastel + accent-bar treatment the calendar gives this
+                course's blocks, so the two read as one colour code. */}
+            <summary
+              className="cursor-pointer px-3 py-2"
+              style={{
+                background: `var(--course-${slot}-bg)`,
+                boxShadow: `inset 3px 0 0 0 var(--course-${slot}-accent)`,
+              }}
+            >
               <span className="text-sm font-medium text-foreground">{group.code}</span>
               <span className="ml-2 text-xs text-text-secondary">{group.title}</span>
               <span className="ml-2 text-xs text-text-tertiary">
@@ -88,7 +99,8 @@ export default function FindCoursesPanel({
                   onInfo(group.courseId);
                 }}
                 aria-label={`Course information for ${group.code}`}
-                className="ml-2 rounded-full border border-border px-1.5 text-xs text-text-secondary transition-colors hover:bg-surface-muted hover:text-foreground"
+                style={{ borderColor: `var(--course-${slot}-accent)`, color: `var(--course-${slot}-accent)` }}
+                className="ml-2 rounded-full border px-1.5 text-xs transition-colors hover:bg-surface-muted"
               >
                 i
               </button>
@@ -106,6 +118,11 @@ export default function FindCoursesPanel({
                       <p className="text-sm text-foreground">{section.sectionCode}</p>
                       <p className="text-xs text-text-secondary">{section.activity ?? '—'}</p>
                       <p className="text-xs text-text-tertiary">{section.meetings}</p>
+                      {section.instructors.length > 0 && (
+                        <p className="truncate text-xs text-text-tertiary">
+                          {section.instructors.join(', ')}
+                        </p>
+                      )}
                     </div>
                     <button
                       type="button"
@@ -121,7 +138,8 @@ export default function FindCoursesPanel({
               })}
             </ul>
           </details>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

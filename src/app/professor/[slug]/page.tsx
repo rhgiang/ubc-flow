@@ -6,6 +6,7 @@ import { aggregateDistributions } from '@/grades/aggregate';
 import GradeChart from '@/components/GradeChart';
 import RatingsBox from '@/components/RatingsBox';
 import ReviewCard from '@/components/ReviewCard';
+import { rmpSearchHref } from '@/lib/rmp';
 
 const GRADE_DATA_SOURCE = 'https://github.com/DonneyF/ubc-pair-grade-data';
 
@@ -102,12 +103,23 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
   }
   const courses = [...byCourse.values()].sort((a, b) => a.code.localeCompare(b.code));
 
+  const rmpHref = rmpSearchHref(instructor.name);
+
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
       <h1 className="text-3xl font-semibold">{instructor.name}</h1>
       <p className="mt-1 text-sm text-text-tertiary">
         {courses.length} course{courses.length === 1 ? '' : 's'} taught
       </p>
+
+      <a
+        href={rmpHref}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-4 inline-flex items-center gap-1.5 text-sm text-brand-accent hover:underline"
+      >
+        Find {instructor.name} on RateMyProfessors
+      </a>
 
       <h2 className="mt-10 text-xl font-semibold">Ratings</h2>
       <div className="mt-4">
@@ -118,6 +130,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
             { label: 'Clear', mean: stats.clear, histogram: stats.histograms.clear },
             { label: 'Engaging', mean: stats.engaging, histogram: stats.histograms.engaging },
           ]}
+          externalLink={{ href: rmpHref, label: 'View on RateMyProfessors' }}
         />
       </div>
 

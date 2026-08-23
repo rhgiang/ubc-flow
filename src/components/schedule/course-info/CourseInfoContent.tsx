@@ -11,6 +11,7 @@ import type {
   InstructorRatingSummary,
 } from '@/lib/course-detail';
 import type { SectionHit } from '@/lib/search';
+import { rmpSearchHref } from '@/lib/rmp';
 
 /** The overlay's own section shape widened back to the builder's SectionHit,
  *  so a section added here is indistinguishable from one added via search. */
@@ -24,6 +25,7 @@ function toHit(detail: CourseDetail, s: CourseSectionDetail): SectionHit {
     activity: s.activity,
     meetings: s.meetings,
     meetingTimes: s.meetingTimes,
+    instructors: s.instructors.map((i) => i.name),
   };
 }
 
@@ -38,16 +40,6 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function pct(v: number | null): string {
   return v !== null ? `${v.toFixed(1)}%` : '—';
-}
-
-/**
- * A SEARCH link on RateMyProfessors, scoped to UBC (school 1413). Built from
- * the name — this app makes no request to RMP. Their robots.txt disallows
- * automated clients, so their ratings are not ingested; a student who wants
- * one follows this link and reads it in RMP's own context.
- */
-function rmpSearchHref(name: string): string {
-  return `https://www.ratemyprofessors.com/search/professors/1413?q=${encodeURIComponent(name)}`;
 }
 
 function ratingLine(r: InstructorRatingSummary): string {

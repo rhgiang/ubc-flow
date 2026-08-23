@@ -3,28 +3,61 @@ import { db } from '@/lib/db';
 import { gradeCsvUrl, ingestRows, SESSIONS, V1_SESSIONS } from '@/grades/jobs/ingest';
 import type { RawGradeRow } from '@/grades/parse-csv';
 
+// A dedicated fixture course, NOT a real one. This suite deletes every
+// GradeDistribution row for whatever course it targets, so pointing it at the
+// catalogue (findFirstOrThrow) meant each run destroyed a real course's grade
+// history — POLI 351 lost all 9 of its rows this way.
+const SUBJECT_CODE = 'ZZGRD';
+const SUBJECT_UBC_ID = 'ZZGRD-SUBJ';
+const COURSE_NUMBER = '999';
+const INSTRUCTOR_NAME = 'Zz Gradetest';
+const INSTRUCTOR_SLUG = 'zz-gradetest';
+
 let courseId: string;
-let subjectCode: string;
-let courseNumber: string;
-let instructorName: string;
+let subjectId: string;
+const subjectCode = SUBJECT_CODE;
+const courseNumber = COURSE_NUMBER;
+const instructorName = INSTRUCTOR_NAME;
 
 beforeAll(async () => {
-  const course = await db.course.findFirstOrThrow({
-    where: { subject: { code: { not: null } } },
-    include: { subject: true },
+  const subject = await db.subject.upsert({
+    where: { ubcSubjectId_campus: { ubcSubjectId: SUBJECT_UBC_ID, campus: 'V' } },
+    create: {
+      ubcSubjectId: SUBJECT_UBC_ID,
+      name: 'Grade Ingest Fixture',
+      campus: 'V',
+      code: SUBJECT_CODE,
+    },
+    update: { code: SUBJECT_CODE },
+  });
+  subjectId = subject.id;
+
+  const course = await db.course.upsert({
+    where: { subjectId_number: { subjectId: subject.id, number: COURSE_NUMBER } },
+    create: {
+      subjectId: subject.id,
+      number: COURSE_NUMBER,
+      title: 'Grade Ingest Fixture',
+      campus: 'V',
+    },
+    update: {},
   });
   courseId = course.id;
-  subjectCode = course.subject.code!;
-  courseNumber = course.number;
 
-  const instructor = await db.instructor.findFirstOrThrow();
-  instructorName = instructor.name;
+  await db.instructor.upsert({
+    where: { slug: INSTRUCTOR_SLUG },
+    create: { name: INSTRUCTOR_NAME, slug: INSTRUCTOR_SLUG, campus: 'V' },
+    update: {},
+  });
 
   await db.gradeDistribution.deleteMany({ where: { courseId } });
 });
 
 afterAll(async () => {
-  await db.gradeDistribution.deleteMany({ where: { courseId } });
+  // GradeDistribution (and its instructor links) cascade from the course.
+  await db.course.deleteMany({ where: { id: courseId } });
+  await db.subject.deleteMany({ where: { id: subjectId } });
+  await db.instructor.deleteMany({ where: { slug: INSTRUCTOR_SLUG } });
   await db.$disconnect();
 });
 

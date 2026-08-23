@@ -35,12 +35,19 @@ describe('loadCourseDetail', () => {
     expect(rows.every((r) => r.termId === termId)).toBe(true);
   });
 
-  it('returns an empty section list for a term the course is not offered in', async () => {
-    const otherTerm = await db.term.findFirst({ where: { id: { not: termId } }, select: { id: true } });
-    if (!otherTerm) return; // single-term dataset; nothing to assert
-    const detail = await loadCourseDetail(courseId, otherTerm.id);
+  it('returns no sections for a term the course is not offered in', async () => {
+    const emptyTerm = await db.term.findFirst({
+      where: { campus: 'V', sections: { none: { courseId } } },
+      select: { id: true },
+    });
+    // Every term in the dataset offers this course — nothing to assert.
+    if (!emptyTerm) return;
+
+    const detail = await loadCourseDetail(courseId, emptyTerm.id);
     expect(detail).not.toBeNull();
-    expect(detail!.sections.every((s) => s.sectionId !== undefined)).toBe(true);
+    expect(detail!.sections).toEqual([]);
+    // The course itself still loads — only its section list is term-scoped.
+    expect(detail!.courseId).toBe(courseId);
   });
 
   it('always returns a grade summary object, even with no grade rows', async () => {

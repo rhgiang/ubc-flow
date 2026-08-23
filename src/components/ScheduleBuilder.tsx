@@ -6,6 +6,7 @@ import ScheduleHeader from '@/components/schedule/ScheduleHeader';
 import SchedulePanelTabs from '@/components/schedule/SchedulePanelTabs';
 import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 import CourseInfoOverlay from '@/components/schedule/CourseInfoOverlay';
+import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
 import { findConflicts } from '@/schedule/conflicts';
 import { diffSections } from '@/schedule/buffer';
 import {
@@ -34,12 +35,14 @@ export default function ScheduleBuilder({
   initialTermId,
   initialSections,
   terms,
+  openImport = false,
 }: {
   mode: BuilderMode;
   initialName: string;
   initialTermId: string;
   initialSections: SectionHit[];
   terms: { id: string; name: string; year: number; session: string; termNumber: number | null }[];
+  openImport?: boolean;
 }) {
   const [name, setName] = useState(initialName);
   // On /schedule/new with no termId query param, initialTermId is '' — falling
@@ -52,6 +55,7 @@ export default function ScheduleBuilder({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(openImport);
   const router = useRouter();
   const { open } = useAuthOverlay();
 
@@ -97,6 +101,23 @@ export default function ScheduleBuilder({
 
   function removeSection(sectionId: string) {
     setChosen((prev) => prev.filter((s) => s.sectionId !== sectionId));
+  }
+
+  function applyImport(importedTermId: string, sections: SectionHit[]) {
+    if (!terms.some((t) => t.id === importedTermId)) {
+      setError(
+        "That export is for a term you can't plan yet, so nothing was imported.",
+      );
+      return;
+    }
+    setError(null);
+    setTermId(importedTermId);
+    // Merge rather than replace: a student may have added sections before
+    // importing. addSection's dedupe rule is applied here too.
+    setChosen((prev) => {
+      const have = new Set(prev.map((s) => s.sectionId));
+      return [...prev, ...sections.filter((s) => !have.has(s.sectionId))];
+    });
   }
 
   async function trySave() {
@@ -226,6 +247,12 @@ export default function ScheduleBuilder({
         onAddSection={addSection}
         onRemoveSection={removeSection}
         onClose={() => setInfoCourseId(null)}
+      />
+
+      <WorkdayImportOverlay
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImport={applyImport}
       />
     </main>
   );

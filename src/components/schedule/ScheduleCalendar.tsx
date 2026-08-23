@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { findConflicts, type ScheduleEntry } from '@/schedule/conflicts';
 import { courseColorIndex } from '@/schedule/colors';
 import { layoutDayColumns } from '@/schedule/layout';
@@ -14,10 +14,17 @@ export type CalendarEntry = ScheduleEntry & {
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;
 const HOUR_PX = 56;
-// Always visible so the grid is a stable reference frame while adding
-// sections, not just whatever the current selection happens to span.
-const BASE_START_HOUR = 7;
-const BASE_END_HOUR = 18;
+// The grid always covers the whole day and scrolls, the way Workday's and
+// Google's do — rather than resizing itself to whatever the current selection
+// happens to span, which made the rows jump whenever a section was added.
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+// Opening scroll position. A day's classes live roughly 8 AM-5 PM, so the
+// grid opens there; the small hours stay one scroll away rather than eating
+// the viewport.
+const OPENING_HOUR = 8;
+// Tall enough to show ~8 AM-6 PM at once, capped so several stacked calendars
+// on /schedule stay navigable.
+const VIEWPORT_MAX_PX = 600;
 
 /** "14:30" -> 870. */
 function toMinutes(hhmm: string): number {
@@ -44,10 +51,14 @@ function nowMinutesOnWeekday(): number | null {
  * per-course pastel blocks with a saturated left accent bar, and a
  * current-time indicator.
  *
- * Rows always span at least 7 AM-6 PM, expanding beyond that only when a real
- * meeting falls outside it — never clipping data to fit. A conflicting block
- * is still rendered, flagged with a danger ring, never hidden: conflicts are
- * advisory (UBC's meeting data can't always prove one is real).
+ * The grid renders all 24 hours and scrolls, opening at 8 AM — so no meeting
+ * can ever be out of reach, and the rows stay a fixed reference frame instead
+ * of resizing as sections are added. Day headers stick to the top while the
+ * hours scroll under them.
+ *
+ * A conflicting block is still rendered, flagged with a danger ring, never
+ * hidden: conflicts are advisory (UBC's meeting data can't always prove one
+ * is real).
  */
 export default function ScheduleCalendar({
   entries,
@@ -65,6 +76,13 @@ export default function ScheduleCalendar({
   // resolved only after mount. The server's clock and timezone need not match
   // the viewer's, so deriving either during render would hydrate-mismatch —
   // including the day-header highlight, which is easy to overlook.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Open on the working day rather than on midnight. The extra offset keeps the
+  // 8 AM label clear of the sticky header instead of half-tucked under it.
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = OPENING_HOUR * HOUR_PX - 12;
+  }, []);
+
   const [now, setNow] = useState<{ minutes: number | null; dayIndex: number } | null>(null);
   useEffect(() => {
     if (!showNowIndicator) return;
@@ -92,27 +110,12 @@ export default function ScheduleCalendar({
     conflictsByEntry.set(b, [...(conflictsByEntry.get(b) ?? []), a.label]);
   }
 
-  const starts = timed.map((e) => toMinutes(e.startTime));
-  const ends = timed.map((e) => toMinutes(e.endTime));
-  const minHour = Math.min(
-    BASE_START_HOUR,
-    ...(starts.length ? [Math.floor(Math.min(...starts) / 60)] : []),
-  );
-  const maxHour = Math.max(
-    BASE_END_HOUR,
-    ...(ends.length ? [Math.ceil(Math.max(...ends) / 60)] : []),
-  );
-  const hours = Array.from({ length: maxHour - minHour }, (_, i) => minHour + i);
-  const gridStartMin = minHour * 60;
-  const totalHeight = hours.length * HOUR_PX;
-
-  const nowTop =
-    nowMin !== null && nowMin >= gridStartMin && nowMin <= maxHour * 60
-      ? ((nowMin - gridStartMin) / 60) * HOUR_PX
-      : null;
+  const totalHeight = HOURS.length * HOUR_PX;
+  // The grid starts at midnight, so a time's offset is just its own minutes.
+  const nowTop = nowMin !== null ? (nowMin / 60) * HOUR_PX : null;
 
   return (
-    <div className="overflow-x-auto">
+    <div>
       {untimed.length > 0 && (
         <div className="mb-3 rounded-card border border-border bg-surface-muted px-3 py-2">
           <p className="text-xs font-medium text-foreground">No fixed meeting time</p>
@@ -143,19 +146,27 @@ export default function ScheduleCalendar({
         </div>
       )}
 
-      <div className="min-w-[680px] overflow-hidden rounded-card border border-border">
-        <div className="flex">
+      <div
+        ref={scrollRef}
+        className="overflow-auto rounded-card border border-border"
+        style={{ maxHeight: VIEWPORT_MAX_PX }}
+      >
+        <div className="flex min-w-[680px]">
           <div className="w-16 shrink-0">
-            <div className="h-9 border-b border-border" />
-            {hours.map((h) => (
+            <div className="sticky top-0 z-20 h-9 border-b border-border bg-background" />
+            {HOURS.map((h) => (
               <div
                 key={h}
                 className="relative border-b border-border-hairline pr-2 text-right"
                 style={{ height: HOUR_PX }}
               >
-                <span className="absolute -top-2 right-2 text-[11px] text-text-tertiary">
-                  {formatHour(h)}
-                </span>
+                {/* The topmost label would straddle the container edge and clip,
+                    so it is omitted — the same thing Google Calendar does. */}
+                {h !== 0 && (
+                  <span className="absolute -top-2 right-2 text-[11px] text-text-tertiary">
+                    {formatHour(h)}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -163,7 +174,7 @@ export default function ScheduleCalendar({
           {DAYS.map((day, dayIndex) => (
             <div key={day} className="min-w-0 flex-1 border-l border-border-hairline">
               <div
-                className={`flex h-9 items-center justify-center border-b border-border text-xs font-medium ${
+                className={`sticky top-0 z-20 flex h-9 items-center justify-center border-b border-border bg-background text-xs font-medium ${
                   dayIndex === todayIndex ? 'text-brand-accent' : 'text-text-secondary'
                 }`}
               >
@@ -171,7 +182,7 @@ export default function ScheduleCalendar({
               </div>
 
               <div className="relative" style={{ height: totalHeight }}>
-                {hours.map((h) => (
+                {HOURS.map((h) => (
                   <div
                     key={h}
                     className="border-b border-border-hairline"
@@ -200,7 +211,7 @@ export default function ScheduleCalendar({
                   }));
 
                   return dayEntries.map((e) => {
-                    const top = ((toMinutes(e.startTime) - gridStartMin) / 60) * HOUR_PX;
+                    const top = (toMinutes(e.startTime) / 60) * HOUR_PX;
                     const height =
                       ((toMinutes(e.endTime) - toMinutes(e.startTime)) / 60) * HOUR_PX;
                     const conflictLabels = conflictsByEntry.get(e);

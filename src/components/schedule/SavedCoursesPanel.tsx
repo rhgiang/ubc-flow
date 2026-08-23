@@ -2,16 +2,19 @@
 
 import { groupSectionsByCourse } from '@/schedule/group';
 import { courseColorIndex } from '@/schedule/colors';
+import CourseHeaderActions from '@/components/schedule/CourseHeaderActions';
 import type { SectionHit } from '@/lib/search';
 
 export default function SavedCoursesPanel({
   chosen,
   onRemove,
   onInfo,
+  onDock,
 }: {
   chosen: SectionHit[];
   onRemove: (sectionId: string) => void;
   onInfo: (courseId: string) => void;
+  onDock: (courseId: string) => void;
 }) {
   const groups = groupSectionsByCourse(chosen);
 
@@ -43,19 +46,12 @@ export default function SavedCoursesPanel({
               />
               <span className="text-sm font-medium text-foreground">{group.code}</span>
               <span className="text-xs text-text-secondary">{group.title}</span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onInfo(group.courseId);
-                }}
-                aria-label={`Course information for ${group.code}`}
-                style={{ borderColor: `var(--course-${slot}-accent)`, color: `var(--course-${slot}-accent)` }}
-                className="ml-2 rounded-full border px-1.5 text-xs transition-colors hover:bg-surface-muted"
-              >
-                i
-              </button>
+              <CourseHeaderActions
+                code={group.code}
+                slot={slot}
+                onInfo={() => onInfo(group.courseId)}
+                onDock={() => onDock(group.courseId)}
+              />
             </summary>
 
             <ul className="border-t border-border">

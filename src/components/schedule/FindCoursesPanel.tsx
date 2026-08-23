@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { searchSections } from '@/app/actions/schedule';
 import { groupSectionsByCourse } from '@/schedule/group';
 import { courseColorIndex } from '@/schedule/colors';
+import CourseHeaderActions from '@/components/schedule/CourseHeaderActions';
 import type { SectionHit } from '@/lib/search';
 
 // Matches SearchBar's debounce so the whole app feels consistent while typing.
@@ -14,11 +15,13 @@ export default function FindCoursesPanel({
   addedIds,
   onAdd,
   onInfo,
+  onDock,
 }: {
   termId: string;
   addedIds: Set<string>;
   onAdd: (hit: SectionHit) => void;
   onInfo: (courseId: string) => void;
+  onDock: (courseId: string) => void;
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SectionHit[]>([]);
@@ -91,19 +94,12 @@ export default function FindCoursesPanel({
               <span className="ml-2 text-xs text-text-tertiary">
                 ({group.sections.length})
               </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onInfo(group.courseId);
-                }}
-                aria-label={`Course information for ${group.code}`}
-                style={{ borderColor: `var(--course-${slot}-accent)`, color: `var(--course-${slot}-accent)` }}
-                className="ml-2 rounded-full border px-1.5 text-xs transition-colors hover:bg-surface-muted"
-              >
-                i
-              </button>
+              <CourseHeaderActions
+                code={group.code}
+                slot={slot}
+                onInfo={() => onInfo(group.courseId)}
+                onDock={() => onDock(group.courseId)}
+              />
             </summary>
 
             <ul className="border-t border-border">

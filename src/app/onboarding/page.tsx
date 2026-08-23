@@ -143,7 +143,7 @@ export default async function OnboardingPage() {
   const verified = Boolean(user?.verifiedAt);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12">
+    <main className="mx-auto w-full max-w-4xl px-6 py-10">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold text-foreground">Account</h1>
         <SignOutButton />

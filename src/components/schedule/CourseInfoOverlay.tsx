@@ -53,7 +53,7 @@ export default function CourseInfoOverlay({
       }}
     >
       <div className="w-full max-w-2xl rounded-card border border-border-hairline bg-surface p-6 shadow-lg">
-        {loading && <p className="text-sm text-text-secondary">Loading course…</p>}
+        {loading && !detail && <p className="text-sm text-text-secondary">Loading course…</p>}
         {!loading && !detail && (
           <p className="text-sm text-text-secondary">Could not load this course.</p>
         )}

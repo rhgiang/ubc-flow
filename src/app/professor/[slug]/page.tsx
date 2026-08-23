@@ -105,7 +105,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
       <h1 className="text-3xl font-semibold">{instructor.name}</h1>
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-sm text-text-tertiary">
         {courses.length} course{courses.length === 1 ? '' : 's'} taught
       </p>
 
@@ -154,22 +154,22 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
 
       <h2 className="mt-10 text-xl font-semibold">Grades</h2>
       {grades.sectionCount === 0 ? (
-        <p className="mt-2 text-slate-500">No grade data available.</p>
+        <p className="mt-2 text-text-tertiary">No grade data available.</p>
       ) : (
         <>
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="rounded-lg border p-4">
-              <p className="text-xs text-slate-500">Average</p>
+              <p className="text-xs text-text-tertiary">Average</p>
               <p className="text-lg font-semibold">
                 {grades.average !== null ? `${grades.average.toFixed(1)}%` : '—'}
               </p>
             </div>
             <div className="rounded-lg border p-4">
-              <p className="text-xs text-slate-500">Students</p>
+              <p className="text-xs text-text-tertiary">Students</p>
               <p className="text-lg font-semibold">{grades.studentCount}</p>
             </div>
             <div className="rounded-lg border p-4">
-              <p className="text-xs text-slate-500">Sections</p>
+              <p className="text-xs text-text-tertiary">Sections</p>
               <p className="text-lg font-semibold">{grades.sectionCount}</p>
             </div>
           </div>
@@ -177,16 +177,16 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
             <GradeChart distribution={grades.distribution} />
           </div>
           {grades.suppressed && (
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-text-tertiary">
               Some grade ranges were withheld by UBC to protect student privacy and are not
               shown above.
             </p>
           )}
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-text-tertiary">
             Grade data from{' '}
             <a
               href={GRADE_DATA_SOURCE}
-              className="text-blue-700 hover:underline"
+              className="text-brand-accent hover:underline"
               target="_blank"
               rel="noreferrer"
             >
@@ -199,19 +199,19 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
 
       <h2 className="mt-10 text-xl font-semibold">Courses</h2>
       {courses.length === 0 ? (
-        <p className="mt-2 text-slate-500">No courses on record.</p>
+        <p className="mt-2 text-text-tertiary">No courses on record.</p>
       ) : (
         <ul className="mt-4 divide-y">
           {courses.map((c) => (
             <li key={c.code} className="py-3">
               <Link
                 href={`/course/${c.code.toLowerCase().replace(' ', '-')}`}
-                className="font-medium text-blue-700 hover:underline"
+                className="font-medium text-brand-accent hover:underline"
               >
                 {c.code}
               </Link>
-              <span className="ml-2 text-slate-700">{c.title}</span>
-              <p className="mt-1 text-sm text-slate-500">{[...c.terms].join(' · ')}</p>
+              <span className="ml-2 text-foreground">{c.title}</span>
+              <p className="mt-1 text-sm text-text-tertiary">{[...c.terms].join(' · ')}</p>
             </li>
           ))}
         </ul>

@@ -14,12 +14,12 @@ export default async function VerifyPage({
       <h1 className="text-3xl font-semibold">
         {result.ok ? 'Email verified' : 'Link not valid'}
       </h1>
-      <p className="mt-2 text-slate-600">
+      <p className="mt-2 text-text-secondary">
         {result.ok
           ? 'Next, upload your Workday exports to finish setting up your account.'
           : 'That verification link is invalid or has expired. Request a new one from your account page.'}
       </p>
-      <Link href="/onboarding" className="mt-6 inline-block text-blue-700 hover:underline">
+      <Link href="/onboarding" className="mt-6 inline-block text-brand-accent hover:underline">
         Continue to setup →
       </Link>
     </main>

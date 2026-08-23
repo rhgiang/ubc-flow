@@ -166,50 +166,67 @@ export default function CourseInfoContent({
                     {s.instructors.length > 0 && (
                       <ul className="mt-0.5 space-y-0.5">
                         {s.instructors.map((i) => (
+                          // Two lines, grades above reviews: the grade history
+                          // is UBC's own published data covering hundreds of
+                          // students, while a rating is often one or two
+                          // self-selected reviews, so the sturdier number
+                          // leads and carries the brighter colour.
                           <li key={i.slug} className="text-xs">
-                            <Link
-                              href={`/professor/${i.slug}`}
-                              className="text-brand-accent hover:underline"
-                            >
-                              {i.name}
-                            </Link>
-                            <a
-                              href={rmpSearchHref(i.name)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`Look up ${i.name} on RateMyProfessors`}
-                              title="Look up on RateMyProfessors"
-                              className="ml-1.5 text-text-tertiary hover:text-foreground"
-                            >
-                              ↗
-                            </a>
-                            {i.rating ? (
-                              <span className="ml-1.5 text-text-secondary">
-                                {ratingLine(i.rating)}
-                              </span>
-                            ) : (
-                              !i.grades && (
-                                <span className="ml-1.5 text-text-tertiary">No reviews yet</span>
-                              )
-                            )}
-                            {i.grades && (
-                              <span
-                                className="ml-1.5 text-text-tertiary"
-                                title={
-                                  i.grades.coTaught
-                                    ? 'Average grade in this course. Some offerings were co-taught, so the figure is shared with another instructor.'
-                                    : 'Average grade students received in this course under this instructor'
-                                }
+                            <p>
+                              <Link
+                                href={`/professor/${i.slug}`}
+                                className="text-brand-accent hover:underline"
                               >
-                                <GradeLine
-                                  g={i.grades}
-                                  courseAverage={detail.courseAverage}
-                                  onCompare={() =>
-                                    setCompare({ name: i.name, grades: i.grades! })
+                                {i.name}
+                              </Link>
+                              <a
+                                href={rmpSearchHref(i.name)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={`Look up ${i.name} on RateMyProfessors`}
+                                title="Look up on RateMyProfessors"
+                                className="ml-1.5 text-text-tertiary hover:text-foreground"
+                              >
+                                ↗
+                              </a>
+                              {i.grades ? (
+                                <span
+                                  className="ml-1.5 text-text-secondary"
+                                  title={
+                                    i.grades.coTaught
+                                      ? 'Average grade in this course. Some offerings were co-taught, so the figure is shared with another instructor.'
+                                      : 'Average grade students received in this course under this instructor'
                                   }
-                                />
-                                {i.grades.coTaught && ' *'}
-                              </span>
+                                >
+                                  <GradeLine
+                                    g={i.grades}
+                                    courseAverage={detail.courseAverage}
+                                    onCompare={() =>
+                                      setCompare({ name: i.name, grades: i.grades! })
+                                    }
+                                  />
+                                  {i.grades.coTaught && ' *'}
+                                </span>
+                              ) : (
+                                // Said out loud rather than left blank: an
+                                // empty space here reads as a broken feature,
+                                // when it actually means UBC has published no
+                                // grades for this pairing — usually a
+                                // first-time offering for that instructor.
+                                <span
+                                  className="ml-1.5 text-text-tertiary"
+                                  title="UBC has published no grades for this instructor in this course yet — often a first-time offering. Their record in other courses is on their professor page."
+                                >
+                                  No grades for this course yet
+                                </span>
+                              )}
+                            </p>
+                            {/* No "no reviews yet" counterpart: the line above
+                                now always speaks, so a missing second line
+                                already means "no reviews" without repeating it
+                                under all 20-odd sections. */}
+                            {i.rating && (
+                              <p className="text-text-tertiary">{ratingLine(i.rating)}</p>
                             )}
                           </li>
                         ))}

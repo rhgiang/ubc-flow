@@ -73,7 +73,45 @@ describe('parseMeetingPattern', () => {
       days: [],
       startTime: null,
       endTime: null,
+      building: null,
+      room: null,
     });
+  });
+
+  it('extracts the building code from the trailing parenthetical', () => {
+    const cell =
+      '2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m. - 11:30 a.m. | UBCV | Hennings Building (HENN) | Floor: 1 | Room: 202';
+    const m = parseMeetingPattern(cell);
+    expect(m.building).toBe('HENN');
+    expect(m.room).toBe('202');
+  });
+
+  it('takes the LAST parenthetical when the name repeats the code', () => {
+    const cell =
+      '2026-09-09 - 2026-12-04 | Wed | 10:00 a.m. - 11:30 a.m. | UBCV | CIRS (Centre for Interactive Research on Sustainability) (CIRS) | Floor: 1 | Room: 1250';
+    expect(parseMeetingPattern(cell).building).toBe('CIRS');
+  });
+
+  it('handles a room with a letter prefix and a negative floor', () => {
+    const cell =
+      '2026-09-09 - 2026-12-04 | Mon | 2:00 p.m. - 3:30 p.m. | UBCV | Gordon B. Shrum Building (SHRM) | Floor: -1 | Room: B1001';
+    const m = parseMeetingPattern(cell);
+    expect(m.building).toBe('SHRM');
+    expect(m.room).toBe('B1001');
+  });
+
+  it('returns nulls when the cell carries no location segments', () => {
+    const m = parseMeetingPattern('2026-09-09 - 2026-12-04 | Wed | 10:00 a.m. - 11:30 a.m.');
+    expect(m.building).toBeNull();
+    expect(m.room).toBeNull();
+    // The fields it already parsed must be unaffected.
+    expect(m.days).toEqual(['Wed']);
+    expect(m.startTime).toBe('10:00');
+  });
+
+  it('falls back to the raw building segment when it has no parenthetical', () => {
+    const cell = '2026-09-09 - 2026-12-04 | Wed | 10:00 a.m. - 11:30 a.m. | UBCV | Some Hall | Floor: 2 | Room: 5';
+    expect(parseMeetingPattern(cell).building).toBe('Some Hall');
   });
 });
 

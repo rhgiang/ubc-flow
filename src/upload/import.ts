@@ -107,6 +107,8 @@ export async function importExport(
           termId: term.id,
           sectionCode: row.sectionCode,
           activity: row.activity,
+          building: row.building,
+          room: row.room,
           days: row.days,
           startTime: row.meetingStartTime,
           endTime: row.meetingEndTime,

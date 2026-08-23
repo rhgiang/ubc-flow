@@ -119,6 +119,7 @@ export default async function SchedulePage() {
         day,
         startTime: m.startTime,
         endTime: m.endTime,
+        location: m.building ? `${m.building}${m.room ? ` ${m.room}` : ''}` : null,
       } satisfies CalendarEntry);
     });
   }

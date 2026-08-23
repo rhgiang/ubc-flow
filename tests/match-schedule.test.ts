@@ -40,6 +40,8 @@ function row(over: Partial<EnrollmentRow> = {}): EnrollmentRow {
     courseNumber: fixture.courseNumber,
     sectionCode: fixture.sectionCode,
     activity: 'Lecture',
+    building: null,
+    room: null,
     startDate: '2026-09-09',
     termYear: fixture.termYear,
     termSession: fixture.termSession,

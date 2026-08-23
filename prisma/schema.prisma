@@ -161,6 +161,8 @@ model EnrollmentMeeting {
   termId      String
   sectionCode String?
   activity    String?
+  building    String?
+  room        String?
   days        String[]
   startTime   String?
   endTime     String?

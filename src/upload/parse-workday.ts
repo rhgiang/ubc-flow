@@ -13,6 +13,8 @@ export type EnrollmentRow = {
   days: string[];
   meetingStartTime: string | null;
   meetingEndTime: string | null;
+  building: string | null;
+  room: string | null;
 };
 
 export type ExcludedRow = {
@@ -54,8 +56,22 @@ function to24Hour(t: string): string | null {
 }
 
 /**
- * "2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m. - 11:30 a.m. | UBCV | ..."
- * -> the date range plus the weekly day/time pattern.
+ * "Hennings Building (HENN)" -> "HENN". The building's short code is the LAST
+ * parenthetical, because some names repeat the code up front:
+ * "CIRS (Centre for Interactive Research on Sustainability) (CIRS)".
+ * A segment with no parenthetical is used as-is rather than dropped.
+ */
+function buildingCode(segment: string): string | null {
+  const trimmed = segment.trim();
+  if (!trimmed) return null;
+  const m = trimmed.match(/\(([^()]*)\)\s*$/);
+  return (m ? m[1].trim() : trimmed) || null;
+}
+
+/**
+ * "2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m. - 11:30 a.m. | UBCV |
+ * Hennings Building (HENN) | Floor: 1 | Room: 202"
+ * -> the date range, the weekly day/time pattern, and the room location.
  *
  * A cell can hold more than one date-range block, blank-line separated
  * (e.g. a course split around reading week) — every block for one section
@@ -67,6 +83,8 @@ export function parseMeetingPattern(cell: string): {
   days: string[];
   startTime: string | null;
   endTime: string | null;
+  building: string | null;
+  room: string | null;
 } {
   const dateMatch = cell.match(/(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})/);
 
@@ -74,6 +92,9 @@ export function parseMeetingPattern(cell: string): {
   const segments = firstBlock.split('|').map((s) => s.trim());
   const days = (segments[1] ?? '').split(/\s+/).filter((d) => DAY_ABBREVIATIONS.has(d));
   const timeMatch = segments[2]?.match(/^(.+?)\s*-\s*(.+)$/);
+  const building = segments[4] ? buildingCode(segments[4]) : null;
+  const roomRaw = segments[6]?.replace(/^Room:\s*/i, '').trim();
+  const room = roomRaw || null;
 
   return {
     startDate: dateMatch?.[1] ?? null,
@@ -81,6 +102,8 @@ export function parseMeetingPattern(cell: string): {
     days,
     startTime: timeMatch ? to24Hour(timeMatch[1]) : null,
     endTime: timeMatch ? to24Hour(timeMatch[2]) : null,
+    building,
+    room,
   };
 }
 
@@ -183,7 +206,7 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
     }
 
     const meeting = meetingCol === undefined
-      ? { startDate: null, endDate: null, days: [], startTime: null, endTime: null }
+      ? { startDate: null, endDate: null, days: [], startTime: null, endTime: null, building: null, room: null }
       : parseMeetingPattern(row[meetingCol] ?? '');
 
     const term = meeting.startDate ? inferTerm(meeting.startDate) : null;
@@ -202,6 +225,8 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
       days: meeting.days,
       meetingStartTime: meeting.startTime,
       meetingEndTime: meeting.endTime,
+      building: meeting.building,
+      room: meeting.room,
       termYear: term.year,
       termSession: term.session,
       termNumber: term.termNumber,

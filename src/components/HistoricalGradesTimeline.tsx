@@ -79,7 +79,7 @@ export default function HistoricalGradesTimeline({ terms }: { terms: HistoricalG
             onClick={() => setShowAll(value)}
             className={`rounded-input px-3 py-1 text-xs font-medium transition-colors ${
               showAll === value
-                ? 'bg-brand text-white'
+                ? 'bg-brand text-brand-foreground'
                 : 'border border-border text-text-secondary hover:text-foreground'
             }`}
           >

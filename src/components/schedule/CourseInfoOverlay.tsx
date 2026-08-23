@@ -37,6 +37,18 @@ function pct(v: number | null): string {
   return v !== null ? `${v.toFixed(1)}%` : '—';
 }
 
+/** "DMP 310, HENN 202" — de-duplicated, since a section's meetings often repeat a room. */
+function locationLabel(s: CourseSectionDetail): string | null {
+  const places = [
+    ...new Set(
+      s.meetingTimes
+        .filter((m) => m.building)
+        .map((m) => `${m.building}${m.room ? ` ${m.room}` : ''}`),
+    ),
+  ];
+  return places.length > 0 ? places.join(', ') : null;
+}
+
 /**
  * Course detail as an overlay rather than a navigation, so a student deciding
  * between sections never loses their half-built schedule (spec §7).
@@ -66,7 +78,8 @@ export default function CourseInfoOverlay({
 
   useEffect(() => {
     if (!courseId) return;
-    const cached = cache.current.get(courseId);
+    const key = `${courseId}:${termId}`;
+    const cached = cache.current.get(key);
     if (cached) {
       setDetail(cached);
       return;
@@ -78,7 +91,7 @@ export default function CourseInfoOverlay({
     (async () => {
       const result = await getCourseDetail(courseId, termId);
       if (cancelled) return;
-      if (result) cache.current.set(courseId, result);
+      if (result) cache.current.set(key, result);
       setDetail(result);
       setLoading(false);
     })();
@@ -151,6 +164,7 @@ export default function CourseInfoOverlay({
                 <ul className="mt-2 divide-y divide-border rounded-card border border-border">
                   {detail.sections.map((s) => {
                     const added = addedSectionIds.has(s.sectionId);
+                    const location = locationLabel(s);
                     return (
                       <li key={s.sectionId} className="flex items-start justify-between gap-3 px-3 py-2">
                         <div className="min-w-0">
@@ -161,6 +175,9 @@ export default function CourseInfoOverlay({
                             )}
                           </p>
                           <p className="text-xs text-text-tertiary">{s.meetings}</p>
+                          {location && (
+                            <p className="text-xs text-text-tertiary">{location}</p>
+                          )}
                           {s.instructors.length > 0 && (
                             <p className="text-xs text-text-secondary">
                               {s.instructors.map((i, idx) => (

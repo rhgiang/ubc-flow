@@ -17,10 +17,14 @@ export function useCourseDetail(
   termId: string,
 ): { detail: CourseDetail | null; loading: boolean } {
   const [detail, setDetail] = useState<CourseDetail | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(courseId !== null);
 
   useEffect(() => {
-    if (!courseId) return;
+    if (!courseId) {
+      setDetail(null);
+      setLoading(false);
+      return;
+    }
     const key = `${courseId}:${termId}`;
     const cached = cache.get(key);
     if (cached) {
@@ -34,9 +38,11 @@ export function useCourseDetail(
     setDetail(null);
     (async () => {
       const result = await getCourseDetail(courseId, termId);
+      // Cache regardless of cancellation — a response is still valid data even
+      // if this component no longer wants to render it.
+      if (result) cache.set(key, result);
       // A slower earlier request must never overwrite a newer one.
       if (cancelled) return;
-      if (result) cache.set(key, result);
       setDetail(result);
       setLoading(false);
     })();

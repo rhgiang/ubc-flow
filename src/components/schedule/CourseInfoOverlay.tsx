@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useCourseDetail } from '@/components/schedule/course-info/useCourseDetail';
 import CourseInfoContent from '@/components/schedule/course-info/CourseInfoContent';
 import type { SectionHit } from '@/lib/search';
@@ -31,6 +31,7 @@ export default function CourseInfoOverlay({
   onClose: () => void;
 }) {
   const { detail, loading } = useCourseDetail(courseId, termId);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   // Escape closes, matching the auth overlay.
   useEffect(() => {
@@ -41,6 +42,10 @@ export default function CourseInfoOverlay({
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [courseId, onClose]);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, [courseId]);
 
   if (!courseId) return null;
 
@@ -54,7 +59,11 @@ export default function CourseInfoOverlay({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-2xl rounded-card border border-border-hairline bg-surface p-6 shadow-lg">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        className="w-full max-w-2xl rounded-card border border-border-hairline bg-surface p-6 shadow-lg"
+      >
         {loading && !detail && <p className="text-sm text-text-secondary">Loading course…</p>}
         {!loading && !detail && (
           <p className="text-sm text-text-secondary">Could not load this course.</p>
@@ -76,7 +85,7 @@ export default function CourseInfoOverlay({
                   onClick={onDock}
                   aria-label="Show this course beside the calendar"
                   title="Show beside the calendar"
-                  className="shrink-0 rounded-full p-1 text-text-secondary hover:bg-surface-muted hover:text-foreground"
+                  className="hidden lg:inline-flex shrink-0 rounded-full p-1 text-text-secondary hover:bg-surface-muted hover:text-foreground"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
                     <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -96,12 +105,14 @@ export default function CourseInfoOverlay({
               </div>
             </div>
 
-            <CourseInfoContent
-              detail={detail}
-              addedSectionIds={addedSectionIds}
-              onAddSection={onAddSection}
-              onRemoveSection={onRemoveSection}
-            />
+            <div className="pt-4">
+              <CourseInfoContent
+                detail={detail}
+                addedSectionIds={addedSectionIds}
+                onAddSection={onAddSection}
+                onRemoveSection={onRemoveSection}
+              />
+            </div>
           </>
         )}
       </div>

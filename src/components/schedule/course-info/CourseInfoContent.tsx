@@ -61,7 +61,7 @@ export default function CourseInfoContent({
   return (
     <>
       {detail.description && (
-        <p className="mt-4 text-sm text-text-secondary">{detail.description}</p>
+        <p className="text-sm text-text-secondary">{detail.description}</p>
       )}
 
       <section className="mt-6">

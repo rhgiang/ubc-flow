@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import CourseInfoContent from '@/components/schedule/course-info/CourseInfoContent';
 import { useCourseDetail } from '@/components/schedule/course-info/useCourseDetail';
 import type { SectionHit } from '@/lib/search';
@@ -29,13 +30,19 @@ export default function CourseInfoPanel({
   onClose: () => void;
 }) {
   const { detail, loading } = useCourseDetail(courseId, termId);
+  const panelRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    panelRef.current?.focus();
+  }, [courseId]);
 
   return (
     <aside
+      ref={panelRef}
+      tabIndex={-1}
       aria-label={detail ? `${detail.code} course information` : 'Course information'}
       className="flex w-full shrink-0 flex-col overflow-y-auto border-t border-border lg:w-[380px] lg:border-l lg:border-t-0"
     >
-      <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
+      <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-border bg-surface px-4 py-3">
         <div className="min-w-0">
           {detail ? (
             <>

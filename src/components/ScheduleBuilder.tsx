@@ -184,6 +184,7 @@ export default function ScheduleBuilder({
   );
   const conflicts = findConflicts(entries);
   const showNowIndicator = getCurrentAndNextTerm(terms).current?.id === termId;
+  const addedSectionIds = new Set(chosen.map((c) => c.sectionId));
 
   return (
     <main className="flex min-h-0 w-full flex-1 flex-col">
@@ -245,7 +246,7 @@ export default function ScheduleBuilder({
           <CourseInfoPanel
             courseId={infoCourseId}
             termId={termId}
-            addedSectionIds={new Set(chosen.map((c) => c.sectionId))}
+            addedSectionIds={addedSectionIds}
             onAddSection={addSection}
             onRemoveSection={removeSection}
             onExpand={() => setInfoDocked(false)}
@@ -260,7 +261,7 @@ export default function ScheduleBuilder({
       <CourseInfoOverlay
         courseId={infoDocked ? null : infoCourseId}
         termId={termId}
-        addedSectionIds={new Set(chosen.map((c) => c.sectionId))}
+        addedSectionIds={addedSectionIds}
         onAddSection={addSection}
         onRemoveSection={removeSection}
         onDock={() => setInfoDocked(true)}

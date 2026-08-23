@@ -102,6 +102,8 @@ describe('importExport', () => {
     expect(rows[0].days).toEqual(['Mon', 'Wed', 'Fri']);
     expect(rows[0].startTime).toBe('10:00');
     expect(rows[0].endTime).toBe('11:00');
+    expect(rows[0].building).toBe('HENN');
+    expect(rows[0].room).toBe('202');
   });
 
   it('refuses to bind the same student number to a second account', async () => {

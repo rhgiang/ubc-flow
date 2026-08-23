@@ -230,7 +230,7 @@ export default function ScheduleCalendar({
                             type="button"
                             onClick={() => onRemove(e.sectionId)}
                             aria-label={`Remove ${e.label}`}
-                            className="absolute right-0.5 top-0.5 hidden rounded px-1 text-text-secondary hover:text-foreground group-hover:block"
+                            className="absolute right-0.5 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground focus:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
                           >
                             ×
                           </button>

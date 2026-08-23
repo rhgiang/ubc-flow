@@ -1,6 +1,7 @@
 'use client';
 
 import { groupSectionsByCourse } from '@/schedule/group';
+import { courseColorIndex } from '@/schedule/colors';
 import type { SectionHit } from '@/lib/search';
 
 export default function SavedCoursesPanel({
@@ -30,9 +31,14 @@ export default function SavedCoursesPanel({
       <div className="mt-3 space-y-2">
         {groups.map((group) => (
           <details key={group.code} open className="rounded-card border border-border">
-            <summary className="cursor-pointer px-3 py-2">
+            <summary className="inline-flex cursor-pointer items-center gap-2 px-3 py-2">
+              <span
+                aria-hidden
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ background: `var(--course-${courseColorIndex(group.code)}-accent)` }}
+              />
               <span className="text-sm font-medium text-foreground">{group.code}</span>
-              <span className="ml-2 text-xs text-text-secondary">{group.title}</span>
+              <span className="text-xs text-text-secondary">{group.title}</span>
             </summary>
 
             <ul className="border-t border-border">

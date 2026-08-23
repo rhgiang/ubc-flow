@@ -52,9 +52,14 @@ function nowMinutesOnWeekday(): number | null {
 export default function ScheduleCalendar({
   entries,
   onRemove,
+  showNowIndicator = false,
 }: {
   entries: CalendarEntry[];
   onRemove?: (sectionId: string) => void;
+  /** Only true when viewing the term that contains today (spec §current-time
+   *  indicator). Also gates the 60s clock timer so calendars for terms that
+   *  haven't started don't run a redundant interval. */
+  showNowIndicator?: boolean;
 }) {
   // Both the indicator position AND which column counts as "today" are
   // resolved only after mount. The server's clock and timezone need not match
@@ -62,14 +67,15 @@ export default function ScheduleCalendar({
   // including the day-header highlight, which is easy to overlook.
   const [now, setNow] = useState<{ minutes: number | null; dayIndex: number } | null>(null);
   useEffect(() => {
+    if (!showNowIndicator) return;
     const read = () => setNow({ minutes: nowMinutesOnWeekday(), dayIndex: new Date().getDay() - 1 });
     read();
     const timer = setInterval(read, 60_000);
     return () => clearInterval(timer);
-  }, []);
-  const nowMin = now?.minutes ?? null;
+  }, [showNowIndicator]);
+  const nowMin = showNowIndicator ? now?.minutes ?? null : null;
   // -1 until mounted, so no column is highlighted during SSR.
-  const todayIndex = now?.dayIndex ?? -1;
+  const todayIndex = showNowIndicator ? now?.dayIndex ?? -1 : -1;
 
   const timed = entries.filter(
     (e): e is CalendarEntry & { startTime: string; endTime: string } =>
@@ -158,7 +164,7 @@ export default function ScheduleCalendar({
             <div key={day} className="min-w-0 flex-1 border-l border-border-hairline">
               <div
                 className={`flex h-9 items-center justify-center border-b border-border text-xs font-medium ${
-                  dayIndex === todayIndex ? 'text-brand' : 'text-text-secondary'
+                  dayIndex === todayIndex ? 'text-brand-accent' : 'text-text-secondary'
                 }`}
               >
                 {day}
@@ -176,10 +182,10 @@ export default function ScheduleCalendar({
                 {nowTop !== null && dayIndex === todayIndex && (
                   <div
                     aria-hidden
-                    className="pointer-events-none absolute inset-x-0 z-10 border-t border-brand"
+                    className="pointer-events-none absolute inset-x-0 z-10 border-t border-brand-accent"
                     style={{ top: nowTop }}
                   >
-                    <span className="absolute -left-1 -top-1 block h-2 w-2 rounded-full bg-brand" />
+                    <span className="absolute -left-1 -top-1 block h-2 w-2 rounded-full bg-brand-accent" />
                   </div>
                 )}
 
@@ -230,7 +236,7 @@ export default function ScheduleCalendar({
                             type="button"
                             onClick={() => onRemove(e.sectionId)}
                             aria-label={`Remove ${e.label}`}
-                            className="absolute right-0.5 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground focus:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
+                            className="pointer-events-none absolute right-0.5 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100"
                           >
                             ×
                           </button>

@@ -14,6 +14,7 @@ import {
 } from '@/app/actions/schedule';
 import type { SectionHit } from '@/lib/search';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
+import { getCurrentAndNextTerm } from '@/schedule/terms';
 
 export type BuilderMode = { kind: 'draft' } | { kind: 'saved'; scheduleId: string };
 
@@ -37,7 +38,7 @@ export default function ScheduleBuilder({
   initialName: string;
   initialTermId: string;
   initialSections: SectionHit[];
-  terms: { id: string; name: string }[];
+  terms: { id: string; name: string; year: number; session: string; termNumber: number | null }[];
 }) {
   const [name, setName] = useState(initialName);
   // On /schedule/new with no termId query param, initialTermId is '' — falling
@@ -156,6 +157,7 @@ export default function ScheduleBuilder({
     })),
   );
   const conflicts = findConflicts(entries);
+  const showNowIndicator = getCurrentAndNextTerm(terms).current?.id === termId;
 
   return (
     <main className="flex min-h-0 w-full flex-1 flex-col">
@@ -204,7 +206,11 @@ export default function ScheduleBuilder({
             </div>
           )}
 
-          <ScheduleCalendar entries={entries} onRemove={removeSection} />
+          <ScheduleCalendar
+            entries={entries}
+            onRemove={removeSection}
+            showNowIndicator={showNowIndicator}
+          />
         </div>
       </div>
     </main>

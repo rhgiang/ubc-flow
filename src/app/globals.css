@@ -25,6 +25,12 @@
   --brand: #002145; /* UBC Blue */
   --brand-hover: #04316b;
   --brand-foreground: #ffffff;
+  /* Brand as FOREGROUND (text/border on background), not background. Same
+     navy as --brand in light, but --brand itself is never overridden in dark
+     because it's used as a background there (white-on-brand contrast must
+     stay intact) — this token exists so brand-as-text/border can still be
+     legible in dark mode. */
+  --brand-accent: #002145;
 
   /* Course-block palette for the schedule calendar — muted pastels with a
      saturated accent bar, assigned per course by src/schedule/colors.ts.
@@ -97,7 +103,9 @@
 
   --danger: #f87171;
   --danger-surface: #3b1f1f;
-  --danger-border: #7f3535;
+  --danger-border: #f87171;
+
+  --brand-accent: #7aa7e8;
 }
 
 @theme inline {
@@ -113,6 +121,7 @@
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-accent: var(--brand-accent);
   --color-danger: var(--danger);
   --color-danger-surface: var(--danger-surface);
   --color-danger-border: var(--danger-border);

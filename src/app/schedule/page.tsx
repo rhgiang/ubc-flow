@@ -7,7 +7,7 @@ import ScheduleTabs, {
   type CalendarTermGroup,
 } from '@/components/ScheduleTabs';
 import type { CalendarEntry } from '@/components/schedule/ScheduleCalendar';
-import { isPlannableTerm, isUpcomingTerm } from '@/schedule/terms';
+import { isPlannableTerm, isUpcomingTerm, getCurrentAndNextTerm } from '@/schedule/terms';
 
 function courseHref(subjectCode: string, number: string): string {
   return `/course/${`${subjectCode} ${number}`.toLowerCase().replace(/\s+/g, '-')}`;
@@ -91,10 +91,15 @@ export default async function SchedulePage() {
     : [];
   const courseById = new Map(meetingCourses.map((c) => [c.id, c]));
 
+  const currentTermId = getCurrentAndNextTerm(terms).current?.id ?? null;
+
   const calendarByTerm = new Map<string, CalendarTermGroup>(
     [...plannableTerms]
       .sort((a, b) => a.year - b.year || (a.termNumber ?? 0) - (b.termNumber ?? 0))
-      .map((t) => [t.id, { termId: t.id, termName: t.name, entries: [] }]),
+      .map((t) => [
+        t.id,
+        { termId: t.id, termName: t.name, entries: [], isCurrentTerm: t.id === currentTermId },
+      ]),
   );
   for (const m of meetings) {
     const group = calendarByTerm.get(m.termId);
@@ -106,7 +111,10 @@ export default async function SchedulePage() {
         id: `${m.id}-${i}`,
         sectionId: m.id,
         label,
-        courseCode: `${course.subject.code}_${course.campus} ${course.number}`,
+        // Keyed on the same value ScheduleBuilder uses (SectionHit.code, e.g.
+        // "CPSC 110") — no campus suffix — so a course gets the same colour
+        // slot in both consumers.
+        courseCode: `${course.subject.code} ${course.number}`,
         day,
         startTime: m.startTime,
         endTime: m.endTime,

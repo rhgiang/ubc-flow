@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import GradeChart from '@/components/GradeChart';
 import HistoricalGradesTimeline from '@/components/HistoricalGradesTimeline';
 import type { CourseDetail, InstructorGradeHistory } from '@/lib/course-detail';
@@ -66,7 +67,13 @@ export default function GradeComparisonOverlay({
 
   const courseAverage = detail.courseAverage;
 
-  return (
+  // Portalled to <body> because the course overlay this is opened from carries
+  // `backdrop-blur`, and a backdrop-filter makes that element the containing
+  // block for `position: fixed` descendants. Nested inside it, this dialog
+  // resolved `inset-0` against the overlay's SCROLLING box and drifted with it,
+  // sliding the scrim off the un-blurred content underneath. A portal also
+  // stops any future transform or filter above from re-breaking it.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -164,6 +171,7 @@ export default function GradeComparisonOverlay({
           pixel heights.
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

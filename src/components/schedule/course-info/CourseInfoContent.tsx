@@ -157,7 +157,9 @@ export default function CourseInfoContent({
                                 {ratingLine(i.rating)}
                               </span>
                             ) : (
-                              <span className="ml-1.5 text-text-tertiary">No reviews yet</span>
+                              !i.grades && (
+                                <span className="ml-1.5 text-text-tertiary">No reviews yet</span>
+                              )
                             )}
                             {i.grades && (
                               <span

@@ -159,7 +159,7 @@ export default function ScheduleCalendar({
             {HOURS.map((h) => (
               <div
                 key={h}
-                className="relative border-b border-border-hairline pr-2 text-right"
+                className="relative pr-2 text-right"
                 style={{ height: HOUR_PX }}
               >
                 {/* The topmost label would straddle the container edge and clip,

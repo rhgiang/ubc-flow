@@ -4,7 +4,7 @@
 
 **Goal:** Replace the plain `WeekGrid` with a Notion-Calendar-styled `ScheduleCalendar` — hairline grid, soft per-course pastel blocks with a saturated accent bar, a current-time indicator, an untimed/async strip, and hover-to-remove.
 
-**Architecture:** One new client component, `ScheduleCalendar`, is a drop-in replacement for `WeekGrid` keeping the same entry shape. Per-course colour is assigned by a pure deterministic hash into an 8-slot palette defined as CSS custom properties, so it survives reloads and matches in light and dark. Both existing `WeekGrid` consumers migrate and `WeekGrid` is deleted.
+**Architecture:** One new client component, `ScheduleCalendar`, is a drop-in replacement for `WeekGrid` keeping the same entry shape. Per-course colour is assigned by a pure deterministic hash into an 8-slot palette defined as CSS custom properties, so it survives reloads and matches in light and dark. Overlapping classes are split into side-by-side columns by a second pure helper, the way Google Calendar and Notion Calendar lay out colliding events. Both existing `WeekGrid` consumers migrate and `WeekGrid` is deleted.
 
 **Tech Stack:** Next.js 16 (App Router), React client components, Tailwind v4 with CSS-variable theme tokens, Vitest.
 
@@ -24,17 +24,20 @@
 
 ---
 
-### Task 1: Colour palette tokens and deterministic assignment
+### Task 1: Pure calendar helpers — colours and overlap layout
 
 **Files:**
 - Modify: `src/app/globals.css`
 - Create: `src/schedule/colors.ts`
+- Create: `src/schedule/layout.ts`
 - Create: `tests/schedule-colors.test.ts`
+- Create: `tests/schedule-layout.test.ts`
 
 **Interfaces:**
 - Produces:
   - `COURSE_COLOR_COUNT: number` (= 8)
   - `courseColorIndex(code: string): number` — a stable 1-based index in `1..8`
+  - `layoutDayColumns<T>(entries: T[], getRange: (e: T) => { start: number; end: number }): Map<T, { column: number; columns: number }>`
 - CSS variables `--course-1-bg` … `--course-8-bg`, `--course-1-accent` … `--course-8-accent`, plus `--danger`, `--danger-surface`, `--danger-border`, defined for both themes.
 
 - [ ] **Step 1: Write the failing test**
@@ -92,12 +95,14 @@ export const COURSE_COLOR_COUNT = 8;
  * names (`--course-3-bg`).
  *
  * Deterministic so a course keeps its colour across reloads and matches
- * between the calendar and the left panel. Same hash the placeholder avatars
- * in ReviewCard use, rather than a second scheme.
+ * between the calendar and the left panel. Same shape as the placeholder-avatar
+ * hash in ReviewCard, but with multiplier 33 rather than 31: at 31, two courses
+ * in one subject collide often enough to matter — "CPSC 110" and "CPSC 121"
+ * both land in slot 6, which is exactly the pair a student sees side by side.
  */
 export function courseColorIndex(code: string): number {
   let hash = 0;
-  for (let i = 0; i < code.length; i++) hash = (hash * 31 + code.charCodeAt(i)) | 0;
+  for (let i = 0; i < code.length; i++) hash = (hash * 33 + code.charCodeAt(i)) | 0;
   return (Math.abs(hash) % COURSE_COLOR_COUNT) + 1;
 }
 ```
@@ -108,6 +113,137 @@ Run: `npx vitest run tests/schedule-colors.test.ts`
 Expected: PASS (4 tests).
 
 If the "does not collide for two courses in the same subject" case fails, do NOT weaken the test and do NOT special-case those two strings — change the multiplier (31 → 33 or 37) until real inputs separate, then re-run.
+
+- [ ] **Step 4b: Write the failing test for overlap layout**
+
+Google Calendar and Notion Calendar both split overlapping events into side-by-side columns rather than stacking them. Without this, two conflicting classes render on top of each other and the lower one is invisible — the exact case a schedule builder most needs to show.
+
+Create `tests/schedule-layout.test.ts`:
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { layoutDayColumns } from '@/schedule/layout';
+
+type E = { id: string; start: number; end: number };
+const range = (e: E) => ({ start: e.start, end: e.end });
+const at = (id: string, start: number, end: number): E => ({ id, start, end });
+
+describe('layoutDayColumns', () => {
+  it('gives a lone entry the full width', () => {
+    const a = at('a', 600, 690);
+    const out = layoutDayColumns([a], range);
+    expect(out.get(a)).toEqual({ column: 0, columns: 1 });
+  });
+
+  it('splits two overlapping entries into two side-by-side columns', () => {
+    const a = at('a', 600, 720);
+    const b = at('b', 660, 780);
+    const out = layoutDayColumns([a, b], range);
+    expect(out.get(a)).toEqual({ column: 0, columns: 2 });
+    expect(out.get(b)).toEqual({ column: 1, columns: 2 });
+  });
+
+  it('keeps non-overlapping entries at full width each', () => {
+    const a = at('a', 600, 660);
+    const b = at('b', 660, 720);
+    const out = layoutDayColumns([a, b], range);
+    expect(out.get(a)).toEqual({ column: 0, columns: 1 });
+    expect(out.get(b)).toEqual({ column: 0, columns: 1 });
+  });
+
+  it('treats back-to-back entries as non-overlapping', () => {
+    const a = at('a', 600, 690);
+    const b = at('b', 690, 780);
+    const out = layoutDayColumns([a, b], range);
+    expect(out.get(a)?.columns).toBe(1);
+    expect(out.get(b)?.columns).toBe(1);
+  });
+
+  it('reuses a freed column for a third entry that clears the first', () => {
+    const a = at('a', 600, 660);
+    const b = at('b', 630, 780);
+    const c = at('c', 670, 720);
+    const out = layoutDayColumns([a, b, c], range);
+    expect(out.get(b)?.column).toBe(1);
+    expect(out.get(c)?.column).toBe(0);
+  });
+
+  it('handles an empty day', () => {
+    expect(layoutDayColumns([], range).size).toBe(0);
+  });
+});
+```
+
+Run: `npx vitest run tests/schedule-layout.test.ts` → FAIL (cannot resolve `@/schedule/layout`).
+
+- [ ] **Step 4c: Implement the overlap layout**
+
+Create `src/schedule/layout.ts`:
+
+```ts
+/**
+ * Assigns each entry in ONE day a horizontal column, the way Google Calendar
+ * and Notion Calendar lay out overlapping events: entries that overlap in time
+ * sit side by side instead of covering each other.
+ *
+ * Returns, per entry, its 0-based `column` and the `columns` total it should
+ * divide width by. `columns` is computed per overlap CLUSTER, not per day, so
+ * a lone afternoon class still spans the full width even when the morning has
+ * three overlapping ones.
+ *
+ * Back-to-back entries (one ends exactly when the next starts) do NOT overlap
+ * — same rule findConflicts uses.
+ */
+export function layoutDayColumns<T>(
+  entries: T[],
+  getRange: (entry: T) => { start: number; end: number },
+): Map<T, { column: number; columns: number }> {
+  const out = new Map<T, { column: number; columns: number }>();
+  const sorted = [...entries].sort((a, b) => {
+    const ra = getRange(a);
+    const rb = getRange(b);
+    return ra.start - rb.start || ra.end - rb.end;
+  });
+
+  // A cluster is a run of entries chained by overlap. Everything in one
+  // cluster shares a column count so their widths line up.
+  let cluster: T[] = [];
+  let clusterEnd = -Infinity;
+  const flush = () => {
+    if (cluster.length === 0) return;
+    const columnEnds: number[] = [];
+    const assigned = new Map<T, number>();
+    for (const entry of cluster) {
+      const { start, end } = getRange(entry);
+      let col = columnEnds.findIndex((endsAt) => endsAt <= start);
+      if (col === -1) {
+        col = columnEnds.length;
+        columnEnds.push(end);
+      } else {
+        columnEnds[col] = end;
+      }
+      assigned.set(entry, col);
+    }
+    for (const [entry, column] of assigned) {
+      out.set(entry, { column, columns: columnEnds.length });
+    }
+    cluster = [];
+    clusterEnd = -Infinity;
+  };
+
+  for (const entry of sorted) {
+    const { start, end } = getRange(entry);
+    if (cluster.length > 0 && start >= clusterEnd) flush();
+    cluster.push(entry);
+    clusterEnd = Math.max(clusterEnd, end);
+  }
+  flush();
+
+  return out;
+}
+```
+
+Run: `npx vitest run tests/schedule-layout.test.ts` → PASS (6 tests).
 
 - [ ] **Step 5: Add the CSS variables**
 
@@ -211,6 +347,7 @@ Create `src/components/schedule/ScheduleCalendar.tsx`:
 import { useEffect, useState } from 'react';
 import { findConflicts, type ScheduleEntry } from '@/schedule/conflicts';
 import { courseColorIndex } from '@/schedule/colors';
+import { layoutDayColumns } from '@/schedule/layout';
 
 export type CalendarEntry = ScheduleEntry & {
   id: string;
@@ -390,14 +527,27 @@ export default function ScheduleCalendar({
                   </div>
                 )}
 
-                {timed
-                  .filter((e) => e.day === day)
-                  .map((e) => {
+                {(() => {
+                  const dayEntries = timed.filter((e) => e.day === day);
+                  // Side-by-side columns for overlapping classes, as Google
+                  // Calendar and Notion Calendar do — without this the lower
+                  // block is completely hidden behind the upper one.
+                  const columns = layoutDayColumns(dayEntries, (e) => ({
+                    start: toMinutes(e.startTime),
+                    end: toMinutes(e.endTime),
+                  }));
+
+                  return dayEntries.map((e) => {
                     const top = ((toMinutes(e.startTime) - gridStartMin) / 60) * HOUR_PX;
                     const height =
                       ((toMinutes(e.endTime) - toMinutes(e.startTime)) / 60) * HOUR_PX;
                     const conflictLabels = conflictsByEntry.get(e);
                     const slot = courseColorIndex(e.courseCode ?? e.label);
+                    const { column, columns: colCount } = columns.get(e) ?? {
+                      column: 0,
+                      columns: 1,
+                    };
+                    const widthPct = 100 / colCount;
 
                     return (
                       <div
@@ -407,12 +557,14 @@ export default function ScheduleCalendar({
                             ? `Conflicts with ${conflictLabels.join(', ')}`
                             : `${e.label} · ${e.startTime}–${e.endTime}`
                         }
-                        className={`group absolute inset-x-1 overflow-hidden rounded-md pl-2 pr-1 py-1 text-[11px] leading-tight ${
-                          conflictLabels ? 'ring-2 ring-danger-border' : ''
+                        className={`group absolute overflow-hidden rounded-md pl-2 pr-1 py-1 text-[11px] leading-tight ${
+                          conflictLabels ? 'ring-1 ring-danger-border' : ''
                         }`}
                         style={{
                           top,
                           height,
+                          left: `calc(${column * widthPct}% + 2px)`,
+                          width: `calc(${widthPct}% - 4px)`,
                           background: `var(--course-${slot}-bg)`,
                           boxShadow: `inset 3px 0 0 0 var(--course-${slot}-accent)`,
                         }}
@@ -436,7 +588,8 @@ export default function ScheduleCalendar({
                         )}
                       </div>
                     );
-                  })}
+                  });
+                })()}
               </div>
             </div>
           ))}
@@ -734,14 +887,18 @@ Expected: a non-empty `BLOCK BACKGROUNDS` array, `LIGHT OK`, `DARK OK`, and `CON
 
 - [ ] **Step 4: Look at both screenshots**
 
-Open `calendar-light.png` and `calendar-dark.png` and confirm by eye:
-1. Two different courses have visibly **different** block colours.
-2. Blocks show a saturated left accent bar against a soft fill.
-3. Text inside a block is readable in BOTH themes — this is the single most likely defect, since the pastels are fixed values and the foreground token flips.
-4. Grid lines read as hairlines, not heavy borders.
-5. The dark screenshot has no near-white/glowing blocks and no white conflict banner.
+**The bar is: it should read as a Notion Calendar / Google Calendar week view.** Judge it against those, not against "is it better than the old grid".
 
-A blank, clipped, or half-height screenshot is a failure even if the script printed OK.
+Confirm by eye in `calendar-light.png` and `calendar-dark.png`:
+1. Two different courses have visibly **different** block colours.
+2. Blocks show a saturated left accent bar against a soft fill, with rounded corners and a small gap between neighbours — not flush-filled table cells.
+3. Text inside a block is readable in BOTH themes — the single most likely defect, since the pastels are fixed values while the foreground token flips.
+4. Grid lines read as hairlines. Hour lines only — no heavy borders, no half-hour lines.
+5. Hour labels sit small, grey and right-aligned in the gutter, straddling their line rather than boxed inside a cell.
+6. **Overlapping classes sit SIDE BY SIDE**, each roughly half width — never stacked so one hides the other. This is the clearest Google/Notion tell and the main thing Task 1's layout helper buys.
+7. The dark screenshot has no near-white/glowing blocks and no white conflict banner.
+
+If it does not read as calendar-like — if it still reads as a bordered spreadsheet — say so in the report with specifics rather than passing it. A blank, clipped, or half-height screenshot is a failure even if the script printed OK.
 
 - [ ] **Step 5: Clean up**
 
@@ -758,6 +915,7 @@ Expected: clean tree (these were never committed). Nothing to commit for this ta
 
 - The builder and the `/schedule` "View Calendar" tab both render `ScheduleCalendar`; `WeekGrid` no longer exists.
 - A course keeps the same colour across reloads, and two courses in one schedule are visually distinct.
+- Overlapping classes render side by side, never stacked so one hides the other.
 - Blocks are legible in light AND dark.
 - Hovering a block in the builder reveals a working remove control; the read-only tab has none.
 - Untimed meetings are still visible, in the strip above the grid.

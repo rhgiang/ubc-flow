@@ -5,6 +5,7 @@ import Nav from "@/components/Nav";
 import ThemeToggle from "@/components/ThemeToggle";
 import { AuthOverlayProvider } from "@/components/AuthOverlayContext";
 import AuthOverlay from "@/components/AuthOverlay";
+import { UnsavedChangesProvider } from "@/components/UnsavedChangesContext";
 import "./globals.css";
 
 const inter = Inter({
@@ -47,10 +48,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="flex h-screen flex-col">
         <AuthOverlayProvider>
-          <Nav />
-          {children}
-          <ThemeToggle />
-          <AuthOverlay />
+          <UnsavedChangesProvider>
+            <Nav />
+            {children}
+            <ThemeToggle />
+            <AuthOverlay />
+          </UnsavedChangesProvider>
         </AuthOverlayProvider>
       </body>
     </html>

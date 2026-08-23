@@ -17,6 +17,7 @@ import {
 } from '@/app/actions/schedule';
 import type { SectionHit } from '@/lib/search';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
+import { useUnsavedChanges } from '@/components/UnsavedChangesContext';
 import { getCurrentAndNextTerm } from '@/schedule/terms';
 
 export type BuilderMode = { kind: 'draft' } | { kind: 'saved'; scheduleId: string };
@@ -60,6 +61,7 @@ export default function ScheduleBuilder({
   const [importOpen, setImportOpen] = useState(openImport);
   const router = useRouter();
   const { open } = useAuthOverlay();
+  const { setDirty } = useUnsavedChanges();
 
   const scheduleId = mode.kind === 'saved' ? mode.scheduleId : null;
   const initialIds = useMemo(
@@ -94,6 +96,11 @@ export default function ScheduleBuilder({
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [dirty]);
+
+  useEffect(() => {
+    setDirty(dirty);
+    return () => setDirty(false);
+  }, [dirty, setDirty]);
 
   function addSection(hit: SectionHit) {
     setChosen((prev) =>

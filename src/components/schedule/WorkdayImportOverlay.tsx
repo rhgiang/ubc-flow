@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { parseWorkdayForSchedule, type ImportResult, type SkippedRow } from '@/app/actions/import';
 import type { ImportedTerm } from '@/upload/match-schedule';
+import { UBC_WORKDAY_URL } from '@/lib/links';
 import type { SectionHit } from '@/lib/search';
 
 type Loaded = Extract<ImportResult, { ok: true }>;
@@ -137,7 +138,18 @@ export default function WorkdayImportOverlay({
         {!result && (
           <>
             <ol className="mt-4 space-y-1.5 text-sm text-text-secondary">
-              <li>1. In Workday, go to <span className="font-medium text-foreground">Academics → View My Courses</span>.</li>
+              <li>
+                1. In{' '}
+                <a
+                  href={UBC_WORKDAY_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-brand-accent hover:underline"
+                >
+                  Workday ↗
+                </a>
+                , go to <span className="font-medium text-foreground">Academics → View My Courses</span>.
+              </li>
               <li>2. Click the <span className="font-medium text-foreground">Export to Excel</span> icon above the table.</li>
               <li>3. Upload the <code>.xlsx</code> file here.</li>
             </ol>

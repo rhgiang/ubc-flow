@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { UBC_WORKDAY_URL } from '@/lib/links';
 
 type ImportResult = {
   matched: number;
@@ -42,7 +43,17 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
       </p>
 
       <div className="mt-6 rounded-card border border-border bg-surface-muted p-5 text-sm">
-        <p className="font-medium text-foreground">Where to find these in Workday</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="font-medium text-foreground">Where to find these in Workday</p>
+          <a
+            href={UBC_WORKDAY_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs font-medium text-brand-accent hover:underline"
+          >
+            Open Workday ↗
+          </a>
+        </div>
         <ul className="mt-3 space-y-2 text-text-secondary">
           <li>
             <span className="font-medium text-foreground">Current courses:</span> Workday → Academics →

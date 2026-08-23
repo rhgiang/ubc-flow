@@ -34,15 +34,24 @@ export default function ScheduleHeader({
   return (
     <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border px-6 py-4">
       <div className="min-w-0">
-        <input
-          value={name}
-          onChange={(e) => onNameChange(e.target.value)}
-          required
-          maxLength={80}
-          placeholder="Schedule name"
-          aria-label="Schedule name"
-          className="w-full max-w-sm rounded-input border border-border bg-background px-3 py-2 text-lg font-semibold text-foreground placeholder:text-text-tertiary focus:border-foreground focus:outline-none"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={name}
+            onChange={(e) => onNameChange(e.target.value)}
+            required
+            maxLength={80}
+            placeholder="Schedule name"
+            aria-label="Schedule name"
+            className="w-full max-w-sm rounded-input border border-border bg-background px-3 py-2 text-lg font-semibold text-foreground placeholder:text-text-tertiary focus:border-foreground focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={onImport}
+            className="shrink-0 rounded-pill border border-border px-4 py-2 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
+          >
+            Import from Workday
+          </button>
+        </div>
         <div className="mt-2 flex items-center gap-2">
           <label htmlFor="builderTerm" className="text-xs text-text-tertiary">
             Academic Period
@@ -74,14 +83,6 @@ export default function ScheduleHeader({
 
       <div className="flex flex-col items-end gap-2">
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onImport}
-            className="rounded-pill border border-border px-5 py-2 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
-          >
-            Import from Workday
-          </button>
-
           <button
             type="button"
             onClick={onSave}

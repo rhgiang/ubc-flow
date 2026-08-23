@@ -36,7 +36,7 @@ export default function SchedulePanelTabs({
             onClick={() => setTab(key)}
             className={`border-b-2 py-3 text-sm font-medium transition-colors ${
               tab === key
-                ? 'border-brand text-brand'
+                ? 'border-brand-accent text-brand-accent'
                 : 'border-transparent text-text-secondary hover:text-foreground'
             }`}
           >

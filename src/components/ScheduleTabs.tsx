@@ -25,7 +25,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
       type="button"
       onClick={onClick}
       className={`border-b-2 pb-2 text-sm font-medium ${
-        active ? 'border-brand text-brand' : 'border-transparent text-text-secondary'
+        active ? 'border-brand-accent text-brand-accent' : 'border-transparent text-text-secondary'
       }`}
     >
       {children}

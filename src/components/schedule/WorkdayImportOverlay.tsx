@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { parseWorkdayForSchedule, type ImportResult, type SkippedRow } from '@/app/actions/import';
+import type { ImportedTerm } from '@/upload/match-schedule';
 import type { SectionHit } from '@/lib/search';
 
 type Loaded = Extract<ImportResult, { ok: true }>;
@@ -51,12 +52,18 @@ export default function WorkdayImportOverlay({
 }: {
   open: boolean;
   onClose: () => void;
-  onImport: (termId: string, sections: SectionHit[]) => void;
+  /** `otherTerms` carries the terms the student did NOT load, so the builder
+   *  can offer to create schedules for them once this one is saved. */
+  onImport: (termId: string, sections: SectionHit[], otherTerms: ImportedTerm[]) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorSkipped, setErrorSkipped] = useState<SkippedRow[]>([]);
   const [result, setResult] = useState<Loaded | null>(null);
+  /** Which term gets loaded into the builder now. Defaults to the one with
+   *  the most sections, which matchWorkdayRows sorts first. */
+  const [chosenTermId, setChosenTermId] = useState<string | null>(null);
+  const chosenTerm = result?.terms.find((t) => t.termId === chosenTermId) ?? null;
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +78,7 @@ export default function WorkdayImportOverlay({
   useEffect(() => {
     if (open) {
       setResult(null);
+      setChosenTermId(null);
       setError(null);
       setErrorSkipped([]);
       setBusy(false);
@@ -91,6 +99,8 @@ export default function WorkdayImportOverlay({
         setErrorSkipped(res.skipped ?? []);
       } else {
         setResult(res);
+        // Preselect the term with the most sections (first, post-sort).
+        setChosenTermId(res.terms[0]?.termId ?? null);
       }
     } catch {
       setError('Could not read that file. Try exporting it from Workday again.');
@@ -166,14 +176,50 @@ export default function WorkdayImportOverlay({
 
         {result && (
           <>
-            <p className="mt-4 text-sm text-foreground">
-              Found <span className="font-medium">{result.matched.length}</span> section
-              {result.matched.length === 1 ? '' : 's'} for{' '}
-              <span className="font-medium">{result.termName}</span>.
-            </p>
+            {result.terms.length > 1 ? (
+              <p className="mt-4 text-sm text-foreground">
+                That export covers <span className="font-medium">{result.terms.length} terms</span>.
+                A schedule holds one term — pick which to build now, and you can create the
+                other right after you save.
+              </p>
+            ) : (
+              <p className="mt-4 text-sm text-foreground">
+                Found <span className="font-medium">{result.terms[0]?.matched.length ?? 0}</span>{' '}
+                section{result.terms[0]?.matched.length === 1 ? '' : 's'} for{' '}
+                <span className="font-medium">{result.terms[0]?.termName}</span>.
+              </p>
+            )}
 
-            <SkipList title="Not in our catalogue" items={result.unmatched} />
-            <SkipList title="A different term — a schedule covers one term" items={result.otherTerm} />
+            <div className="mt-3 space-y-2">
+              {result.terms.map((t) => (
+                <label
+                  key={t.termId}
+                  className={`flex cursor-pointer items-center gap-3 rounded-card border p-3 transition-colors ${
+                    chosenTermId === t.termId
+                      ? 'border-brand bg-surface-muted'
+                      : 'border-border hover:bg-surface-muted'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="importTerm"
+                    checked={chosenTermId === t.termId}
+                    onChange={() => setChosenTermId(t.termId)}
+                    className="accent-brand"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-foreground">{t.termName}</span>
+                    <span className="block text-xs text-text-secondary">
+                      {t.matched.length} section{t.matched.length === 1 ? '' : 's'}
+                      {t.unmatched.length > 0 && `, ${t.unmatched.length} not matched`}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            {chosenTerm && <SkipList title="Not in our catalogue" items={chosenTerm.unmatched} />}
+            <SkipList title="Term not in our catalogue" items={result.unknownTerm} />
 
             <SkippedRowsList items={result.skipped} />
 
@@ -181,18 +227,23 @@ export default function WorkdayImportOverlay({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-pill border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted"
+                className="rounded-pill border border-border px-5 py-2 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                disabled={result.matched.length === 0}
+                disabled={!chosenTerm || chosenTerm.matched.length === 0}
                 onClick={() => {
-                  onImport(result.termId, result.matched);
+                  if (!chosenTerm) return;
+                  onImport(
+                    chosenTerm.termId,
+                    chosenTerm.matched,
+                    result.terms.filter((t) => t.termId !== chosenTerm.termId),
+                  );
                   onClose();
                 }}
-                className="rounded-pill bg-brand px-5 py-2 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover disabled:opacity-50"
+                className="rounded-pill bg-brand px-5 py-2 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50 disabled:hover:scale-100"
               >
                 Add to schedule
               </button>

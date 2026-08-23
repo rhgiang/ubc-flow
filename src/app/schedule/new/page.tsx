@@ -5,9 +5,14 @@ import { isPlannableTerm } from '@/schedule/terms';
 export default async function NewSchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ name?: string; termId?: string; import?: string }>;
+  searchParams: Promise<{
+    name?: string;
+    termId?: string;
+    import?: string;
+    fromImport?: string;
+  }>;
 }) {
-  const { name = '', termId = '', import: importFlag } = await searchParams;
+  const { name = '', termId = '', import: importFlag, fromImport } = await searchParams;
 
   const terms = await db.term.findMany({
     where: { campus: 'V' },
@@ -22,6 +27,7 @@ export default async function NewSchedulePage({
       initialSections={[]}
       terms={terms.filter(isPlannableTerm)}
       openImport={importFlag === '1'}
+      loadPendingImport={fromImport === '1'}
     />
   );
 }

@@ -16,11 +16,35 @@ import {
   deleteSchedule,
 } from '@/app/actions/schedule';
 import type { SectionHit } from '@/lib/search';
+import type { ImportedTerm } from '@/upload/match-schedule';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
 import { useUnsavedChanges } from '@/components/UnsavedChangesContext';
 import { getCurrentAndNextTerm } from '@/schedule/terms';
 
 export type BuilderMode = { kind: 'draft' } | { kind: 'saved'; scheduleId: string };
+
+/** Terms from a multi-term Workday import that no schedule holds yet. */
+const PENDING_TERMS_KEY = 'ubcflow:workday-pending-terms';
+
+function readPendingTerms(): ImportedTerm[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.sessionStorage.getItem(PENDING_TERMS_KEY);
+    return raw ? (JSON.parse(raw) as ImportedTerm[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingTerms(terms: ImportedTerm[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (terms.length === 0) window.sessionStorage.removeItem(PENDING_TERMS_KEY);
+    else window.sessionStorage.setItem(PENDING_TERMS_KEY, JSON.stringify(terms));
+  } catch {
+    // A blocked sessionStorage only costs the follow-up offer, not the import.
+  }
+}
 
 /**
  * The single schedule builder, behind both /schedule/new (draft) and
@@ -38,6 +62,7 @@ export default function ScheduleBuilder({
   initialSections,
   terms,
   openImport = false,
+  loadPendingImport = false,
 }: {
   mode: BuilderMode;
   initialName: string;
@@ -45,6 +70,9 @@ export default function ScheduleBuilder({
   initialSections: SectionHit[];
   terms: { id: string; name: string; year: number; session: string; termNumber: number | null }[];
   openImport?: boolean;
+  /** Set by /schedule/new?fromImport=1 — consume the next term parked by a
+   *  multi-term Workday import and open it as a fresh draft. */
+  loadPendingImport?: boolean;
 }) {
   const [name, setName] = useState(initialName);
   // On /schedule/new with no termId query param, initialTermId is '' — falling
@@ -63,11 +91,39 @@ export default function ScheduleBuilder({
   // awaited, so the refreshed initialSections prop lands later — without this,
   // a quick second Save would send a stale baseline and be refused as stale.
   const [savedBaseline, setSavedBaseline] = useState<{ ids: string[]; name: string } | null>(null);
+  // Terms from a multi-term Workday export that this schedule isn't holding.
+  // Parked in sessionStorage rather than state because the offer to build them
+  // has to survive the navigation a save performs.
+  const [pendingTerms, setPendingTerms] = useState<ImportedTerm[]>([]);
+  const [offeredTerm, setOfferedTerm] = useState<ImportedTerm | null>(null);
   const router = useRouter();
   const { open } = useAuthOverlay();
   const { setDirty } = useUnsavedChanges();
 
   const scheduleId = mode.kind === 'saved' ? mode.scheduleId : null;
+
+  // On /schedule/new?fromImport=1, adopt the next parked term as this draft.
+  // Anywhere else, a parked term becomes an offer rather than hijacking the
+  // page the student actually asked for.
+  useEffect(() => {
+    const parked = readPendingTerms();
+    if (parked.length === 0) return;
+
+    if (loadPendingImport && mode.kind === 'draft') {
+      const [next, ...rest] = parked;
+      writePendingTerms(rest);
+      setPendingTerms(rest);
+      setName(next.termName);
+      setTermId(next.termId);
+      setChosen(next.matched);
+      return;
+    }
+    setPendingTerms(parked);
+    setOfferedTerm(parked[0]);
+    // Reading it is enough — the offer now lives in component state, and
+    // leaving it parked would re-offer it on every unrelated page load.
+    writePendingTerms([]);
+  }, [loadPendingImport, mode.kind]);
   const initialIds = useMemo(
     () => initialSections.map((s) => s.sectionId),
     [initialSections],
@@ -124,7 +180,13 @@ export default function ScheduleBuilder({
     setChosen((prev) => prev.filter((s) => s.sectionId !== sectionId));
   }
 
-  function applyImport(importedTermId: string, sections: SectionHit[]) {
+  function applyImport(
+    importedTermId: string,
+    sections: SectionHit[],
+    otherTerms: ImportedTerm[] = [],
+  ) {
+    // Only terms the student can actually plan; a past term can't be built.
+    setPendingTerms(otherTerms.filter((t) => terms.some((x) => x.id === t.termId)));
     if (!terms.some((t) => t.id === importedTermId)) {
       setError(
         "That export is for a term you can't plan yet, so nothing was imported.",
@@ -145,6 +207,9 @@ export default function ScheduleBuilder({
     setSaving(true);
     setError(null);
     const sectionIds = chosen.map((c) => c.sectionId);
+    // Park before saving: the guest path navigates away on success, and the
+    // offer has to outlive that.
+    writePendingTerms(pendingTerms);
 
     try {
       if (scheduleId) {
@@ -225,6 +290,43 @@ export default function ScheduleBuilder({
 
       {error && (
         <p className="border-b border-border px-6 py-2 text-sm text-danger">{error}</p>
+      )}
+
+      {offeredTerm && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-muted px-6 py-3">
+          <p className="text-sm text-foreground">
+            Your import also covered{' '}
+            <span className="font-medium">{offeredTerm.termName}</span> (
+            {offeredTerm.matched.length} section
+            {offeredTerm.matched.length === 1 ? '' : 's'}). Build a schedule for it?
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setOfferedTerm(null);
+                setPendingTerms([]);
+                writePendingTerms([]);
+              }}
+              className="rounded-pill px-3 py-1 text-xs text-text-secondary transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface active:scale-100"
+            >
+              No thanks
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Hand the parked terms back to sessionStorage and let
+                // /schedule/new adopt the next one as a fresh draft.
+                writePendingTerms(pendingTerms);
+                setOfferedTerm(null);
+                router.push('/schedule/new?fromImport=1');
+              }}
+              className="rounded-pill bg-brand px-4 py-1.5 text-xs font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100"
+            >
+              Build {offeredTerm.termName}
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">

@@ -1,15 +1,21 @@
 import { db } from '@/lib/db';
-import { toSectionHit, type SectionHit } from '@/lib/search';
+import { toSectionHit, sectionHitInclude, type SectionHit } from '@/lib/search';
 import type { EnrollmentRow } from '@/upload/parse-workday';
 
-export type ScheduleImport = {
+/** One term's worth of an export. A schedule covers exactly one of these. */
+export type ImportedTerm = {
   termId: string;
   termName: string;
   matched: SectionHit[];
-  /** "CPSC 110-L1U" for rows whose section is not in our catalogue. */
+  /** "CPSC 110-L1U" for rows in this term whose section we couldn't resolve. */
   unmatched: string[];
-  /** Rows for a real term other than the one being imported. */
-  otherTerm: string[];
+};
+
+export type ScheduleImport = {
+  /** Every term present in the export, most sections first. */
+  terms: ImportedTerm[];
+  /** Rows whose term isn't in our catalogue at all, so no schedule can hold them. */
+  unknownTerm: string[];
 };
 
 function label(row: EnrollmentRow): string {
@@ -21,12 +27,11 @@ function label(row: EnrollmentRow): string {
  * nothing — this exists so a student can preview their real timetable in the
  * builder without the identity binding that /api/upload performs.
  *
- * A schedule covers ONE term, but an export can span two (a student registered
- * in both Winter terms). The term with the most rows wins and the rest are
- * reported, never silently dropped.
- *
- * ponytail: dominant-term-wins rather than a term picker. If real exports turn
- * out to routinely straddle terms, this is where a picker goes.
+ * A schedule covers ONE term, but a real export usually spans two — a student
+ * registered in both Winter terms exports both at once. Every term is
+ * resolved and returned so the caller can offer a choice (and a schedule per
+ * term); this used to keep only the term with the most rows and list the
+ * rest as "a different term", which silently stranded half a timetable.
  */
 export async function matchWorkdayRows(rows: EnrollmentRow[]): Promise<ScheduleImport | null> {
   // Resolve each row's term once. Distinct terms per export are few, so this
@@ -53,39 +58,35 @@ export async function matchWorkdayRows(rows: EnrollmentRow[]): Promise<ScheduleI
     resolved.push({ row, term: termCache.get(key)! });
   }
 
-  const counts = new Map<string, number>();
-  for (const { term } of resolved) {
-    if (term) counts.set(term.id, (counts.get(term.id) ?? 0) + 1);
-  }
-  if (counts.size === 0) return null;
+  if (resolved.every((r) => r.term === null)) return null;
 
-  const [dominantId] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
-  const dominant = resolved.find((r) => r.term?.id === dominantId)!.term!;
-
-  const matched: SectionHit[] = [];
-  const unmatched = new Set<string>();
-  const otherTerm: string[] = [];
+  // One bucket per real term, built in first-seen order and sorted at the end.
+  const byTerm = new Map<string, ImportedTerm>();
+  const unknownTerm: string[] = [];
   const seen = new Set<string>();
 
   for (const { row, term } of resolved) {
     if (!term) {
-      unmatched.add(`${label(row)} — term not in our catalogue`);
+      unknownTerm.push(`${label(row)} — term not in our catalogue`);
       continue;
     }
-    if (term.id !== dominantId) {
-      otherTerm.push(`${label(row)} (${term.name})`);
-      continue;
+
+    let bucket = byTerm.get(term.id);
+    if (!bucket) {
+      bucket = { termId: term.id, termName: term.name, matched: [], unmatched: [] };
+      byTerm.set(term.id, bucket);
     }
+
     // Refuse to guess: with no section code, findFirst below would return an
     // arbitrary section for the course (e.g. the lecture instead of the lab).
     if (!row.sectionCode) {
-      unmatched.add(`${label(row)} — no section number in the export`);
+      bucket.unmatched.push(`${label(row)} — no section number in the export`);
       continue;
     }
 
     const section = await db.section.findFirst({
       where: {
-        termId: dominantId,
+        termId: term.id,
         sectionCode: row.sectionCode,
         course: {
           number: row.courseNumber,
@@ -93,19 +94,27 @@ export async function matchWorkdayRows(rows: EnrollmentRow[]): Promise<ScheduleI
           subject: { code: row.subjectCode },
         },
       },
-      include: { meetingTimes: true, course: { include: { subject: true } } },
+      include: sectionHitInclude,
     });
 
     if (!section) {
-      unmatched.add(`${label(row)} — no matching section`);
+      bucket.unmatched.push(`${label(row)} — no matching section`);
       continue;
     }
     // An export lists a section once per meeting block, so the same section
     // can appear more than once.
     if (seen.has(section.id)) continue;
     seen.add(section.id);
-    matched.push(toSectionHit(section));
+    bucket.matched.push(toSectionHit(section));
   }
 
-  return { termId: dominant.id, termName: dominant.name, matched, unmatched: [...unmatched], otherTerm };
+  // Most sections first: whichever term the export is mostly about is the one
+  // the student most likely wants loaded first.
+  const terms = [...byTerm.values()].sort((a, b) => b.matched.length - a.matched.length);
+
+  // De-duplicate the per-term unmatched lists, which can repeat a course that
+  // appears once per meeting block.
+  for (const t of terms) t.unmatched = [...new Set(t.unmatched)];
+
+  return { terms, unknownTerm: [...new Set(unknownTerm)] };
 }

@@ -57,40 +57,41 @@ describe('matchWorkdayRows', () => {
   it('resolves a real registration row to its catalogue section', async () => {
     const result = await matchWorkdayRows([row()]);
     expect(result).not.toBeNull();
-    expect(result!.termId).toBe(fixture.termId);
-    expect(result!.matched).toHaveLength(1);
-    expect(result!.matched[0].sectionCode).toBe(fixture.sectionCode);
-    expect(result!.matched[0].courseId).toBeTruthy();
-    expect(result!.unmatched).toEqual([]);
+    expect(result!.terms).toHaveLength(1);
+    expect(result!.terms[0].termId).toBe(fixture.termId);
+    expect(result!.terms[0].matched).toHaveLength(1);
+    expect(result!.terms[0].matched[0].sectionCode).toBe(fixture.sectionCode);
+    expect(result!.terms[0].matched[0].courseId).toBeTruthy();
+    expect(result!.terms[0].unmatched).toEqual([]);
   });
 
   it('reports a section code that does not exist, rather than dropping it', async () => {
     const result = await matchWorkdayRows([row({ sectionCode: 'ZZZ999' })]);
     expect(result).not.toBeNull();
-    expect(result!.matched).toEqual([]);
-    expect(result!.unmatched).toHaveLength(1);
-    expect(result!.unmatched[0]).toContain(fixture.subjectCode);
-    expect(result!.unmatched[0]).toContain('ZZZ999');
+    expect(result!.terms[0].matched).toEqual([]);
+    expect(result!.terms[0].unmatched).toHaveLength(1);
+    expect(result!.terms[0].unmatched[0]).toContain(fixture.subjectCode);
+    expect(result!.terms[0].unmatched[0]).toContain('ZZZ999');
   });
 
   it('reports a course that is not in the catalogue at all', async () => {
     const result = await matchWorkdayRows([row({ subjectCode: 'ZZZZ', courseNumber: '999' })]);
     expect(result).not.toBeNull();
-    expect(result!.unmatched).toHaveLength(1);
-    expect(result!.unmatched[0]).toContain('ZZZZ 999');
+    expect(result!.terms[0].unmatched).toHaveLength(1);
+    expect(result!.terms[0].unmatched[0]).toContain('ZZZZ 999');
   });
 
   it('refuses to guess a section when the export has no section number', async () => {
     const result = await matchWorkdayRows([row({ sectionCode: null })]);
     expect(result).not.toBeNull();
-    expect(result!.matched).toEqual([]);
-    expect(result!.unmatched).toHaveLength(1);
-    expect(result!.unmatched[0]).toContain('no section number');
+    expect(result!.terms[0].matched).toEqual([]);
+    expect(result!.terms[0].unmatched).toHaveLength(1);
+    expect(result!.terms[0].unmatched[0]).toContain('no section number');
   });
 
   it('de-duplicates a section that appears twice in the export', async () => {
     const result = await matchWorkdayRows([row(), row()]);
-    expect(result!.matched).toHaveLength(1);
+    expect(result!.terms[0].matched).toHaveLength(1);
   });
 
   it('returns null when no row resolves to a known term', async () => {
@@ -98,7 +99,7 @@ describe('matchWorkdayRows', () => {
     expect(result).toBeNull();
   });
 
-  it('keeps the dominant term and reports rows belonging to another term', async () => {
+  it('returns EVERY term in the export, most sections first', async () => {
     const otherTerm = await db.term.findFirst({
       where: { campus: fixture.campus, id: { not: fixture.termId } },
       select: { year: true, session: true, termNumber: true },
@@ -114,8 +115,13 @@ describe('matchWorkdayRows', () => {
         termNumber: otherTerm.termNumber,
       }),
     ]);
-    expect(result!.termId).toBe(fixture.termId);
-    // The other-term row is neither imported nor silently dropped.
-    expect(result!.otherTerm.length + result!.unmatched.length).toBeGreaterThan(0);
+    // Both terms come back so the student can build a schedule for each,
+    // rather than the smaller one being stranded as "a different term".
+    expect(result!.terms).toHaveLength(2);
+    expect(result!.terms[0].termId).toBe(fixture.termId);
+    expect(result!.terms[0].matched.length).toBeGreaterThanOrEqual(
+      result!.terms[1].matched.length,
+    );
+    expect(result!.terms.map((t) => t.termId)).toContain(fixture.termId);
   });
 });

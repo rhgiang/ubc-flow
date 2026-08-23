@@ -124,9 +124,17 @@ export async function ingestRows(rows: RawGradeRow[]): Promise<IngestResult> {
       where: { distributionId: distribution.id },
     });
 
+    // One row can name the same person twice under spelling variants that
+    // normalize to a single slug — real 2015S data lists both
+    // "Brianne Orr Alvarez" and "Brianne Orr-Alvarez" on SPAN 102. Linking
+    // twice violates GradeDistributionInstructor's (distributionId,
+    // instructorId) primary key and aborts the whole ingest.
+    const linkedSlugs = new Set<string>();
+
     for (const raw of row.professors) {
       const { slug } = normalizeInstructorName(raw);
-      if (!slug) continue;
+      if (!slug || linkedSlugs.has(slug)) continue;
+      linkedSlugs.add(slug);
 
       const instructor = await db.instructor.findUnique({
         where: { slug },

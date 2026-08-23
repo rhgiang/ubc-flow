@@ -166,6 +166,24 @@ describe('ingestRows', () => {
     ).toBe(0);
   });
 
+  it('links a professor once when one row names them under two spellings', async () => {
+    // Real 2015S data: SPAN 102 lists "Brianne Orr Alvarez" and
+    // "Brianne Orr-Alvarez" on the same row. Both normalize to one slug, so
+    // linking per raw name violates GradeDistributionInstructor's
+    // (distributionId, instructorId) primary key and aborts the ingest.
+    const spaced = instructorName;
+    const hyphenated = instructorName.replace(/\s+/g, '-');
+    const r = await ingestRows([
+      makeRow({ sectionCode: '904', professors: [spaced, hyphenated] }),
+    ]);
+    expect(r.written).toBe(1);
+    const row = await db.gradeDistribution.findFirstOrThrow({
+      where: { courseId, sectionCode: '904' },
+      include: { instructors: true },
+    });
+    expect(row.instructors).toHaveLength(1);
+  });
+
   it('stores suppressed buckets as null, not zero', async () => {
     await ingestRows([
       makeRow({

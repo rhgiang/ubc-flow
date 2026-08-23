@@ -14,6 +14,21 @@ export type InstructorRatingSummary = {
   engaging: number | null;
 };
 
+/**
+ * An instructor's historical grade average FOR THIS COURSE, from UBC's own
+ * published distributions (2021S onward — see the note on `courseAverage`).
+ *
+ * This is an average GRADE, not a teaching-quality score: a demanding course
+ * taught well can sit below its own mean. The UI must label it as such.
+ */
+export type InstructorGradeHistory = {
+  average: number;
+  offerings: number;
+  students: number;
+  /** At least one contributing offering was co-taught, so the figure is shared. */
+  coTaught: boolean;
+};
+
 export type CourseSectionDetail = {
   sectionId: string;
   sectionCode: string;
@@ -25,7 +40,12 @@ export type CourseSectionDetail = {
   meetingTimes: SectionMeetingTime[];
   enrolTotal: number | null;
   enrolCap: number | null;
-  instructors: { name: string; slug: string; rating: InstructorRatingSummary | null }[];
+  instructors: {
+    name: string;
+    slug: string;
+    rating: InstructorRatingSummary | null;
+    grades: InstructorGradeHistory | null;
+  }[];
 };
 
 export type CourseDetail = {
@@ -38,6 +58,9 @@ export type CourseDetail = {
   href: string;
   sections: CourseSectionDetail[];
   grades: GradeSummary;
+  /** Weighted mean across ALL of this course's graded offerings — the baseline
+   *  an instructor's own average is compared against. Null when ungraded. */
+  courseAverage: number | null;
   historical: {
     average: number | null;
     averagePast5Years: number | null;
@@ -123,6 +146,61 @@ export async function loadCourseDetail(
     };
   };
 
+  // GradeDistributionInstructor links each distribution to everyone who taught
+  // it. 11% of distributions are co-taught, so a distribution can appear under
+  // more than one instructor — that is correct here (each taught those
+  // students) but it means a shared offering must never be summed into the
+  // course-wide figure twice, which is why courseAverage is computed from
+  // gradeRows above rather than from these links.
+  const gradeLinks = instructorIds.length
+    ? await db.gradeDistributionInstructor.findMany({
+        where: { instructorId: { in: instructorIds }, distribution: { courseId } },
+        select: {
+          instructorId: true,
+          distributionId: true,
+          distribution: { select: { average: true, count: true } },
+        },
+      })
+    : [];
+
+  // How many instructors share each distribution — used only to flag co-teaching.
+  const sharersPerDistribution = new Map<string, number>();
+  for (const l of gradeLinks) {
+    sharersPerDistribution.set(
+      l.distributionId,
+      (sharersPerDistribution.get(l.distributionId) ?? 0) + 1,
+    );
+  }
+
+  const gradesByInstructor = new Map<string, InstructorGradeHistory>();
+  for (const instructorId of instructorIds) {
+    const mine = gradeLinks.filter(
+      (l) =>
+        l.instructorId === instructorId &&
+        l.distribution.average !== null &&
+        l.distribution.count !== null &&
+        l.distribution.count > 0,
+    );
+    if (mine.length === 0) continue;
+
+    const students = mine.reduce((a, l) => a + l.distribution.count!, 0);
+    const weighted = mine.reduce((a, l) => a + l.distribution.average! * l.distribution.count!, 0);
+    gradesByInstructor.set(instructorId, {
+      average: weighted / students,
+      offerings: mine.length,
+      students,
+      coTaught: mine.some((l) => (sharersPerDistribution.get(l.distributionId) ?? 1) > 1),
+    });
+  }
+
+  const courseGrades = aggregateDistributions(
+    gradeRows.map((g) => ({
+      average: g.average,
+      count: g.count,
+      distribution: g.distribution as Record<string, number | null> | null,
+    })),
+  );
+
   return {
     courseId: course.id,
     code,
@@ -153,15 +231,11 @@ export async function loadCourseDetail(
         name: si.instructor.name,
         slug: si.instructor.slug,
         rating: ratingFor(si.instructorId),
+        grades: gradesByInstructor.get(si.instructorId) ?? null,
       })),
     })),
-    grades: aggregateDistributions(
-      gradeRows.map((g) => ({
-        average: g.average,
-        count: g.count,
-        distribution: g.distribution as Record<string, number | null> | null,
-      })),
-    ),
+    grades: courseGrades,
+    courseAverage: courseGrades.average,
     historical: historical
       ? {
           average: historical.average,

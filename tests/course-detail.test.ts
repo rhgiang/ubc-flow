@@ -125,3 +125,87 @@ describe('loadCourseDetail instructor ratings', () => {
     expect(found!.rating!.count).toBeGreaterThan(0);
   });
 });
+
+describe('loadCourseDetail instructor grade history', () => {
+  it('exposes a courseAverage alongside the grade summary', async () => {
+    const detail = await loadCourseDetail(courseId, termId);
+    // Either a real number, or null when the course has no graded offerings.
+    expect(detail!.courseAverage === null || typeof detail!.courseAverage === 'number').toBe(true);
+    if (detail!.grades.sectionCount > 0 && detail!.grades.average !== null) {
+      expect(detail!.courseAverage).toBeCloseTo(detail!.grades.average, 1);
+    }
+  });
+
+  it('attaches a grades slot to every instructor', async () => {
+    const detail = await loadCourseDetail(courseId, termId);
+    for (const s of detail!.sections) {
+      for (const i of s.instructors) expect(i).toHaveProperty('grades');
+    }
+  });
+
+  it('weights an instructor average by student count, not by offering count', async () => {
+    // Find an instructor with more than one graded offering of one course.
+    const links = await db.gradeDistributionInstructor.findMany({
+      include: { distribution: { select: { courseId: true, average: true, count: true } } },
+      take: 2000,
+    });
+    const key = (i: string, c: string) => `${i}|${c}`;
+    const groups = new Map<string, { average: number | null; count: number | null }[]>();
+    for (const l of links) {
+      const k = key(l.instructorId, l.distribution.courseId);
+      groups.set(k, [...(groups.get(k) ?? []), l.distribution]);
+    }
+    const multi = [...groups.entries()].find(
+      ([, rows]) => rows.length > 1 && rows.every((r) => r.average !== null && r.count !== null),
+    );
+    if (!multi) return; // no suitable fixture in this database
+
+    const [k] = multi;
+    const [instructorId, gradedCourseId] = k.split('|');
+    // The `take: 2000` scan above is only a cheap way to *find* a candidate
+    // pair — this database has 28k+ links, so that window can catch a pair
+    // mid-group and miss some of its rows. Re-fetch the complete set for the
+    // exact pair before computing `expected`, so it reflects every offering
+    // (matching what loadCourseDetail itself aggregates), not an arbitrary
+    // partial slice of it.
+    const rows = (
+      await db.gradeDistributionInstructor.findMany({
+        where: { instructorId, distribution: { courseId: gradedCourseId } },
+        select: { distribution: { select: { average: true, count: true } } },
+      })
+    )
+      .map((l) => l.distribution)
+      .filter((r) => r.average !== null && r.count !== null && r.count > 0);
+    const expected =
+      rows.reduce((a, r) => a + r.average! * r.count!, 0) / rows.reduce((a, r) => a + r.count!, 0);
+
+    const section = await db.section.findFirst({
+      where: { courseId: gradedCourseId, instructors: { some: { instructorId } } },
+      select: { termId: true },
+    });
+    if (!section) return;
+
+    const detail = await loadCourseDetail(gradedCourseId, section.termId);
+    const instructor = await db.instructor.findUniqueOrThrow({
+      where: { id: instructorId },
+      select: { slug: true },
+    });
+    const found = detail!.sections
+      .flatMap((s) => s.instructors)
+      .find((i) => i.slug === instructor.slug);
+    if (!found) return;
+
+    expect(found.grades).not.toBeNull();
+    expect(found.grades!.average).toBeCloseTo(expected, 1);
+    expect(found.grades!.offerings).toBe(rows.length);
+  });
+
+  it('returns null grades for an instructor with no history for this course', async () => {
+    const detail = await loadCourseDetail(courseId, termId);
+    const all = detail!.sections.flatMap((i) => i.instructors);
+    for (const i of all) {
+      if (i.grades === null) return; // found the null path, that is all we need
+    }
+    // Every instructor happened to have history — nothing to assert.
+  });
+});

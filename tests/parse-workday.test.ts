@@ -75,6 +75,7 @@ describe('parseMeetingPattern', () => {
       endTime: null,
       building: null,
       room: null,
+      floor: null,
     });
   });
 
@@ -164,6 +165,37 @@ describe('parseWorkdayExport — current courses fixture', () => {
   it('excludes nothing as transfer in a current-courses export', async () => {
     const grid = await readWorkbookGrid(readFileSync('tests/fixtures/workday-current.xlsx'));
     expect(parseWorkdayExport(grid).excluded).toHaveLength(0);
+  });
+
+  it('carries every enrolled-section column except grading', async () => {
+    const grid = await readWorkbookGrid(readFileSync('tests/fixtures/workday-current.xlsx'));
+    const r = parseWorkdayExport(grid);
+
+    const dsci = r.rows.find((x) => x.subjectCode === 'DSCI' && x.courseNumber === '100')!;
+    expect(dsci.sectionCode).toBe('004');
+    expect(dsci.activity).toBe('Lecture');
+    expect(dsci.deliveryMode).toBe('In Person Learning');
+    expect(dsci.registrationStatus).toBe('Registered');
+    expect(dsci.instructor).toBe('Lasantha Premarathna Wijendra Acharige');
+    expect(dsci.credits).toBe(3);
+    expect(dsci.building).toBe('SHRM');
+    expect(dsci.floor).toBe('-1');
+    expect(dsci.room).toBe('B1001');
+    expect(dsci.days).toEqual(['Mon', 'Wed']);
+    expect(dsci.meetingStartTime).toBe('14:00');
+    expect(dsci.meetingEndTime).toBe('15:30');
+    expect(dsci.sectionStartDate).toBe('2026-09-09');
+    expect(dsci.sectionEndDate).toBe('2026-12-07');
+
+    // A section split around reading week spans to the LAST block's end.
+    const cpsc210 = r.rows.find((x) => x.courseNumber === '210' && x.sectionCode === '201')!;
+    expect(cpsc210.startDate).toBe('2027-01-06');
+    expect(cpsc210.meetingEndDate).toBe('2027-04-12');
+
+    // Labs and tutorials carry no instructor in Workday — null, not ''.
+    const lab = r.rows.find((x) => x.activity === 'Laboratory')!;
+    expect(lab.instructor).toBeNull();
+    expect(lab.building).not.toBeNull();
   });
 });
 

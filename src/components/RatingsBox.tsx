@@ -9,12 +9,13 @@ export default function RatingsBox({
   likedPercent,
   reviewCount,
   metrics,
-  redditHref,
+  externalLink,
 }: {
   likedPercent: number | null;
   reviewCount: number;
   metrics: [Metric, Metric];
-  redditHref?: string;
+  /** Where to go for outside discussion — Reddit for a course, RMP for a professor. */
+  externalLink?: { href: string; label: string };
 }) {
   const [open, setOpen] = useState<number | null>(null);
 
@@ -113,14 +114,14 @@ export default function RatingsBox({
         <p className="text-xs text-text-secondary">
           Based on {reviewCount} review{reviewCount === 1 ? '' : 's'}
         </p>
-        {redditHref && (
+        {externalLink && (
           <a
-            href={redditHref}
+            href={externalLink.href}
             target="_blank"
             rel="noreferrer"
             className="text-xs text-brand-accent hover:underline"
           >
-            Search Reddit
+            {externalLink.label}
           </a>
         )}
       </div>

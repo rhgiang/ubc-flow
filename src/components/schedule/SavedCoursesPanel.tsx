@@ -2,16 +2,19 @@
 
 import { groupSectionsByCourse } from '@/schedule/group';
 import { courseColorIndex } from '@/schedule/colors';
+import CourseHeaderActions from '@/components/schedule/CourseHeaderActions';
 import type { SectionHit } from '@/lib/search';
 
 export default function SavedCoursesPanel({
   chosen,
   onRemove,
   onInfo,
+  onDock,
 }: {
   chosen: SectionHit[];
   onRemove: (sectionId: string) => void;
   onInfo: (courseId: string) => void;
+  onDock: (courseId: string) => void;
 }) {
   const groups = groupSectionsByCourse(chosen);
 
@@ -31,28 +34,24 @@ export default function SavedCoursesPanel({
       <p className="text-sm font-medium text-foreground">Total Courses: {groups.length}</p>
 
       <div className="mt-3 space-y-2">
-        {groups.map((group) => (
+        {groups.map((group) => {
+          const slot = courseColorIndex(group.code);
+          return (
           <details key={group.code} open className="rounded-card border border-border">
             <summary className="inline-flex cursor-pointer items-center gap-2 px-3 py-2">
               <span
                 aria-hidden
                 className="h-2 w-2 shrink-0 rounded-full"
-                style={{ background: `var(--course-${courseColorIndex(group.code)}-accent)` }}
+                style={{ background: `var(--course-${slot}-accent)` }}
               />
               <span className="text-sm font-medium text-foreground">{group.code}</span>
               <span className="text-xs text-text-secondary">{group.title}</span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onInfo(group.courseId);
-                }}
-                aria-label={`Course information for ${group.code}`}
-                className="ml-2 rounded-full border border-border px-1.5 text-xs text-text-secondary transition-colors hover:bg-surface-muted hover:text-foreground"
-              >
-                i
-              </button>
+              <CourseHeaderActions
+                code={group.code}
+                slot={slot}
+                onInfo={() => onInfo(group.courseId)}
+                onDock={() => onDock(group.courseId)}
+              />
             </summary>
 
             <ul className="border-t border-border">
@@ -65,6 +64,11 @@ export default function SavedCoursesPanel({
                     <p className="text-sm text-foreground">{section.sectionCode}</p>
                     <p className="text-xs text-text-secondary">{section.activity ?? '—'}</p>
                     <p className="text-xs text-text-tertiary">{section.meetings}</p>
+                    {section.instructors.length > 0 && (
+                      <p className="truncate text-xs text-text-tertiary">
+                        {section.instructors.join(', ')}
+                      </p>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -78,7 +82,8 @@ export default function SavedCoursesPanel({
               ))}
             </ul>
           </details>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

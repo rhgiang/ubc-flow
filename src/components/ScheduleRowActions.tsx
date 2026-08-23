@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { renameSchedule, getSubscribeUrl } from '@/app/actions/schedule';
+import { renameSchedule, deleteSchedule, getSubscribeUrl } from '@/app/actions/schedule';
 
 export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: string; name: string }) {
   const [open, setOpen] = useState(false);
@@ -46,6 +46,19 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
       return;
     }
     setRenaming(false);
+    setOpen(false);
+    router.refresh();
+  }
+
+  async function onDelete() {
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    setBusy(true);
+    const result = await deleteSchedule(scheduleId);
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
     setOpen(false);
     router.refresh();
   }
@@ -95,6 +108,15 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
           >
             Add to Google Calendar
           </a>
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={busy}
+            className="block w-full border-t border-border px-4 py-2 text-left text-sm text-foreground hover:bg-danger-surface hover:text-danger disabled:opacity-50"
+          >
+            Delete Schedule
+          </button>
+          {error && <p className="px-4 pb-2 text-xs text-danger">{error}</p>}
         </div>
       )}
 

@@ -1,9 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import GradeChart from '@/components/GradeChart';
 import HistoricalGradesTimeline from '@/components/HistoricalGradesTimeline';
 import RequirementTree from '@/components/RequirementTree';
+import GradeComparisonOverlay, {
+  formatDelta,
+} from '@/components/schedule/course-info/GradeComparisonOverlay';
 import type {
   CourseDetail,
   CourseSectionDetail,
@@ -11,6 +15,7 @@ import type {
   InstructorRatingSummary,
 } from '@/lib/course-detail';
 import type { SectionHit } from '@/lib/search';
+import { rmpSearchHref } from '@/lib/rmp';
 
 /** The overlay's own section shape widened back to the builder's SectionHit,
  *  so a section added here is indistinguishable from one added via search. */
@@ -24,6 +29,7 @@ function toHit(detail: CourseDetail, s: CourseSectionDetail): SectionHit {
     activity: s.activity,
     meetings: s.meetings,
     meetingTimes: s.meetingTimes,
+    instructors: s.instructors.map((i) => i.name),
   };
 }
 
@@ -40,16 +46,6 @@ function pct(v: number | null): string {
   return v !== null ? `${v.toFixed(1)}%` : '—';
 }
 
-/**
- * A SEARCH link on RateMyProfessors, scoped to UBC (school 1413). Built from
- * the name — this app makes no request to RMP. Their robots.txt disallows
- * automated clients, so their ratings are not ingested; a student who wants
- * one follows this link and reads it in RMP's own context.
- */
-function rmpSearchHref(name: string): string {
-  return `https://www.ratemyprofessors.com/search/professors/1413?q=${encodeURIComponent(name)}`;
-}
-
 function ratingLine(r: InstructorRatingSummary): string {
   const parts: string[] = [];
   if (r.likedPercent !== null) parts.push(`${r.likedPercent}% liked`);
@@ -60,23 +56,42 @@ function ratingLine(r: InstructorRatingSummary): string {
 }
 
 /**
- * "86.5% avg · +5.7 vs course · 3 terms, 740 students".
+ * "86.5% avg · +5.7% vs course · 3 terms, 740 students".
  *
  * An average GRADE from UBC's published distributions — deliberately not
  * framed as a rating. The delta is what makes it readable: an 86.5% means
- * little until you know the course itself averages 80.8%.
+ * little until you know the course itself averages 80.8%, and it opens the
+ * side-by-side comparison that shows where the difference comes from.
  */
-function gradeLine(g: InstructorGradeHistory, courseAverage: number | null): string {
-  const parts = [`${g.average.toFixed(1)}% avg`];
-  if (courseAverage !== null) {
-    const delta = g.average - courseAverage;
-    const sign = delta >= 0 ? '+' : '';
-    parts.push(`${sign}${delta.toFixed(1)} vs course`);
-  }
-  parts.push(
-    `${g.offerings} term${g.offerings === 1 ? '' : 's'}, ${g.students} student${g.students === 1 ? '' : 's'}`,
+function GradeLine({
+  g,
+  courseAverage,
+  onCompare,
+}: {
+  g: InstructorGradeHistory;
+  courseAverage: number | null;
+  onCompare: () => void;
+}) {
+  return (
+    <>
+      {g.average.toFixed(1)}% avg
+      {courseAverage !== null && (
+        <>
+          {' · '}
+          <button
+            type="button"
+            onClick={onCompare}
+            className="underline decoration-dotted underline-offset-2 hover:text-brand-accent"
+          >
+            {formatDelta(g.average, courseAverage)} vs course
+          </button>
+        </>
+      )}
+      {' · '}
+      {g.offerings} term{g.offerings === 1 ? '' : 's'}, {g.students} student
+      {g.students === 1 ? '' : 's'}
+    </>
   );
-  return parts.join(' · ');
 }
 
 /** "DMP 310, HENN 202" — de-duplicated, since a section's meetings often repeat a room. */
@@ -102,6 +117,11 @@ export default function CourseInfoContent({
   onAddSection?: (hit: SectionHit) => void;
   onRemoveSection?: (sectionId: string) => void;
 }) {
+  const [compare, setCompare] = useState<{
+    name: string;
+    grades: InstructorGradeHistory;
+  } | null>(null);
+
   return (
     <>
       {detail.description && (
@@ -109,13 +129,24 @@ export default function CourseInfoContent({
       )}
 
       <section className="mt-6">
-        <h3 className="text-sm font-semibold text-foreground">Sections this term</h3>
         {detail.sections.length === 0 ? (
-          <p className="mt-2 text-sm text-text-secondary">
-            Not offered in the term you&apos;re planning.
-          </p>
+          <>
+            <h3 className="text-sm font-semibold text-foreground">Sections this term</h3>
+            <p className="mt-2 text-sm text-text-secondary">
+              Not offered in the term you&apos;re planning.
+            </p>
+          </>
         ) : (
-          <ul className="mt-2 divide-y divide-border rounded-card border border-border">
+          // Always open — collapsing is there for a course like MATH 101 that
+          // fields dozens of sections, but it's the reader's call, not ours.
+          <details open>
+            <summary className="cursor-pointer text-sm font-semibold text-foreground">
+              Sections this term
+              <span className="ml-1.5 font-normal text-text-tertiary">
+                ({detail.sections.length})
+              </span>
+            </summary>
+            <ul className="mt-2 divide-y divide-border rounded-card border border-border">
             {detail.sections.map((s) => {
               const added = addedSectionIds.has(s.sectionId);
               const location = locationLabel(s);
@@ -170,7 +201,13 @@ export default function CourseInfoContent({
                                     : 'Average grade students received in this course under this instructor'
                                 }
                               >
-                                {gradeLine(i.grades, detail.courseAverage)}
+                                <GradeLine
+                                  g={i.grades}
+                                  courseAverage={detail.courseAverage}
+                                  onCompare={() =>
+                                    setCompare({ name: i.name, grades: i.grades! })
+                                  }
+                                />
                                 {i.grades.coTaught && ' *'}
                               </span>
                             )}
@@ -201,7 +238,8 @@ export default function CourseInfoContent({
                 </li>
               );
             })}
-          </ul>
+            </ul>
+          </details>
         )}
       </section>
 
@@ -290,6 +328,15 @@ export default function CourseInfoContent({
       >
         View full course page →
       </Link>
+
+      {compare && (
+        <GradeComparisonOverlay
+          detail={detail}
+          instructorName={compare.name}
+          grades={compare.grades}
+          onClose={() => setCompare(null)}
+        />
+      )}
     </>
   );
 }

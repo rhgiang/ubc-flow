@@ -25,6 +25,8 @@ export type InstructorGradeHistory = {
   average: number;
   offerings: number;
   students: number;
+  /** Buckets summed across this instructor's offerings, for the course-vs-instructor chart. */
+  distribution: GradeSummary['distribution'];
   /** At least one contributing offering was co-taught, so the figure is shared. */
   coTaught: boolean;
 };
@@ -158,7 +160,9 @@ export async function loadCourseDetail(
         select: {
           instructorId: true,
           distributionId: true,
-          distribution: { select: { average: true, count: true } },
+          // The outer key is the relation to GradeDistribution; the inner
+          // `distribution` is that row's bucket JSON.
+          distribution: { select: { average: true, count: true, distribution: true } },
         },
       })
     : [];
@@ -183,12 +187,21 @@ export async function loadCourseDetail(
     );
     if (mine.length === 0) continue;
 
-    const students = mine.reduce((a, l) => a + l.distribution.count!, 0);
-    const weighted = mine.reduce((a, l) => a + l.distribution.average! * l.distribution.count!, 0);
+    // Same weighted-by-students average the course side uses, plus the summed
+    // buckets. `mine` is already filtered to rows with a usable average and a
+    // positive count, so `average` here is never null.
+    const agg = aggregateDistributions(
+      mine.map((l) => ({
+        average: l.distribution.average,
+        count: l.distribution.count,
+        distribution: l.distribution.distribution as Record<string, number | null> | null,
+      })),
+    );
     gradesByInstructor.set(instructorId, {
-      average: weighted / students,
-      offerings: mine.length,
-      students,
+      average: agg.average!,
+      offerings: agg.sectionCount,
+      students: agg.studentCount,
+      distribution: agg.distribution,
       coTaught: mine.some((l) => (sharersPerDistribution.get(l.distributionId) ?? 1) > 1),
     });
   }

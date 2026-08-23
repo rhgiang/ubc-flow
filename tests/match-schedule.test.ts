@@ -49,6 +49,14 @@ function row(over: Partial<EnrollmentRow> = {}): EnrollmentRow {
     days: ['Mon'],
     meetingStartTime: '10:00',
     meetingEndTime: '11:00',
+    meetingEndDate: null,
+    floor: null,
+    credits: null,
+    registrationStatus: null,
+    deliveryMode: null,
+    instructor: null,
+    sectionStartDate: null,
+    sectionEndDate: null,
     ...over,
   };
 }
@@ -87,6 +95,25 @@ describe('matchWorkdayRows', () => {
     expect(result!.terms[0].matched).toEqual([]);
     expect(result!.terms[0].unmatched).toHaveLength(1);
     expect(result!.terms[0].unmatched[0]).toContain('no section number');
+  });
+
+  it('fills the room and instructor the catalogue lacks from the export', async () => {
+    // The fixture section's real meeting days, so the overlay applies.
+    const days = (await matchWorkdayRows([row()]))!.terms[0].matched[0].meetingTimes.map(
+      (m) => m.day,
+    );
+    const result = await matchWorkdayRows([
+      row({ days, building: 'HENN', room: '202', instructor: 'Export Only' }),
+    ]);
+    const hit = result!.terms[0].matched[0];
+
+    for (const m of hit.meetingTimes) {
+      // The catalogue has no location for any section, so every one is filled.
+      expect(m.building).toBe('HENN');
+      expect(m.room).toBe('202');
+    }
+    // The catalogue wins when it knows the instructor; the export fills a gap.
+    expect(hit.instructors.length).toBeGreaterThan(0);
   });
 
   it('de-duplicates a section that appears twice in the export', async () => {

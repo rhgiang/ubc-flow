@@ -10,6 +10,16 @@ let userA: string;
 let userB: string;
 let userC: string;
 
+// Columns the parser carries but importExport doesn't persist (no display
+// use for them yet — see EnrollmentMeeting in schema.prisma).
+const unusedColumns = {
+  floor: null,
+  meetingEndDate: null,
+  credits: null,
+  registrationStatus: null,
+  deliveryMode: null,
+};
+
 const parsed: ParsedExport = {
   studentNumber: '99999999',
   rows: [
@@ -25,9 +35,13 @@ const parsed: ParsedExport = {
       days: ['Mon', 'Wed', 'Fri'],
       meetingStartTime: '10:00',
       meetingEndTime: '11:00',
+      instructor: 'Nick Bradley',
+      sectionStartDate: '2026-09-08',
+      sectionEndDate: '2026-12-07',
       termYear: 2026,
       termSession: 'W',
       termNumber: 1,
+      ...unusedColumns,
     },
     {
       subjectCode: 'ZZNOPE',
@@ -41,9 +55,13 @@ const parsed: ParsedExport = {
       days: [],
       meetingStartTime: null,
       meetingEndTime: null,
+      instructor: null,
+      sectionStartDate: null,
+      sectionEndDate: null,
       termYear: 2026,
       termSession: 'W',
       termNumber: 1,
+      ...unusedColumns,
     },
   ],
   excluded: [{ raw: 'MATH_V 101 - Integral Calculus', reason: 'transfer_credit' }],
@@ -104,6 +122,9 @@ describe('importExport', () => {
     expect(rows[0].endTime).toBe('11:00');
     expect(rows[0].building).toBe('HENN');
     expect(rows[0].room).toBe('202');
+    expect(rows[0].instructor).toBe('Nick Bradley');
+    expect(rows[0].startDate?.toISOString().slice(0, 10)).toBe('2026-09-08');
+    expect(rows[0].endDate?.toISOString().slice(0, 10)).toBe('2026-12-07');
   });
 
   it('refuses to bind the same student number to a second account', async () => {

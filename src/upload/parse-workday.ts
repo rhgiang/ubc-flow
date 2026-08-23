@@ -6,6 +6,7 @@ export type EnrollmentRow = {
   courseNumber: string;
   sectionCode: string | null;
   activity: string | null;
+  /** Start of the FIRST meeting block — what the term is inferred from. */
   startDate: string | null;
   termYear: number;
   termSession: string;
@@ -15,6 +16,17 @@ export type EnrollmentRow = {
   meetingEndTime: string | null;
   building: string | null;
   room: string | null;
+  floor: string | null;
+  /** End of the LAST meeting block — the real span across a reading-week split. */
+  meetingEndDate: string | null;
+  credits: number | null;
+  registrationStatus: string | null;
+  deliveryMode: string | null;
+  /** Blank on most lab/tutorial rows — Workday only names the lecture's instructor. */
+  instructor: string | null;
+  /** The section's own Start/End Date columns, which span every meeting block. */
+  sectionStartDate: string | null;
+  sectionEndDate: string | null;
 };
 
 export type ExcludedRow = {
@@ -75,7 +87,14 @@ function buildingCode(segment: string): string | null {
  *
  * A cell can hold more than one date-range block, blank-line separated
  * (e.g. a course split around reading week) — every block for one section
- * repeats the same days/time, so only the first block's days/time are read.
+ * repeats the same days/time/room, so only the first block's pattern is read.
+ * Dates are the exception: startDate is the first block's and endDate the
+ * LAST block's, so a reading-week split reports its real span instead of
+ * stopping in February.
+ *
+ * ponytail: one flat pattern per cell rather than a list of blocks — every
+ * block in every real export repeats an identical pattern. Return a block
+ * list if a section is ever seen changing room or time mid-term.
  */
 export function parseMeetingPattern(cell: string): {
   startDate: string | null;
@@ -85,25 +104,27 @@ export function parseMeetingPattern(cell: string): {
   endTime: string | null;
   building: string | null;
   room: string | null;
+  floor: string | null;
 } {
-  const dateMatch = cell.match(/(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})/);
+  const ranges = [...cell.matchAll(/(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})/g)];
 
   const firstBlock = cell.split(/\n\s*\n/)[0] ?? '';
   const segments = firstBlock.split('|').map((s) => s.trim());
   const days = (segments[1] ?? '').split(/\s+/).filter((d) => DAY_ABBREVIATIONS.has(d));
   const timeMatch = segments[2]?.match(/^(.+?)\s*-\s*(.+)$/);
   const building = segments[4] ? buildingCode(segments[4]) : null;
+  const floorRaw = segments[5]?.replace(/^Floor:\s*/i, '').trim();
   const roomRaw = segments[6]?.replace(/^Room:\s*/i, '').trim();
-  const room = roomRaw || null;
 
   return {
-    startDate: dateMatch?.[1] ?? null,
-    endDate: dateMatch?.[2] ?? null,
+    startDate: ranges[0]?.[1] ?? null,
+    endDate: ranges[ranges.length - 1]?.[2] ?? null,
     days,
     startTime: timeMatch ? to24Hour(timeMatch[1]) : null,
     endTime: timeMatch ? to24Hour(timeMatch[2]) : null,
     building,
-    room,
+    room: roomRaw || null,
+    floor: floorRaw || null,
   };
 }
 
@@ -179,8 +200,19 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
   const statusCol = cols['registration status'];
   const activityCol = cols['instructional format'];
   const meetingCol = cols['meeting patterns'];
+  const creditsCol = cols['credits'];
+  const deliveryCol = cols['delivery mode'];
+  const instructorCol = cols['instructor'];
+  const startDateCol = cols['start date'];
+  const endDateCol = cols['end date'];
   const gradeCol = cols['grade'];
   const originCol = cols['originating coursework'];
+  // Read but never returned: `grading basis` and the column-0 student identity
+  // (beyond the one-student check below) are deliberately not carried into
+  // EnrollmentRow — a timetable needs neither.
+
+  const cell = (row: string[], col: number | undefined): string | null =>
+    col === undefined ? null : (row[col]?.trim() || null);
 
   for (const row of grid.slice(hIdx + 1, tableEnd)) {
     const identity = row[0] ?? '';
@@ -205,28 +237,40 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
       continue;
     }
 
-    const meeting = meetingCol === undefined
-      ? { startDate: null, endDate: null, days: [], startTime: null, endTime: null, building: null, room: null }
-      : parseMeetingPattern(row[meetingCol] ?? '');
+    const meeting = parseMeetingPattern(meetingCol === undefined ? '' : (row[meetingCol] ?? ''));
+    const sectionStartDate = cell(row, startDateCol);
 
-    const term = meeting.startDate ? inferTerm(meeting.startDate) : null;
+    // The Start Date column is the fallback: a section with no meeting pattern
+    // at all (fully async) still belongs to a term, and used to be dropped.
+    const term = inferTerm(meeting.startDate ?? sectionStartDate ?? '');
     if (!term) {
       excluded.push({ raw: listing, reason: 'no_term' });
       continue;
     }
+
+    const rawCredits = cell(row, creditsCol);
+    const credits = rawCredits === null ? null : Number(rawCredits);
 
     rows.push({
       subjectCode: code.subjectCode,
       campus: code.campus,
       courseNumber: code.number,
       sectionCode: sectionCol === undefined ? null : parseSectionCode(row[sectionCol] ?? ''),
-      activity: activityCol === undefined ? null : (row[activityCol] || null),
+      activity: cell(row, activityCol),
       startDate: meeting.startDate,
       days: meeting.days,
       meetingStartTime: meeting.startTime,
       meetingEndTime: meeting.endTime,
+      meetingEndDate: meeting.endDate,
       building: meeting.building,
       room: meeting.room,
+      floor: meeting.floor,
+      credits: Number.isFinite(credits) ? credits : null,
+      registrationStatus: cell(row, statusCol),
+      deliveryMode: cell(row, deliveryCol),
+      instructor: cell(row, instructorCol),
+      sectionStartDate,
+      sectionEndDate: cell(row, endDateCol),
       termYear: term.year,
       termSession: term.session,
       termNumber: term.termNumber,
@@ -238,10 +282,6 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
       'Export contains more than one student — a legitimate export covers one student.',
     );
   }
-
-  // statusCol is read to keep the contract explicit even when unused today:
-  // every fixture row is "Registered", and in-progress rows DO grant rights.
-  void statusCol;
 
   // Everything from tableEnd on is outside the table we parsed. Report every
   // further header row we find there — structures we don't recognise yet

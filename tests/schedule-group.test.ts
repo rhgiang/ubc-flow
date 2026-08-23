@@ -12,6 +12,7 @@ function hit(code: string, sectionCode: string, title = `${code} title`): Sectio
     activity: 'Lecture',
     meetings: 'Mon 10:00–11:00',
     meetingTimes: [],
+    instructors: [],
   };
 }
 

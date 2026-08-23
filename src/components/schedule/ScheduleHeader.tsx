@@ -42,7 +42,7 @@ export default function ScheduleHeader({
             maxLength={80}
             placeholder="Schedule name"
             aria-label="Schedule name"
-            className="w-full max-w-sm rounded-input border border-border bg-background px-3 py-2 text-lg font-semibold text-foreground placeholder:text-text-tertiary focus:border-foreground focus:outline-none"
+            className="w-64 rounded-input border border-border bg-background px-3 py-2 text-lg font-semibold text-foreground placeholder:text-text-tertiary focus:border-foreground focus:outline-none"
           />
           <button
             type="button"

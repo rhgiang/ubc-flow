@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import ScheduleBuilder from '@/components/ScheduleBuilder';
 import { isPlannableTerm } from '@/schedule/terms';
-import { toSectionHit, type SectionHit } from '@/lib/search';
+import { toSectionHit, sectionHitInclude, type SectionHit } from '@/lib/search';
 
 export default async function SchedulePlannerPage({
   params,
@@ -29,7 +29,7 @@ export default async function SchedulePlannerPage({
   const sections = sectionIds.length
     ? await db.section.findMany({
         where: { id: { in: sectionIds } },
-        include: { meetingTimes: true, course: { include: { subject: true } } },
+        include: sectionHitInclude,
       })
     : [];
 

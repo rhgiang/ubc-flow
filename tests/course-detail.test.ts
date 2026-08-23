@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { db } from '@/lib/db';
 import { loadCourseDetail } from '@/lib/course-detail';
+import { aggregateDistributions } from '@/grades/aggregate';
+import { GRADE_BUCKETS } from '@/grades/parse-csv';
 
 let courseId: string;
 let termId: string;
@@ -198,6 +200,66 @@ describe('loadCourseDetail instructor grade history', () => {
     expect(found.grades).not.toBeNull();
     expect(found.grades!.average).toBeCloseTo(expected, 1);
     expect(found.grades!.offerings).toBe(rows.length);
+  });
+
+  it('sums an instructor distribution over their own offerings only', async () => {
+    // The comparison overlay puts this chart beside the course-wide one, so it
+    // must cover this instructor's offerings of this course and nothing else —
+    // not the course's other sections, and not their other courses.
+    const link = await db.gradeDistributionInstructor.findFirst({
+      where: { distribution: { count: { gt: 0 }, average: { not: null } } },
+      select: { instructorId: true, distribution: { select: { courseId: true } } },
+    });
+    if (!link) return; // no graded links in this database
+
+    const { instructorId } = link;
+    const gradedCourseId = link.distribution.courseId;
+
+    const section = await db.section.findFirst({
+      where: { courseId: gradedCourseId, instructors: { some: { instructorId } } },
+      select: { termId: true },
+    });
+    if (!section) return;
+
+    const mine = (
+      await db.gradeDistributionInstructor.findMany({
+        where: { instructorId, distribution: { courseId: gradedCourseId } },
+        select: { distribution: { select: { average: true, count: true, distribution: true } } },
+      })
+    )
+      .map((l) => l.distribution)
+      .filter((r) => r.average !== null && r.count !== null && r.count > 0);
+    if (mine.length === 0) return;
+
+    const expected = aggregateDistributions(
+      mine.map((r) => ({
+        average: r.average,
+        count: r.count,
+        distribution: r.distribution as Record<string, number | null> | null,
+      })),
+    ).distribution;
+
+    const instructor = await db.instructor.findUniqueOrThrow({
+      where: { id: instructorId },
+      select: { slug: true },
+    });
+    const detail = await loadCourseDetail(gradedCourseId, section.termId);
+    const found = detail!.sections
+      .flatMap((s) => s.instructors)
+      .find((i) => i.slug === instructor.slug);
+    if (!found?.grades) return;
+
+    expect(found.grades.distribution).toEqual(expected);
+    expect(found.grades.students).toBe(mine.reduce((a, r) => a + r.count!, 0));
+
+    // And it must be a strict subset of the course-wide chart: the course
+    // includes every instructor's offerings, so no bucket can exceed it.
+    for (const bucket of GRADE_BUCKETS) {
+      const forInstructor = found.grades.distribution[bucket];
+      const forCourse = detail!.grades.distribution[bucket];
+      if (forInstructor === null || forCourse === null) continue;
+      expect(forInstructor).toBeLessThanOrEqual(forCourse);
+    }
   });
 
   it('returns null grades for an instructor with no history for this course', async () => {

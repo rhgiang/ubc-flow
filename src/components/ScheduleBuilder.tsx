@@ -336,7 +336,17 @@ export default function ScheduleBuilder({
             chosen={chosen}
             onAdd={addSection}
             onRemove={removeSection}
-            onInfo={setInfoCourseId}
+            // `i` always opens the overlay and the dock button always opens
+            // the side panel, rather than either inheriting whichever mode
+            // was last used.
+            onInfo={(courseId) => {
+              setInfoDocked(false);
+              setInfoCourseId(courseId);
+            }}
+            onDock={(courseId) => {
+              setInfoDocked(true);
+              setInfoCourseId(courseId);
+            }}
           />
         </aside>
 

@@ -13,12 +13,14 @@ export default function SchedulePanelTabs({
   onAdd,
   onRemove,
   onInfo,
+  onDock,
 }: {
   termId: string;
   chosen: SectionHit[];
   onAdd: (hit: SectionHit) => void;
   onRemove: (sectionId: string) => void;
   onInfo: (courseId: string) => void;
+  onDock: (courseId: string) => void;
 }) {
   const [tab, setTab] = useState<Tab>('saved');
   const addedIds = new Set(chosen.map((c) => c.sectionId));
@@ -48,9 +50,15 @@ export default function SchedulePanelTabs({
       </div>
 
       {tab === 'saved' ? (
-        <SavedCoursesPanel chosen={chosen} onRemove={onRemove} onInfo={onInfo} />
+        <SavedCoursesPanel chosen={chosen} onRemove={onRemove} onInfo={onInfo} onDock={onDock} />
       ) : (
-        <FindCoursesPanel termId={termId} addedIds={addedIds} onAdd={onAdd} onInfo={onInfo} />
+        <FindCoursesPanel
+          termId={termId}
+          addedIds={addedIds}
+          onAdd={onAdd}
+          onInfo={onInfo}
+          onDock={onDock}
+        />
       )}
     </div>
   );

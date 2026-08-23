@@ -45,11 +45,21 @@ export type SectionHit = {
   activity: string | null;
   meetings: string;
   meetingTimes: SectionMeetingTime[];
+  /** Instructor names, in the order the scrape returned them. */
+  instructors: string[];
 };
 
-type SectionRowForHit = Prisma.SectionGetPayload<{
-  include: { meetingTimes: true; course: { include: { subject: true } } };
-}>;
+/**
+ * The one include every toSectionHit caller must use — a shared const rather
+ * than three hand-copied literals, which is how the shape drifted before.
+ */
+export const sectionHitInclude = {
+  meetingTimes: true,
+  instructors: { include: { instructor: true } },
+  course: { include: { subject: true } },
+} satisfies Prisma.SectionInclude;
+
+type SectionRowForHit = Prisma.SectionGetPayload<{ include: typeof sectionHitInclude }>;
 
 /**
  * Maps one section row (with meetingTimes and course.subject included) to the
@@ -76,6 +86,7 @@ export function toSectionHit(s: SectionRowForHit): SectionHit {
       building: m.building,
       room: m.room,
     })),
+    instructors: s.instructors.map((si) => si.instructor.name),
   };
 }
 
@@ -97,7 +108,7 @@ export async function searchSectionsForTerm(
 
   const sections = await db.section.findMany({
     where: { termId, course: { ...buildSearchWhere(q), campus: 'V' } },
-    include: { meetingTimes: true, course: { include: { subject: true } } },
+    include: sectionHitInclude,
     take: limit,
     orderBy: [{ course: { number: 'asc' } }, { sectionCode: 'asc' }],
   });

@@ -166,6 +166,11 @@ model EnrollmentMeeting {
   days        String[]
   startTime   String?
   endTime     String?
+  /** Blank on most lab/tutorial rows — Workday only names the lecture's instructor. */
+  instructor  String?
+  /** The section's own Start/End Date columns — spans every meeting block. */
+  startDate   DateTime?
+  endDate     DateTime?
 
   @@index([userId, termId])
 }

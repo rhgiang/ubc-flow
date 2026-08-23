@@ -112,6 +112,9 @@ export async function importExport(
           days: row.days,
           startTime: row.meetingStartTime,
           endTime: row.meetingEndTime,
+          instructor: row.instructor,
+          startDate: row.sectionStartDate ? new Date(row.sectionStartDate) : null,
+          endDate: row.sectionEndDate ? new Date(row.sectionEndDate) : null,
         },
       });
     }

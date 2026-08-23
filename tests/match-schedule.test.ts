@@ -78,6 +78,14 @@ describe('matchWorkdayRows', () => {
     expect(result!.unmatched[0]).toContain('ZZZZ 999');
   });
 
+  it('refuses to guess a section when the export has no section number', async () => {
+    const result = await matchWorkdayRows([row({ sectionCode: null })]);
+    expect(result).not.toBeNull();
+    expect(result!.matched).toEqual([]);
+    expect(result!.unmatched).toHaveLength(1);
+    expect(result!.unmatched[0]).toContain('no section number');
+  });
+
   it('de-duplicates a section that appears twice in the export', async () => {
     const result = await matchWorkdayRows([row(), row()]);
     expect(result!.matched).toHaveLength(1);

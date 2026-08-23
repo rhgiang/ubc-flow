@@ -63,24 +63,30 @@ export async function matchWorkdayRows(rows: EnrollmentRow[]): Promise<ScheduleI
   const dominant = resolved.find((r) => r.term?.id === dominantId)!.term!;
 
   const matched: SectionHit[] = [];
-  const unmatched: string[] = [];
+  const unmatched = new Set<string>();
   const otherTerm: string[] = [];
   const seen = new Set<string>();
 
   for (const { row, term } of resolved) {
     if (!term) {
-      unmatched.push(label(row));
+      unmatched.add(`${label(row)} — term not in our catalogue`);
       continue;
     }
     if (term.id !== dominantId) {
       otherTerm.push(`${label(row)} (${term.name})`);
       continue;
     }
+    // Refuse to guess: with no section code, findFirst below would return an
+    // arbitrary section for the course (e.g. the lecture instead of the lab).
+    if (!row.sectionCode) {
+      unmatched.add(`${label(row)} — no section number in the export`);
+      continue;
+    }
 
     const section = await db.section.findFirst({
       where: {
         termId: dominantId,
-        ...(row.sectionCode ? { sectionCode: row.sectionCode } : {}),
+        sectionCode: row.sectionCode,
         course: {
           number: row.courseNumber,
           campus: row.campus,
@@ -91,7 +97,7 @@ export async function matchWorkdayRows(rows: EnrollmentRow[]): Promise<ScheduleI
     });
 
     if (!section) {
-      unmatched.push(label(row));
+      unmatched.add(`${label(row)} — no matching section`);
       continue;
     }
     // An export lists a section once per meeting block, so the same section
@@ -101,5 +107,5 @@ export async function matchWorkdayRows(rows: EnrollmentRow[]): Promise<ScheduleI
     matched.push(toSectionHit(section));
   }
 
-  return { termId: dominant.id, termName: dominant.name, matched, unmatched, otherTerm };
+  return { termId: dominant.id, termName: dominant.name, matched, unmatched: [...unmatched], otherTerm };
 }

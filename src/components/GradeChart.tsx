@@ -26,18 +26,21 @@ export default function GradeChart({
   const total = GRADE_BUCKETS.reduce((sum, b) => sum + (distribution[b] ?? 0), 0);
 
   return (
-    <div className="flex items-end gap-1" style={{ height: CHART_HEIGHT }}>
-      {GRADE_BUCKETS.map((bucket) => {
-        const value = distribution[bucket] ?? null;
-        const suppressed = value === null;
-        const height = suppressed
-          ? SUPPRESSED_STUB_HEIGHT
-          : Math.round((value / max) * CHART_HEIGHT * MAX_BAR_FRACTION);
-        const percent = !suppressed && total > 0 ? Math.round((value / total) * 100) : null;
+    <div>
+      {/* Bars and labels are separate rows: when a label wrapped inside the
+          column, it stole height from the bar area, so a two-line label made
+          its bar overflow. Splitting them fixes the baseline at any width. */}
+      <div className="flex items-end gap-1" style={{ height: CHART_HEIGHT }}>
+        {GRADE_BUCKETS.map((bucket) => {
+          const value = distribution[bucket] ?? null;
+          const suppressed = value === null;
+          const height = suppressed
+            ? SUPPRESSED_STUB_HEIGHT
+            : Math.round((value / max) * CHART_HEIGHT * MAX_BAR_FRACTION);
+          const percent = !suppressed && total > 0 ? Math.round((value / total) * 100) : null;
 
-        return (
-          <div key={bucket} className="flex flex-1 flex-col items-center gap-1">
-            <div className="group relative flex w-full flex-1 items-end justify-center">
+          return (
+            <div key={bucket} className="group relative flex flex-1 items-end justify-center">
               <div
                 role="tooltip"
                 className="pointer-events-none absolute bottom-full mb-1 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
@@ -63,10 +66,20 @@ export default function GradeChart({
                 }}
               />
             </div>
-            <span className="text-[10px] text-text-tertiary">{bucket}</span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+
+      <div className="mt-1 flex gap-1">
+        {GRADE_BUCKETS.map((bucket) => (
+          <span
+            key={bucket}
+            className="flex-1 text-center text-[10px] leading-tight text-text-tertiary"
+          >
+            {bucket}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

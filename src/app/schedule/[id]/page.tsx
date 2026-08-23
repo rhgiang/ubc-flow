@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import ScheduleBuilder from '@/components/ScheduleBuilder';
 import { isPlannableTerm } from '@/schedule/terms';
+import { listSwitchableSchedules } from '@/schedule/switcher';
 import { toSectionHit, sectionHitInclude, type SectionHit } from '@/lib/search';
 
 export default async function SchedulePlannerPage({
@@ -54,6 +55,7 @@ export default async function SchedulePlannerPage({
       initialTermId={schedule.termId}
       initialSections={initialSections}
       terms={termOptions}
+      schedules={await listSwitchableSchedules(session.user.id, terms)}
     />
   );
 }

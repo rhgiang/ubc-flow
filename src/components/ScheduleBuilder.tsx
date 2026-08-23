@@ -8,6 +8,8 @@ import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/Sche
 import CourseInfoOverlay from '@/components/schedule/CourseInfoOverlay';
 import CourseInfoPanel from '@/components/schedule/course-info/CourseInfoPanel';
 import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
+import UnsavedWorkDialog from '@/components/schedule/UnsavedWorkDialog';
+import type { ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
 import { findConflicts } from '@/schedule/conflicts';
 import { diffSections } from '@/schedule/buffer';
 import {
@@ -61,6 +63,7 @@ export default function ScheduleBuilder({
   initialTermId,
   initialSections,
   terms,
+  schedules = [],
   openImport = false,
   loadPendingImport = false,
 }: {
@@ -69,6 +72,8 @@ export default function ScheduleBuilder({
   initialTermId: string;
   initialSections: SectionHit[];
   terms: { id: string; name: string; year: number; session: string; termNumber: number | null }[];
+  /** The student's other saved schedules, for the switcher beside the name. */
+  schedules?: ScheduleOption[];
   openImport?: boolean;
   /** Set by /schedule/new?fromImport=1 — consume the next term parked by a
    *  multi-term Workday import and open it as a fresh draft. */
@@ -96,6 +101,10 @@ export default function ScheduleBuilder({
   // has to survive the navigation a save performs.
   const [pendingTerms, setPendingTerms] = useState<ImportedTerm[]>([]);
   const [offeredTerm, setOfferedTerm] = useState<ImportedTerm | null>(null);
+  // A navigation held back until the student decides what to do with unsaved
+  // work. Wrapped in an object because useState would otherwise call a bare
+  // function argument as an updater.
+  const [pendingNav, setPendingNav] = useState<{ go: () => void } | null>(null);
   const router = useRouter();
   const { open } = useAuthOverlay();
   const { setDirty } = useUnsavedChanges();
@@ -154,6 +163,16 @@ export default function ScheduleBuilder({
     );
   }, [baselineIds, chosen, name, baselineName, scheduleId, termId, effectiveInitialTermId]);
 
+  // Whether the schedule is well-formed enough to persist. Kept separate from
+  // `dirty`: the Save button needs both, but the unsaved-work prompt has to
+  // distinguish "nothing to save" from "cannot be saved yet".
+  //
+  // A section is required only to CREATE a schedule. Demanding one to update an
+  // existing schedule would strand two legitimate edits: renaming a schedule
+  // that has none, and removing the last section from one that does.
+  const contentSaveable =
+    name.trim().length > 0 && termId !== '' && (scheduleId !== null || chosen.length > 0);
+
   // Buffered edits live only in memory, so leaving the page drops them. Without
   // this guard an imported schedule can vanish on a stray back-navigation.
   useEffect(() => {
@@ -169,6 +188,20 @@ export default function ScheduleBuilder({
     setDirty(dirty);
     return () => setDirty(false);
   }, [dirty, setDirty]);
+
+  /**
+   * The single door out of the builder. router.push is a client-side
+   * navigation, which neither `beforeunload` nor the nav-link guard can see —
+   * routing every in-builder jump through here is what stops an unsaved
+   * import from vanishing.
+   */
+  function requestNav(go: () => void) {
+    if (!dirty) {
+      go();
+      return;
+    }
+    setPendingNav({ go });
+  }
 
   function addSection(hit: SectionHit) {
     setChosen((prev) =>
@@ -203,7 +236,10 @@ export default function ScheduleBuilder({
     });
   }
 
-  async function trySave() {
+  /** Resolves true only when the schedule is persisted. `redirectAfterCreate`
+   *  is false when a pending navigation supersedes the jump to the new
+   *  schedule — two router.push calls would otherwise race. */
+  async function trySave({ redirectAfterCreate = true } = {}): Promise<boolean> {
     setSaving(true);
     setError(null);
     const sectionIds = chosen.map((c) => c.sectionId);
@@ -216,25 +252,31 @@ export default function ScheduleBuilder({
         const result = await replaceScheduleSections(scheduleId, name, sectionIds, baselineIds);
         if (!result.ok) {
           setError(result.error);
-          return;
+          return false;
         }
         setSavedBaseline({ ids: sectionIds, name: name.trim() });
         router.refresh();
-        return;
+        return true;
       }
 
       const result = await saveGuestSchedule(termId, name, sectionIds);
       if (result.ok) {
-        router.push(`/schedule/${result.scheduleId}`);
-        return;
+        if (redirectAfterCreate) router.push(`/schedule/${result.scheduleId}`);
+        // Clears `dirty` so the guard doesn't fire again on the way out.
+        else setSavedBaseline({ ids: sectionIds, name: name.trim() });
+        return true;
       }
       if (result.needsAuth) {
-        open('login', trySave);
-        return;
+        open('login', () => {
+          void trySave();
+        });
+        return false;
       }
       setError(result.error);
+      return false;
     } catch {
       setError('Could not save your schedule. Your changes are still here — try again.');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -280,7 +322,9 @@ export default function ScheduleBuilder({
         onTermChange={setTermId}
         terms={terms}
         scheduleId={scheduleId}
-        canSave={chosen.length > 0 && name.trim().length > 0 && termId !== ''}
+        schedules={schedules}
+        onSwitchSchedule={(id) => requestNav(() => router.push(`/schedule/${id}`))}
+        canSave={contentSaveable}
         saving={saving}
         dirty={dirty}
         onSave={trySave}
@@ -314,13 +358,17 @@ export default function ScheduleBuilder({
             </button>
             <button
               type="button"
-              onClick={() => {
-                // Hand the parked terms back to sessionStorage and let
-                // /schedule/new adopt the next one as a fresh draft.
-                writePendingTerms(pendingTerms);
-                setOfferedTerm(null);
-                router.push('/schedule/new?fromImport=1');
-              }}
+              onClick={() =>
+                // Everything happens inside the callback so that cancelling at
+                // the unsaved-work prompt leaves this offer exactly as it was.
+                requestNav(() => {
+                  // Hand the parked terms back to sessionStorage and let
+                  // /schedule/new adopt the next one as a fresh draft.
+                  writePendingTerms(pendingTerms);
+                  setOfferedTerm(null);
+                  router.push('/schedule/new?fromImport=1');
+                })
+              }
               className="rounded-pill bg-brand px-4 py-1.5 text-xs font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100"
             >
               Build {offeredTerm.termName}
@@ -406,6 +454,29 @@ export default function ScheduleBuilder({
         onClose={() => setImportOpen(false)}
         onImport={applyImport}
       />
+
+      {pendingNav && (
+        <UnsavedWorkDialog
+          name={name}
+          saving={saving}
+          canSave={contentSaveable}
+          onSave={async () => {
+            const saved = await trySave({ redirectAfterCreate: false });
+            // On failure the error banner is already set — keep the dialog up
+            // rather than navigating away from work that did not persist.
+            if (!saved) return;
+            const { go } = pendingNav;
+            setPendingNav(null);
+            go();
+          }}
+          onDiscard={() => {
+            const { go } = pendingNav;
+            setPendingNav(null);
+            go();
+          }}
+          onCancel={() => setPendingNav(null)}
+        />
+      )}
     </main>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import CalendarSubscribeMenu from '@/components/schedule/CalendarSubscribeMenu';
+import ScheduleSwitcher, { type ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
 
 export default function ScheduleHeader({
   name,
@@ -9,6 +10,8 @@ export default function ScheduleHeader({
   onTermChange,
   terms,
   scheduleId,
+  schedules,
+  onSwitchSchedule,
   canSave,
   saving,
   dirty,
@@ -22,6 +25,8 @@ export default function ScheduleHeader({
   onTermChange: (termId: string) => void;
   terms: { id: string; name: string }[];
   scheduleId: string | null;
+  schedules: ScheduleOption[];
+  onSwitchSchedule: (scheduleId: string) => void;
   canSave: boolean;
   saving: boolean;
   dirty: boolean;
@@ -43,6 +48,11 @@ export default function ScheduleHeader({
             placeholder="Schedule name"
             aria-label="Schedule name"
             className="w-64 rounded-input border border-border bg-background px-3 py-2 text-lg font-semibold text-foreground placeholder:text-text-tertiary focus:border-foreground focus:outline-none"
+          />
+          <ScheduleSwitcher
+            schedules={schedules}
+            currentId={scheduleId}
+            onSelect={onSwitchSchedule}
           />
           <button
             type="button"
@@ -83,11 +93,20 @@ export default function ScheduleHeader({
 
       <div className="flex flex-col items-end gap-2">
         <div className="flex items-center gap-2">
+          {/* Nothing changed means nothing to save — a live button there just
+              fires a no-op round trip and makes "Unsaved changes" ambiguous. */}
           <button
             type="button"
             onClick={onSave}
-            disabled={!canSave || saving}
-            className="rounded-pill bg-brand px-5 py-2 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50 disabled:hover:scale-100"
+            disabled={!canSave || !dirty || saving}
+            title={
+              saving || (canSave && dirty)
+                ? undefined
+                : !canSave
+                  ? 'Name the schedule and add a section before saving'
+                  : 'No changes to save'
+            }
+            className="rounded-pill bg-brand px-5 py-2 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>

@@ -145,7 +145,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                         <td className="px-4 py-3">
                           <Link
                             href={`/course/${r.code.toLowerCase().replace(' ', '-')}`}
-                            className="font-medium text-brand hover:underline"
+                            className="font-medium text-brand-accent hover:underline"
                           >
                             {r.code}
                           </Link>
@@ -166,7 +166,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                   : professorResult!.rows.map((r) => (
                       <tr key={r.slug} className="border-b border-border last:border-0">
                         <td className="px-4 py-3">
-                          <Link href={`/professor/${r.slug}`} className="font-medium text-brand hover:underline">
+                          <Link href={`/professor/${r.slug}`} className="font-medium text-brand-accent hover:underline">
                             {r.name}
                           </Link>
                         </td>

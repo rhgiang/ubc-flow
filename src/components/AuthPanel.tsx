@@ -200,7 +200,7 @@ export default function AuthPanel({
                 setError(null);
                 setMode('signup');
               }}
-              className="inline-block font-medium text-brand transition-transform duration-150 ease-out hover:scale-105 hover:underline active:scale-100"
+              className="inline-block font-medium text-brand-accent transition-transform duration-150 ease-out hover:scale-105 hover:underline active:scale-100"
             >
               Sign up
             </button>
@@ -214,7 +214,7 @@ export default function AuthPanel({
                 setError(null);
                 setMode('login');
               }}
-              className="inline-block font-medium text-brand transition-transform duration-150 ease-out hover:scale-105 hover:underline active:scale-100"
+              className="inline-block font-medium text-brand-accent transition-transform duration-150 ease-out hover:scale-105 hover:underline active:scale-100"
             >
               Log in
             </button>

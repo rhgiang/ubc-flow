@@ -118,7 +118,7 @@ export default function RatingsBox({
             href={redditHref}
             target="_blank"
             rel="noreferrer"
-            className="text-xs text-brand hover:underline"
+            className="text-xs text-brand-accent hover:underline"
           >
             Search Reddit
           </a>

@@ -6,7 +6,7 @@ type Variant = 'primary' | 'secondary' | 'danger';
 // login/signup pages) rather than inventing a new visual language.
 const VARIANT_CLASSES: Record<Variant, string> = {
   primary: 'bg-blue-700 text-white hover:bg-blue-800',
-  secondary: 'border text-slate-700 hover:bg-slate-50',
+  secondary: 'border text-foreground hover:bg-surface-muted',
   danger: 'bg-red-700 text-white hover:bg-red-800',
 };
 

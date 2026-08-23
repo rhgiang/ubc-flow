@@ -19,6 +19,8 @@ const parsed: ParsedExport = {
       courseNumber: '110',
       sectionCode: '103',
       activity: 'Lecture',
+      building: 'HENN',
+      room: '202',
       startDate: '2026-09-08',
       days: ['Mon', 'Wed', 'Fri'],
       meetingStartTime: '10:00',
@@ -33,6 +35,8 @@ const parsed: ParsedExport = {
       courseNumber: '999',
       sectionCode: null,
       activity: null,
+      building: null,
+      room: null,
       startDate: '2026-09-08',
       days: [],
       meetingStartTime: null,
@@ -98,6 +102,8 @@ describe('importExport', () => {
     expect(rows[0].days).toEqual(['Mon', 'Wed', 'Fri']);
     expect(rows[0].startTime).toBe('10:00');
     expect(rows[0].endTime).toBe('11:00');
+    expect(rows[0].building).toBe('HENN');
+    expect(rows[0].room).toBe('202');
   });
 
   it('refuses to bind the same student number to a second account', async () => {

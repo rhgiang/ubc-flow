@@ -1,13 +1,4 @@
-/**
- * Only the current calendar year's terms are plannable (e.g. in 2026: Summer
- * 2026, Winter 2026-27 Term 1, Winter 2026-27 Term 2) — no building a
- * schedule for a term that's already over.
- */
-export function isPlannableTerm(term: { year: number }): boolean {
-  return term.year >= new Date().getFullYear();
-}
-
-type TermLike = { id: string; year: number; session: string; termNumber: number | null };
+type TermLike = { year: number; session: string; termNumber: number | null };
 
 /**
  * A term's position in academic-year order: Summer < Winter T1 < Winter T2,
@@ -40,10 +31,21 @@ export function isUpcomingTerm<T extends TermLike>(term: T): boolean {
 }
 
 /**
+ * A term is plannable once it hasn't finished yet — the term currently
+ * running and every term after it. `Term.year` is the academic year a term
+ * STARTS in ("2026-27 Winter Term 2" runs Jan-Apr 2027 but is stored as
+ * year: 2026), so a plain `year >= currentYear` check breaks from January
+ * onward, wrongly excluding the term the student is literally sitting in.
+ * Same ordinal comparison as isUpcomingTerm, which this delegates to.
+ */
+export function isPlannableTerm<T extends TermLike>(term: T): boolean {
+  return isUpcomingTerm(term);
+}
+
+/**
  * "This term" and "next term" for the explore-page filter — the two terms
- * chronologically nearest to today, not just "any current-year term" like
- * isPlannableTerm above (that's a coarser, deliberately permissive rule for
- * the schedule planner).
+ * chronologically nearest to today, a tighter pick than isPlannableTerm
+ * above, which permissively includes every term from now onward.
  */
 export function getCurrentAndNextTerm<T extends TermLike>(
   terms: T[],

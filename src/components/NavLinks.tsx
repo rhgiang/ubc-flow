@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
+import { useUnsavedChanges } from '@/components/UnsavedChangesContext';
 
 const BASE =
   'rounded-full border px-4 py-2 text-sm font-medium transition duration-150 ease-out hover:scale-[1.02] active:scale-100';
@@ -14,6 +15,7 @@ type NavItem = { href: string; label: string } | { href?: undefined; label: stri
 export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
   const pathname = usePathname();
   const { open } = useAuthOverlay();
+  const { confirmLeave } = useUnsavedChanges();
 
   const items: NavItem[] = [
     { href: '/', label: 'Home' },
@@ -37,7 +39,14 @@ export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
           (item.href === '/' ? pathname === '/' : pathname.startsWith(item.href));
         const className = `${BASE} ${active ? ACTIVE : INACTIVE}`;
         return item.href !== undefined ? (
-          <Link key={item.label} href={item.href} className={className}>
+          <Link
+            key={item.label}
+            href={item.href}
+            className={className}
+            onNavigate={(e) => {
+              if (!confirmLeave()) e.preventDefault();
+            }}
+          >
             {item.label}
           </Link>
         ) : (

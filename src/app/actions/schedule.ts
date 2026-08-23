@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { isPlannableTerm } from '@/schedule/terms';
 import { searchSectionsForTerm, type SectionHit } from '@/lib/search';
+import { diffSections } from '@/schedule/buffer';
 
 type Result = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; scheduleId: string } | { ok: false; error: string };
@@ -37,7 +38,10 @@ export async function createScheduleFor(
   if (!clean) return { ok: false, error: 'Give the schedule a name.' };
   if (clean.length > 80) return { ok: false, error: 'That name is too long.' };
 
-  const term = await db.term.findUnique({ where: { id: termId }, select: { year: true } });
+  const term = await db.term.findUnique({
+    where: { id: termId },
+    select: { year: true, session: true, termNumber: true },
+  });
   if (!term || !isPlannableTerm(term)) {
     return { ok: false, error: 'That term is not available to plan a schedule for.' };
   }
@@ -65,9 +69,20 @@ async function createScheduleWithSectionsFor(
   if (!clean) return { ok: false, error: 'Give the schedule a name.' };
   if (clean.length > 80) return { ok: false, error: 'That name is too long.' };
 
-  const term = await db.term.findUnique({ where: { id: termId }, select: { year: true } });
+  const term = await db.term.findUnique({
+    where: { id: termId },
+    select: { year: true, session: true, termNumber: true },
+  });
   if (!term || !isPlannableTerm(term)) {
     return { ok: false, error: 'That term is not available to plan a schedule for.' };
+  }
+
+  const ids = [...new Set(sectionIds)];
+  if (ids.length > 0) {
+    const inTerm = await db.section.count({ where: { id: { in: ids }, termId } });
+    if (inTerm !== ids.length) {
+      return { ok: false, error: 'Some sections are not offered in this term.' };
+    }
   }
 
   const schedule = await db.savedSchedule.create({
@@ -75,7 +90,7 @@ async function createScheduleWithSectionsFor(
       userId,
       termId,
       name: clean,
-      sections: { create: [...new Set(sectionIds)].map((sectionId) => ({ sectionId })) },
+      sections: { create: ids.map((sectionId) => ({ sectionId })) },
     },
     select: { id: true },
   });
@@ -149,14 +164,6 @@ async function currentUserId(): Promise<string | null> {
   return session?.user?.id ?? null;
 }
 
-export async function createSchedule(termId: string, name: string): Promise<CreateResult> {
-  const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Sign in to build a schedule.' };
-  const result = await createScheduleFor(userId, termId, name);
-  if (result.ok) revalidatePath('/schedule');
-  return result;
-}
-
 export async function renameSchedule(scheduleId: string, name: string): Promise<Result> {
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Sign in to manage schedules.' };
@@ -177,14 +184,6 @@ export async function addSection(scheduleId: string, sectionId: string): Promise
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Sign in to build a schedule.' };
   const result = await addSectionFor(userId, scheduleId, sectionId);
-  if (result.ok) revalidatePath(`/schedule/${scheduleId}`);
-  return result;
-}
-
-export async function removeSection(scheduleId: string, sectionId: string): Promise<Result> {
-  const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Sign in to build a schedule.' };
-  const result = await removeSectionFor(userId, scheduleId, sectionId);
   if (result.ok) revalidatePath(`/schedule/${scheduleId}`);
   return result;
 }
@@ -210,5 +209,95 @@ export async function saveGuestSchedule(
   if (!userId) return { ok: false, error: 'Sign in to save your schedule.', needsAuth: true };
   const result = await createScheduleWithSectionsFor(userId, termId, name, sectionIds);
   if (result.ok) revalidatePath('/schedule');
+  return result;
+}
+
+/**
+ * Commits a whole buffered edit: the name plus the exact set of sections the
+ * builder is holding. The builder buffers rather than writing through on every
+ * add/remove (spec §3.1), so this is the one write its Save button makes.
+ */
+export async function replaceScheduleSectionsFor(
+  userId: string,
+  scheduleId: string,
+  name: string,
+  sectionIds: string[],
+  expectedSectionIds: string[],
+): Promise<Result> {
+  if (!(await owns(userId, scheduleId))) return { ok: false, error: NOT_YOURS };
+  const clean = name.trim();
+  if (!clean) return { ok: false, error: 'Give the schedule a name.' };
+  if (clean.length > 80) return { ok: false, error: 'That name is too long.' };
+
+  const existing = await db.scheduleSection.findMany({
+    where: { scheduleId },
+    select: { sectionId: true },
+  });
+
+  const storedIds = existing.map((s) => s.sectionId);
+  const expected = new Set(expectedSectionIds);
+  const stored = new Set(storedIds);
+  const unchanged =
+    expected.size === stored.size && [...stored].every((id) => expected.has(id));
+  if (!unchanged) {
+    return {
+      ok: false,
+      error: 'This schedule changed somewhere else. Reload the page before saving.',
+    };
+  }
+
+  const ids = [...new Set(sectionIds)];
+  if (ids.length > 0) {
+    const { termId } = await db.savedSchedule.findUniqueOrThrow({
+      where: { id: scheduleId },
+      select: { termId: true },
+    });
+    const inTerm = await db.section.count({ where: { id: { in: ids }, termId } });
+    if (inTerm !== ids.length) {
+      return { ok: false, error: 'Some sections are not offered in this term.' };
+    }
+  }
+
+  const { added, removed } = diffSections(existing.map((s) => s.sectionId), sectionIds);
+
+  // One transaction: a half-applied Save would leave the student looking at a
+  // schedule that is neither what they had nor what they asked for.
+  await db.$transaction([
+    db.savedSchedule.update({ where: { id: scheduleId }, data: { name: clean } }),
+    ...(removed.length
+      ? [db.scheduleSection.deleteMany({ where: { scheduleId, sectionId: { in: removed } } })]
+      : []),
+    ...(added.length
+      ? [
+          db.scheduleSection.createMany({
+            data: added.map((sectionId) => ({ scheduleId, sectionId })),
+            skipDuplicates: true,
+          }),
+        ]
+      : []),
+  ]);
+  return { ok: true };
+}
+
+/** Save button for an already-saved schedule. */
+export async function replaceScheduleSections(
+  scheduleId: string,
+  name: string,
+  sectionIds: string[],
+  expectedSectionIds: string[],
+): Promise<Result> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Sign in to save your schedule.' };
+  const result = await replaceScheduleSectionsFor(
+    userId,
+    scheduleId,
+    name,
+    sectionIds,
+    expectedSectionIds,
+  );
+  if (result.ok) {
+    revalidatePath('/schedule');
+    revalidatePath(`/schedule/${scheduleId}`);
+  }
   return result;
 }

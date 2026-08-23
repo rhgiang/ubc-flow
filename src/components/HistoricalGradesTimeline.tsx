@@ -79,7 +79,7 @@ export default function HistoricalGradesTimeline({ terms }: { terms: HistoricalG
             onClick={() => setShowAll(value)}
             className={`rounded-input px-3 py-1 text-xs font-medium transition-colors ${
               showAll === value
-                ? 'bg-brand text-white'
+                ? 'bg-brand text-brand-foreground'
                 : 'border border-border text-text-secondary hover:text-foreground'
             }`}
           >
@@ -131,7 +131,7 @@ export default function HistoricalGradesTimeline({ terms }: { terms: HistoricalG
                   key={si}
                   points={seg.map((p) => `${xPct(p.i)},${yPct(p.v)}`).join(' ')}
                   fill="none"
-                  stroke="var(--brand)"
+                  stroke="var(--brand-accent)"
                   strokeWidth="2"
                   strokeLinejoin="round"
                   strokeLinecap="round"
@@ -148,10 +148,10 @@ export default function HistoricalGradesTimeline({ terms }: { terms: HistoricalG
                 className="group absolute -translate-x-1/2 -translate-y-1/2"
                 style={{ left: `${xPct(i)}%`, top: `${yPct(t.average)}%` }}
               >
-                <div className="h-2 w-2 rounded-full bg-brand transition-transform group-hover:scale-150" />
+                <div className="h-2 w-2 rounded-full bg-brand-accent transition-transform group-hover:scale-150" />
                 <div
                   role="tooltip"
-                  className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
+                  className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
                 >
                   {termFullLabel(t)}: {t.average.toFixed(1)}%
                 </div>

@@ -156,14 +156,14 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
-      <p className="text-sm text-slate-500">{course.subject.name}</p>
+      <p className="text-sm text-text-tertiary">{course.subject.name}</p>
       <h1 className="text-3xl font-semibold">
         {course.subject.code} {course.number}
       </h1>
-      <p className="mt-1 text-lg text-slate-700">{course.title}</p>
+      <p className="mt-1 text-lg text-foreground">{course.title}</p>
 
       {course.credits !== null && (
-        <p className="mt-2 text-sm text-slate-500">{course.credits} credits</p>
+        <p className="mt-2 text-sm text-text-tertiary">{course.credits} credits</p>
       )}
       {course.description && <p className="mt-6 leading-relaxed">{course.description}</p>}
 
@@ -171,7 +171,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
         href={redditHref}
         target="_blank"
         rel="noreferrer"
-        className="mt-4 inline-flex items-center gap-1.5 text-sm text-brand hover:underline"
+        className="mt-4 inline-flex items-center gap-1.5 text-sm text-brand-accent hover:underline"
       >
         Search Reddit for {course.subject.code} {course.number}
       </a>
@@ -179,7 +179,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
       <div className="mt-10 flex items-center justify-between">
         <h2 className="text-xl font-semibold">Ratings</h2>
         {mayReview && (
-          <Link href={`/course/${code}/review`} className="text-sm text-brand hover:underline">
+          <Link href={`/course/${code}/review`} className="text-sm text-brand-accent hover:underline">
             {myReview ? 'Edit your review' : 'Write a review'}
           </Link>
         )}
@@ -198,22 +198,22 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
 
       <h2 className="mt-10 text-xl font-semibold">Grades</h2>
       {grades.sectionCount === 0 ? (
-        <p className="mt-2 text-slate-500">No grade data available.</p>
+        <p className="mt-2 text-text-tertiary">No grade data available.</p>
       ) : (
         <>
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="rounded-lg border p-4">
-              <p className="text-xs text-slate-500">Average</p>
+              <p className="text-xs text-text-tertiary">Average</p>
               <p className="text-lg font-semibold">
                 {grades.average !== null ? `${grades.average.toFixed(1)}%` : '—'}
               </p>
             </div>
             <div className="rounded-lg border p-4">
-              <p className="text-xs text-slate-500">Students</p>
+              <p className="text-xs text-text-tertiary">Students</p>
               <p className="text-lg font-semibold">{grades.studentCount}</p>
             </div>
             <div className="rounded-lg border p-4">
-              <p className="text-xs text-slate-500">Sections</p>
+              <p className="text-xs text-text-tertiary">Sections</p>
               <p className="text-lg font-semibold">{grades.sectionCount}</p>
             </div>
           </div>
@@ -271,7 +271,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
                 Historical data from{' '}
                 <a
                   href="https://ubcgrades.com"
-                  className="text-brand hover:underline"
+                  className="text-brand-accent hover:underline"
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -283,16 +283,16 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
           )}
 
           {grades.suppressed && (
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-text-tertiary">
               Some grade ranges were withheld by UBC to protect student privacy and are not
               shown above.
             </p>
           )}
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-text-tertiary">
             Grade data from{' '}
             <a
               href={GRADE_DATA_SOURCE}
-              className="text-blue-700 hover:underline"
+              className="text-brand-accent hover:underline"
               target="_blank"
               rel="noreferrer"
             >

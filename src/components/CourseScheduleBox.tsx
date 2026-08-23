@@ -80,7 +80,7 @@ export default function CourseScheduleBox({
                     onClick={() => setActiveTermId(term.id)}
                     className={`shrink-0 px-4 py-2 text-sm font-medium ${
                       active?.term.id === term.id
-                        ? 'border-b-2 border-brand text-foreground'
+                        ? 'border-b-2 border-brand-accent text-foreground'
                         : 'text-text-secondary hover:text-foreground'
                     }`}
                   >
@@ -123,7 +123,7 @@ export default function CourseScheduleBox({
                                   <Link
                                     key={si.instructorId}
                                     href={`/professor/${si.instructor.slug}`}
-                                    className="text-brand hover:underline"
+                                    className="text-brand-accent hover:underline"
                                   >
                                     {si.instructor.name}
                                   </Link>
@@ -148,12 +148,12 @@ export default function CourseScheduleBox({
                                   ) : (
                                     <input type="hidden" name="scheduleId" value={matchingSchedules[0].id} />
                                   )}
-                                  <button type="submit" className="text-xs text-brand hover:underline">
+                                  <button type="submit" className="text-xs text-brand-accent hover:underline">
                                     + Add
                                   </button>
                                 </form>
                               ) : (
-                                <Link href="/schedule" className="text-xs text-brand hover:underline">
+                                <Link href="/schedule" className="text-xs text-brand-accent hover:underline">
                                   Create a schedule
                                 </Link>
                               )}

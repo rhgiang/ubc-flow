@@ -3,12 +3,18 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import ScheduleRowActions from '@/components/ScheduleRowActions';
-import WeekGrid, { type WeekGridEntry } from '@/components/WeekGrid';
+import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 
 export type SectionLite = { id: string; label: string; href: string };
 export type ScheduleRow = { id: string; name: string; sections: SectionLite[] };
 export type TermGroup = { termId: string; termName: string; rows: ScheduleRow[] };
-export type CalendarTermGroup = { termId: string; termName: string; entries: WeekGridEntry[] };
+export type CalendarTermGroup = {
+  termId: string;
+  termName: string;
+  entries: CalendarEntry[];
+  /** True for at most one group: the term containing today (spec's current-time indicator). */
+  isCurrentTerm: boolean;
+};
 
 const VISIBLE_SECTIONS = 3;
 type Tab = 'upcoming' | 'past' | 'calendar';
@@ -19,7 +25,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
       type="button"
       onClick={onClick}
       className={`border-b-2 pb-2 text-sm font-medium ${
-        active ? 'border-brand text-brand' : 'border-transparent text-text-secondary'
+        active ? 'border-brand-accent text-brand-accent' : 'border-transparent text-text-secondary'
       }`}
     >
       {children}
@@ -37,7 +43,7 @@ function SectionList({ sections }: { sections: SectionLite[] }) {
   return (
     <div className="space-y-1">
       {shown.map((s) => (
-        <Link key={s.id} href={s.href} className="block truncate text-sm text-brand hover:underline">
+        <Link key={s.id} href={s.href} className="block truncate text-sm text-brand-accent hover:underline">
           {s.label}
         </Link>
       ))}
@@ -46,7 +52,7 @@ function SectionList({ sections }: { sections: SectionLite[] }) {
           <summary className="cursor-pointer text-xs text-text-tertiary">More ({rest.length})</summary>
           <div className="mt-1 space-y-1">
             {rest.map((s) => (
-              <Link key={s.id} href={s.href} className="block truncate text-sm text-brand hover:underline">
+              <Link key={s.id} href={s.href} className="block truncate text-sm text-brand-accent hover:underline">
                 {s.label}
               </Link>
             ))}
@@ -80,7 +86,7 @@ function TermTable({ group, first }: { group: TermGroup; first: boolean }) {
             {group.rows.map((s) => (
               <tr key={s.id} className="border-b border-border last:border-b-0">
                 <td className="px-4 py-3 align-top">
-                  <Link href={`/schedule/${s.id}`} className="font-medium text-brand hover:underline">
+                  <Link href={`/schedule/${s.id}`} className="font-medium text-brand-accent hover:underline">
                     {s.name}
                   </Link>
                 </td>
@@ -109,7 +115,7 @@ function CalendarTerm({ group, first }: { group: CalendarTermGroup; first: boole
         </p>
       ) : (
         <div className="mt-2">
-          <WeekGrid entries={group.entries} />
+          <ScheduleCalendar entries={group.entries} showNowIndicator={group.isCurrentTerm} />
         </div>
       )}
     </div>

@@ -46,8 +46,8 @@ function ScoreGroup({
 }) {
   return (
     <div>
-      <p className="text-sm font-medium text-slate-700">{label}</p>
-      <p className="text-xs text-slate-500">{hint}</p>
+      <p className="text-sm font-medium text-foreground">{label}</p>
+      <p className="text-xs text-text-tertiary">{hint}</p>
       <div className="mt-2 flex gap-2">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
@@ -55,7 +55,7 @@ function ScoreGroup({
             type="button"
             onClick={() => onChange(n)}
             className={`h-9 w-9 rounded-lg border text-sm transition-transform duration-150 ease-out hover:scale-110 active:scale-100 ${
-              value !== null && n <= value ? 'bg-blue-700 text-white' : 'text-slate-700'
+              value !== null && n <= value ? 'bg-blue-700 text-white' : 'text-foreground'
             }`}
           >
             {n}
@@ -77,13 +77,13 @@ function LikedToggle({
 }) {
   return (
     <div>
-      <p className="text-sm font-medium text-slate-700">{label}</p>
+      <p className="text-sm font-medium text-foreground">{label}</p>
       <div className="mt-2 flex gap-2">
         <button
           type="button"
           onClick={() => onChange(true)}
           className={`rounded-lg border px-4 py-1.5 text-sm transition-transform duration-150 ease-out hover:scale-[1.03] active:scale-100 ${
-            value === true ? 'bg-blue-700 text-white' : 'text-slate-700'
+            value === true ? 'bg-blue-700 text-white' : 'text-foreground'
           }`}
         >
           Yes
@@ -92,7 +92,7 @@ function LikedToggle({
           type="button"
           onClick={() => onChange(false)}
           className={`rounded-lg border px-4 py-1.5 text-sm transition-transform duration-150 ease-out hover:scale-[1.03] active:scale-100 ${
-            value === false ? 'bg-blue-700 text-white' : 'text-slate-700'
+            value === false ? 'bg-blue-700 text-white' : 'text-foreground'
           }`}
         >
           No
@@ -228,9 +228,9 @@ export function ReviewForm({
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
-      <p className="text-sm text-slate-500">{courseLabel}</p>
+      <p className="text-sm text-text-tertiary">{courseLabel}</p>
       <h1 className="text-3xl font-semibold">{courseTitle}</h1>
-      <p className="mt-1 text-slate-600">Write a review</p>
+      <p className="mt-1 text-text-secondary">Write a review</p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-8">
         <section className="space-y-5 rounded-lg border p-5">
@@ -249,7 +249,7 @@ export function ReviewForm({
             onChange={setDifficulty}
           />
           <div>
-            <label className="text-sm font-medium text-slate-700" htmlFor="workloadHours">
+            <label className="text-sm font-medium text-foreground" htmlFor="workloadHours">
               Workload (hours/week)
             </label>
             <input
@@ -263,7 +263,7 @@ export function ReviewForm({
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700" htmlFor="courseText">
+            <label className="text-sm font-medium text-foreground" htmlFor="courseText">
               Comments
             </label>
             <textarea
@@ -279,14 +279,14 @@ export function ReviewForm({
         <section className="space-y-4 rounded-lg border p-5">
           <h2 className="text-lg font-semibold">Instructors</h2>
           {instructors.length === 0 && (
-            <p className="text-sm text-slate-500">No instructors on record for this course.</p>
+            <p className="text-sm text-text-tertiary">No instructors on record for this course.</p>
           )}
           {instructors.map((i) => {
             const state = selected.get(i.id);
             const checked = state !== undefined;
             return (
               <div key={i.id} className="border-t pt-4 first:border-t-0 first:pt-0">
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <input
                     type="checkbox"
                     checked={checked}
@@ -343,7 +343,7 @@ export function ReviewForm({
               type="button"
               onClick={onDelete}
               disabled={busy}
-              className="rounded-lg border px-5 py-2 text-slate-700 transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100 disabled:opacity-50"
+              className="rounded-lg border px-5 py-2 text-foreground transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100 disabled:opacity-50"
             >
               Delete review
             </button>

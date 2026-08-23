@@ -20,7 +20,7 @@ function CourseGroup({ group, first }: { group: TermGroup; first: boolean }) {
       <ul className="mt-2 divide-y divide-border rounded-card border border-border">
         {group.rows.map((r) => (
           <li key={r.id} className="px-4 py-2.5 text-sm">
-            <Link href={r.href} className="font-medium text-brand hover:underline">
+            <Link href={r.href} className="font-medium text-brand-accent hover:underline">
               {r.code}
             </Link>
             <span className="ml-2 text-text-secondary">{r.title}</span>
@@ -78,7 +78,7 @@ export default async function OnboardingPage() {
       {verified ? (
         <>
           <div className="mt-6 flex items-center gap-2 rounded-card border border-border bg-surface-muted px-4 py-3">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5 shrink-0 text-brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5 shrink-0 text-brand-accent">
               <circle cx="12" cy="12" r="9" />
               <path d="m8 12.5 2.5 2.5L16 9.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>

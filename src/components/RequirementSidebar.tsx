@@ -85,7 +85,7 @@ export default function RequirementSidebar({
             {antireqs.map((a) => (
               <li key={a.code}>
                 {a.courseId ? (
-                  <Link href={courseHref(a.code)} className="text-brand hover:underline">
+                  <Link href={courseHref(a.code)} className="text-brand-accent hover:underline">
                     {a.code}
                   </Link>
                 ) : (
@@ -104,7 +104,7 @@ export default function RequirementSidebar({
           <ul className="space-y-1">
             {leadsTo.map((c) => (
               <li key={c.courseId}>
-                <Link href={courseHref(c.code)} className="text-brand hover:underline">
+                <Link href={courseHref(c.code)} className="text-brand-accent hover:underline">
                   {c.code}
                 </Link>
               </li>

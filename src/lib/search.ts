@@ -37,6 +37,8 @@ export type SectionMeetingTime = {
 
 export type SectionHit = {
   sectionId: string;
+  /** The COURSE this section belongs to — what the info overlay loads on. */
+  courseId: string;
   code: string;
   title: string;
   sectionCode: string;
@@ -44,6 +46,38 @@ export type SectionHit = {
   meetings: string;
   meetingTimes: SectionMeetingTime[];
 };
+
+type SectionRowForHit = Prisma.SectionGetPayload<{
+  include: { meetingTimes: true; course: { include: { subject: true } } };
+}>;
+
+/**
+ * Maps one section row (with meetingTimes and course.subject included) to the
+ * SectionHit shape shared by the schedule planner's search sidebar and the
+ * saved-schedule page — kept in one place so the two never drift.
+ */
+export function toSectionHit(s: SectionRowForHit): SectionHit {
+  return {
+    sectionId: s.id,
+    courseId: s.courseId,
+    code: `${s.course.subject.code ?? ''} ${s.course.number}`.trim(),
+    title: s.course.title,
+    sectionCode: s.sectionCode,
+    activity: s.activity,
+    meetings:
+      s.meetingTimes
+        .filter((m) => m.startTime && m.endTime)
+        .map((m) => `${m.day} ${m.startTime}–${m.endTime}`)
+        .join(', ') || 'No fixed time',
+    meetingTimes: s.meetingTimes.map((m) => ({
+      day: m.day,
+      startTime: m.startTime,
+      endTime: m.endTime,
+      building: m.building,
+      room: m.room,
+    })),
+  };
+}
 
 /**
  * Sections of matching courses within ONE term, for the schedule planner's
@@ -68,25 +102,7 @@ export async function searchSectionsForTerm(
     orderBy: [{ course: { number: 'asc' } }, { sectionCode: 'asc' }],
   });
 
-  return sections.map((s) => ({
-    sectionId: s.id,
-    code: `${s.course.subject.code ?? ''} ${s.course.number}`.trim(),
-    title: s.course.title,
-    sectionCode: s.sectionCode,
-    activity: s.activity,
-    meetings:
-      s.meetingTimes
-        .filter((m) => m.startTime && m.endTime)
-        .map((m) => `${m.day} ${m.startTime}–${m.endTime}`)
-        .join(', ') || 'No fixed time',
-    meetingTimes: s.meetingTimes.map((m) => ({
-      day: m.day,
-      startTime: m.startTime,
-      endTime: m.endTime,
-      building: m.building,
-      room: m.room,
-    })),
-  }));
+  return sections.map(toSectionHit);
 }
 
 // Below this length, "title contains query" is mostly noise — a 2-letter

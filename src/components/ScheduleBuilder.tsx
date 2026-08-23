@@ -6,6 +6,7 @@ import ScheduleHeader from '@/components/schedule/ScheduleHeader';
 import SchedulePanelTabs from '@/components/schedule/SchedulePanelTabs';
 import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 import CourseInfoOverlay from '@/components/schedule/CourseInfoOverlay';
+import CourseInfoPanel from '@/components/schedule/course-info/CourseInfoPanel';
 import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
 import { findConflicts } from '@/schedule/conflicts';
 import { diffSections } from '@/schedule/buffer';
@@ -55,6 +56,7 @@ export default function ScheduleBuilder({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
+  const [infoDocked, setInfoDocked] = useState(false);
   const [importOpen, setImportOpen] = useState(openImport);
   const router = useRouter();
   const { open } = useAuthOverlay();
@@ -238,15 +240,30 @@ export default function ScheduleBuilder({
             onSelectCourse={setInfoCourseId}
           />
         </div>
+
+        {infoDocked && infoCourseId && (
+          <CourseInfoPanel
+            courseId={infoCourseId}
+            termId={termId}
+            addedSectionIds={new Set(chosen.map((c) => c.sectionId))}
+            onAddSection={addSection}
+            onRemoveSection={removeSection}
+            onExpand={() => setInfoDocked(false)}
+            onClose={() => {
+              setInfoDocked(false);
+              setInfoCourseId(null);
+            }}
+          />
+        )}
       </div>
 
       <CourseInfoOverlay
-        courseId={infoCourseId}
+        courseId={infoDocked ? null : infoCourseId}
         termId={termId}
         addedSectionIds={new Set(chosen.map((c) => c.sectionId))}
         onAddSection={addSection}
         onRemoveSection={removeSection}
-        onDock={() => {}}
+        onDock={() => setInfoDocked(true)}
         onClose={() => setInfoCourseId(null)}
       />
 

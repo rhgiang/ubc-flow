@@ -38,7 +38,10 @@ export async function createScheduleFor(
   if (!clean) return { ok: false, error: 'Give the schedule a name.' };
   if (clean.length > 80) return { ok: false, error: 'That name is too long.' };
 
-  const term = await db.term.findUnique({ where: { id: termId }, select: { year: true } });
+  const term = await db.term.findUnique({
+    where: { id: termId },
+    select: { year: true, session: true, termNumber: true },
+  });
   if (!term || !isPlannableTerm(term)) {
     return { ok: false, error: 'That term is not available to plan a schedule for.' };
   }
@@ -66,9 +69,20 @@ async function createScheduleWithSectionsFor(
   if (!clean) return { ok: false, error: 'Give the schedule a name.' };
   if (clean.length > 80) return { ok: false, error: 'That name is too long.' };
 
-  const term = await db.term.findUnique({ where: { id: termId }, select: { year: true } });
+  const term = await db.term.findUnique({
+    where: { id: termId },
+    select: { year: true, session: true, termNumber: true },
+  });
   if (!term || !isPlannableTerm(term)) {
     return { ok: false, error: 'That term is not available to plan a schedule for.' };
+  }
+
+  const ids = [...new Set(sectionIds)];
+  if (ids.length > 0) {
+    const inTerm = await db.section.count({ where: { id: { in: ids }, termId } });
+    if (inTerm !== ids.length) {
+      return { ok: false, error: 'Some sections are not offered in this term.' };
+    }
   }
 
   const schedule = await db.savedSchedule.create({
@@ -76,7 +90,7 @@ async function createScheduleWithSectionsFor(
       userId,
       termId,
       name: clean,
-      sections: { create: [...new Set(sectionIds)].map((sectionId) => ({ sectionId })) },
+      sections: { create: ids.map((sectionId) => ({ sectionId })) },
     },
     select: { id: true },
   });
@@ -213,6 +227,18 @@ export async function replaceScheduleSectionsFor(
   const clean = name.trim();
   if (!clean) return { ok: false, error: 'Give the schedule a name.' };
   if (clean.length > 80) return { ok: false, error: 'That name is too long.' };
+
+  const ids = [...new Set(sectionIds)];
+  if (ids.length > 0) {
+    const { termId } = await db.savedSchedule.findUniqueOrThrow({
+      where: { id: scheduleId },
+      select: { termId: true },
+    });
+    const inTerm = await db.section.count({ where: { id: { in: ids }, termId } });
+    if (inTerm !== ids.length) {
+      return { ok: false, error: 'Some sections are not offered in this term.' };
+    }
+  }
 
   const existing = await db.scheduleSection.findMany({
     where: { scheduleId },

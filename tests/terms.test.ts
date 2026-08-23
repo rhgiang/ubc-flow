@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getCurrentAndNextTerm, isUpcomingTerm } from '@/schedule/terms';
+import { getCurrentAndNextTerm, isUpcomingTerm, isPlannableTerm } from '@/schedule/terms';
 
 const TERMS = [
   { id: 'w1-25', year: 2025, session: 'W', termNumber: 1 },
@@ -70,5 +70,21 @@ describe('isUpcomingTerm', () => {
     vi.setSystemTime(new Date(2026, 7, 22));
     expect(isUpcomingTerm(TERMS.find((t) => t.id === 'w2-25')!)).toBe(false);
     expect(isUpcomingTerm(TERMS.find((t) => t.id === 'w1-25')!)).toBe(false);
+  });
+});
+
+describe('isPlannableTerm', () => {
+  it('is true in January for the Winter Term 2 that started the PRIOR academic year', () => {
+    // "2026-27 Winter Term 2" runs Jan-Apr 2027 but is stored as year: 2026 —
+    // a plain year >= currentYear check wrongly excludes it from 1 Jan onward.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2027-01-15'));
+    expect(isPlannableTerm({ year: 2026, session: 'W', termNumber: 2 })).toBe(true);
+  });
+
+  it('is false for a term that has genuinely already finished', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2027-01-15'));
+    expect(isPlannableTerm({ year: 2025, session: 'W', termNumber: 2 })).toBe(false);
   });
 });

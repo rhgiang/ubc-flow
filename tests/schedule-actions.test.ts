@@ -18,6 +18,7 @@ let strangerId: string;
 let termId: string;
 let sectionId: string;
 let scheduleId: string;
+let otherTermSectionId: string;
 
 beforeAll(async () => {
   await db.user.deleteMany({ where: { email: { in: [OWNER, STRANGER] } } });
@@ -27,6 +28,12 @@ beforeAll(async () => {
   const section = await db.section.findFirstOrThrow({ select: { id: true, termId: true } });
   sectionId = section.id;
   termId = section.termId;
+
+  const otherSection = await db.section.findFirstOrThrow({
+    where: { termId: { not: termId } },
+    select: { id: true },
+  });
+  otherTermSectionId = otherSection.id;
 
   const created = await createScheduleFor(ownerId, termId, 'Plan A');
   if (!created.ok) throw new Error('setup failed');
@@ -179,5 +186,37 @@ describe('replaceScheduleSectionsFor', () => {
 
     const result = await replaceScheduleSectionsFor(ownerId, created.scheduleId, '   ', []);
     expect(result.ok).toBe(false);
+  });
+
+  it('saves a section that belongs to the schedule\'s own term', async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Cross-term OK');
+    if (!created.ok) throw new Error(created.error);
+
+    const result = await replaceScheduleSectionsFor(ownerId, created.scheduleId, 'Cross-term OK', [
+      sectionId,
+    ]);
+    expect(result).toEqual({ ok: true });
+
+    const row = await db.savedSchedule.findUniqueOrThrow({
+      where: { id: created.scheduleId },
+      include: { sections: true },
+    });
+    expect(row.sections.map((s) => s.sectionId)).toEqual([sectionId]);
+  });
+
+  it('REJECTS a section from a different term and changes nothing', async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Cross-term Bad');
+    if (!created.ok) throw new Error(created.error);
+    const id = created.scheduleId;
+
+    const result = await replaceScheduleSectionsFor(ownerId, id, 'Renamed', [otherTermSectionId]);
+    expect(result.ok).toBe(false);
+
+    const row = await db.savedSchedule.findUniqueOrThrow({
+      where: { id },
+      include: { sections: true },
+    });
+    expect(row.name).toBe('Cross-term Bad');
+    expect(row.sections).toEqual([]);
   });
 });

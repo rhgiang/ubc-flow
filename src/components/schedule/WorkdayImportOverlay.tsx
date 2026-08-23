@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { parseWorkdayForSchedule, type ImportResult } from '@/app/actions/import';
+import { parseWorkdayForSchedule, type ImportResult, type SkippedRow } from '@/app/actions/import';
 import type { SectionHit } from '@/lib/search';
 
 type Loaded = Extract<ImportResult, { ok: true }>;
@@ -15,6 +15,22 @@ function SkipList({ title, items }: { title: string; items: string[] }) {
         {items.map((i) => (
           <li key={i} className="text-xs text-text-secondary">
             {i}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function SkippedRowsList({ items }: { items: SkippedRow[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-3">
+      <p className="text-xs font-medium text-foreground">Skipped</p>
+      <ul className="mt-1 space-y-0.5">
+        {items.map((s) => (
+          <li key={s.raw} className="text-xs text-text-secondary">
+            {s.raw} — {s.reason}
           </li>
         ))}
       </ul>
@@ -39,6 +55,7 @@ export default function WorkdayImportOverlay({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorSkipped, setErrorSkipped] = useState<SkippedRow[]>([]);
   const [result, setResult] = useState<Loaded | null>(null);
 
   useEffect(() => {
@@ -55,6 +72,7 @@ export default function WorkdayImportOverlay({
     if (open) {
       setResult(null);
       setError(null);
+      setErrorSkipped([]);
       setBusy(false);
     }
   }, [open]);
@@ -65,10 +83,15 @@ export default function WorkdayImportOverlay({
     e.preventDefault();
     setBusy(true);
     setError(null);
+    setErrorSkipped([]);
     try {
       const res = await parseWorkdayForSchedule(new FormData(e.currentTarget));
-      if (!res.ok) setError(res.error);
-      else setResult(res);
+      if (!res.ok) {
+        setError(res.error);
+        setErrorSkipped(res.skipped ?? []);
+      } else {
+        setResult(res);
+      }
     } catch {
       setError('Could not read that file. Try exporting it from Workday again.');
     } finally {
@@ -134,7 +157,12 @@ export default function WorkdayImportOverlay({
           </>
         )}
 
-        {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+        {error && (
+          <>
+            <p className="mt-4 text-sm text-danger">{error}</p>
+            <SkippedRowsList items={errorSkipped} />
+          </>
+        )}
 
         {result && (
           <>
@@ -147,18 +175,7 @@ export default function WorkdayImportOverlay({
             <SkipList title="Not in our catalogue" items={result.unmatched} />
             <SkipList title="A different term — a schedule covers one term" items={result.otherTerm} />
 
-            {result.skipped.length > 0 && (
-              <div className="mt-3">
-                <p className="text-xs font-medium text-foreground">Skipped</p>
-                <ul className="mt-1 space-y-0.5">
-                  {result.skipped.map((s) => (
-                    <li key={s.raw} className="text-xs text-text-secondary">
-                      {s.raw} — {s.reason}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <SkippedRowsList items={result.skipped} />
 
             <div className="mt-6 flex justify-end gap-2">
               <button

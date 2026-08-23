@@ -43,7 +43,7 @@ function SectionList({ sections }: { sections: SectionLite[] }) {
   return (
     <div className="space-y-1">
       {shown.map((s) => (
-        <Link key={s.id} href={s.href} className="block truncate text-sm text-brand hover:underline">
+        <Link key={s.id} href={s.href} className="block truncate text-sm text-brand-accent hover:underline">
           {s.label}
         </Link>
       ))}
@@ -52,7 +52,7 @@ function SectionList({ sections }: { sections: SectionLite[] }) {
           <summary className="cursor-pointer text-xs text-text-tertiary">More ({rest.length})</summary>
           <div className="mt-1 space-y-1">
             {rest.map((s) => (
-              <Link key={s.id} href={s.href} className="block truncate text-sm text-brand hover:underline">
+              <Link key={s.id} href={s.href} className="block truncate text-sm text-brand-accent hover:underline">
                 {s.label}
               </Link>
             ))}
@@ -86,7 +86,7 @@ function TermTable({ group, first }: { group: TermGroup; first: boolean }) {
             {group.rows.map((s) => (
               <tr key={s.id} className="border-b border-border last:border-b-0">
                 <td className="px-4 py-3 align-top">
-                  <Link href={`/schedule/${s.id}`} className="font-medium text-brand hover:underline">
+                  <Link href={`/schedule/${s.id}`} className="font-medium text-brand-accent hover:underline">
                     {s.name}
                   </Link>
                 </td>

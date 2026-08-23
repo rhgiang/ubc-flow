@@ -212,7 +212,11 @@ export default function CourseInfoContent({
         ) : (
           <>
             <div className="mt-2 grid grid-cols-3 gap-2">
-              <Stat label="Average (since 2021)" value={pct(detail.grades.average)} />
+              {/* Deliberately no year range in the label: the PAIR ingest's
+                  coverage is being extended backwards, so any hardcoded year
+                  goes stale. The note below explains why the two sources
+                  differ without pinning a date. */}
+              <Stat label="Average (UBC sections)" value={pct(detail.grades.average)} />
               <Stat label="Students" value={String(detail.grades.studentCount)} />
               <Stat label="Sections" value={String(detail.grades.sectionCount)} />
             </div>
@@ -232,9 +236,9 @@ export default function CourseInfoContent({
               } />
             </div>
             <p className="mt-2 text-xs text-text-tertiary">
-              Since-2021 figures come from UBC&apos;s published section data; the all-time
-              and 5-year averages come from ubcgrades.com and reach back further, so they
-              will differ.
+              The section average and chart come from UBC&apos;s own published per-section
+              data; the all-time and 5-year figures come from ubcgrades.com and cover a
+              longer period, so the two will differ.
             </p>
           </>
         )}

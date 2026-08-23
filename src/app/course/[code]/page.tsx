@@ -13,6 +13,7 @@ import CourseScheduleBox from '@/components/CourseScheduleBox';
 import RequirementSidebar from '@/components/RequirementSidebar';
 import ReviewCard from '@/components/ReviewCard';
 import HistoricalGradesTimeline from '@/components/HistoricalGradesTimeline';
+import { buildCourseGradeHistory } from '@/grades/history';
 import { isUpcomingTerm } from '@/schedule/terms';
 import type { Requirement } from '@/prereqs/parse';
 
@@ -94,14 +95,21 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
     })),
   );
 
-  const historicalGrades = await db.courseHistoricalGrades.findUnique({
+  // Grade history from our OWN section rows, so the trend, the section spread
+  // and the headline average above all describe the same window and the same
+  // underlying numbers.
+  const historyRows = await db.gradeDistribution.findMany({
     where: { courseId: course.id },
+    select: { termId: true, average: true, count: true },
   });
-
-  const historicalGradesByTerm = await db.courseHistoricalGradesByTerm.findMany({
-    where: { courseId: course.id },
-    select: { year: true, session: true, average: true },
+  const realTerms = await db.term.findMany({
+    where: { id: { in: [...new Set(historyRows.map((r) => r.termId))] } },
+    select: { id: true, year: true, session: true },
   });
+  const history = buildCourseGradeHistory(
+    historyRows,
+    new Map(realTerms.map((t) => [t.id, { year: t.year, session: t.session }])),
+  );
 
   const leadsToEdges = await db.coursePrereqEdge.findMany({
     where: { requiredCourseId: course.id },
@@ -221,64 +229,41 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
             <GradeChart distribution={grades.distribution} />
           </div>
 
-          {historicalGrades && (
+          {history.terms.length > 0 && (
             <div className="mt-6 rounded-card border border-border p-4">
-              <p className="text-sm font-semibold text-foreground">Historical Averages</p>
-              <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-5">
-                <div>
-                  <p className="text-xs text-text-secondary">Overall average</p>
-                  <p className="text-lg font-semibold text-foreground">
-                    {historicalGrades.average !== null ? `${historicalGrades.average.toFixed(1)}%` : '—'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-text-secondary">Past 5 years</p>
-                  <p className="text-lg font-semibold text-foreground">
-                    {historicalGrades.averagePast5Years !== null
-                      ? `${historicalGrades.averagePast5Years.toFixed(1)}%`
-                      : '—'}
-                  </p>
-                </div>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-sm font-semibold text-foreground">Historical Averages</p>
+                <p className="text-xs text-text-tertiary">
+                  {history.terms[0].year}–{history.terms[history.terms.length - 1].year}
+                </p>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <div>
                   <p className="text-xs text-text-secondary">Lowest section avg</p>
                   <p className="text-lg font-semibold text-foreground">
-                    {historicalGrades.minSectionAverage !== null
-                      ? `${historicalGrades.minSectionAverage.toFixed(1)}%`
+                    {history.lowestSection !== null
+                      ? `${history.lowestSection.toFixed(1)}%`
                       : '—'}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-text-secondary">Highest section avg</p>
                   <p className="text-lg font-semibold text-foreground">
-                    {historicalGrades.maxSectionAverage !== null
-                      ? `${historicalGrades.maxSectionAverage.toFixed(1)}%`
+                    {history.highestSection !== null
+                      ? `${history.highestSection.toFixed(1)}%`
                       : '—'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-text-secondary">Std. deviation</p>
-                  <p className="text-lg font-semibold text-foreground">
-                    {historicalGrades.stddev !== null ? historicalGrades.stddev.toFixed(1) : '—'}
-                  </p>
+                  <p className="text-xs text-text-secondary">Terms offered</p>
+                  <p className="text-lg font-semibold text-foreground">{history.terms.length}</p>
                 </div>
               </div>
 
               <div className="mt-5">
-                <HistoricalGradesTimeline terms={historicalGradesByTerm} />
+                <HistoricalGradesTimeline terms={history.terms} />
               </div>
-
-              <p className="mt-3 text-xs text-text-secondary">
-                Historical data from{' '}
-                <a
-                  href="https://ubcgrades.com"
-                  className="text-brand-accent hover:underline"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  ubcgrades.com
-                </a>
-                .
-              </p>
             </div>
           )}
 

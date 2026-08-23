@@ -127,7 +127,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
             <div key={group.courseId}>
               <Link
                 href={`/course/${group.code.toLowerCase().replace(' ', '-')}`}
-                className="text-lg font-semibold text-brand hover:underline"
+                className="text-lg font-semibold text-brand-accent hover:underline"
               >
                 {group.code}
               </Link>

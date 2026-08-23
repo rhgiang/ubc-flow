@@ -106,7 +106,7 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
           ))}
           <Link
             href={shown.exploreHref}
-            className="flex items-center gap-2 border-t border-border px-5 py-3 text-sm font-medium text-brand hover:bg-surface-muted"
+            className="flex items-center gap-2 border-t border-border px-5 py-3 text-sm font-medium text-brand-accent hover:bg-surface-muted"
           >
             <svg
               viewBox="0 0 24 24"

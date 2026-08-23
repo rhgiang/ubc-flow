@@ -171,7 +171,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
         href={redditHref}
         target="_blank"
         rel="noreferrer"
-        className="mt-4 inline-flex items-center gap-1.5 text-sm text-brand hover:underline"
+        className="mt-4 inline-flex items-center gap-1.5 text-sm text-brand-accent hover:underline"
       >
         Search Reddit for {course.subject.code} {course.number}
       </a>
@@ -179,7 +179,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
       <div className="mt-10 flex items-center justify-between">
         <h2 className="text-xl font-semibold">Ratings</h2>
         {mayReview && (
-          <Link href={`/course/${code}/review`} className="text-sm text-brand hover:underline">
+          <Link href={`/course/${code}/review`} className="text-sm text-brand-accent hover:underline">
             {myReview ? 'Edit your review' : 'Write a review'}
           </Link>
         )}
@@ -271,7 +271,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
                 Historical data from{' '}
                 <a
                   href="https://ubcgrades.com"
-                  className="text-brand hover:underline"
+                  className="text-brand-accent hover:underline"
                   target="_blank"
                   rel="noreferrer"
                 >

@@ -148,7 +148,7 @@ Contents:
 |---|---|---|
 | Header | `Course` | code, title, credits, description |
 | Sections | `Section` + `MeetingTime` + `SectionInstructor` | times, location, seats, instructors, add/remove inline |
-| Instructor ratings | `InstructorRating` (§9) | per instructor on the listed sections |
+| Instructor ratings | `InstructorReview` (ours) + an RMP link-out | our own verified-enrolment ratings; RMP data is **not** ingested — see the §9 supersession note |
 | Grade distribution | `GradeDistribution` | reuses `GradeChart` unchanged |
 | Historical averages | `CourseHistoricalGrades` + `…ByTerm` | reuses `HistoricalGradesTimeline` + summary stats |
 | Requirements | `prereqTree` / `coreqTree` | reuses `RequirementTree` |
@@ -196,6 +196,24 @@ While validating the parser against a real export, the result panel was found to
 ---
 
 ## 9. RateMyProfessors ratings
+
+> **SUPERSEDED — 2026-08-23. The ingest described below was NOT built and must not be.**
+>
+> The §9.1 spike ran; findings in `docs/superpowers/notes/2026-08-23-ratemyprofessors-spike.md`.
+> Every technical question came back positive — unauthenticated GraphQL, 5,372 UBC professors,
+> all needed fields, and an 85.7% name match with **zero** ambiguity over a 300-professor
+> sample. The blocker is policy, not capability: `ratemyprofessors.com/robots.txt` is
+> `User-agent: *` / `Disallow: /` with carve-outs only for named search crawlers, and it
+> separately blocks AI bots by name. `/graphql` is unmentioned, so the wildcard covers it. An
+> unauthenticated endpoint is their own app's backend, not permission.
+>
+> **What was built instead** (see `docs/superpowers/plans/2026-08-23-phase-5-instructor-ratings.md`):
+> §9.4's link-out — an RMP *search* URL built from the instructor's name, with the app making
+> zero requests — alongside our own `InstructorReview` data surfaced in the course overlay via
+> the existing `aggregateInstructorReviews`. No `InstructorRating` model, no ingest job.
+>
+> §§9.2, 9.3 and 9.5 below are retained as a record of the design that was evaluated and
+> rejected. Do not implement them. Revisit only via a licensed feed from RMP.
 
 New subsystem. RMP publishes no public API, so this is the highest-risk item in the phase and is sequenced last.
 

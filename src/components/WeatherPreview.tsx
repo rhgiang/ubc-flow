@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // ponytail: temporary dev control — lets you preview every sky state without
 // waiting for real weather. Delete this component (and its line in layout.tsx)
@@ -13,6 +13,25 @@ export default function WeatherPreview() {
   const [open, setOpen] = useState(false);
   const [night, setNight] = useState(false);
   const [condition, setCondition] = useState<Condition>('rain');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Same dismissal the theme menu has, so whichever of the two you reach for
+  // closes the other instead of the pair stacking up in the corner.
+  useEffect(() => {
+    if (!open) return;
+    function onClickOutside(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', onClickOutside);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
 
   function show(cond: Condition, isNight: boolean) {
     setCondition(cond);
@@ -24,7 +43,7 @@ export default function WeatherPreview() {
   }
 
   return (
-    <div className="fixed bottom-6 left-20 z-50">
+    <div ref={containerRef} className="fixed bottom-6 left-20 z-50">
       {open && (
         <div className="absolute bottom-14 left-0 w-56 rounded-card border border-border bg-surface p-3 shadow-lg">
           <p className="text-xs font-medium text-text-secondary">Preview sky</p>

@@ -347,33 +347,39 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                 No {tab === 'courses' ? 'courses' : 'professors'} match these filters.
               </p>
             )}
-          </div>
 
-          {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between text-sm">
-              <Link
-                href={hrefWith(sp, { page: String(page - 1) })}
-                aria-disabled={page <= 1}
-                className={`rounded-pill border border-border px-5 py-2.5 ${
-                  page <= 1 ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
-                }`}
+            {/* Attached to the list it pages — same paper, one object. */}
+            {totalPages > 1 && (
+              <nav
+                aria-label="Pagination"
+                className="flex items-center justify-between border-t border-border px-4 py-3 text-sm font-medium"
               >
-                Previous
-              </Link>
-              <span className="text-text-secondary">
-                Page {page} of {totalPages}
-              </span>
-              <Link
-                href={hrefWith(sp, { page: String(page + 1) })}
-                aria-disabled={page >= totalPages}
-                className={`rounded-pill border border-border px-5 py-2.5 ${
-                  page >= totalPages ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
-                }`}
-              >
-                Next
-              </Link>
-            </div>
-          )}
+                {page <= 1 ? (
+                  <span className="rounded-pill border border-border px-5 py-2.5 opacity-40">Previous</span>
+                ) : (
+                  <Link
+                    href={hrefWith(sp, { page: String(page - 1) })}
+                    className="rounded-pill border border-border px-5 py-2.5 hover:bg-surface-muted"
+                  >
+                    Previous
+                  </Link>
+                )}
+                <span className="tabular-nums text-text-secondary">
+                  Page {page} of {totalPages}
+                </span>
+                {page >= totalPages ? (
+                  <span className="rounded-pill border border-border px-5 py-2.5 opacity-40">Next</span>
+                ) : (
+                  <Link
+                    href={hrefWith(sp, { page: String(page + 1) })}
+                    className="rounded-pill border border-border px-5 py-2.5 hover:bg-surface-muted"
+                  >
+                    Next
+                  </Link>
+                )}
+              </nav>
+            )}
+          </div>
         </div>
 
         <aside className="sky-panel hidden h-fit p-5 lg:block">

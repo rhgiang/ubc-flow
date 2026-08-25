@@ -9,16 +9,24 @@ import type { WeatherNow } from '@/lib/weather';
  * The button can also be dragged to any corner, so it can be moved off
  * whatever it happens to be covering (the builder's course cards, most often).
  *
- * The stored mode lives in localStorage as `theme` (light | dark | weather |
- * contrast | contrast-dark). `data-mode` on <html> records the chosen mode (the
- * button icon and menu checkmarks key off it via CSS attribute selectors, so
- * nothing here needs hydration-sensitive state); `data-theme` stays
- * light/dark/contrast and keeps driving every CSS token rule. Weather mode maps
- * to light or dark from campus daylight and adds `data-weather` so the sky
- * layers and shader match conditions outside.
+ * The stored mode lives in localStorage as `theme` (day | night | weather |
+ * light | dark). `data-mode` on <html> records the chosen mode (the button icon
+ * and menu checkmarks key off it via CSS attribute selectors, so nothing here
+ * needs hydration-sensitive state); `data-theme` stays light or dark and keeps
+ * driving every CSS token rule. Weather mode picks between them from campus
+ * daylight and adds `data-weather` so the sky layers and shader match
+ * conditions outside.
  */
 
-type Mode = 'light' | 'dark' | 'weather' | 'contrast' | 'contrast-dark';
+/**
+ * Day / Night / Campus weather are the sky; Light / Dark are the plain UI the
+ * site had before it, charcoal dark included. Both families run on the same
+ * two palettes — `data-plain` is the only thing that separates them, and it is
+ * what globals.css and SkyClouds key the sky off.
+ */
+type Mode = 'day' | 'night' | 'weather' | 'light' | 'dark';
+
+const PLAIN: Mode[] = ['light', 'dark'];
 
 function apply(mode: Mode, weather: WeatherNow | null) {
   const root = document.documentElement;
@@ -31,9 +39,11 @@ function apply(mode: Mode, weather: WeatherNow | null) {
     root.setAttribute('data-theme', day ? 'light' : 'dark');
     root.setAttribute('data-weather', weather?.condition ?? 'cloudy');
   } else {
-    root.setAttribute('data-theme', mode);
+    root.setAttribute('data-theme', mode === 'day' || mode === 'light' ? 'light' : 'dark');
     root.removeAttribute('data-weather');
   }
+  if (PLAIN.includes(mode)) root.setAttribute('data-plain', '');
+  else root.removeAttribute('data-plain');
   localStorage.setItem('theme', mode);
 }
 
@@ -60,13 +70,13 @@ const CLOUD = (
     strokeLinejoin="round"
   />
 );
-const CONTRAST = (
+const PLAIN_LIGHT = (
   <>
     <circle cx="12" cy="12" r="9" />
     <path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" stroke="none" />
   </>
 );
-const CONTRAST_DARK = (
+const PLAIN_DARK = (
   <>
     <circle cx="12" cy="12" r="9" fill="currentColor" />
     <path d="M12 3a9 9 0 0 1 0 18Z" fill="var(--surface)" stroke="none" />
@@ -74,31 +84,30 @@ const CONTRAST_DARK = (
 );
 
 const OPTIONS: { mode: Mode; label: string; icon: React.ReactNode }[] = [
-  { mode: 'light', label: 'Light', icon: SUN },
-  { mode: 'dark', label: 'Dark', icon: MOON },
+  { mode: 'day', label: 'Day', icon: SUN },
+  { mode: 'night', label: 'Night', icon: MOON },
   { mode: 'weather', label: 'Campus weather', icon: CLOUD },
-  { mode: 'contrast', label: 'High contrast', icon: CONTRAST },
-  { mode: 'contrast-dark', label: 'High contrast dark', icon: CONTRAST_DARK },
+  { mode: 'light', label: 'Light', icon: PLAIN_LIGHT },
+  { mode: 'dark', label: 'Dark', icon: PLAIN_DARK },
 ];
 
 // Shows this option's icon on the trigger button only while its mode is
 // active. Literal strings â€” Tailwind can't see interpolated class names.
 const ICON_WHEN_ACTIVE: Record<Mode, string> = {
-  light: 'hidden [html[data-mode=light]_&]:block [html:not([data-mode])_&]:block',
-  dark: 'hidden [html[data-mode=dark]_&]:block',
+  day: 'hidden [html[data-mode=day]_&]:block [html:not([data-mode])_&]:block',
+  night: 'hidden [html[data-mode=night]_&]:block',
   weather: 'hidden [html[data-mode=weather]_&]:block',
-  contrast: 'hidden [html[data-mode=contrast]_&]:block',
-  'contrast-dark': 'hidden [html[data-mode=contrast-dark]_&]:block',
+  light: 'hidden [html[data-mode=light]_&]:block',
+  dark: 'hidden [html[data-mode=dark]_&]:block',
 };
 
 // Highlights this menu row while its mode is active.
 const ROW_WHEN_ACTIVE: Record<Mode, string> = {
-  light: '[html[data-mode=light]_&]:bg-brand [html[data-mode=light]_&]:text-brand-foreground [html:not([data-mode])_&]:bg-brand [html:not([data-mode])_&]:text-brand-foreground',
-  dark: '[html[data-mode=dark]_&]:bg-brand [html[data-mode=dark]_&]:text-brand-foreground',
+  day: '[html[data-mode=day]_&]:bg-brand [html[data-mode=day]_&]:text-brand-foreground [html:not([data-mode])_&]:bg-brand [html:not([data-mode])_&]:text-brand-foreground',
+  night: '[html[data-mode=night]_&]:bg-brand [html[data-mode=night]_&]:text-brand-foreground',
   weather: '[html[data-mode=weather]_&]:bg-brand [html[data-mode=weather]_&]:text-brand-foreground',
-  contrast: '[html[data-mode=contrast]_&]:bg-brand [html[data-mode=contrast]_&]:text-brand-foreground',
-  'contrast-dark':
-    '[html[data-mode=contrast-dark]_&]:bg-brand [html[data-mode=contrast-dark]_&]:text-brand-foreground',
+  light: '[html[data-mode=light]_&]:bg-brand [html[data-mode=light]_&]:text-brand-foreground',
+  dark: '[html[data-mode=dark]_&]:bg-brand [html[data-mode=dark]_&]:text-brand-foreground',
 };
 
 const CORNER_KEY = 'theme-toggle-corner';

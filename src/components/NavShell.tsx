@@ -17,11 +17,15 @@ const DELTA = 6;
  */
 export default function NavShell({ children }: { children: ReactNode }) {
   const [hidden, setHidden] = useState(false);
+  // Past the top zone the frosted bar turns solid navy (see globals.css) —
+  // fully translucent glass only makes sense while the sky is the show.
+  const [scrolled, setScrolled] = useState(false);
   const lastY = useRef(0);
   const ticking = useRef(false);
 
   useEffect(() => {
     lastY.current = window.scrollY;
+    setScrolled(window.scrollY > TOP_ZONE);
 
     const onScroll = () => {
       // Coalesce bursts of scroll events into one update per frame.
@@ -30,6 +34,7 @@ export default function NavShell({ children }: { children: ReactNode }) {
       requestAnimationFrame(() => {
         const y = window.scrollY;
         const diff = y - lastY.current;
+        setScrolled(y > TOP_ZONE);
         if (y <= TOP_ZONE) {
           setHidden(false);
           lastY.current = y;
@@ -49,6 +54,7 @@ export default function NavShell({ children }: { children: ReactNode }) {
     <header
       className="border-b border-border-hairline bg-background"
       data-nav-hidden={hidden || undefined}
+      data-nav-scrolled={scrolled || undefined}
     >
       {children}
     </header>

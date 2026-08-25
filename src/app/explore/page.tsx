@@ -116,7 +116,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                 <Link
                   key={lvl}
                   href={hrefWith(sp, { level: nextLevels.join(',') || null })}
-                  className={`rounded-pill border px-3 py-1 text-xs font-medium ${
+                  className={`rounded-pill border px-3.5 py-2 text-sm font-medium ${
                     active
                       ? 'border-brand bg-brand text-brand-foreground'
                       : 'border-border text-foreground hover:bg-surface-muted'
@@ -134,7 +134,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
               <Link
                 key={t.id}
                 href={hrefWith(sp, { term: sp.term === t.id ? null : t.id })}
-                className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
+                className={`rounded-pill border px-3.5 py-2 text-left text-sm font-medium ${
                   sp.term === t.id
                     ? 'border-brand bg-brand text-brand-foreground'
                     : 'border-border text-foreground hover:bg-surface-muted'
@@ -149,7 +149,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           <div className="mt-2 flex flex-col gap-1.5">
             <Link
               href={hrefWith(sp, { requirements: requirements === 'none' ? null : 'none' })}
-              className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
+              className={`rounded-pill border px-3.5 py-2 text-left text-sm font-medium ${
                 requirements === 'none'
                   ? 'border-brand bg-brand text-brand-foreground'
                   : 'border-border text-foreground hover:bg-surface-muted'
@@ -159,7 +159,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             </Link>
             <Link
               href={hrefWith(sp, { requirements: requirements === 'has' ? null : 'has' })}
-              className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
+              className={`rounded-pill border px-3.5 py-2 text-left text-sm font-medium ${
                 requirements === 'has'
                   ? 'border-brand bg-brand text-brand-foreground'
                   : 'border-border text-foreground hover:bg-surface-muted'
@@ -179,7 +179,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
       {hasFilters && (
         <Link
           href="/explore"
-          className="mt-6 flex items-center justify-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-xs font-medium text-brand-foreground hover:bg-brand-hover"
+          className="mt-6 flex items-center justify-center gap-1.5 rounded-pill bg-brand px-4 py-2.5 text-sm font-medium text-brand-foreground hover:bg-brand-hover"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
             <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
@@ -202,7 +202,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           <div className="sky-panel flex overflow-hidden">
             <Link
               href={hrefWith(sp, { tab: null })}
-              className={`flex-1 px-4 py-3 text-center text-sm font-semibold ${
+              className={`flex-1 px-4 py-3.5 text-center text-[15px] font-semibold ${
                 tab === 'courses' ? 'bg-surface text-foreground' : 'bg-surface-muted text-text-secondary'
               }`}
             >
@@ -210,7 +210,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             </Link>
             <Link
               href={hrefWith(sp, { tab: 'professors' })}
-              className={`flex-1 px-4 py-3 text-center text-sm font-semibold ${
+              className={`flex-1 px-4 py-3.5 text-center text-[15px] font-semibold ${
                 tab === 'professors' ? 'bg-surface text-foreground' : 'bg-surface-muted text-text-secondary'
               }`}
             >
@@ -237,7 +237,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
               <Link
                 key={h.key}
                 href={hrefWith(sp, { sort: h.key })}
-                className="whitespace-nowrap rounded-pill border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted"
+                className="whitespace-nowrap rounded-pill border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-surface-muted"
               >
                 {h.label}
               </Link>
@@ -245,7 +245,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           </div>
 
           <div className="sky-panel mt-4 overflow-x-auto">
-            <table className="sky-table hidden w-full text-left text-sm sm:table">
+            <table className="sky-table hidden w-full text-left text-[15px] sm:table">
               <thead className="border-b border-border text-xs text-text-secondary">
                 <tr>
                   {SORT_HEADERS.map((h) => (
@@ -315,7 +315,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                       >
                         {r.code}
                       </Link>
-                      <p className="mt-0.5 text-sm text-foreground">{r.title}</p>
+                      <p className="mt-0.5 text-[15px] text-foreground">{r.title}</p>
                       <p className="mt-1.5 text-xs tabular-nums text-text-tertiary">
                         {r.reviewCount} {r.reviewCount === 1 ? 'review' : 'reviews'}
                         {r.useful !== null && ` · Useful ${r.useful.toFixed(1)}/5`}
@@ -354,7 +354,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
               <Link
                 href={hrefWith(sp, { page: String(page - 1) })}
                 aria-disabled={page <= 1}
-                className={`rounded-pill border border-border px-4 py-2 ${
+                className={`rounded-pill border border-border px-5 py-2.5 ${
                   page <= 1 ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
                 }`}
               >
@@ -366,7 +366,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
               <Link
                 href={hrefWith(sp, { page: String(page + 1) })}
                 aria-disabled={page >= totalPages}
-                className={`rounded-pill border border-border px-4 py-2 ${
+                className={`rounded-pill border border-border px-5 py-2.5 ${
                   page >= totalPages ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
                 }`}
               >

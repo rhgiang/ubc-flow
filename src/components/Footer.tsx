@@ -1,37 +1,40 @@
 import Link from 'next/link';
 
 /**
- * Site footer. Rendered inside the sky container (PageBackground), so it
- * needs its own opaque substrate: a full-width bg-background strip with a
- * hairline top border reads in every theme — solid over the sky, and it
- * inherits the high-contrast tokens for free when the sky is switched off.
+ * Site footer. Lives in the sky rather than on a solid strip — .sky-footer
+ * (globals.css) gives it the white-with-halo treatment the nav uses, and
+ * swaps to ink-on-paper in the high-contrast modes where the sky is off.
+ *
+ * Extra bottom padding on phones keeps the links clear of the floating
+ * theme/sky buttons pinned to the bottom-left corner.
  */
 export default function Footer() {
   return (
-    <footer className="relative z-10 border-t border-border-hairline bg-background">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-6 text-xs text-text-secondary">
-        <p>
-          © 2026 UBC Flow · <span className="whitespace-nowrap">Built by students, not affiliated with UBC</span>
-        </p>
-        <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <Link href="/about" className="hover:text-foreground">
+    <footer className="sky-footer relative z-10">
+      <div className="mx-auto w-full max-w-6xl px-6 pb-24 pt-12 text-center sm:pb-10">
+        <nav className="flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-sm font-medium">
+          <Link href="/about" className="py-1 hover:text-foreground hover:underline">
             About
           </Link>
-          <Link href="/privacy" className="hover:text-foreground">
+          <Link href="/privacy" className="py-1 hover:text-foreground hover:underline">
             Privacy
           </Link>
-          <Link href="/terms" className="hover:text-foreground">
+          <Link href="/terms" className="py-1 hover:text-foreground hover:underline">
             Terms
           </Link>
           <a
             href="https://ubcgrades.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="whitespace-nowrap hover:text-foreground"
+            className="whitespace-nowrap py-1 hover:text-foreground hover:underline"
           >
             Grade data: UBC PAIR
           </a>
         </nav>
+        <p className="mt-4 text-[13px]">
+          © 2026 UBC Flow ·{' '}
+          <span className="whitespace-nowrap">Built by students, not affiliated with UBC</span>
+        </p>
       </div>
     </footer>
   );

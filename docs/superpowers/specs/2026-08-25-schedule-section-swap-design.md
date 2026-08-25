@@ -62,8 +62,9 @@ In scope:
 Out of scope:
 
 - Any change to conflict detection itself. `findConflicts` is untouched.
-- Any change to the advisory banner or ring. Both stay as they are, in
-  `--danger`, by explicit decision (§9.4).
+- Any restyling of the banner or the calendar ring. Both keep `--danger` by
+  explicit decision (§9.4). The banner does become dismissible (§7.1), which is
+  a behaviour change, not a styling one.
 - Swapping more than one section at a time.
 - Server-side conflict validation. Overlaps remain legal to persist.
 
@@ -176,9 +177,35 @@ Constraints:
 
 - The gate fires only on Save. Planning stays silent — overlapping freely while
   working things out is useful and is the reason overlaps are permitted at all.
+- Dismissing the banner (§7.1) must **not** suppress this dialog. They are
+  independent: one is a passive notice, the other is the decision point.
 - It fires whenever conflicts exist, every save. No "don't ask again" — a
   suppression preference is speculative until someone asks for it.
 - It must not fire when there are no conflicts, so the common path is unchanged.
+
+### 7.1 The banner is dismissible
+
+The conflict banner currently renders for as long as an overlap exists, with no
+way to put it away. A warning that cannot be dismissed becomes furniture — it
+stops being read, which is the opposite of what it is for, and it costs vertical
+space above the calendar for the whole session.
+
+It gains a close control. Dismissal is scoped to the **current set of
+overlaps**, not to the session:
+
+- Dismissing hides the banner for exactly the overlaps present at that moment.
+- If the set changes — a new overlap appears, or an existing one is resolved and
+  a different one takes its place — the banner returns.
+- Resolving every overlap and creating a new one later shows it again.
+
+This is deliberately not a "don't show again" preference. Silencing a warning
+permanently would mean a student who dismissed it in September never learns
+about a clash they introduce in November.
+
+Implementation note: derive dismissal by comparing a key built from the current
+conflict pairs against the key that was dismissed. Do not reset the flag from an
+effect — this file is already subject to the `set-state-in-effect` lint rule,
+and a derived comparison needs no effect at all.
 
 ## 8. Testing
 
@@ -186,6 +213,8 @@ Constraints:
   section already held does not duplicate it.
 - The save gate — a schedule with conflicts does not persist until confirmed;
   a schedule without conflicts saves with no dialog.
+- Banner dismissal — hiding it does not stop the save gate from firing, and a
+  newly introduced overlap brings the banner back.
 - `findConflicts` is pure and already covered; this work does not change it.
 
 Vitest, matching the existing suite.
@@ -213,12 +242,17 @@ Nothing is committed until Save, the calendar shows the result immediately, and
 the action is trivially reversible. A dialog on every swap would be friction on
 an undoable local edit while the real decision point sits at Save.
 
-### 9.4 The conflict banner stays red
+### 9.4 The conflict banner stays red, but becomes dismissible
 
 Proposed and declined: softening the banner from `--danger` to a warning tone,
 on the grounds that its styling is what caused a success to be read as a
-failure (§1.2). Kept as-is by explicit decision. The save gate now supplies the
-real decision point, which addresses the underlying problem from the other end.
+failure (§1.2). Kept red by explicit decision.
+
+Added instead: the banner can be dismissed (§7.1). This addresses the same
+underlying problem from a different angle — a permanent red bar trains the
+student to ignore it, so making it dismissible keeps it meaningful when it does
+appear. Dismissal is scoped to the current set of overlaps rather than the
+session, so it can never hide an overlap the student has not already seen.
 
 ## 10. Open questions
 

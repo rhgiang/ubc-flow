@@ -486,21 +486,16 @@ body {
 }
 
 /*
- * Collapses inward from both edges toward the centre on the way down, and
- * opens back outward on the way up. Clipping rather than scaling means the
- * logo and links keep their proportions instead of squashing horizontally.
+ * Slides up and fades on the way down, returns the same way on the way up —
+ * the earlier collapse-toward-centre clip read as a mechanical iris. The
+ * ease is a decisive start with a long soft landing (Apple's sheet curve).
  */
 .sky-root > header[data-nav-hidden] > .nav-bar {
-  clip-path: inset(0 50% 0 50% round 14px);
   opacity: 0;
-  transform: scale(0.97);
-  /* This set applies while COLLAPSING. The opacity delay is the point: fading
-     on the way in hid most of the movement, so the bar now stays fully opaque
-     until it is almost shut, then drops out over the last moment. */
+  transform: translateY(-115%);
   transition:
-    clip-path 0.85s cubic-bezier(0.65, 0, 0.35, 1),
-    transform 0.85s cubic-bezier(0.65, 0, 0.35, 1),
-    opacity 0.18s ease 0.66s;
+    transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.32s ease 0.08s;
 }
 
 /*
@@ -512,12 +507,10 @@ body {
  * cloud detail that was showing through as patchy light and dark.
  */
 .sky-root > header > .nav-bar {
-  clip-path: inset(0 0 0 0 round 14px);
-  /* This set applies while EXPANDING: the fill returns immediately so the bar
-     is visible the whole way as it opens back outward. */
+  /* This set applies while RETURNING: opacity leads so the bar is visible
+     the whole way back down. */
   transition:
-    clip-path 0.85s cubic-bezier(0.65, 0, 0.35, 1),
-    transform 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
     opacity 0.22s ease,
     background-color 0.3s ease,
     border-color 0.3s ease;

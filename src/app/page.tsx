@@ -6,22 +6,19 @@ export default async function Home() {
   const session = await auth();
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6">
-      <div
-        className={`mx-auto w-full max-w-2xl text-center ${
-          // With no login panel below it, the block reads as sitting too low
-          // dead-centered in the viewport — nudge it up well above center.
-          session?.user ? 'mb-48' : ''
-        }`}
-      >
-        <h1 className="sky-hero text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+    // Anchored to the upper third rather than dead-centered: the hero owns
+    // the top of the viewport whether or not the login panel renders below,
+    // which also retires the old logged-in-only mb-48 nudge.
+    <main className="flex flex-1 flex-col items-center px-6 pt-[14vh] sm:pt-[16vh]">
+      <div className="mx-auto w-full max-w-3xl text-center">
+        <h1 className="sky-hero text-balance text-4xl font-semibold leading-[1.12] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
           Search and explore course and professor reviews from UBC students
         </h1>
 
         <SearchBar defaultValue="" />
 
         {!session?.user && (
-          <div className="mt-10 flex justify-center">
+          <div className="mt-12 flex justify-center pb-16">
             <AuthPanel initialMode="login" />
           </div>
         )}

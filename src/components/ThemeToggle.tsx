@@ -17,7 +17,7 @@ import type { WeatherNow } from '@/lib/weather';
  * match conditions outside.
  */
 
-type Mode = 'light' | 'dark' | 'weather' | 'contrast';
+type Mode = 'light' | 'dark' | 'weather' | 'contrast' | 'contrast-dark';
 
 function apply(mode: Mode, weather: WeatherNow | null) {
   const root = document.documentElement;
@@ -65,12 +65,19 @@ const CONTRAST = (
     <path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" stroke="none" />
   </>
 );
+const CONTRAST_DARK = (
+  <>
+    <circle cx="12" cy="12" r="9" fill="currentColor" />
+    <path d="M12 3a9 9 0 0 1 0 18Z" fill="var(--surface)" stroke="none" />
+  </>
+);
 
 const OPTIONS: { mode: Mode; label: string; icon: React.ReactNode }[] = [
   { mode: 'light', label: 'Light', icon: SUN },
   { mode: 'dark', label: 'Dark', icon: MOON },
   { mode: 'weather', label: 'Campus weather', icon: CLOUD },
   { mode: 'contrast', label: 'High contrast', icon: CONTRAST },
+  { mode: 'contrast-dark', label: 'High contrast dark', icon: CONTRAST_DARK },
 ];
 
 // Shows this option's icon on the trigger button only while its mode is
@@ -80,6 +87,7 @@ const ICON_WHEN_ACTIVE: Record<Mode, string> = {
   dark: 'hidden [html[data-mode=dark]_&]:block',
   weather: 'hidden [html[data-mode=weather]_&]:block',
   contrast: 'hidden [html[data-mode=contrast]_&]:block',
+  'contrast-dark': 'hidden [html[data-mode=contrast-dark]_&]:block',
 };
 
 // Highlights this menu row while its mode is active.
@@ -88,6 +96,8 @@ const ROW_WHEN_ACTIVE: Record<Mode, string> = {
   dark: '[html[data-mode=dark]_&]:bg-brand [html[data-mode=dark]_&]:text-brand-foreground',
   weather: '[html[data-mode=weather]_&]:bg-brand [html[data-mode=weather]_&]:text-brand-foreground',
   contrast: '[html[data-mode=contrast]_&]:bg-brand [html[data-mode=contrast]_&]:text-brand-foreground',
+  'contrast-dark':
+    '[html[data-mode=contrast-dark]_&]:bg-brand [html[data-mode=contrast-dark]_&]:text-brand-foreground',
 };
 
 export default function ThemeToggle({ weather }: { weather: WeatherNow | null }) {

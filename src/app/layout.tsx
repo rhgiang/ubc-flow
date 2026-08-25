@@ -38,7 +38,7 @@ const THEME_INIT = `
 (function () {
   try {
     var stored = localStorage.getItem('theme');
-    var mode = ['light', 'dark', 'weather', 'contrast'].indexOf(stored) >= 0
+    var mode = ['light', 'dark', 'weather', 'contrast', 'contrast-dark'].indexOf(stored) >= 0
       ? stored
       : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     var theme = mode;

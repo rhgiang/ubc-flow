@@ -222,26 +222,26 @@ const WEATHER: Record<string, Partial<Palette>> = {
   overcast: { coverage: 0.06, alpha: 1.0, color: [0.93, 0.94, 0.96], colorLow: [0.85, 0.87, 0.9] },
   fog: { coverage: -0.1, alpha: 0.6, color: [0.92, 0.93, 0.95], colorLow: [0.9, 0.91, 0.93] },
   rain: {
-    coverage: 0.04,
-    alpha: 1.0,
+    coverage: 0.12,
+    alpha: 0.92,
     color: [0.78, 0.8, 0.85],
     colorLow: [0.68, 0.71, 0.77],
-    precip: 1.0,
+    precip: 0.7,
   },
   snow: {
-    coverage: 0.06,
-    alpha: 1.0,
+    coverage: 0.14,
+    alpha: 0.92,
     color: [0.9, 0.91, 0.94],
     colorLow: [0.84, 0.86, 0.9],
-    precip: 1.0,
+    precip: 0.75,
     ptype: 1,
   },
   storm: {
-    coverage: 0.0,
-    alpha: 1.0,
-    color: [0.62, 0.64, 0.7],
-    colorLow: [0.52, 0.55, 0.62],
-    precip: 1.6,
+    coverage: 0.06,
+    alpha: 0.95,
+    color: [0.64, 0.66, 0.72],
+    colorLow: [0.54, 0.57, 0.64],
+    precip: 1.0,
   },
 };
 
@@ -355,7 +355,7 @@ export default function SkyClouds() {
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const root = document.documentElement;
-    const isContrast = () => root.getAttribute('data-theme') === 'contrast';
+    const isContrast = () => (root.getAttribute('data-theme') ?? '').startsWith('contrast');
 
     const applyPalette = () => {
       const dark = root.getAttribute('data-theme') === 'dark';
@@ -369,13 +369,17 @@ export default function SkyClouds() {
         p.color = p.color.map((c) => c * 0.55) as Palette['color'];
         p.colorLow = p.colorLow.map((c) => c * 0.55) as Palette['colorLow'];
       }
+      // Content pages set data-sky-dim (see PageBackground): the sky is a
+      // backdrop for reading there, not the show — clouds thin out and the
+      // precipitation drops to a hint.
+      const dim = root.hasAttribute('data-sky-dim');
       gl.uniform3f(u.color, ...p.color);
       gl.uniform3f(u.colorLow, ...p.colorLow);
-      gl.uniform1f(u.alpha, p.alpha);
-      gl.uniform1f(u.coverage, p.coverage);
+      gl.uniform1f(u.alpha, p.alpha * (dim ? 0.6 : 1));
+      gl.uniform1f(u.coverage, p.coverage + (dim ? 0.08 : 0));
       gl.uniform1f(u.top, 0.0);
       gl.uniform1f(u.bottom, 1.0);
-      gl.uniform1f(u.precip, p.precip ?? 0);
+      gl.uniform1f(u.precip, (p.precip ?? 0) * (dim ? 0.45 : 1));
       gl.uniform1f(u.ptype, p.ptype ?? 0);
     };
     applyPalette();
@@ -438,7 +442,7 @@ export default function SkyClouds() {
     const themeWatch = new MutationObserver(onThemeChange);
     themeWatch.observe(root, {
       attributes: true,
-      attributeFilter: ['data-theme', 'data-weather'],
+      attributeFilter: ['data-theme', 'data-weather', 'data-sky-dim'],
     });
     onThemeChange();
 

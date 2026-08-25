@@ -69,29 +69,57 @@ float fbm(vec2 p) {
   return v;
 }
 
-// One depth layer of rain: motion-blurred streaks in a jittered grid. Each
-// streak is a soft gaussian across its width, tapered at both ends so it
-// reads as a blurred falling drop rather than a printed dash.
-float rainLayer(vec2 uv, float t, vec2 grid, float speed, float keep) {
+// One depth layer of rain: motion-blurred streaks on a scrolling lattice,
+// one streak per cell. Where the streak sits inside its cell, how long it
+// is, and how bright it burns all come from that cell's own hash. Without
+// that per-drop jitter every streak in a column shares one phase and one
+// length, and the column reads as a printed dashed line rather than rain.
+float rainLayer(vec2 uv, float t, vec2 grid, float speed, float keep, float slant) {
+  uv.x += uv.y * slant;
   float col = floor(uv.x * grid.x);
   // Per-column phase offset so streaks never form horizontal ranks.
   uv.y += t * speed + hash(vec2(col, 9.7)) * 4.0;
   vec2 id = floor(uv * grid);
   float ph = hash(id);
   vec2 f = fract(uv * grid);
-  float dx = f.x - (0.3 + 0.4 * hash(id + 5.3));
+
+  // Across the streak: a soft gaussian, thrown well off the column centre so
+  // the lattice spacing itself stops being legible.
+  float dx = f.x - (0.15 + 0.7 * hash(id + 5.3));
   float streak = exp(-dx * dx * grid.x * grid.x * 0.35);
-  streak *= smoothstep(0.0, 0.35, f.y) * smoothstep(1.0, 0.55, f.y);
+
+  // Along the streak: its own start and length, both kept inside the cell so
+  // no drop is clipped at a boundary — a clipped drop puts back the very
+  // horizontal seam the jitter exists to remove. Short drops overlap their
+  // own fades and come out dimmer, which is what a smaller drop should do.
+  float a = 0.04 + 0.34 * hash(id + 2.7);
+  float b = min(a + 0.14 + 0.30 * hash(id + 8.1), 0.96);
+  streak *= smoothstep(a, a + 0.08, f.y) * smoothstep(b, b - 0.08, f.y);
+
+  // Per-drop brightness; a field of identically bright drops reads as a
+  // texture laid over the sky rather than as weather moving through it.
+  // Centred on 1.0 so the variation adds contrast without dimming the field.
+  streak *= 0.6 + 0.8 * hash(id + 4.2);
   return streak * step(1.0 - keep, ph);
 }
 
-// Two depths of rain: near streaks longer, faster, and heavier; far ones
-// finer and dimmer. The parallax between them is what sells the volume.
+// Three depths of rain: near streaks longer, faster, heavier and close to
+// vertical; far ones finer, slower, dimmer — and slanted harder, because the
+// same wind pushes a slower-falling drop further sideways. That difference in
+// slant between the layers, not just the difference in speed, is what gives
+// the volume its depth. Two layers alone read as two sheets of glass.
 float rain(vec2 uv, float t) {
-  uv.x += uv.y * 0.14; // wind slant
-  float nearR = rainLayer(uv, t, vec2(55.0, 2.6), 2.4, 0.38);
-  float farR = rainLayer(uv + 3.1, t, vec2(90.0, 4.0), 1.6, 0.3) * 0.5;
-  return nearR + farR;
+  // A slow gust so the field breathes instead of marching at one fixed angle.
+  float gust = 1.0 + 0.18 * sin(t * 0.27);
+  // The three vertical periods are kept far apart (2.6 / 4.4 / 7.0) on
+  // purpose. Near-equal periods beat against each other and the eye locks
+  // onto the shared rhythm; spread out, no single spacing is legible. Each
+  // layer's keep is set so keep * grid.y stays ~1, holding drop density
+  // roughly constant as the cells get smaller.
+  float nearR = rainLayer(uv, t, vec2(55.0, 2.6), 2.4, 0.46, 0.10 * gust);
+  float midR = rainLayer(uv + 7.3, t, vec2(72.0, 4.4), 2.0, 0.30, 0.14 * gust) * 0.72;
+  float farR = rainLayer(uv + 3.1, t, vec2(95.0, 7.0), 1.6, 0.22, 0.19 * gust) * 0.5;
+  return nearR + midR + farR;
 }
 
 // One depth layer of snow: soft gaussian flakes, each with its own size,

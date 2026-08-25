@@ -132,6 +132,28 @@ describe('importExport', () => {
     expect(await db.enrollment.count({ where: { userId: userB } })).toBe(0);
   });
 
+  it('drops a course that is no longer in a re-uploaded term, meetings and all', async () => {
+    // Any other catalogued CPSC course stands in for "the student swapped
+    // one course for another" — the row's shape is what matters, not which.
+    const other = await db.course.findFirstOrThrow({
+      where: { subject: { code: 'CPSC', campus: 'V' }, number: { not: '110' } },
+      select: { id: true, number: true },
+    });
+    const swapped: ParsedExport = {
+      ...parsed,
+      rows: [{ ...parsed.rows[0], courseNumber: other.number }],
+    };
+
+    const r = await importExport(userA, swapped);
+    expect(r.matched).toBe(1);
+    expect(r.removed).toBe(1);
+
+    const rows = await db.enrollment.findMany({ where: { userId: userA } });
+    expect(rows.map((e) => e.courseId)).toEqual([other.id]);
+    const meetings = await db.enrollmentMeeting.findMany({ where: { userId: userA } });
+    expect(meetings.map((m) => m.courseId)).toEqual([other.id]);
+  });
+
   it('refuses to rebind an already-verified account to a different, unclaimed student number', async () => {
     const first: ParsedExport = {
       studentNumber: '11111111',

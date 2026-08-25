@@ -8,6 +8,8 @@ import { layoutDayColumns } from '@/schedule/layout';
 export type CalendarEntry = ScheduleEntry & {
   id: string;
   location?: string | null;
+  /** Blank on most lab/tutorial rows — Workday only names the lecture's. */
+  instructor?: string | null;
   /** Colour is keyed on this when present, else on `label`. */
   courseCode?: string | null;
   /** Set when the block should be clickable to open the course overlay. */
@@ -15,7 +17,9 @@ export type CalendarEntry = ScheduleEntry & {
 };
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;
-const HOUR_PX = 56;
+// Sized off the tightest real block: a 1-hour meeting has to hold four lines
+// — code, time, room, instructor — without the text filling it wall to wall.
+const HOUR_PX = 76;
 // The grid always covers the whole day and scrolls, the way Workday's and
 // Google's do — rather than resizing itself to whatever the current selection
 // happens to span, which made the rows jump whenever a section was added.
@@ -24,9 +28,9 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 // grid opens there; the small hours stay one scroll away rather than eating
 // the viewport.
 const OPENING_HOUR = 8;
-// Tall enough to show ~8 AM-6 PM at once, capped so several stacked calendars
+// Tall enough to show ~9 hours at once, capped so several stacked calendars
 // on /schedule stay navigable.
-const VIEWPORT_MAX_PX = 600;
+const VIEWPORT_MAX_PX = 680;
 
 /** "14:30" -> 870. */
 function toMinutes(hhmm: string): number {
@@ -83,11 +87,20 @@ export default function ScheduleCalendar({
   // the viewer's, so deriving either during render would hydrate-mismatch —
   // including the day-header highlight, which is easy to overlook.
   const scrollRef = useRef<HTMLDivElement>(null);
-  // Open on the working day rather than on midnight. The extra offset keeps the
-  // 8 AM label clear of the sticky header instead of half-tucked under it.
+  // Open on the earliest class rather than on midnight, so a term that starts
+  // at 8 or at 13:00 is on screen without scrolling either way; 8 AM is the
+  // fallback when nothing is timed. The offset keeps that first hour label
+  // clear of the sticky header instead of half-tucked under it.
+  const starts = entries.filter((e) => e.startTime).map((e) => toMinutes(e.startTime!));
+  const earliestStart = starts.length ? Math.min(...starts) : OPENING_HOUR * 60;
+  // Keyed on the earliest start, not on `entries`: re-anchoring every time a
+  // section is added would yank the builder's view out from under the user,
+  // but a class earlier than anything else is worth scrolling up to reveal.
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = OPENING_HOUR * HOUR_PX - 12;
-  }, []);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = Math.max(0, (earliestStart / 60) * HOUR_PX - 12);
+    }
+  }, [earliestStart]);
 
   const [now, setNow] = useState<{ minutes: number | null; dayIndex: number } | null>(null);
   useEffect(() => {
@@ -234,9 +247,11 @@ export default function ScheduleCalendar({
                         title={
                           conflictLabels
                             ? `Conflicts with ${conflictLabels.join(', ')}`
-                            : `${e.label} · ${e.startTime}–${e.endTime}`
+                            : `${e.label} · ${e.startTime}–${e.endTime}${
+                                e.instructor ? ` · ${e.instructor}` : ''
+                              }`
                         }
-                        className={`group absolute overflow-hidden rounded-md pl-2 pr-1 py-1 text-[11px] leading-tight ${
+                        className={`group absolute overflow-hidden rounded-md pl-2 pr-1 py-1.5 text-[11px] leading-tight ${
                           conflictLabels ? 'ring-1 ring-danger-border' : ''
                         } ${onSelectCourse && e.courseId ? 'cursor-pointer' : ''}`}
                         style={{
@@ -304,6 +319,9 @@ export default function ScheduleCalendar({
                         </p>
                         {e.location && (
                           <p className="truncate text-text-tertiary">{e.location}</p>
+                        )}
+                        {e.instructor && (
+                          <p className="truncate text-text-tertiary">{e.instructor}</p>
                         )}
                       </div>
                     );

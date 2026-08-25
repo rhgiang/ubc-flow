@@ -120,6 +120,7 @@ export default async function SchedulePage() {
         startTime: m.startTime,
         endTime: m.endTime,
         location: m.building ? `${m.building}${m.room ? ` ${m.room}` : ''}` : null,
+        instructor: m.instructor,
       } satisfies CalendarEntry);
     });
   }

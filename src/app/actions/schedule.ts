@@ -159,6 +159,23 @@ export async function getOrCreateTokenFor(
   return { ok: true, token: created.token };
 }
 
+/** Session-free half of getEnrolledSubscribeUrl (see getOrCreateTokenFor). */
+export async function getEnrolledTokenFor(
+  userId: string,
+  termId: string,
+): Promise<TokenResult> {
+  const existing = await db.enrollmentCalendarToken.findUnique({
+    where: { userId_termId: { userId, termId } },
+  });
+  if (existing) return { ok: true, token: existing.token };
+
+  // 32 bytes: this token IS the capability for reading the term's calendar.
+  const created = await db.enrollmentCalendarToken.create({
+    data: { userId, termId, token: randomBytes(32).toString('hex') },
+  });
+  return { ok: true, token: created.token };
+}
+
 async function currentUserId(): Promise<string | null> {
   const session = await auth();
   return session?.user?.id ?? null;
@@ -192,6 +209,17 @@ export async function getSubscribeUrl(scheduleId: string): Promise<TokenResult> 
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Sign in to subscribe.' };
   return getOrCreateTokenFor(userId, scheduleId);
+}
+
+/**
+ * Subscription capability for the Workday-imported courses in one term — the
+ * enrollment counterpart to getSubscribeUrl. Minted on first use, then stable,
+ * so a re-upload updates what the same subscribed URL serves.
+ */
+export async function getEnrolledSubscribeUrl(termId: string): Promise<TokenResult> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Sign in to subscribe.' };
+  return getEnrolledTokenFor(userId, termId);
 }
 
 /** The guest schedule builder's search box — term-scoped section lookup, callable directly from a client component. */

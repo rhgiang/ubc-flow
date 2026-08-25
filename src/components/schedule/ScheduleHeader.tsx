@@ -1,6 +1,7 @@
 'use client';
 
 import CalendarSubscribeMenu from '@/components/schedule/CalendarSubscribeMenu';
+import { getSubscribeUrl } from '@/app/actions/schedule';
 import ScheduleSwitcher, { type ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
 
 export default function ScheduleHeader({
@@ -123,7 +124,14 @@ export default function ScheduleHeader({
           )}
         </div>
 
-        {scheduleId && <CalendarSubscribeMenu scheduleId={scheduleId} />}
+        {scheduleId && (
+          <CalendarSubscribeMenu
+            getUrl={async () => {
+              const result = await getSubscribeUrl(scheduleId);
+              return result.ok ? `${window.location.origin}/api/calendar/${result.token}` : null;
+            }}
+          />
+        )}
 
         {dirty && <p className="text-xs text-text-tertiary">Unsaved changes</p>}
       </div>

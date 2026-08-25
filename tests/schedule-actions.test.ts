@@ -7,6 +7,7 @@ import {
   addSectionFor,
   removeSectionFor,
   getOrCreateTokenFor,
+  getEnrolledTokenFor,
   replaceScheduleSectionsFor,
 } from '@/app/actions/schedule';
 
@@ -19,6 +20,7 @@ let termId: string;
 let sectionId: string;
 let scheduleId: string;
 let otherTermSectionId: string;
+let otherTermId: string;
 
 beforeAll(async () => {
   await db.user.deleteMany({ where: { email: { in: [OWNER, STRANGER] } } });
@@ -31,9 +33,10 @@ beforeAll(async () => {
 
   const otherSection = await db.section.findFirstOrThrow({
     where: { termId: { not: termId } },
-    select: { id: true },
+    select: { id: true, termId: true },
   });
   otherTermSectionId = otherSection.id;
+  otherTermId = otherSection.termId;
 
   const created = await createScheduleFor(ownerId, termId, 'Plan A');
   if (!created.ok) throw new Error('setup failed');
@@ -95,6 +98,17 @@ describe('behaviour', () => {
     const b = await getOrCreateTokenFor(ownerId, scheduleId);
     expect(a.ok && b.ok).toBe(true);
     if (a.ok && b.ok) expect(a.token).toBe(b.token);
+  });
+
+  it('mints one stable enrollment token per term, distinct across terms', async () => {
+    const a = await getEnrolledTokenFor(ownerId, termId);
+    const b = await getEnrolledTokenFor(ownerId, termId);
+    const other = await getEnrolledTokenFor(ownerId, otherTermId);
+    expect(a.ok && b.ok && other.ok).toBe(true);
+    if (a.ok && b.ok && other.ok) {
+      expect(a.token).toBe(b.token);
+      expect(a.token).not.toBe(other.token);
+    }
   });
 
   it('lets the owner remove a section', async () => {

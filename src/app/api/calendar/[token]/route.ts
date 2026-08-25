@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { buildIcs, type IcsEvent } from '@/schedule/ics';
+import { icsFilename, icsResponse, type IcsEvent } from '@/schedule/ics';
 
 // The whole value of this feature is that a subscribed calendar sees current
 // state. Any caching here silently reintroduces the staleness every existing
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
@@ -61,10 +61,7 @@ export async function GET(
     }
   }
 
-  return new Response(buildIcs(record.schedule.name, events), {
-    headers: {
-      'Content-Type': 'text/calendar; charset=utf-8',
-      'Cache-Control': 'no-store',
-    },
-  });
+  const download = new URL(req.url).searchParams.get('download') === '1';
+  const name = record.schedule.name;
+  return icsResponse(name, events, download ? icsFilename(name) : null);
 }

@@ -10,6 +10,38 @@ export type IcsEvent = {
 
 const TZID = 'America/Vancouver';
 
+/** The EnrollmentMeeting fields an ICS event needs — see schema.prisma. */
+export type MeetingLike = {
+  id: string;
+  sectionCode: string | null;
+  activity: string | null;
+  days: string[];
+  startTime: string | null;
+  endTime: string | null;
+  startDate: Date | null;
+  endDate: Date | null;
+};
+
+/**
+ * One meeting row fans out to one event per weekday it meets: a Mon/Wed/Fri
+ * lecture is three weekly recurrences, not one. The uid carries the day, or
+ * the three would collide and calendars would keep only the last.
+ */
+export function meetingEvents(courseLabel: string, m: MeetingLike): IcsEvent[] {
+  const title = [courseLabel, m.activity, m.sectionCode && `(${m.sectionCode})`]
+    .filter(Boolean)
+    .join(' ');
+  return m.days.map((day) => ({
+    uid: `${m.id}-${day}`,
+    title,
+    day,
+    startTime: m.startTime,
+    endTime: m.endTime,
+    startDate: m.startDate,
+    endDate: m.endDate,
+  }));
+}
+
 // ICS weekday tokens, indexed to match JS getUTCDay() (0 = Sunday).
 const ICS_DAY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
 const DAY_INDEX: Record<string, number> = {
@@ -82,4 +114,29 @@ export function buildIcs(calendarName: string, events: IcsEvent[]): string {
   lines.push('END:VCALENDAR');
   // RFC 5545 mandates CRLF.
   return `${lines.join('\r\n')}\r\n`;
+}
+
+/**
+ * Both calendar routes answer the same way: a live feed by default, or the
+ * same bytes as a one-off file when `?download=1` asks for it.
+ */
+export function icsResponse(
+  calendarName: string,
+  events: IcsEvent[],
+  downloadName: string | null,
+): Response {
+  return new Response(buildIcs(calendarName, events), {
+    headers: {
+      'Content-Type': 'text/calendar; charset=utf-8',
+      'Cache-Control': 'no-store',
+      ...(downloadName
+        ? { 'Content-Disposition': `attachment; filename="${downloadName}"` }
+        : {}),
+    },
+  });
+}
+
+/** Filesystem-safe .ics name for a calendar, e.g. "2026 Winter Term 1". */
+export function icsFilename(calendarName: string): string {
+  return `ubc-flow-${calendarName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.ics`;
 }

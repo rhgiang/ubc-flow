@@ -1,12 +1,25 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { getSubscribeUrl } from '@/app/actions/schedule';
 
-export default function CalendarSubscribeMenu({ scheduleId }: { scheduleId: string }) {
+/**
+ * The "Add to calendar" menu for any ICS feed — a saved schedule or a term's
+ * imported enrollment. The caller mints its own token and hands back the feed
+ * URL; everything downstream (webcal, Google, copy, download) is identical.
+ */
+export default function CalendarSubscribeMenu({
+  getUrl,
+  align = 'right',
+}: {
+  /** Called the first time the menu opens. Null when the token can't be minted. */
+  getUrl: () => Promise<string | null>;
+  /** Which edge the panel hangs from — it is wider than the button either way. */
+  align?: 'left' | 'right';
+}) {
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,9 +36,12 @@ export default function CalendarSubscribeMenu({ scheduleId }: { scheduleId: stri
     setOpen(next);
     // Minting the token is a DB write the first time, so it waits until a
     // student actually opens the menu.
+    // A rejected action used to leave every item silently inert — the menu
+    // opened, nothing was clickable, and nothing said why.
     if (next && url === null) {
-      const result = await getSubscribeUrl(scheduleId);
-      if (result.ok) setUrl(`${window.location.origin}/api/calendar/${result.token}`);
+      const minted = await getUrl().catch(() => null);
+      setUrl(minted);
+      setFailed(minted === null);
     }
   }
 
@@ -50,7 +66,9 @@ export default function CalendarSubscribeMenu({ scheduleId }: { scheduleId: stri
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-1 w-56 overflow-hidden rounded-card border border-border bg-surface shadow-lg">
+        <div
+          className={`absolute ${align === 'left' ? 'left-0' : 'right-0'} top-full z-30 mt-1 w-56 overflow-hidden rounded-card border border-border bg-surface shadow-lg`}
+        >
           <a
             href={webcalUrl ?? undefined}
             aria-disabled={!webcalUrl}
@@ -80,8 +98,24 @@ export default function CalendarSubscribeMenu({ scheduleId }: { scheduleId: stri
           >
             {copied ? 'Copied' : 'Copy subscription URL'}
           </button>
+          <a
+            href={url ? `${url}?download=1` : undefined}
+            download
+            aria-disabled={!url}
+            className={`${itemClass} border-t border-border ${
+              url ? 'text-foreground' : 'pointer-events-none text-text-tertiary'
+            }`}
+          >
+            Download .ics file
+          </a>
+          {failed && (
+            <p className="border-t border-border px-3 py-2 text-[11px] text-danger">
+              Couldn&apos;t create the calendar link. Reload the page and try again.
+            </p>
+          )}
           <p className="border-t border-border px-3 py-2 text-[11px] text-text-tertiary">
-            These subscribe to a live feed — your calendar keeps updating as you edit.
+            Subscribing keeps your calendar updating on its own. The download is a
+            one-off snapshot of it as it stands now.
           </p>
         </div>
       )}

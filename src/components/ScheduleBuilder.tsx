@@ -7,11 +7,13 @@ import SchedulePanelTabs from '@/components/schedule/SchedulePanelTabs';
 import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 import CourseInfoOverlay from '@/components/schedule/CourseInfoOverlay';
 import CourseInfoPanel from '@/components/schedule/course-info/CourseInfoPanel';
+import SwapOverlay from '@/components/schedule/SwapOverlay';
 import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
 import UnsavedWorkDialog from '@/components/schedule/UnsavedWorkDialog';
+import ConflictSaveDialog from '@/components/schedule/ConflictSaveDialog';
 import type { ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
-import { findConflicts } from '@/schedule/conflicts';
-import { diffSections } from '@/schedule/buffer';
+import { findConflicts, conflictKey } from '@/schedule/conflicts';
+import { diffSections, swapSection } from '@/schedule/buffer';
 import {
   saveGuestSchedule,
   replaceScheduleSections,
@@ -91,6 +93,13 @@ export default function ScheduleBuilder({
   const [error, setError] = useState<string | null>(null);
   const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
   const [infoDocked, setInfoDocked] = useState(false);
+  const [swapping, setSwapping] = useState<SectionHit | null>(null);
+  const [dismissedConflicts, setDismissedConflicts] = useState<string | null>(null);
+  // Non-null while the conflict gate is open, holding the options `trySave`
+  // was originally called with — replayed verbatim (plus conflictsConfirmed)
+  // when the student picks "Save anyway", so a gated save-and-switch still
+  // switches instead of silently reverting to defaults.
+  const [pendingSave, setPendingSave] = useState<{ redirectAfterCreate: boolean } | null>(null);
   const [importOpen, setImportOpen] = useState(openImport);
   // A successful save moves the baseline immediately. router.refresh() is not
   // awaited, so the refreshed initialSections prop lands later — without this,
@@ -213,6 +222,17 @@ export default function ScheduleBuilder({
     setChosen((prev) => prev.filter((s) => s.sectionId !== sectionId));
   }
 
+  function applySwap(next: SectionHit) {
+    if (!swapping) return;
+    setChosen((prev) => swapSection(prev, swapping.sectionId, next));
+    setSwapping(null);
+  }
+
+  /** The calendar knows a sectionId; the overlay needs the whole hit. */
+  function startSwapById(sectionId: string) {
+    setSwapping(chosen.find((s) => s.sectionId === sectionId) ?? null);
+  }
+
   function applyImport(
     importedTermId: string,
     sections: SectionHit[],
@@ -239,7 +259,17 @@ export default function ScheduleBuilder({
   /** Resolves true only when the schedule is persisted. `redirectAfterCreate`
    *  is false when a pending navigation supersedes the jump to the new
    *  schedule — two router.push calls would otherwise race. */
-  async function trySave({ redirectAfterCreate = true } = {}): Promise<boolean> {
+  async function trySave({
+    redirectAfterCreate = true,
+    conflictsConfirmed = false,
+  } = {}): Promise<boolean> {
+    // Save is where an overlap stops being a sketch, so it is the one place we
+    // ask. Planning stays silent on purpose.
+    if (!conflictsConfirmed && conflicts.length > 0) {
+      setPendingSave({ redirectAfterCreate });
+      return false;
+    }
+
     setSaving(true);
     setError(null);
     const sectionIds = chosen.map((c) => c.sectionId);
@@ -267,8 +297,12 @@ export default function ScheduleBuilder({
         return true;
       }
       if (result.needsAuth) {
+        // Carry the original call's options through login — otherwise
+        // conflictsConfirmed reverts to false and a guest who already
+        // confirmed an overlap gets asked about the same overlap again
+        // after signing in, and redirectAfterCreate is lost the same way.
         open('login', () => {
-          void trySave();
+          void trySave({ redirectAfterCreate, conflictsConfirmed });
         });
         return false;
       }
@@ -310,6 +344,21 @@ export default function ScheduleBuilder({
     })),
   );
   const conflicts = findConflicts(entries);
+  // Derived, not an effect: this file is already subject to the
+  // set-state-in-effect rule, and resetting on change needs no effect at all.
+  // A new or different overlap produces a new key, so the banner returns.
+  const currentConflictKey = conflictKey(conflicts);
+  // A dismissal must not outlive the overlaps it was for: once the set is
+  // empty, forget it — otherwise removing and re-adding the same pair would
+  // recompute the identical key and the banner would stay silently
+  // suppressed. Render-time state update (not an effect): React re-renders
+  // immediately without committing the stale intermediate frame, and this
+  // self-stabilises after one pass since it no longer fires once null.
+  if (conflicts.length === 0 && dismissedConflicts !== null) {
+    setDismissedConflicts(null);
+  }
+  const showConflictBanner =
+    conflicts.length > 0 && dismissedConflicts !== currentConflictKey;
   const showNowIndicator = getCurrentAndNextTerm(terms).current?.id === termId;
   const addedSectionIds = new Set(chosen.map((c) => c.sectionId));
 
@@ -327,7 +376,7 @@ export default function ScheduleBuilder({
         canSave={contentSaveable}
         saving={saving}
         dirty={dirty}
-        onSave={trySave}
+        onSave={() => void trySave()}
         onDelete={onDelete}
         onImport={() => setImportOpen(true)}
       />
@@ -395,12 +444,21 @@ export default function ScheduleBuilder({
               setInfoDocked(true);
               setInfoCourseId(courseId);
             }}
+            onSwap={(section) => setSwapping(section)}
           />
         </aside>
 
         <div className="min-w-0 flex-1 overflow-auto p-4">
-          {conflicts.length > 0 && (
-            <div className="mb-4 rounded-card border border-danger-border bg-danger-surface p-3 text-sm text-danger">
+          {showConflictBanner && (
+            <div className="relative mb-4 rounded-card border border-danger-border bg-danger-surface p-3 pr-9 text-sm text-danger">
+              <button
+                type="button"
+                onClick={() => setDismissedConflicts(currentConflictKey)}
+                aria-label="Dismiss conflict warning"
+                className="absolute right-2 top-2 rounded px-1 text-danger transition-opacity hover:opacity-70"
+              >
+                ×
+              </button>
               <p className="font-medium">
                 {conflicts.length} scheduling conflict
                 {conflicts.length === 1 ? '' : 's'} detected
@@ -420,6 +478,7 @@ export default function ScheduleBuilder({
             onRemove={removeSection}
             showNowIndicator={showNowIndicator}
             onSelectCourse={setInfoCourseId}
+            onSwap={startSwapById}
           />
         </div>
 
@@ -449,6 +508,34 @@ export default function ScheduleBuilder({
         onClose={() => setInfoCourseId(null)}
       />
 
+      <SwapOverlay
+        section={swapping}
+        termId={termId}
+        addedIds={addedSectionIds}
+        onSwap={applySwap}
+        onClose={() => setSwapping(null)}
+      />
+
+      <ConflictSaveDialog
+        conflicts={pendingSave ? conflicts : []}
+        onCancel={() => setPendingSave(null)}
+        onConfirm={async () => {
+          // Replay the save with the SAME options the gate captured — not
+          // trySave's defaults — so a gated "save and switch" still switches.
+          const redirectAfterCreate = pendingSave?.redirectAfterCreate ?? true;
+          setPendingSave(null);
+          const saved = await trySave({ redirectAfterCreate, conflictsConfirmed: true });
+          if (!saved) return;
+          // Mirrors UnsavedWorkDialog's own onSave: complete the navigation
+          // that was parked behind it, now that the save actually went through.
+          if (pendingNav) {
+            const { go } = pendingNav;
+            setPendingNav(null);
+            go();
+          }
+        }}
+      />
+
       <WorkdayImportOverlay
         open={importOpen}
         onClose={() => setImportOpen(false)}
@@ -462,8 +549,10 @@ export default function ScheduleBuilder({
           canSave={contentSaveable}
           onSave={async () => {
             const saved = await trySave({ redirectAfterCreate: false });
-            // On failure the error banner is already set — keep the dialog up
-            // rather than navigating away from work that did not persist.
+            // `false` here means either a real failure (error banner is up)
+            // or the conflict gate just opened ConflictSaveDialog on top of
+            // this one — either way, stay put rather than navigating away
+            // from work that did not persist.
             if (!saved) return;
             const { go } = pendingNav;
             setPendingNav(null);

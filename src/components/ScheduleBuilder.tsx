@@ -297,8 +297,12 @@ export default function ScheduleBuilder({
         return true;
       }
       if (result.needsAuth) {
+        // Carry the original call's options through login — otherwise
+        // conflictsConfirmed reverts to false and a guest who already
+        // confirmed an overlap gets asked about the same overlap again
+        // after signing in, and redirectAfterCreate is lost the same way.
         open('login', () => {
-          void trySave();
+          void trySave({ redirectAfterCreate, conflictsConfirmed });
         });
         return false;
       }
@@ -372,7 +376,7 @@ export default function ScheduleBuilder({
         canSave={contentSaveable}
         saving={saving}
         dirty={dirty}
-        onSave={trySave}
+        onSave={() => void trySave()}
         onDelete={onDelete}
         onImport={() => setImportOpen(true)}
       />

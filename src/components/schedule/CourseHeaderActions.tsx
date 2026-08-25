@@ -1,11 +1,12 @@
 'use client';
 
 /**
- * The info / dock pair on a course row in the Saved and Find panels: `i`
- * opens the course in the full overlay, the second button shows it in the
- * panel beside the calendar instead.
- * Both take the course's own accent colour, so the buttons read as part of
- * the same colour code the calendar blocks use.
+ * The info / dock / swap buttons on a course row in the Saved and Find
+ * panels: `i` opens the course in the full overlay, the second button shows
+ * it in the panel beside the calendar instead, and the third swaps a held
+ * section for another.
+ * All three take the course's own accent colour, so the buttons read as part
+ * of the same colour code the calendar blocks use.
  *
  * These sit inside a <summary>, so every click must preventDefault — otherwise
  * it toggles the <details> open as a side effect.
@@ -37,7 +38,7 @@ export default function CourseHeaderActions({
     };
   }
 
-  // One fixed size for both, so the pair reads as a set. The icon needs the
+  // One fixed size for all three, so they read as a set. The icon needs the
   // room: a 12px split-pane glyph at this stroke weight closes up into a blob.
   //
   // align-middle is load-bearing. These are inline-level boxes in the summary's
@@ -83,7 +84,7 @@ export default function CourseHeaderActions({
           aria-label={`Swap a section of ${code}`}
           title="Swap section"
           style={style}
-          className={`ml-1 inline-flex ${button}`}
+          className={`ml-2 inline-flex ${button}`}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
             <path d="M4 8h13M14 5l3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />

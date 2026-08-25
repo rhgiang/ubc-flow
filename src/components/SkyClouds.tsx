@@ -120,6 +120,12 @@ void main() {
 }
 `;
 
+/**
+ * Redraw budget. The sky is deliberately slow-moving, so there is nothing to
+ * gain from matching a high-refresh display — see the frame loop below.
+ */
+const FRAME_MS = 1000 / 30;
+
 type Palette = {
   color: [number, number, number];
   colorLow: [number, number, number];
@@ -256,8 +262,19 @@ export default function SkyClouds() {
     let raf = 0;
     let start = performance.now();
     let elapsed = 0;
+    let lastDraw = 0;
 
     const frame = (now: number) => {
+      // Always queue the next callback first, so throttling never stalls the
+      // loop. Uncapped, this redrew once per display refresh — on a 144Hz
+      // monitor that is 2.4x the work of a 60Hz one for no visible gain, since
+      // the clouds drift about 4px per second. At 30fps that is still only
+      // ~0.13px of movement between frames, far below anything the eye can
+      // read as judder.
+      raf = requestAnimationFrame(frame);
+      if (now - lastDraw < FRAME_MS) return;
+      lastDraw = now;
+
       // Reduced motion still gets clouds, just held still.
       if (!reduced.matches) elapsed = (now - start) / 1000;
       else start = now - elapsed * 1000;
@@ -266,7 +283,6 @@ export default function SkyClouds() {
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
 

@@ -131,9 +131,343 @@
   --font-sans: var(--font-inter);
 }
 
+/*
+ * Always reserve the scrollbar track. Without this the page shifts sideways by
+ * the scrollbar's width whenever content grows past the viewport — switching
+ * between schedule tabs, or moving from a short page to a long one, visibly
+ * jogged the nav.
+ */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
   transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* ===========================================================================
+ * Sky background — every route except the schedule builder (see PageBackground).
+ *
+ * Four fixed layers behind the content: photographic/gradient sky, stars (dark
+ * only), drifting cloud bands, then a veil that mutes the whole thing so text
+ * and panels sit calmly on top. Cloud motion is a continuous horizontal drift
+ * rather than a pan-and-zoom of the sky itself.
+ * ======================================================================== */
+
+.sky-root {
+  position: relative;
+}
+
+.sky-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Light: the photographed blue sky. Dark: a painted dusk afterglow —
+   deep navy overhead falling through indigo and mauve to a warm horizon. */
+.sky-base {
+  z-index: -4;
+  background-image: url('/sky-light.jpg');
+  background-size: cover;
+  background-position: center top;
+}
+
+:root[data-theme="dark"] .sky-base {
+  background-image: linear-gradient(
+    180deg,
+    #070b1c 0%,
+    #101538 16%,
+    #23204d 32%,
+    #3d2c60 46%,
+    #5d3d6e 58%,
+    #7c4f70 70%,
+    #96605f 82%,
+    #b3785d 92%,
+    #c48f6a 100%
+  );
+}
+
+/* Stars sit only in the upper sky — the horizon is too bright to carry them.
+   Three tiled layers at different densities so the field doesn't read as a
+   regular grid, masked to fade out before the afterglow. */
+/*
+ * Two tiers, so the field has a range of sizes instead of one uniform dust.
+ * This element carries the faint majority; ::after carries a handful of large
+ * bright ones on a slower twinkle. Tiles are deliberately large — the count
+ * comes from how far apart the tiles repeat, and a sparse sky reads better
+ * than a dense one behind text.
+ */
+.sky-stars {
+  z-index: -3;
+  /* Oversized so the slow drift below never pulls an edge into view. */
+  inset: -90px;
+  /* Light mode has no stars at all; the animations live on the dark rule,
+     because an animation setting opacity would otherwise override this. */
+  opacity: 0;
+  background-repeat: repeat;
+  /* Each star is a bright core with a wider, dimmer halo around it — the
+     second colour stop is the glow. */
+  background-image:
+    radial-gradient(2.4px 2.4px at 20% 30%, #ffffff 0%, rgba(190, 215, 255, 0.4) 32%, transparent 100%),
+    radial-gradient(2px 2px at 68% 12%, rgba(255, 255, 255, 0.9) 0%, rgba(190, 215, 255, 0.3) 34%, transparent 100%),
+    radial-gradient(3px 3px at 45% 72%, #ffffff 0%, rgba(200, 220, 255, 0.42) 30%, transparent 100%),
+    radial-gradient(2.2px 2.2px at 88% 55%, rgba(255, 255, 255, 0.92) 0%, rgba(190, 215, 255, 0.32) 34%, transparent 100%),
+    radial-gradient(3.2px 3.2px at 12% 82%, #ffffff 0%, rgba(205, 222, 255, 0.45) 30%, transparent 100%),
+    radial-gradient(1.9px 1.9px at 78% 88%, rgba(255, 255, 255, 0.85) 0%, rgba(190, 215, 255, 0.28) 36%, transparent 100%),
+    radial-gradient(2.6px 2.6px at 34% 52%, rgba(255, 255, 255, 0.95) 0%, rgba(198, 218, 255, 0.38) 32%, transparent 100%);
+  background-size:
+    300px 300px, 380px 380px, 520px 520px, 340px 340px,
+    610px 610px, 440px 440px, 480px 480px;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 72%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 72%);
+}
+
+/* The bright few. Each is a soft-edged core rather than a hard dot, which is
+   what makes them read as noticeably larger than the tier above. */
+.sky-stars::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-image:
+    radial-gradient(5px 5px at 26% 22%, #ffffff 0%, rgba(255, 255, 255, 0.55) 22%, rgba(186, 210, 255, 0.3) 42%, transparent 100%),
+    radial-gradient(6px 6px at 72% 64%, #ffffff 0%, rgba(255, 255, 255, 0.5) 20%, rgba(196, 216, 255, 0.28) 40%, transparent 100%),
+    radial-gradient(4.4px 4.4px at 48% 38%, #ffffff 0%, rgba(255, 255, 255, 0.55) 24%, rgba(190, 212, 255, 0.3) 44%, transparent 100%),
+    radial-gradient(5.4px 5.4px at 88% 14%, #ffffff 0%, rgba(255, 255, 255, 0.48) 22%, rgba(200, 218, 255, 0.26) 42%, transparent 100%);
+  background-size: 820px 820px, 1080px 1080px, 940px 940px, 1240px 1240px;
+  /* Drifts a little further than the field behind it, so the two tiers
+     separate into foreground and background as they move. */
+  animation:
+    star-twinkle-bright 11s ease-in-out infinite alternate,
+    star-drift-bright 110s linear infinite alternate;
+}
+
+:root[data-theme="dark"] .sky-stars {
+  opacity: 1;
+  /* Carried along with the sky rather than pinned to the viewport. Ping-ponging
+     with `alternate` keeps it seamless without needing the travel distance to
+     divide evenly into every tile size. Linear, not eased — easing parks the
+     field at a near standstill for most of the cycle, which just reads static. */
+  animation:
+    star-twinkle 7s ease-in-out infinite alternate,
+    star-drift 80s linear infinite alternate;
+}
+
+@keyframes star-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-320px, 70px, 0); }
+}
+
+@keyframes star-drift-bright {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-150px, -46px, 0); }
+}
+
+@keyframes star-twinkle {
+  from { opacity: 0.72; }
+  to { opacity: 1; }
+}
+
+@keyframes star-twinkle-bright {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+/* Clouds are drawn by a fragment shader — see SkyClouds. */
+.sky-canvas {
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+}
+
+/* Mutes the sky just enough to sit text on, without washing it out. */
+.sky-veil {
+  z-index: -1;
+  background-image: linear-gradient(
+    180deg,
+    rgba(232, 240, 250, 0.06) 0%,
+    rgba(236, 242, 250, 0.1) 55%,
+    rgba(240, 244, 250, 0.2) 100%
+  );
+}
+
+:root[data-theme="dark"] .sky-veil {
+  background-image: linear-gradient(
+    180deg,
+    rgba(8, 11, 26, 0.2) 0%,
+    rgba(12, 14, 32, 0.08) 45%,
+    rgba(14, 12, 28, 0.09) 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-stars,
+  .sky-stars::after {
+    animation: none;
+  }
+  /* The bar still hides and returns, it just does so without the animation.
+     The hidden selector is listed too — it sets its own transition at a higher
+     specificity, so omitting it here would leave the collapse running. */
+  .sky-root > header,
+  .sky-root > header > .nav-bar,
+  .sky-root > header[data-nav-hidden] > .nav-bar {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Chrome that sits directly on the sky.
+ * ------------------------------------------------------------------------ */
+
+/* The bar dissolves into the sky, so its text and outlines go white in both
+   themes — overriding the tokens rather than the utilities means the existing
+   text-foreground / border-border classes recolour themselves. */
+/* The header itself is only a transparent gutter; the visible bar is the inner
+   .nav-bar, floated in from the viewport edges. */
+.sky-root > header {
+  --foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.45);
+  --border-hairline: transparent;
+  --surface-muted: rgba(255, 255, 255, 0.18);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: transparent;
+  border-bottom: 0;
+  padding: 14px 18px 0;
+  /* Backstop for the brightest moments; too faint to soften the type. */
+  text-shadow: 0 1px 3px rgba(8, 16, 36, 0.4);
+}
+
+/* Hidden state — see NavShell. The bar itself does the animating; the header
+   only stops catching clicks once it's closed. */
+.sky-root > header[data-nav-hidden] {
+  pointer-events: none;
+}
+
+/*
+ * Collapses inward from both edges toward the centre on the way down, and
+ * opens back outward on the way up. Clipping rather than scaling means the
+ * logo and links keep their proportions instead of squashing horizontally.
+ */
+.sky-root > header[data-nav-hidden] > .nav-bar {
+  clip-path: inset(0 50% 0 50% round 14px);
+  opacity: 0;
+  transform: scale(0.97);
+  /* This set applies while COLLAPSING. The opacity delay is the point: fading
+     on the way in hid most of the movement, so the bar now stays fully opaque
+     until it is almost shut, then drops out over the last moment. */
+  transition:
+    clip-path 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    transform 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.18s ease 0.66s;
+}
+
+/*
+ * Frosted glass with a guaranteed contrast floor. A white-tinted fill alone
+ * left the bar at the mercy of the sky — when a bright cloud drifted under it,
+ * white links sat on near-white and disappeared. The brightness() in the
+ * backdrop filter knocks down whatever is behind the bar, so the text keeps its
+ * contrast no matter what passes beneath; the stronger blur also smooths out
+ * cloud detail that was showing through as patchy light and dark.
+ */
+.sky-root > header > .nav-bar {
+  clip-path: inset(0 0 0 0 round 14px);
+  /* This set applies while EXPANDING: the fill returns immediately so the bar
+     is visible the whole way as it opens back outward. */
+  transition:
+    clip-path 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    transform 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.22s ease;
+  border-radius: 14px;
+  background: rgba(10, 18, 38, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(30px) saturate(135%) brightness(0.72);
+  -webkit-backdrop-filter: blur(30px) saturate(135%) brightness(0.72);
+  box-shadow: 0 4px 24px rgba(12, 20, 44, 0.16);
+}
+
+:root[data-theme="dark"] .sky-root > header > .nav-bar {
+  /* The dusk sky is already dark, so this only needs a light touch. */
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(30px) saturate(120%) brightness(0.94);
+  -webkit-backdrop-filter: blur(30px) saturate(120%) brightness(0.94);
+}
+
+/*
+ * Each link carries its own dark backing rather than relying on the bar behind
+ * it. Darkening the whole bar enough to guarantee contrast made it heavy and
+ * defeated the translucency; giving the links a controlled substrate lets the
+ * bar stay airy while the text stays readable over any passing cloud.
+ *
+ * In @layer base so the active link's bg-brand utility still wins, and the
+ * wordmark is excluded so it stays plain text.
+ */
+@layer base {
+  .sky-root > header .nav-bar :is(a, button):not(.nav-logo) {
+    background-color: rgba(8, 16, 34, 0.46);
+  }
+}
+
+/* Wordmark only — a geometric sans set uppercase at medium weight, with open
+   tracking rather than the compressed kind. Deliberately not applied to any
+   other text. */
+.nav-logo {
+  font-family: var(--font-outfit), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
+  /* The wordmark is the one bit of nav text with no pill behind it, so it
+     carries a tighter, darker halo of its own. */
+  text-shadow: 0 1px 2px rgba(6, 12, 28, 0.6), 0 0 12px rgba(6, 12, 28, 0.4);
+}
+
+/* Hero text sits straight on the sky with no panel behind it. */
+.sky-hero {
+  --foreground: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.78);
+  --text-tertiary: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+  text-shadow: 0 1px 24px rgba(12, 18, 40, 0.35);
+}
+
+/* ---------------------------------------------------------------------------
+ * Content panels — solid islands with the sky visible around them.
+ * ------------------------------------------------------------------------ */
+
+.sky-panel {
+  background: var(--background);
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 1px 2px rgba(16, 24, 48, 0.06),
+    0 8px 28px rgba(16, 24, 48, 0.1);
+}
+
+:root[data-theme="dark"] .sky-panel {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* Zebra striping, so long tables stay scannable inside a panel. */
+.sky-table tbody tr:nth-child(even) {
+  background: var(--surface);
+}
+
+/*
+ * Card containers are written as `rounded-card border` with no background —
+ * over a plain page they read as filled because the body behind them is
+ * opaque, but over the sky they'd show it through. Fill them by default here.
+ * In @layer base so any explicit bg-* utility on the element still wins, and
+ * scoped to .sky-root so the builder is untouched.
+ */
+@layer base {
+  .sky-root :where([class~="rounded-card"]) {
+    background-color: var(--background);
+  }
 }

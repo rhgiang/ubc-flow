@@ -126,24 +126,28 @@ export default async function SchedulePage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="sky-hero flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold text-foreground">My Schedules</h1>
         <CreateScheduleModal terms={plannableTerms} />
       </div>
 
-      {!userId && (
-        <p className="mt-4 text-sm text-text-secondary">
-          You can build a schedule without an account — you&apos;ll only need to sign in when
-          you&apos;re ready to save it.
-        </p>
-      )}
+      {/* Tabs and their contents sit on one solid panel — term headings and
+          section labels are small secondary text the sky washes out. */}
+      <div className="sky-panel mt-6 p-6 sm:p-8">
+        {!userId && (
+          <p className="mb-4 text-sm text-text-secondary">
+            You can build a schedule without an account — you&apos;ll only need to sign in when
+            you&apos;re ready to save it.
+          </p>
+        )}
 
-      <ScheduleTabs
-        program={user?.program ?? null}
-        upcoming={[...upcomingByTerm.values()]}
-        past={[...pastByTerm.values()]}
-        calendar={[...calendarByTerm.values()]}
-      />
+        <ScheduleTabs
+          program={user?.program ?? null}
+          upcoming={[...upcomingByTerm.values()]}
+          past={[...pastByTerm.values()]}
+          calendar={[...calendarByTerm.values()]}
+        />
+      </div>
     </main>
   );
 }

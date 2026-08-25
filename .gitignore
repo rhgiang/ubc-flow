@@ -49,3 +49,7 @@ next-env.d.ts
 rgschedule/
 *.xlsx
 !tests/fixtures/**/*.xlsx
+
+# Source wallpaper images. The one actually used is copied into
+# public/sky-light.jpg; keeping the ~10MB originals out of git history.
+wallpaper/

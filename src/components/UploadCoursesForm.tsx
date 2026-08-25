@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { UBC_WORKDAY_URL } from '@/lib/links';
 
 type ImportResult = {
@@ -17,6 +18,7 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
   const [busy, setBusy] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,6 +45,11 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
       // Ready for the next export — these are uploaded one at a time.
       formRef.current?.reset();
       setFileName(null);
+      // The Current/Past course lists above are rendered on the server from
+      // Enrollment rows this upload just wrote. Without this they keep showing
+      // the pre-upload state until the student reloads by hand — the summary
+      // says "Matched 12 courses" while the lists above show none of them.
+      router.refresh();
     }
     setBusy(false);
   }

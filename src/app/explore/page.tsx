@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { listCourses, listProfessors, PAGE_SIZE, type CourseSort, type ProfessorSort } from '@/lib/explore';
-import { getCurrentAndNextTerm } from '@/schedule/terms';
+import { isUpcomingTerm, compareTerms } from '@/schedule/terms';
 import ExploreSubjectSelect from '@/components/ExploreSubjectSelect';
 import ExploreSearchInput from '@/components/ExploreSearchInput';
 
@@ -54,8 +54,13 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
     db.course.count({ where: { campus: 'V' } }),
     db.instructor.count({ where: { campus: 'V' } }),
   ]);
-  const { current, next } = getCurrentAndNextTerm(terms);
-  const termId = sp.term === 'this' ? current?.id : sp.term === 'next' ? next?.id : undefined;
+  // Every term from the current one onward, not just this/next — a student
+  // browsing in the summer is usually planning both Winter terms, and the
+  // two-chip version could never show Winter Term 2.
+  const offeredTerms = terms.filter(isUpcomingTerm).sort(compareTerms);
+  // Matched against the real list rather than trusted, so the query only ever
+  // sees an id we chose to offer.
+  const termId = offeredTerms.some((t) => t.id === sp.term) ? sp.term : undefined;
 
   const courseResult =
     tab === 'courses'
@@ -246,30 +251,19 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
 
               <p className="mt-5 text-xs font-medium text-text-secondary">Offered in</p>
               <div className="mt-2 flex flex-col gap-1.5">
-                {current && (
+                {offeredTerms.map((t) => (
                   <Link
-                    href={hrefWith(sp, { term: sp.term === 'this' ? null : 'this' })}
+                    key={t.id}
+                    href={hrefWith(sp, { term: sp.term === t.id ? null : t.id })}
                     className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
-                      sp.term === 'this'
+                      sp.term === t.id
                         ? 'border-brand bg-brand text-brand-foreground'
                         : 'border-border text-foreground hover:bg-surface-muted'
                     }`}
                   >
-                    This term ({current.name.replace(' (UBC-V)', '')})
+                    {t.name.replace(' (UBC-V)', '')}
                   </Link>
-                )}
-                {next && (
-                  <Link
-                    href={hrefWith(sp, { term: sp.term === 'next' ? null : 'next' })}
-                    className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
-                      sp.term === 'next'
-                        ? 'border-brand bg-brand text-brand-foreground'
-                        : 'border-border text-foreground hover:bg-surface-muted'
-                    }`}
-                  >
-                    Next term ({next.name.replace(' (UBC-V)', '')})
-                  </Link>
-                )}
+                ))}
               </div>
 
               <p className="mt-5 text-xs font-medium text-text-secondary">Requirements</p>

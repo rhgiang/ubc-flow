@@ -280,7 +280,7 @@ export default function ScheduleCalendar({
                             }}
                             aria-label={`Swap ${e.label}`}
                             title="Swap section"
-                            className="pointer-events-none absolute right-4 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100"
+                            className="pointer-events-none absolute right-6 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100"
                           >
                             ⇄
                           </button>

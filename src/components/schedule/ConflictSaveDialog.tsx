@@ -22,7 +22,15 @@ export default function ConflictSaveDialog({
   useEffect(() => {
     if (conflicts.length === 0) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onCancel();
+      if (e.key !== 'Escape') return;
+      // This dialog can be mounted on top of UnsavedWorkDialog (the
+      // "save and switch" flow), and both attach a bare document keydown
+      // listener. Without stopping propagation, one Escape press would fire
+      // both onCancel handlers — backing out of this confirmation AND
+      // silently discarding the parked navigation underneath it. Only the
+      // topmost dialog should consume the key.
+      e.stopPropagation();
+      onCancel();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);

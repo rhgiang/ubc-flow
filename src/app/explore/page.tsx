@@ -133,6 +133,15 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             <ExploreSearchInput />
           </div>
 
+          {/* The tab labels carry campus-wide totals, so a filtered view needs
+              its own count — without this a filter looks like a no-op. */}
+          {hasFilters && (
+            <p className="sky-hero mt-4 text-sm" aria-live="polite">
+              {total.toLocaleString('en-CA')} {tab === 'courses' ? 'courses' : 'professors'} match your
+              filters
+            </p>
+          )}
+
           <div className="sky-panel mt-4 overflow-x-auto">
             <table className="sky-table w-full text-left text-sm">
               <thead className="border-b border-border text-xs text-text-secondary">

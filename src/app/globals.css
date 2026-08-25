@@ -435,3 +435,39 @@ body {
   color: #ffffff;
   text-shadow: 0 1px 24px rgba(12, 18, 40, 0.35);
 }
+
+/* ---------------------------------------------------------------------------
+ * Content panels — solid islands with the sky visible around them.
+ * ------------------------------------------------------------------------ */
+
+.sky-panel {
+  background: var(--background);
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 1px 2px rgba(16, 24, 48, 0.06),
+    0 8px 28px rgba(16, 24, 48, 0.1);
+}
+
+:root[data-theme="dark"] .sky-panel {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* Zebra striping, so long tables stay scannable inside a panel. */
+.sky-table tbody tr:nth-child(even) {
+  background: var(--surface);
+}
+
+/*
+ * Card containers are written as `rounded-card border` with no background —
+ * over a plain page they read as filled because the body behind them is
+ * opaque, but over the sky they'd show it through. Fill them by default here.
+ * In @layer base so any explicit bg-* utility on the element still wins, and
+ * scoped to .sky-root so the builder is untouched.
+ */
+@layer base {
+  .sky-root :where([class~="rounded-card"]) {
+    background-color: var(--background);
+  }
+}

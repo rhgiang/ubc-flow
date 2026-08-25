@@ -98,11 +98,11 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <h1 className="text-3xl font-semibold">Explore</h1>
+      <h1 className="sky-hero text-3xl font-semibold">Explore</h1>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_300px]">
         <div>
-          <div className="flex rounded-card border border-border overflow-hidden">
+          <div className="sky-panel flex overflow-hidden">
             <Link
               href={hrefWith(sp, { tab: null })}
               className={`flex-1 px-4 py-3 text-center text-sm font-semibold ${
@@ -125,8 +125,8 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             <ExploreSearchInput />
           </div>
 
-          <div className="mt-4 overflow-x-auto rounded-card border border-border">
-            <table className="w-full text-left text-sm">
+          <div className="sky-panel mt-4 overflow-x-auto">
+            <table className="sky-table w-full text-left text-sm">
               <thead className="border-b border-border text-xs text-text-secondary">
                 <tr>
                   {SORT_HEADERS.map((h) => (
@@ -218,7 +218,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           )}
         </div>
 
-        <aside className="h-fit rounded-card border border-border p-5">
+        <aside className="sky-panel h-fit p-5">
           <p className="text-sm font-semibold text-foreground">Filter your results</p>
 
           {tab === 'courses' ? (

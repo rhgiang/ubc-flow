@@ -164,16 +164,22 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
-      <p className="text-sm text-text-tertiary">{course.subject.name}</p>
-      <h1 className="text-3xl font-semibold">
-        {course.subject.code} {course.number}
-      </h1>
-      <p className="mt-1 text-lg text-foreground">{course.title}</p>
+      {/* Course identity sits on the sky; everything below it lives on one
+          solid panel, so the background reads as a border around the content. */}
+      <div className="sky-hero">
+        <p className="text-sm text-text-tertiary">{course.subject.name}</p>
+        <h1 className="text-3xl font-semibold">
+          {course.subject.code} {course.number}
+        </h1>
+        <p className="mt-1 text-lg text-foreground">{course.title}</p>
 
-      {course.credits !== null && (
-        <p className="mt-2 text-sm text-text-tertiary">{course.credits} credits</p>
-      )}
-      {course.description && <p className="mt-6 leading-relaxed">{course.description}</p>}
+        {course.credits !== null && (
+          <p className="mt-2 text-sm text-text-tertiary">{course.credits} credits</p>
+        )}
+      </div>
+
+      <div className="sky-panel mt-6 p-6 sm:p-8">
+      {course.description && <p className="leading-relaxed">{course.description}</p>}
 
       <a
         href={redditHref}
@@ -368,6 +374,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
           antireqs={antireqs}
           leadsTo={leadsTo}
         />
+      </div>
       </div>
     </main>
   );

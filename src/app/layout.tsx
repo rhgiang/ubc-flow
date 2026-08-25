@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { APP_NAME } from "@/lib/version";
 import Nav from "@/components/Nav";
+import PageBackground from "@/components/PageBackground";
 import ThemeToggle from "@/components/ThemeToggle";
 import { AuthOverlayProvider } from "@/components/AuthOverlayContext";
 import AuthOverlay from "@/components/AuthOverlay";
@@ -49,8 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex h-screen flex-col">
         <AuthOverlayProvider>
           <UnsavedChangesProvider>
-            <Nav />
-            {children}
+            <PageBackground nav={<Nav />}>{children}</PageBackground>
             <ThemeToggle />
             <AuthOverlay />
           </UnsavedChangesProvider>

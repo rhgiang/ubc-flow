@@ -148,3 +148,174 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
+/* ===========================================================================
+ * Sky background — every route except the schedule builder (see PageBackground).
+ *
+ * Four fixed layers behind the content: photographic/gradient sky, stars (dark
+ * only), drifting cloud bands, then a veil that mutes the whole thing so text
+ * and panels sit calmly on top. Cloud motion is a continuous horizontal drift
+ * rather than a pan-and-zoom of the sky itself.
+ * ======================================================================== */
+
+.sky-root {
+  position: relative;
+}
+
+.sky-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Light: the photographed blue sky. Dark: a painted dusk afterglow —
+   deep navy overhead falling through indigo and mauve to a warm horizon. */
+.sky-base {
+  z-index: -4;
+  background-image: url('/sky-light.jpg');
+  background-size: cover;
+  background-position: center top;
+}
+
+:root[data-theme="dark"] .sky-base {
+  background-image: linear-gradient(
+    180deg,
+    #070b1c 0%,
+    #101538 16%,
+    #23204d 32%,
+    #3d2c60 46%,
+    #5d3d6e 58%,
+    #7c4f70 70%,
+    #96605f 82%,
+    #b3785d 92%,
+    #c48f6a 100%
+  );
+}
+
+/* Stars sit only in the upper sky — the horizon is too bright to carry them.
+   Three tiled layers at different densities so the field doesn't read as a
+   regular grid, masked to fade out before the afterglow. */
+/*
+ * Two tiers, so the field has a range of sizes instead of one uniform dust.
+ * This element carries the faint majority; ::after carries a handful of large
+ * bright ones on a slower twinkle. Tiles are deliberately large — the count
+ * comes from how far apart the tiles repeat, and a sparse sky reads better
+ * than a dense one behind text.
+ */
+.sky-stars {
+  z-index: -3;
+  /* Oversized so the slow drift below never pulls an edge into view. */
+  inset: -90px;
+  /* Light mode has no stars at all; the animations live on the dark rule,
+     because an animation setting opacity would otherwise override this. */
+  opacity: 0;
+  background-repeat: repeat;
+  /* Each star is a bright core with a wider, dimmer halo around it — the
+     second colour stop is the glow. */
+  background-image:
+    radial-gradient(2.4px 2.4px at 20% 30%, #ffffff 0%, rgba(190, 215, 255, 0.4) 32%, transparent 100%),
+    radial-gradient(2px 2px at 68% 12%, rgba(255, 255, 255, 0.9) 0%, rgba(190, 215, 255, 0.3) 34%, transparent 100%),
+    radial-gradient(3px 3px at 45% 72%, #ffffff 0%, rgba(200, 220, 255, 0.42) 30%, transparent 100%),
+    radial-gradient(2.2px 2.2px at 88% 55%, rgba(255, 255, 255, 0.92) 0%, rgba(190, 215, 255, 0.32) 34%, transparent 100%),
+    radial-gradient(3.2px 3.2px at 12% 82%, #ffffff 0%, rgba(205, 222, 255, 0.45) 30%, transparent 100%),
+    radial-gradient(1.9px 1.9px at 78% 88%, rgba(255, 255, 255, 0.85) 0%, rgba(190, 215, 255, 0.28) 36%, transparent 100%),
+    radial-gradient(2.6px 2.6px at 34% 52%, rgba(255, 255, 255, 0.95) 0%, rgba(198, 218, 255, 0.38) 32%, transparent 100%);
+  background-size:
+    300px 300px, 380px 380px, 520px 520px, 340px 340px,
+    610px 610px, 440px 440px, 480px 480px;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 72%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 72%);
+}
+
+/* The bright few. Each is a soft-edged core rather than a hard dot, which is
+   what makes them read as noticeably larger than the tier above. */
+.sky-stars::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-image:
+    radial-gradient(5px 5px at 26% 22%, #ffffff 0%, rgba(255, 255, 255, 0.55) 22%, rgba(186, 210, 255, 0.3) 42%, transparent 100%),
+    radial-gradient(6px 6px at 72% 64%, #ffffff 0%, rgba(255, 255, 255, 0.5) 20%, rgba(196, 216, 255, 0.28) 40%, transparent 100%),
+    radial-gradient(4.4px 4.4px at 48% 38%, #ffffff 0%, rgba(255, 255, 255, 0.55) 24%, rgba(190, 212, 255, 0.3) 44%, transparent 100%),
+    radial-gradient(5.4px 5.4px at 88% 14%, #ffffff 0%, rgba(255, 255, 255, 0.48) 22%, rgba(200, 218, 255, 0.26) 42%, transparent 100%);
+  background-size: 820px 820px, 1080px 1080px, 940px 940px, 1240px 1240px;
+  /* Drifts a little further than the field behind it, so the two tiers
+     separate into foreground and background as they move. */
+  animation:
+    star-twinkle-bright 11s ease-in-out infinite alternate,
+    star-drift-bright 110s linear infinite alternate;
+}
+
+:root[data-theme="dark"] .sky-stars {
+  opacity: 1;
+  /* Carried along with the sky rather than pinned to the viewport. Ping-ponging
+     with `alternate` keeps it seamless without needing the travel distance to
+     divide evenly into every tile size. Linear, not eased — easing parks the
+     field at a near standstill for most of the cycle, which just reads static. */
+  animation:
+    star-twinkle 7s ease-in-out infinite alternate,
+    star-drift 80s linear infinite alternate;
+}
+
+@keyframes star-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-320px, 70px, 0); }
+}
+
+@keyframes star-drift-bright {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-150px, -46px, 0); }
+}
+
+@keyframes star-twinkle {
+  from { opacity: 0.72; }
+  to { opacity: 1; }
+}
+
+@keyframes star-twinkle-bright {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+/* Clouds are drawn by a fragment shader — see SkyClouds. */
+.sky-canvas {
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+}
+
+/* Mutes the sky just enough to sit text on, without washing it out. */
+.sky-veil {
+  z-index: -1;
+  background-image: linear-gradient(
+    180deg,
+    rgba(232, 240, 250, 0.06) 0%,
+    rgba(236, 242, 250, 0.1) 55%,
+    rgba(240, 244, 250, 0.2) 100%
+  );
+}
+
+:root[data-theme="dark"] .sky-veil {
+  background-image: linear-gradient(
+    180deg,
+    rgba(8, 11, 26, 0.2) 0%,
+    rgba(12, 14, 32, 0.08) 45%,
+    rgba(14, 12, 28, 0.09) 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-stars,
+  .sky-stars::after {
+    animation: none;
+  }
+}
+
+/* Hero text sits straight on the sky with no panel behind it. */
+.sky-hero {
+  --foreground: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.78);
+  --text-tertiary: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+  text-shadow: 0 1px 24px rgba(12, 18, 40, 0.35);
+}

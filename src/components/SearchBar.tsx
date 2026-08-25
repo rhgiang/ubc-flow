@@ -47,7 +47,7 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
   return (
     <div
       ref={containerRef}
-      className="relative mx-auto mt-10 max-w-2xl"
+      className="relative mx-auto mt-9 max-w-xl"
       onFocus={() => setOpen(true)}
       onBlur={(e) => {
         // Only close if focus actually left the container (not just moved

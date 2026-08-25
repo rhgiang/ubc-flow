@@ -10,8 +10,8 @@ export default async function Home() {
     // the top of the viewport whether or not the login panel renders below,
     // which also retires the old logged-in-only mb-48 nudge.
     <main className="flex flex-1 flex-col items-center px-6 pt-[14vh] sm:pt-[16vh]">
-      <div className="mx-auto w-full max-w-3xl text-center">
-        <h1 className="sky-hero text-balance text-4xl font-semibold leading-[1.12] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+      <div className="mx-auto w-full max-w-2xl text-center">
+        <h1 className="sky-hero text-balance text-3xl font-semibold leading-[1.15] tracking-tight text-foreground sm:text-4xl">
           Search and explore course and professor reviews from UBC students
         </h1>
 

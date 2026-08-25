@@ -16,14 +16,24 @@ export default function FindCoursesPanel({
   onAdd,
   onInfo,
   onDock,
+  initialQuery = '',
+  actionLabel = 'Add',
+  currentSectionId,
 }: {
   termId: string;
   addedIds: Set<string>;
   onAdd: (hit: SectionHit) => void;
-  onInfo: (courseId: string) => void;
-  onDock: (courseId: string) => void;
+  onInfo?: (courseId: string) => void;
+  onDock?: (courseId: string) => void;
+  /** Seeds the search box. The panel already searches by code or title, so
+   *  passing a course code lists that course's sections with no extra fetch. */
+  initialQuery?: string;
+  actionLabel?: string;
+  /** The section being replaced, when the panel is used to swap. Rendered as
+   *  "Current" rather than "Added", which is true but useless in that context. */
+  currentSectionId?: string;
 }) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<SectionHit[]>([]);
   const [searching, setSearching] = useState(false);
 
@@ -97,14 +107,16 @@ export default function FindCoursesPanel({
               <CourseHeaderActions
                 code={group.code}
                 slot={slot}
-                onInfo={() => onInfo(group.courseId)}
-                onDock={() => onDock(group.courseId)}
+                onInfo={onInfo ? () => onInfo(group.courseId) : undefined}
+                onDock={onDock ? () => onDock(group.courseId) : undefined}
               />
             </summary>
 
             <ul className="border-t border-border">
               {group.sections.map((section) => {
+                const isCurrent = section.sectionId === currentSectionId;
                 const added = addedIds.has(section.sectionId);
+                const label = isCurrent ? 'Current' : added ? 'Added' : actionLabel;
                 return (
                   <li
                     key={section.sectionId}
@@ -122,12 +134,12 @@ export default function FindCoursesPanel({
                     </div>
                     <button
                       type="button"
-                      disabled={added}
+                      disabled={isCurrent || added}
                       onClick={() => onAdd(section)}
-                      aria-label={`Add ${group.code} ${section.sectionCode}`}
+                      aria-label={`${actionLabel} ${group.code} ${section.sectionCode}`}
                       className="shrink-0 rounded-pill border border-border px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-surface-muted disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent"
                     >
-                      {added ? 'Added' : 'Add'}
+                      {label}
                     </button>
                   </li>
                 );

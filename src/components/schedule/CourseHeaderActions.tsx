@@ -15,11 +15,14 @@ export default function CourseHeaderActions({
   slot,
   onInfo,
   onDock,
+  onSwap,
 }: {
   code: string;
   slot: number;
   onInfo?: () => void;
   onDock?: () => void;
+  /** Only supplied for a course the student actually holds. */
+  onSwap?: () => void;
 }) {
   const style = {
     borderColor: `var(--course-${slot}-accent)`,
@@ -70,6 +73,21 @@ export default function CourseHeaderActions({
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
             <rect x="4" y="5" width="16" height="14" rx="2" />
             <path d="M14 5v14" />
+          </svg>
+        </button>
+      )}
+      {onSwap && (
+        <button
+          type="button"
+          onClick={handler(onSwap)}
+          aria-label={`Swap a section of ${code}`}
+          title="Swap section"
+          style={style}
+          className={`ml-1 inline-flex ${button}`}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
+            <path d="M4 8h13M14 5l3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M20 16H7M10 19l-3-3 3-3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       )}

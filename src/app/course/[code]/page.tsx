@@ -163,7 +163,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
   const redditHref = `https://www.reddit.com/r/UBC/search/?q=${encodeURIComponent(`${course.subject.code} ${course.number}`)}`;
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
+    <main className="mx-auto w-full max-w-4xl px-6 py-10">
       {/* Course identity sits on the sky; everything below it lives on one
           solid panel, so the background reads as a border around the content. */}
       <div className="sky-hero">

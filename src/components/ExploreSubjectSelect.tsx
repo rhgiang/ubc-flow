@@ -83,6 +83,13 @@ export default function ExploreSubjectSelect({
             autoFocus
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter picks the top match — typing "cpsc⏎" must just work.
+              if (e.key === 'Enter' && filtered.length > 0 && filtered[0].code) {
+                e.preventDefault();
+                navigate(filtered[0].code);
+              }
+            }}
             placeholder="Search subjects"
             className="w-full border-b border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-text-tertiary focus:outline-none"
           />

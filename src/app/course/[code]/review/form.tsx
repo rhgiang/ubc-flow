@@ -227,7 +227,7 @@ export function ReviewForm({
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
+    <main className="mx-auto w-full max-w-2xl px-6 py-10">
       <p className="text-sm text-text-tertiary">{courseLabel}</p>
       <h1 className="text-3xl font-semibold">{courseTitle}</h1>
       <p className="mt-1 text-text-secondary">Write a review</p>

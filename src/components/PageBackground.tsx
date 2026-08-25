@@ -1,8 +1,9 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import SkyClouds from '@/components/SkyClouds';
+import Footer from '@/components/Footer';
 
 /**
  * Sky background for every route except the schedule builder
@@ -22,6 +23,16 @@ export default function PageBackground({
 }) {
   const pathname = usePathname();
 
+  // Home gets the full sky; every content page dims it to a backdrop — the
+  // shader and the veil both read this attribute.
+  const dim = pathname !== '/';
+  useEffect(() => {
+    const root = document.documentElement;
+    if (dim) root.setAttribute('data-sky-dim', '');
+    else root.removeAttribute('data-sky-dim');
+    return () => root.removeAttribute('data-sky-dim');
+  }, [dim]);
+
   if (pathname.startsWith('/schedule/')) {
     return (
       <>
@@ -39,6 +50,7 @@ export default function PageBackground({
       <div className="sky-layer sky-veil" aria-hidden="true" />
       {nav}
       <div className="relative z-10 flex flex-1 flex-col">{children}</div>
+      <Footer />
     </div>
   );
 }

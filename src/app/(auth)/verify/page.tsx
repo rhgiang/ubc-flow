@@ -10,7 +10,7 @@ export default async function VerifyPage({
   const result = token ? await consumeVerificationToken(token) : { ok: false };
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
+    <main className="mx-auto w-full max-w-md px-6 py-16">
       <h1 className="text-3xl font-semibold">
         {result.ok ? 'Email verified' : 'Link not valid'}
       </h1>

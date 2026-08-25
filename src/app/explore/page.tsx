@@ -46,9 +46,6 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
     .map(Number)
     .filter((n) => LEVELS.includes(n as (typeof LEVELS)[number]));
   const requirements = sp.requirements === 'none' || sp.requirements === 'has' ? sp.requirements : undefined;
-  // Professors accept several subjects at once (comma-separated); courses
-  // still filter by a single subject and just take the first.
-  const subjectList = (sp.subject ?? '').split(',').filter(Boolean);
   const page = Math.max(1, Number(sp.page) || 1);
 
   const [terms, subjects, courseTotal, professorTotal] = await Promise.all([
@@ -60,6 +57,9 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
   // Every term from the current one onward, not just this/next — a student
   // browsing in the summer is usually planning both Winter terms, and the
   // two-chip version could never show Winter Term 2.
+  // Professors accept several subjects at once (comma-separated); courses
+  // still filter by a single subject and just take the first.
+  const subjectList = (sp.subject ?? '').split(',').filter(Boolean);
   const offeredTerms = terms.filter(isUpcomingTerm).sort(compareTerms);
   // Matched against the real list rather than trusted, so the query only ever
   // sees an id we chose to offer.
@@ -104,16 +104,127 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           { key: 'liked', label: 'Liked' },
         ];
 
+  // Rendered twice — inside the desktop sidebar and the mobile disclosure —
+  // so the two stay one control set rather than drifting apart.
+  const filterControls = (
+    <>
+      {tab === 'courses' ? (
+        <>
+          <p className="mt-4 text-xs font-medium text-text-secondary">Course level</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {LEVELS.map((lvl) => {
+              const active = levels.includes(lvl);
+              const nextLevels = active ? levels.filter((l) => l !== lvl) : [...levels, lvl];
+              return (
+                <Link
+                  key={lvl}
+                  href={hrefWith(sp, { level: nextLevels.join(',') || null })}
+                  className={`rounded-pill border px-3.5 py-2 text-sm font-medium ${
+                    active
+                      ? 'border-brand bg-brand text-brand-foreground'
+                      : 'border-border text-foreground hover:bg-surface-muted'
+                  }`}
+                >
+                  {lvl >= 5 ? '5XX+' : `${lvl}XX`}
+                </Link>
+              );
+            })}
+          </div>
+
+          <p className="mt-5 text-xs font-medium text-text-secondary">Offered in</p>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {offeredTerms.map((t) => (
+              <Link
+                key={t.id}
+                href={hrefWith(sp, { term: sp.term === t.id ? null : t.id })}
+                className={`rounded-pill border px-3.5 py-2 text-left text-sm font-medium ${
+                  sp.term === t.id
+                    ? 'border-brand bg-brand text-brand-foreground'
+                    : 'border-border text-foreground hover:bg-surface-muted'
+                }`}
+              >
+                {t.name.replace(' (UBC-V)', '')}
+              </Link>
+            ))}
+          </div>
+
+          <p className="mt-5 text-xs font-medium text-text-secondary">Requirements</p>
+          <div className="mt-2 flex flex-col gap-1.5">
+            <Link
+              href={hrefWith(sp, { requirements: requirements === 'none' ? null : 'none' })}
+              className={`rounded-pill border px-3.5 py-2 text-left text-sm font-medium ${
+                requirements === 'none'
+                  ? 'border-brand bg-brand text-brand-foreground'
+                  : 'border-border text-foreground hover:bg-surface-muted'
+              }`}
+            >
+              No prerequisites
+            </Link>
+            <Link
+              href={hrefWith(sp, { requirements: requirements === 'has' ? null : 'has' })}
+              className={`rounded-pill border px-3.5 py-2 text-left text-sm font-medium ${
+                requirements === 'has'
+                  ? 'border-brand bg-brand text-brand-foreground'
+                  : 'border-border text-foreground hover:bg-surface-muted'
+              }`}
+            >
+              Has prerequisites
+            </Link>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="mt-4 text-xs font-medium text-text-secondary">Teaches</p>
+          {subjectList.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {subjectList.map((code) => (
+                <Link
+                  key={code}
+                  href={hrefWith(sp, {
+                    subject: subjectList.filter((c) => c !== code).join(',') || null,
+                  })}
+                  aria-label={`Remove ${code} filter`}
+                  className="flex items-center gap-1.5 rounded-pill border border-brand bg-brand px-3.5 py-2 text-sm font-medium text-brand-foreground hover:bg-brand-hover"
+                >
+                  {code}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-3 w-3">
+                    <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+                  </svg>
+                </Link>
+              ))}
+            </div>
+          )}
+          <ExploreSubjectSelect subjects={subjects} value={sp.subject ?? ''} multi />
+        </>
+      )}
+
+      {hasFilters && (
+        <Link
+          href="/explore"
+          className="mt-6 flex items-center justify-center gap-1.5 rounded-pill bg-brand px-4 py-2.5 text-sm font-medium text-brand-foreground hover:bg-brand-hover"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
+            <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+          </svg>
+          Clear filter
+        </Link>
+      )}
+    </>
+  );
+
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
+    <main className="mx-auto w-full max-w-6xl px-6 py-10">
       <h1 className="sky-hero text-3xl font-semibold">Explore</h1>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_300px]">
-        <div>
+        {/* min-w-0: without it the 1fr column refuses to shrink below its
+            widest child's min-content and the whole page scrolls sideways
+            on phones. */}
+        <div className="min-w-0">
           <div className="sky-panel flex overflow-hidden">
             <Link
               href={hrefWith(sp, { tab: null })}
-              className={`flex-1 px-4 py-3 text-center text-sm font-semibold ${
+              className={`flex-1 px-4 py-3.5 text-center text-[15px] font-semibold ${
                 tab === 'courses' ? 'bg-surface text-foreground' : 'bg-surface-muted text-text-secondary'
               }`}
             >
@@ -121,7 +232,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             </Link>
             <Link
               href={hrefWith(sp, { tab: 'professors' })}
-              className={`flex-1 px-4 py-3 text-center text-sm font-semibold ${
+              className={`flex-1 px-4 py-3.5 text-center text-[15px] font-semibold ${
                 tab === 'professors' ? 'bg-surface text-foreground' : 'bg-surface-muted text-text-secondary'
               }`}
             >
@@ -142,12 +253,34 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             </p>
           )}
 
+          {/* On phones the sidebar would land below the table and pagination,
+              a full page from what it controls — surface the same controls
+              here as a native disclosure instead. */}
+          <details className="sky-panel mt-4 lg:hidden">
+            <summary className="cursor-pointer list-none px-5 py-3 text-sm font-semibold text-foreground">
+              Filters{hasFilters && <span className="ml-2 font-normal text-brand-accent">· active</span>}
+            </summary>
+            <div className="px-5 pb-5">{filterControls}</div>
+          </details>
+
+          <div className="mt-4 flex gap-1.5 overflow-x-auto sm:hidden" aria-label="Sort by">
+            {SORT_HEADERS.map((h) => (
+              <Link
+                key={h.key}
+                href={hrefWith(sp, { sort: h.key })}
+                className="whitespace-nowrap rounded-pill border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-surface-muted"
+              >
+                {h.label}
+              </Link>
+            ))}
+          </div>
+
           <div className="sky-panel mt-4 overflow-x-auto">
-            <table className="sky-table w-full text-left text-sm">
+            <table className="sky-table hidden w-full text-left text-[15px] sm:table">
               <thead className="border-b border-border text-xs text-text-secondary">
                 <tr>
                   {SORT_HEADERS.map((h) => (
-                    <th key={h.key} className="px-4 py-3 font-medium">
+                    <th key={h.key} className="whitespace-nowrap px-4 py-3 font-medium">
                       <Link href={hrefWith(sp, { sort: h.key })} className="hover:text-foreground">
                         {h.label}
                       </Link>
@@ -159,7 +292,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                 {tab === 'courses'
                   ? courseResult!.rows.map((r) => (
                       <tr key={r.code} className="border-b border-border last:border-0">
-                        <td className="px-4 py-3">
+                        <td className="whitespace-nowrap px-4 py-3">
                           <Link
                             href={`/course/${r.code.toLowerCase().replace(' ', '-')}`}
                             className="font-medium text-brand-accent hover:underline"
@@ -201,6 +334,45 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                     ))}
               </tbody>
             </table>
+
+            {/* Card-per-row on phones — same rows, same data, no six-column crush. */}
+            <div className="divide-y divide-border sm:hidden">
+              {tab === 'courses'
+                ? courseResult!.rows.map((r) => (
+                    <div key={r.code} className="px-4 py-3">
+                      <Link
+                        href={`/course/${r.code.toLowerCase().replace(' ', '-')}`}
+                        className="font-medium text-brand-accent hover:underline"
+                      >
+                        {r.code}
+                      </Link>
+                      <p className="mt-0.5 text-[15px] text-foreground">{r.title}</p>
+                      <p className="mt-1.5 text-xs tabular-nums text-text-tertiary">
+                        {r.reviewCount} {r.reviewCount === 1 ? 'review' : 'reviews'}
+                        {r.useful !== null && ` · Useful ${r.useful.toFixed(1)}/5`}
+                        {r.difficulty !== null && ` · Easy ${r.difficulty.toFixed(1)}/5`}
+                        {r.likedPercent !== null && ` · ${r.likedPercent}% liked`}
+                      </p>
+                    </div>
+                  ))
+                : professorResult!.rows.map((r) => (
+                    <div key={r.slug} className="px-4 py-3">
+                      <Link
+                        href={`/professor/${r.slug}`}
+                        className="font-medium text-brand-accent hover:underline"
+                      >
+                        {r.name}
+                      </Link>
+                      <p className="mt-1.5 text-xs tabular-nums text-text-tertiary">
+                        {r.reviewCount} {r.reviewCount === 1 ? 'review' : 'reviews'}
+                        {r.clear !== null && ` · Clear ${r.clear.toFixed(1)}/5`}
+                        {r.engaging !== null && ` · Engaging ${r.engaging.toFixed(1)}/5`}
+                        {r.likedPercent !== null && ` · ${r.likedPercent}% liked`}
+                      </p>
+                    </div>
+                  ))}
+            </div>
+
             {total === 0 && (
               <p className="p-6 text-center text-sm text-text-secondary">
                 No {tab === 'courses' ? 'courses' : 'professors'} match these filters.
@@ -213,7 +385,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
               <Link
                 href={hrefWith(sp, { page: String(page - 1) })}
                 aria-disabled={page <= 1}
-                className={`rounded-pill border border-border px-4 py-2 ${
+                className={`rounded-pill border border-border px-5 py-2.5 ${
                   page <= 1 ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
                 }`}
               >
@@ -225,7 +397,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
               <Link
                 href={hrefWith(sp, { page: String(page + 1) })}
                 aria-disabled={page >= totalPages}
-                className={`rounded-pill border border-border px-4 py-2 ${
+                className={`rounded-pill border border-border px-5 py-2.5 ${
                   page >= totalPages ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
                 }`}
               >
@@ -235,110 +407,9 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           )}
         </div>
 
-        <aside className="sky-panel h-fit p-5">
+        <aside className="sky-panel hidden h-fit p-5 lg:block">
           <p className="text-sm font-semibold text-foreground">Filter your results</p>
-
-          {tab === 'courses' ? (
-            <>
-              <p className="mt-4 text-xs font-medium text-text-secondary">Course level</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {LEVELS.map((lvl) => {
-                  const active = levels.includes(lvl);
-                  const nextLevels = active ? levels.filter((l) => l !== lvl) : [...levels, lvl];
-                  return (
-                    <Link
-                      key={lvl}
-                      href={hrefWith(sp, { level: nextLevels.join(',') || null })}
-                      className={`rounded-pill border px-3 py-1 text-xs font-medium ${
-                        active
-                          ? 'border-brand bg-brand text-brand-foreground'
-                          : 'border-border text-foreground hover:bg-surface-muted'
-                      }`}
-                    >
-                      {lvl >= 5 ? '5XX+' : `${lvl}XX`}
-                    </Link>
-                  );
-                })}
-              </div>
-
-              <p className="mt-5 text-xs font-medium text-text-secondary">Offered in</p>
-              <div className="mt-2 flex flex-col gap-1.5">
-                {offeredTerms.map((t) => (
-                  <Link
-                    key={t.id}
-                    href={hrefWith(sp, { term: sp.term === t.id ? null : t.id })}
-                    className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
-                      sp.term === t.id
-                        ? 'border-brand bg-brand text-brand-foreground'
-                        : 'border-border text-foreground hover:bg-surface-muted'
-                    }`}
-                  >
-                    {t.name.replace(' (UBC-V)', '')}
-                  </Link>
-                ))}
-              </div>
-
-              <p className="mt-5 text-xs font-medium text-text-secondary">Requirements</p>
-              <div className="mt-2 flex flex-col gap-1.5">
-                <Link
-                  href={hrefWith(sp, { requirements: requirements === 'none' ? null : 'none' })}
-                  className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
-                    requirements === 'none'
-                      ? 'border-brand bg-brand text-brand-foreground'
-                      : 'border-border text-foreground hover:bg-surface-muted'
-                  }`}
-                >
-                  No prerequisites
-                </Link>
-                <Link
-                  href={hrefWith(sp, { requirements: requirements === 'has' ? null : 'has' })}
-                  className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
-                    requirements === 'has'
-                      ? 'border-brand bg-brand text-brand-foreground'
-                      : 'border-border text-foreground hover:bg-surface-muted'
-                  }`}
-                >
-                  Has prerequisites
-                </Link>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="mt-4 text-xs font-medium text-text-secondary">Teaches</p>
-              {subjectList.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {subjectList.map((code) => (
-                    <Link
-                      key={code}
-                      href={hrefWith(sp, {
-                        subject: subjectList.filter((c) => c !== code).join(',') || null,
-                      })}
-                      aria-label={`Remove ${code} filter`}
-                      className="flex items-center gap-1.5 rounded-pill border border-brand bg-brand px-3 py-1.5 text-xs font-medium text-brand-foreground hover:bg-brand-hover"
-                    >
-                      {code}
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-3 w-3">
-                        <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
-                      </svg>
-                    </Link>
-                  ))}
-                </div>
-              )}
-              <ExploreSubjectSelect subjects={subjects} value={sp.subject ?? ''} multi />
-            </>
-          )}
-
-          {hasFilters && (
-            <Link
-              href="/explore"
-              className="mt-6 flex items-center justify-center gap-1.5 rounded-pill bg-brand px-4 py-2 text-xs font-medium text-brand-foreground hover:bg-brand-hover"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
-                <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
-              </svg>
-              Clear filter
-            </Link>
-          )}
+          {filterControls}
         </aside>
       </div>
     </main>

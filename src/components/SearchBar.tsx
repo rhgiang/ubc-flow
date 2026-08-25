@@ -47,7 +47,7 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
   return (
     <div
       ref={containerRef}
-      className="relative mx-auto mt-8 max-w-xl"
+      className="relative mx-auto mt-9 max-w-xl"
       onFocus={() => setOpen(true)}
       onBlur={(e) => {
         // Only close if focus actually left the container (not just moved
@@ -61,7 +61,7 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
           setOpen(false);
           router.push(`/explore?q=${encodeURIComponent(query)}`);
         }}
-        className="flex items-center gap-2 rounded-pill border border-border bg-surface px-5 py-3 shadow-sm transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100"
+        className="flex items-center gap-2 rounded-pill border border-border bg-surface px-5 py-3.5 shadow-sm transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100"
       >
         <svg
           viewBox="0 0 24 24"
@@ -78,7 +78,7 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search course, subject, or professor — ex: Math 101"
-          className="w-full bg-transparent text-sm text-foreground placeholder:text-text-tertiary focus:outline-none"
+          className="w-full bg-transparent text-base text-foreground placeholder:text-text-tertiary focus:outline-none"
         />
       </form>
 

@@ -1,12 +1,17 @@
 'use client';
 
-import { createContext, useCallback, useContext, useRef, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 type UnsavedChangesState = {
   /** Called by whichever editor currently holds unsaved work. */
   setDirty: (dirty: boolean) => void;
-  /** Returns true if it is safe to navigate away. Prompts when it is not. */
-  confirmLeave: () => boolean;
+  /**
+   * Returns true if it is safe to navigate now. When it is not, shows the
+   * site's own dialog and runs `proceed` only if the student chooses to leave
+   * — so callers must preventDefault on false and hand navigation over.
+   */
+  confirmLeave: (proceed: () => void) => boolean;
 };
 
 const Ctx = createContext<UnsavedChangesState | null>(null);
@@ -19,23 +24,44 @@ const Ctx = createContext<UnsavedChangesState | null>(null);
  * navigation the browser never hears about. Without this, one click on
  * "Explore" silently discards a whole imported timetable.
  *
- * A ref, not state: nothing renders from this, and re-rendering the whole app
- * on every keystroke in the schedule-name field would be a real cost for no
- * benefit.
+ * The dirty flag is a ref, not state: nothing renders from it, and
+ * re-rendering the whole app on every keystroke in the schedule-name field
+ * would be a real cost for no benefit. Only the pending-dialog state renders.
  */
 export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   const dirty = useRef(false);
+  const [pending, setPending] = useState<(() => void) | null>(null);
 
   const setDirty = useCallback((next: boolean) => {
     dirty.current = next;
   }, []);
 
-  const confirmLeave = useCallback(() => {
+  const confirmLeave = useCallback((proceed: () => void) => {
     if (!dirty.current) return true;
-    return window.confirm('You have unsaved changes to this schedule. Leave without saving?');
+    setPending(() => proceed);
+    return false;
   }, []);
 
-  return <Ctx.Provider value={{ setDirty, confirmLeave }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ setDirty, confirmLeave }}>
+      {children}
+      {pending && (
+        <ConfirmDialog
+          title="Leave the schedule builder?"
+          body="Your schedule has changes that aren't saved yet — sections you've added or imported will be discarded. You can save it from the builder first."
+          confirmLabel="Discard and leave"
+          cancelLabel="Keep editing"
+          danger
+          onConfirm={() => {
+            dirty.current = false;
+            setPending(null);
+            pending();
+          }}
+          onCancel={() => setPending(null)}
+        />
+      )}
+    </Ctx.Provider>
+  );
 }
 
 export function useUnsavedChanges(): UnsavedChangesState {

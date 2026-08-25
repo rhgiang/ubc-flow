@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { renameSchedule, deleteSchedule, getSubscribeUrl } from '@/app/actions/schedule';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: string; name: string }) {
   const [open, setOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState(name);
   const [busy, setBusy] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscribeUrl, setSubscribeUrl] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,10 +53,10 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
   }
 
   async function onDelete() {
-    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
     setBusy(true);
     const result = await deleteSchedule(scheduleId);
     setBusy(false);
+    setConfirmingDelete(false);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -110,7 +112,7 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
           </a>
           <button
             type="button"
-            onClick={onDelete}
+            onClick={() => setConfirmingDelete(true)}
             disabled={busy}
             className="block w-full border-t border-border px-4 py-2 text-left text-sm text-foreground hover:bg-danger-surface hover:text-danger disabled:opacity-50"
           >
@@ -151,6 +153,19 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
             </button>
           </div>
         </form>
+      )}
+
+      {confirmingDelete && (
+        <ConfirmDialog
+          title={`Delete “${name}”?`}
+          body="This permanently removes the schedule and its saved sections from your account. It can't be undone."
+          confirmLabel="Delete schedule"
+          cancelLabel="Keep it"
+          danger
+          busy={busy}
+          onConfirm={onDelete}
+          onCancel={() => setConfirmingDelete(false)}
+        />
       )}
     </div>
   );

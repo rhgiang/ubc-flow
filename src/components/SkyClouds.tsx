@@ -31,6 +31,8 @@ uniform float u_coverage;  // raises/lowers the density cut — more or fewer cl
 uniform float u_scale;
 uniform float u_top;       // where the cloud deck starts fading in, in screen Y
 uniform float u_bottom;    // and where it has faded out entirely
+uniform float u_precip;    // precipitation strength, 0 = none
+uniform float u_ptype;     // 0 = rain streaks, 1 = snow flakes
 
 out vec4 outColor;
 
@@ -65,6 +67,43 @@ float fbm(vec2 p) {
     a *= 0.5;
   }
   return v;
+}
+
+// Screen-space rain: slanted columns, each with its own phase and speed, a
+// sparse hash deciding which cells actually carry a drop. Reads as rain on
+// the window rather than volumetric rain — right for a backdrop.
+float rain(vec2 uv, float t) {
+  uv.x += uv.y * 0.16; // slant
+  vec2 cell = vec2(uv.x * 90.0, uv.y * 2.4);
+  float col = floor(cell.x);
+  float ph = hash(vec2(col, 17.0));
+  cell.y += t * (2.1 + ph * 1.5) + ph * 19.0;
+  float row = floor(cell.y);
+  // "active" is a reserved word in GLSL ES 3.0 — hence "occupied".
+  float occupied = step(0.7, hash(vec2(col, row)));
+  vec2 f = fract(cell) - 0.5;
+  float streak = (1.0 - smoothstep(0.02, 0.08, abs(f.x))) *
+                 (1.0 - smoothstep(0.28, 0.48, abs(f.y)));
+  return streak * occupied;
+}
+
+// Two drifting layers of soft dots with per-flake jitter and a sinusoidal
+// horizontal wobble.
+float snow(vec2 uv, float t) {
+  float acc = 0.0;
+  for (int i = 0; i < 2; i++) {
+    float fi = float(i);
+    vec2 g = uv * (13.0 + fi * 9.0);
+    g.y += t * (0.55 + fi * 0.35);
+    g.x += sin(t * 0.6 + fi * 2.1 + uv.y * 5.0) * 0.3;
+    vec2 id = floor(g);
+    float ph = hash(id + fi * 31.0);
+    vec2 f = fract(g) - 0.5;
+    vec2 off = (vec2(ph, hash(id + 7.7)) - 0.5) * 0.6;
+    float d = length(f - off);
+    acc += (1.0 - smoothstep(0.03 + ph * 0.03, 0.09 + ph * 0.04, d)) * step(0.45, ph);
+  }
+  return min(acc, 1.0);
 }
 
 void main() {
@@ -116,6 +155,18 @@ void main() {
   col *= 0.86 + 0.24 * density;
 
   float alpha = density * band * u_alpha;
+
+  if (u_precip > 0.0) {
+    // Aspect-true coordinates so drops stay the same size on any viewport.
+    vec2 suv = gl_FragCoord.xy / u_res.y;
+    float pr = (u_ptype < 0.5 ? rain(suv, t) : snow(suv, t)) * u_precip;
+    // Rain reads as darker streaks against a grey sky; snow as white flakes.
+    vec3 pcol = u_ptype < 0.5 ? u_colorLow * 0.82 : vec3(1.0);
+    float pa = clamp(pr, 0.0, 1.0) * (u_ptype < 0.5 ? 0.35 : 0.8);
+    col = mix(col, pcol, pa / max(alpha + pa, 0.001));
+    alpha = alpha + pa * (1.0 - alpha);
+  }
+
   outColor = vec4(col, alpha);
 }
 `;
@@ -131,6 +182,44 @@ type Palette = {
   colorLow: [number, number, number];
   alpha: number;
   coverage: number;
+  /** Rain/snow strength; 0 for none. */
+  precip?: number;
+  /** 0 = rain, 1 = snow. */
+  ptype?: number;
+};
+
+/**
+ * Weather-mode adjustments layered onto the light/dark base palette. Values
+ * are deltas/overrides, not full palettes, so day and night both stay in
+ * their own colour family. Keyed by the data-weather attribute.
+ */
+const WEATHER: Record<string, Partial<Palette>> = {
+  clear: { coverage: 0.42 }, // a few wisps, mostly open sky
+  cloudy: {}, // the default deck already reads as partly cloudy
+  overcast: { coverage: 0.06, alpha: 1.0, color: [0.93, 0.94, 0.96], colorLow: [0.85, 0.87, 0.9] },
+  fog: { coverage: -0.1, alpha: 0.6, color: [0.92, 0.93, 0.95], colorLow: [0.9, 0.91, 0.93] },
+  rain: {
+    coverage: 0.04,
+    alpha: 1.0,
+    color: [0.78, 0.8, 0.85],
+    colorLow: [0.68, 0.71, 0.77],
+    precip: 1.0,
+  },
+  snow: {
+    coverage: 0.06,
+    alpha: 1.0,
+    color: [0.9, 0.91, 0.94],
+    colorLow: [0.84, 0.86, 0.9],
+    precip: 1.0,
+    ptype: 1,
+  },
+  storm: {
+    coverage: 0.0,
+    alpha: 1.0,
+    color: [0.62, 0.64, 0.7],
+    colorLow: [0.52, 0.55, 0.62],
+    precip: 1.6,
+  },
 };
 
 // coverage is a threshold on the noise field, which now centres near 0.5:
@@ -219,6 +308,8 @@ export default function SkyClouds() {
       scale: gl.getUniformLocation(prog, 'u_scale'),
       top: gl.getUniformLocation(prog, 'u_top'),
       bottom: gl.getUniformLocation(prog, 'u_bottom'),
+      precip: gl.getUniformLocation(prog, 'u_precip'),
+      ptype: gl.getUniformLocation(prog, 'u_ptype'),
     };
 
     // Clouds are all soft gradients, so rendering well under device resolution
@@ -240,24 +331,31 @@ export default function SkyClouds() {
     window.addEventListener('resize', resize);
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+    const root = document.documentElement;
+    const isContrast = () => root.getAttribute('data-theme') === 'contrast';
 
     const applyPalette = () => {
-      const p = isDark() ? DARK : LIGHT;
+      const dark = root.getAttribute('data-theme') === 'dark';
+      const base = dark ? DARK : LIGHT;
+      const cond = root.getAttribute('data-weather');
+      const over = cond ? (WEATHER[cond] ?? {}) : {};
+      const p = { ...base, ...over };
+      // The weather colours are daytime greys; at night pull them down so a
+      // storm deck doesn't glow against the dusk sky.
+      if (dark && over.color) {
+        p.color = p.color.map((c) => c * 0.55) as Palette['color'];
+        p.colorLow = p.colorLow.map((c) => c * 0.55) as Palette['colorLow'];
+      }
       gl.uniform3f(u.color, ...p.color);
       gl.uniform3f(u.colorLow, ...p.colorLow);
       gl.uniform1f(u.alpha, p.alpha);
       gl.uniform1f(u.coverage, p.coverage);
       gl.uniform1f(u.top, 0.0);
       gl.uniform1f(u.bottom, 1.0);
+      gl.uniform1f(u.precip, p.precip ?? 0);
+      gl.uniform1f(u.ptype, p.ptype ?? 0);
     };
     applyPalette();
-
-    const themeWatch = new MutationObserver(applyPalette);
-    themeWatch.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    });
 
     let raf = 0;
     let start = performance.now();
@@ -291,12 +389,35 @@ export default function SkyClouds() {
       if (document.hidden) {
         cancelAnimationFrame(raf);
         raf = 0;
-      } else if (!raf) {
+      } else if (!raf && !isContrast()) {
         start = performance.now() - elapsed * 1000;
         raf = requestAnimationFrame(frame);
       }
     };
     document.addEventListener('visibilitychange', onVisibility);
+
+    // High contrast is a static theme: the sky layers are hidden by CSS, so
+    // drawing would be pure waste — stop the loop, restart on the way out.
+    const onThemeChange = () => {
+      if (isContrast()) {
+        if (raf) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        }
+        return;
+      }
+      applyPalette();
+      if (!raf && !document.hidden) {
+        start = performance.now() - elapsed * 1000;
+        raf = requestAnimationFrame(frame);
+      }
+    };
+    const themeWatch = new MutationObserver(onThemeChange);
+    themeWatch.observe(root, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'data-weather'],
+    });
+    onThemeChange();
 
     return () => {
       if (raf) cancelAnimationFrame(raf);

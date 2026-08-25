@@ -24,16 +24,24 @@ export default function ConflictSaveDialog({
     function onKey(e: KeyboardEvent) {
       if (e.key !== 'Escape') return;
       // This dialog can be mounted on top of UnsavedWorkDialog (the
-      // "save and switch" flow), and both attach a bare document keydown
-      // listener. Without stopping propagation, one Escape press would fire
-      // both onCancel handlers — backing out of this confirmation AND
-      // silently discarding the parked navigation underneath it. Only the
-      // topmost dialog should consume the key.
-      e.stopPropagation();
+      // "save and switch" flow), and both listen for keydown on `document` —
+      // the SAME node. One Escape would otherwise fire both onCancel handlers,
+      // backing out of this confirmation AND silently discarding the parked
+      // navigation underneath it.
+      //
+      // Two details make this work, and neither is optional. stopPropagation
+      // is useless here: it halts traversal to the next node, and these
+      // listeners share one. And stopImmediatePropagation alone is not enough
+      // either, because it only suppresses listeners registered AFTER it —
+      // UnsavedWorkDialog mounts first, so its listener already sits ahead in
+      // the queue. Listening in the capture phase is what puts this handler in
+      // front: capture reaches `document` on the way down to the focused
+      // element, before any bubble-phase listener on that same node.
+      e.stopImmediatePropagation();
       onCancel();
     }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
   }, [conflicts.length, onCancel]);
 
   useEffect(() => {

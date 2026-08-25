@@ -381,29 +381,35 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           </div>
 
           {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between text-sm">
-              <Link
-                href={hrefWith(sp, { page: String(page - 1) })}
-                aria-disabled={page <= 1}
-                className={`rounded-pill border border-border px-5 py-2.5 ${
-                  page <= 1 ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
-                }`}
-              >
-                Previous
-              </Link>
-              <span className="text-text-secondary">
+            <nav aria-label="Pagination" className="mt-6 flex items-center justify-between text-sm font-medium">
+              {page <= 1 ? (
+                <span className="rounded-pill bg-brand px-6 py-2.5 text-brand-foreground opacity-40 shadow-sm">
+                  Previous
+                </span>
+              ) : (
+                <Link
+                  href={hrefWith(sp, { page: String(page - 1) })}
+                  className="rounded-pill bg-brand px-6 py-2.5 text-brand-foreground shadow-sm transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100"
+                >
+                  Previous
+                </Link>
+              )}
+              <span className="sky-hero text-sm tabular-nums">
                 Page {page} of {totalPages}
               </span>
-              <Link
-                href={hrefWith(sp, { page: String(page + 1) })}
-                aria-disabled={page >= totalPages}
-                className={`rounded-pill border border-border px-5 py-2.5 ${
-                  page >= totalPages ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
-                }`}
-              >
-                Next
-              </Link>
-            </div>
+              {page >= totalPages ? (
+                <span className="rounded-pill bg-brand px-6 py-2.5 text-brand-foreground opacity-40 shadow-sm">
+                  Next
+                </span>
+              ) : (
+                <Link
+                  href={hrefWith(sp, { page: String(page + 1) })}
+                  className="rounded-pill bg-brand px-6 py-2.5 text-brand-foreground shadow-sm transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100"
+                >
+                  Next
+                </Link>
+              )}
+            </nav>
           )}
         </div>
 

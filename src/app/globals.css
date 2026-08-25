@@ -518,7 +518,9 @@ body {
   transition:
     clip-path 0.85s cubic-bezier(0.65, 0, 0.35, 1),
     transform 0.85s cubic-bezier(0.65, 0, 0.35, 1),
-    opacity 0.22s ease;
+    opacity 0.22s ease,
+    background-color 0.3s ease,
+    border-color 0.3s ease;
   border-radius: 14px;
   background: rgba(10, 18, 38, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.34);
@@ -533,6 +535,21 @@ body {
   border-color: rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(30px) saturate(120%) brightness(0.94);
   -webkit-backdrop-filter: blur(30px) saturate(120%) brightness(0.94);
+}
+
+/*
+ * Scrolled past the hero the glass turns solid UBC navy (see NavShell).
+ * Full translucency is the top-of-page look, where the sky is the show;
+ * over content it read as ambiguous floating pills. Navy works unchanged
+ * in both themes because the bar's text and chips are already white.
+ */
+.sky-root > header[data-nav-scrolled] > .nav-bar {
+  background: rgba(4, 26, 54, 0.88);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+:root[data-theme="dark"] .sky-root > header[data-nav-scrolled] > .nav-bar {
+  background: rgba(10, 14, 34, 0.88);
 }
 
 /*
@@ -570,6 +587,25 @@ body {
   --text-tertiary: rgba(255, 255, 255, 0.6);
   color: #ffffff;
   text-shadow: 0 1px 24px rgba(12, 18, 40, 0.35);
+}
+
+/* The footer lives in the sky rather than on a slab — white text with the
+   nav's halo treatment. The high-contrast rules further down give it ink
+   on paper once the sky is switched off. */
+.sky-footer {
+  --foreground: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.78);
+  color: var(--text-secondary);
+  text-shadow: 0 1px 3px rgba(8, 16, 36, 0.45);
+}
+
+:root[data-theme="contrast"] .sky-footer,
+:root[data-theme="contrast-dark"] .sky-footer {
+  --foreground: var(--hc-ink);
+  --text-secondary: var(--hc-ink);
+  color: var(--hc-ink);
+  text-shadow: none;
+  border-top: 1px solid var(--hc-ink);
 }
 
 /* ---------------------------------------------------------------------------

@@ -94,7 +94,11 @@ export default function ScheduleBuilder({
   const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
   const [infoDocked, setInfoDocked] = useState(false);
   const [swapping, setSwapping] = useState<SectionHit | null>(null);
-  const [confirmingConflicts, setConfirmingConflicts] = useState(false);
+  // Non-null while the conflict gate is open, holding the options `trySave`
+  // was originally called with — replayed verbatim (plus conflictsConfirmed)
+  // when the student picks "Save anyway", so a gated save-and-switch still
+  // switches instead of silently reverting to defaults.
+  const [pendingSave, setPendingSave] = useState<{ redirectAfterCreate: boolean } | null>(null);
   const [importOpen, setImportOpen] = useState(openImport);
   // A successful save moves the baseline immediately. router.refresh() is not
   // awaited, so the refreshed initialSections prop lands later — without this,
@@ -261,7 +265,7 @@ export default function ScheduleBuilder({
     // Save is where an overlap stops being a sketch, so it is the one place we
     // ask. Planning stays silent on purpose.
     if (!conflictsConfirmed && conflicts.length > 0) {
-      setConfirmingConflicts(true);
+      setPendingSave({ redirectAfterCreate });
       return false;
     }
 
@@ -485,11 +489,22 @@ export default function ScheduleBuilder({
       />
 
       <ConflictSaveDialog
-        conflicts={confirmingConflicts ? conflicts : []}
-        onCancel={() => setConfirmingConflicts(false)}
-        onConfirm={() => {
-          setConfirmingConflicts(false);
-          void trySave({ conflictsConfirmed: true });
+        conflicts={pendingSave ? conflicts : []}
+        onCancel={() => setPendingSave(null)}
+        onConfirm={async () => {
+          // Replay the save with the SAME options the gate captured — not
+          // trySave's defaults — so a gated "save and switch" still switches.
+          const redirectAfterCreate = pendingSave?.redirectAfterCreate ?? true;
+          setPendingSave(null);
+          const saved = await trySave({ redirectAfterCreate, conflictsConfirmed: true });
+          if (!saved) return;
+          // Mirrors UnsavedWorkDialog's own onSave: complete the navigation
+          // that was parked behind it, now that the save actually went through.
+          if (pendingNav) {
+            const { go } = pendingNav;
+            setPendingNav(null);
+            go();
+          }
         }}
       />
 
@@ -506,8 +521,10 @@ export default function ScheduleBuilder({
           canSave={contentSaveable}
           onSave={async () => {
             const saved = await trySave({ redirectAfterCreate: false });
-            // On failure the error banner is already set — keep the dialog up
-            // rather than navigating away from work that did not persist.
+            // `false` here means either a real failure (error banner is up)
+            // or the conflict gate just opened ConflictSaveDialog on top of
+            // this one — either way, stay put rather than navigating away
+            // from work that did not persist.
             if (!saved) return;
             const { go } = pendingNav;
             setPendingNav(null);

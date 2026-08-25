@@ -425,38 +425,52 @@ export default function ScheduleBuilder({
           />
         </aside>
 
-        <div className="min-w-0 flex-1 overflow-auto p-4">
+        {/* The banner floats over the calendar rather than sitting above it
+            in flow: as a block it pushed the whole grid down the moment a
+            conflict appeared and let it spring back on dismissal, so the
+            times you were trying to read moved under you exactly when you
+            looked at them. The scroll container is a child of this wrapper,
+            not the wrapper itself, so the banner stays pinned instead of
+            scrolling away from the conflict it describes. */}
+        <div className="relative min-w-0 flex-1">
+          {/* z-30 clears the calendar's sticky day-header row, which is z-20
+              and comes later in the DOM — at equal z the header won and
+              covered the banner's heading and dismiss button. */}
           {showConflictBanner && (
-            <div className="relative mb-4 rounded-card border border-danger-border bg-danger-surface p-3 pr-9 text-sm text-danger">
-              <button
-                type="button"
-                onClick={() => setDismissedConflicts(currentConflictKey)}
-                aria-label="Dismiss conflict warning"
-                className="absolute right-2 top-2 rounded px-1 text-danger transition-opacity hover:opacity-70"
-              >
-                ×
-              </button>
-              <p className="font-medium">
-                {conflicts.length} scheduling conflict
-                {conflicts.length === 1 ? '' : 's'} detected
-              </p>
-              <ul className="mt-1 space-y-0.5 text-xs">
-                {conflicts.map((c, i) => (
-                  <li key={i}>
-                    {c.a.label} overlaps {c.b.label} on {c.a.day}
-                  </li>
-                ))}
-              </ul>
+            <div className="pointer-events-none absolute inset-x-4 top-4 z-30">
+              <div className="pointer-events-auto relative rounded-card border border-danger-border bg-danger-surface p-3 pr-9 text-sm text-danger shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => setDismissedConflicts(currentConflictKey)}
+                  aria-label="Dismiss conflict warning"
+                  className="absolute right-2 top-2 rounded px-1 text-danger transition-opacity hover:opacity-70"
+                >
+                  ×
+                </button>
+                <p className="font-medium">
+                  {conflicts.length} scheduling conflict
+                  {conflicts.length === 1 ? '' : 's'} detected
+                </p>
+                <ul className="mt-1 space-y-0.5 text-xs">
+                  {conflicts.map((c, i) => (
+                    <li key={i}>
+                      {c.a.label} overlaps {c.b.label} on {c.a.day}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           )}
 
-          <ScheduleCalendar
-            entries={entries}
-            onRemove={removeSection}
-            showNowIndicator={showNowIndicator}
-            onSelectCourse={setInfoCourseId}
-            onSwap={startSwapById}
-          />
+          <div className="h-full overflow-auto p-4">
+            <ScheduleCalendar
+              entries={entries}
+              onRemove={removeSection}
+              showNowIndicator={showNowIndicator}
+              onSelectCourse={setInfoCourseId}
+              onSwap={startSwapById}
+            />
+          </div>
         </div>
 
         {infoDocked && infoCourseId && (

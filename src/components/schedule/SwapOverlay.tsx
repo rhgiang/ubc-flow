@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import FindCoursesPanel from '@/components/schedule/FindCoursesPanel';
 import type { SectionHit } from '@/lib/search';
 
@@ -24,6 +24,8 @@ export default function SwapOverlay({
   onSwap: (next: SectionHit) => void;
   onClose: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
   // Escape closes, matching CourseInfoOverlay and the auth overlay.
   useEffect(() => {
     if (!section) return;
@@ -34,17 +36,23 @@ export default function SwapOverlay({
     return () => document.removeEventListener('keydown', onKey);
   }, [section, onClose]);
 
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, [section]);
+
   if (!section) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 sm:p-8"
-      onClick={(e) => {
+      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50 p-4 sm:p-8"
+      onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
+        tabIndex={-1}
         aria-modal="true"
         aria-label={`Swap ${section.code} ${section.sectionCode}`}
         className="flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-card border border-border bg-background"

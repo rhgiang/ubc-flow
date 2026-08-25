@@ -10,6 +10,7 @@ import CourseInfoPanel from '@/components/schedule/course-info/CourseInfoPanel';
 import SwapOverlay from '@/components/schedule/SwapOverlay';
 import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
 import UnsavedWorkDialog from '@/components/schedule/UnsavedWorkDialog';
+import ConflictSaveDialog from '@/components/schedule/ConflictSaveDialog';
 import type { ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
 import { findConflicts } from '@/schedule/conflicts';
 import { diffSections, swapSection } from '@/schedule/buffer';
@@ -93,6 +94,7 @@ export default function ScheduleBuilder({
   const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
   const [infoDocked, setInfoDocked] = useState(false);
   const [swapping, setSwapping] = useState<SectionHit | null>(null);
+  const [confirmingConflicts, setConfirmingConflicts] = useState(false);
   const [importOpen, setImportOpen] = useState(openImport);
   // A successful save moves the baseline immediately. router.refresh() is not
   // awaited, so the refreshed initialSections prop lands later — without this,
@@ -252,7 +254,17 @@ export default function ScheduleBuilder({
   /** Resolves true only when the schedule is persisted. `redirectAfterCreate`
    *  is false when a pending navigation supersedes the jump to the new
    *  schedule — two router.push calls would otherwise race. */
-  async function trySave({ redirectAfterCreate = true } = {}): Promise<boolean> {
+  async function trySave({
+    redirectAfterCreate = true,
+    conflictsConfirmed = false,
+  } = {}): Promise<boolean> {
+    // Save is where an overlap stops being a sketch, so it is the one place we
+    // ask. Planning stays silent on purpose.
+    if (!conflictsConfirmed && conflicts.length > 0) {
+      setConfirmingConflicts(true);
+      return false;
+    }
+
     setSaving(true);
     setError(null);
     const sectionIds = chosen.map((c) => c.sectionId);
@@ -470,6 +482,15 @@ export default function ScheduleBuilder({
         addedIds={addedSectionIds}
         onSwap={applySwap}
         onClose={() => setSwapping(null)}
+      />
+
+      <ConflictSaveDialog
+        conflicts={confirmingConflicts ? conflicts : []}
+        onCancel={() => setConfirmingConflicts(false)}
+        onConfirm={() => {
+          setConfirmingConflicts(false);
+          void trySave({ conflictsConfirmed: true });
+        }}
       />
 
       <WorkdayImportOverlay

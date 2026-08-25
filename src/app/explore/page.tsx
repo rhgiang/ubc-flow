@@ -224,7 +224,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           <div className="sky-panel flex overflow-hidden">
             <Link
               href={hrefWith(sp, { tab: null })}
-              className={`flex-1 px-4 py-3.5 text-center text-[15px] font-semibold ${
+              className={`flex-1 px-4 py-3.5 text-center text-sm font-semibold ${
                 tab === 'courses' ? 'bg-surface text-foreground' : 'bg-surface-muted text-text-secondary'
               }`}
             >
@@ -232,7 +232,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             </Link>
             <Link
               href={hrefWith(sp, { tab: 'professors' })}
-              className={`flex-1 px-4 py-3.5 text-center text-[15px] font-semibold ${
+              className={`flex-1 px-4 py-3.5 text-center text-sm font-semibold ${
                 tab === 'professors' ? 'bg-surface text-foreground' : 'bg-surface-muted text-text-secondary'
               }`}
             >
@@ -276,7 +276,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           </div>
 
           <div className="sky-panel mt-4 overflow-x-auto">
-            <table className="sky-table hidden w-full text-left text-[15px] sm:table">
+            <table className="sky-table hidden w-full text-left text-sm sm:table">
               <thead className="border-b border-border text-xs text-text-secondary">
                 <tr>
                   {SORT_HEADERS.map((h) => (
@@ -346,7 +346,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                       >
                         {r.code}
                       </Link>
-                      <p className="mt-0.5 text-[15px] text-foreground">{r.title}</p>
+                      <p className="mt-0.5 text-sm text-foreground">{r.title}</p>
                       <p className="mt-1.5 text-xs tabular-nums text-text-tertiary">
                         {r.reviewCount} {r.reviewCount === 1 ? 'review' : 'reviews'}
                         {r.useful !== null && ` · Useful ${r.useful.toFixed(1)}/5`}

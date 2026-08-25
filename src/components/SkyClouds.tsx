@@ -355,7 +355,7 @@ export default function SkyClouds() {
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const root = document.documentElement;
-    const isContrast = () => (root.getAttribute('data-theme') ?? '').startsWith('contrast');
+    const isPlain = () => root.hasAttribute('data-plain');
 
     const applyPalette = () => {
       const dark = root.getAttribute('data-theme') === 'dark';
@@ -370,16 +370,16 @@ export default function SkyClouds() {
         p.colorLow = p.colorLow.map((c) => c * 0.55) as Palette['colorLow'];
       }
       // Content pages set data-sky-dim (see PageBackground): the sky is a
-      // backdrop for reading there, not the show — clouds thin out and the
-      // precipitation drops to a hint.
+      // backdrop for reading there, not the show. Softened, not switched off —
+      // the same weather still passes overhead, just quieter.
       const dim = root.hasAttribute('data-sky-dim');
       gl.uniform3f(u.color, ...p.color);
       gl.uniform3f(u.colorLow, ...p.colorLow);
-      gl.uniform1f(u.alpha, p.alpha * (dim ? 0.6 : 1));
-      gl.uniform1f(u.coverage, p.coverage + (dim ? 0.08 : 0));
+      gl.uniform1f(u.alpha, p.alpha * (dim ? 0.78 : 1));
+      gl.uniform1f(u.coverage, p.coverage + (dim ? 0.03 : 0));
       gl.uniform1f(u.top, 0.0);
       gl.uniform1f(u.bottom, 1.0);
-      gl.uniform1f(u.precip, (p.precip ?? 0) * (dim ? 0.45 : 1));
+      gl.uniform1f(u.precip, (p.precip ?? 0) * (dim ? 0.7 : 1));
       gl.uniform1f(u.ptype, p.ptype ?? 0);
     };
     applyPalette();
@@ -416,17 +416,17 @@ export default function SkyClouds() {
       if (document.hidden) {
         cancelAnimationFrame(raf);
         raf = 0;
-      } else if (!raf && !isContrast()) {
+      } else if (!raf && !isPlain()) {
         start = performance.now() - elapsed * 1000;
         raf = requestAnimationFrame(frame);
       }
     };
     document.addEventListener('visibilitychange', onVisibility);
 
-    // High contrast is a static theme: the sky layers are hidden by CSS, so
-    // drawing would be pure waste — stop the loop, restart on the way out.
+    // The plain modes are static: the sky layers are hidden by CSS, so drawing
+    // would be pure waste — stop the loop, restart on the way out.
     const onThemeChange = () => {
-      if (isContrast()) {
+      if (isPlain()) {
         if (raf) {
           cancelAnimationFrame(raf);
           raf = 0;
@@ -442,7 +442,7 @@ export default function SkyClouds() {
     const themeWatch = new MutationObserver(onThemeChange);
     themeWatch.observe(root, {
       attributes: true,
-      attributeFilter: ['data-theme', 'data-weather', 'data-sky-dim'],
+      attributeFilter: ['data-theme', 'data-weather', 'data-sky-dim', 'data-plain'],
     });
     onThemeChange();
 

@@ -38,16 +38,20 @@ const THEME_INIT = `
 (function () {
   try {
     var stored = localStorage.getItem('theme');
-    var mode = ['light', 'dark', 'weather', 'contrast', 'contrast-dark'].indexOf(stored) >= 0
+    var modes = ['day', 'night', 'weather', 'light', 'dark'];
+    var mode = modes.indexOf(stored) >= 0
       ? stored
-      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    var theme = mode;
+      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'day');
+    var theme = mode === 'day' || mode === 'light' ? 'light' : 'dark';
     if (mode === 'weather') {
       var h = new Date().getHours();
       theme = h >= 7 && h < 19 ? 'light' : 'dark';
     }
     document.documentElement.setAttribute('data-mode', mode);
     document.documentElement.setAttribute('data-theme', theme);
+    if (mode === 'light' || mode === 'dark') {
+      document.documentElement.setAttribute('data-plain', '');
+    }
   } catch (e) {}
 })();
 `;

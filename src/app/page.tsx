@@ -15,7 +15,13 @@ export default async function Home() {
           explore row all come up 10% together and keep their proportions.
           Percentage widths resolve against the zoomed space, so w-full still
           fits its column on a phone. */}
-      <div className="mx-auto w-full max-w-2xl text-center [zoom:1.1]">
+      <div
+        className={`mx-auto w-full max-w-2xl text-center [zoom:1.1] ${
+          // With no login panel below it, the block reads as sitting too low
+          // dead-centered in the viewport — nudge it up well above center.
+          session?.user ? 'mb-48' : ''
+        }`}
+      >
         <h1 className="sky-hero text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Search and explore course and professor reviews from UBC students
         </h1>

@@ -38,9 +38,15 @@ export default function SavedCoursesPanel({
       <div className="mt-3 space-y-2">
         {groups.map((group) => {
           const slot = courseColorIndex(group.code);
+          // overflow-hidden so the tinted header below is clipped to the
+          // card's rounded corners instead of squaring them off.
           return (
-          <details key={group.code} open className="rounded-card border border-border">
-            <summary className="inline-flex cursor-pointer items-center gap-2 px-3 py-2">
+          <details key={group.code} open className="overflow-hidden rounded-card border border-border">
+            {/* flex, not inline-flex: the header band has to span the card's
+                full width for the tint to read as a header rather than a
+                patch behind the text. Same --surface the explore table
+                stripes with, so the two surfaces match. */}
+            <summary className="flex cursor-pointer items-center gap-2 bg-surface px-3 py-2">
               <span
                 aria-hidden
                 className="h-2 w-2 shrink-0 rounded-full"
@@ -61,7 +67,7 @@ export default function SavedCoursesPanel({
               {group.sections.map((section) => (
                 <li
                   key={section.sectionId}
-                  className="flex items-start justify-between gap-2 border-b border-border px-3 py-2 last:border-b-0"
+                  className="flex items-start justify-between gap-2 border-b border-border px-3 py-2 last:border-b-0 even:bg-surface"
                 >
                   <div className="min-w-0">
                     <p className="text-sm text-foreground">{section.sectionCode}</p>

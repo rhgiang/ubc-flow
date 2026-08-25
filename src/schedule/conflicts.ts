@@ -44,3 +44,16 @@ export function findConflicts(entries: ScheduleEntry[]): ConflictPair[] {
 
   return pairs;
 }
+
+/**
+ * A stable identifier for a set of overlaps, used to scope a dismissal to the
+ * conflicts that were actually on screen. Both the pair and the list are sorted
+ * so the key depends only on which sections clash, never on the order
+ * findConflicts happened to emit them in.
+ */
+export function conflictKey(conflicts: ConflictPair[]): string {
+  return conflicts
+    .map(({ a, b }) => [a.sectionId, b.sectionId].sort().join('~'))
+    .sort()
+    .join('|');
+}

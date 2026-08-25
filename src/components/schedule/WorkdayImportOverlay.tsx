@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { parseWorkdayForSchedule, type ImportResult, type SkippedRow } from '@/app/actions/import';
 import type { ImportedTerm } from '@/upload/match-schedule';
 import { UBC_WORKDAY_URL } from '@/lib/links';
-import type { SectionHit } from '@/lib/search';
 
 type Loaded = Extract<ImportResult, { ok: true }>;
 
@@ -50,12 +49,17 @@ export default function WorkdayImportOverlay({
   open,
   onClose,
   onImport,
+  plannableTermIds,
 }: {
   open: boolean;
   onClose: () => void;
   /** `otherTerms` carries the terms the student did NOT load, so the builder
    *  can offer to create schedules for them once this one is saved. */
-  onImport: (termId: string, sections: SectionHit[], otherTerms: ImportedTerm[]) => void;
+  onImport: (term: ImportedTerm, otherTerms: ImportedTerm[]) => void;
+  /** Terms a schedule can actually be built for. A past term parses fine and
+   *  is still refused here, where the reason can be shown, rather than after
+   *  the student has been sent to a builder that cannot hold it. */
+  plannableTermIds: string[];
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +70,15 @@ export default function WorkdayImportOverlay({
   const [chosenTermId, setChosenTermId] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const chosenTerm = result?.terms.find((t) => t.termId === chosenTermId) ?? null;
+  // Why "Add to schedule" is off, in the order the student can act on: an
+  // unplannable term is a dead end, no matches means nothing to add.
+  const blocked = !chosenTerm
+    ? null
+    : !plannableTermIds.includes(chosenTerm.termId)
+      ? `${chosenTerm.termName} isn't a term you can build a schedule for yet, so nothing can be added from it.`
+      : chosenTerm.matched.length === 0
+        ? `None of the courses in ${chosenTerm.termName} matched our catalogue, so there is nothing to add.`
+        : null;
 
   useEffect(() => {
     if (!open) return;
@@ -124,7 +137,7 @@ export default function WorkdayImportOverlay({
       role="dialog"
       aria-modal="true"
       aria-label="Import from Workday"
-      className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/50 px-6 py-10 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex items-start justify-center overlay-below-nav overflow-y-auto bg-black/50 px-6 pb-10 backdrop-blur-sm"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -258,6 +271,15 @@ export default function WorkdayImportOverlay({
               ))}
             </div>
 
+            {blocked && <p className="mt-3 text-sm text-danger">{blocked}</p>}
+
+            {chosenTerm && chosenTerm.unmatched.length > 0 && (
+              <p className="mt-3 text-xs text-danger">
+                {chosenTerm.unmatched.length} course
+                {chosenTerm.unmatched.length === 1 ? '' : 's'} in that export could not be
+                matched and will not be added:
+              </p>
+            )}
             {chosenTerm && <SkipList title="Not in our catalogue" items={chosenTerm.unmatched} />}
             <SkipList title="Term not in our catalogue" items={result.unknownTerm} />
 
@@ -273,12 +295,11 @@ export default function WorkdayImportOverlay({
               </button>
               <button
                 type="button"
-                disabled={!chosenTerm || chosenTerm.matched.length === 0}
+                disabled={!chosenTerm || blocked !== null}
                 onClick={() => {
-                  if (!chosenTerm) return;
+                  if (!chosenTerm || blocked !== null) return;
                   onImport(
-                    chosenTerm.termId,
-                    chosenTerm.matched,
+                    chosenTerm,
                     result.terms.filter((t) => t.termId !== chosenTerm.termId),
                   );
                   onClose();

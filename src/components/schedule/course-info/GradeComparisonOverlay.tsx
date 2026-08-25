@@ -78,7 +78,7 @@ export default function GradeComparisonOverlay({
       role="dialog"
       aria-modal="true"
       aria-label={`${detail.code} grades compared with ${instructorName}`}
-      className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/50 px-6 py-10 backdrop-blur-sm"
+      className="fixed inset-0 z-[70] flex items-start justify-center overlay-below-nav overflow-y-auto bg-black/50 px-6 pb-10 backdrop-blur-sm"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

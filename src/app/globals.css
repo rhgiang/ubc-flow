@@ -437,6 +437,19 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+ * Overlays
+ * ------------------------------------------------------------------------ */
+
+/* A dialog anchored to the top of the viewport starts below the sticky nav
+   instead of on top of it — the scrim still covers the bar (overlays outrank
+   it in z-order), but the panel itself no longer sits over the links. The
+   nav is 14px of header padding plus a ~56px bar; the rest is breathing room.
+   Centred dialogs don't need this. */
+.overlay-below-nav {
+  padding-top: 6rem;
+}
+
+/* ---------------------------------------------------------------------------
  * Content panels — solid islands with the sky visible around them.
  * ------------------------------------------------------------------------ */
 

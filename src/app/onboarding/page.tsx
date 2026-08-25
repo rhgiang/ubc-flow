@@ -80,7 +80,11 @@ function CourseGroup({ group, first }: { group: TermGroup; first: boolean }) {
   return (
     <div className={first ? '' : 'mt-5'}>
       <h3 className="text-sm font-medium text-foreground">{group.termName}</h3>
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
+      {/* A single column rather than a grid: collapsed cards are one-liners,
+          so a list stays compact, and expanding one simply pushes the rest
+          down. In two columns an expanded card leaves dead space beside it,
+          because a grid row is as tall as its tallest cell. */}
+      <div className="mt-2 flex flex-col gap-2">
         {group.rows.map((r) => (
           <CourseCard key={r.id} course={r} />
         ))}

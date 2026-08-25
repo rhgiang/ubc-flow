@@ -7,8 +7,8 @@ import type { ReactNode } from 'react';
  * A course on the Account page, collapsible so a full timetable can be
  * skimmed without scrolling past every meeting time.
  *
- * Open by default: the meeting details are the reason the card exists, and a
- * student who has just uploaded an export wants to see what landed.
+ * Closed by default: a term's worth of courses is meant to be scannable at a
+ * glance, and the meeting times are detail you open when you want them.
  *
  * The course link sits inside the <summary>, where a plain click would both
  * navigate AND toggle the card. preventDefault stops the toggle, so the push
@@ -70,7 +70,7 @@ export default function EnrolledCourseCard({
   }
 
   return (
-    <details open className="group rounded-card border border-border bg-surface">
+    <details className="group rounded-card border border-border bg-surface">
       <summary className="flex cursor-pointer list-none items-start gap-2 p-4 [&::-webkit-details-marker]:hidden">
         {header}
       </summary>

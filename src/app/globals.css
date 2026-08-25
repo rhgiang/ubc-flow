@@ -131,9 +131,20 @@
   --font-sans: var(--font-inter);
 }
 
+/*
+ * Always reserve the scrollbar track. Without this the page shifts sideways by
+ * the scrollbar's width whenever content grows past the viewport — switching
+ * between schedule tabs, or moving from a short page to a long one, visibly
+ * jogged the nav.
+ */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
+

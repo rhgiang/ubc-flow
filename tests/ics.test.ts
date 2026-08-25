@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildIcs, type IcsEvent } from '@/schedule/ics';
+import { buildIcs, meetingEvents, type IcsEvent } from '@/schedule/ics';
 
 const event: IcsEvent = {
   uid: 'section-1-Mon',
@@ -57,5 +57,42 @@ describe('buildIcs', () => {
     const out = buildIcs('Empty', []);
     expect(out).toContain('BEGIN:VCALENDAR');
     expect(out).not.toContain('BEGIN:VEVENT');
+  });
+});
+
+describe('meetingEvents', () => {
+  const meeting = {
+    id: 'meet-1',
+    sectionCode: '201',
+    activity: 'Lecture',
+    days: ['Mon', 'Wed', 'Fri'],
+    startTime: '10:00',
+    endTime: '11:00',
+    startDate: new Date('2026-09-08T00:00:00Z'),
+    endDate: new Date('2026-12-07T00:00:00Z'),
+  };
+
+  it('fans one meeting out to one event per weekday, with distinct uids', () => {
+    const events = meetingEvents('CPSC 210', meeting);
+    expect(events.map((e) => e.day)).toEqual(['Mon', 'Wed', 'Fri']);
+    expect(new Set(events.map((e) => e.uid)).size).toBe(3);
+    expect(events[0].title).toBe('CPSC 210 Lecture (201)');
+  });
+
+  it('leaves out the parts Workday did not give', () => {
+    const [event] = meetingEvents('CPSC 210', {
+      ...meeting,
+      days: ['Tue'],
+      activity: null,
+      sectionCode: null,
+    });
+    expect(event.title).toBe('CPSC 210');
+  });
+
+  it('produces events buildIcs actually renders', () => {
+    const ics = buildIcs('Term', meetingEvents('CPSC 210', meeting));
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(3);
+    expect(ics).toContain('BYDAY=MO');
+    expect(ics).toContain('BYDAY=FR');
   });
 });

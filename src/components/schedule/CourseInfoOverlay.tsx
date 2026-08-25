@@ -27,7 +27,8 @@ export default function CourseInfoOverlay({
   addedSectionIds: Set<string>;
   onAddSection?: (hit: SectionHit) => void;
   onRemoveSection?: (sectionId: string) => void;
-  onDock: () => void;
+  /** Omitted where there is no side panel to dock into (the /schedule calendar). */
+  onDock?: () => void;
   onClose: () => void;
 }) {
   const { detail, loading } = useCourseDetail(courseId, termId);
@@ -54,7 +55,7 @@ export default function CourseInfoOverlay({
       role="dialog"
       aria-modal="true"
       aria-label={detail ? `${detail.code} course information` : 'Course information'}
-      className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/50 px-6 py-10 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex items-start justify-center overlay-below-nav overflow-y-auto bg-black/50 px-6 pb-10 backdrop-blur-sm"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -80,6 +81,7 @@ export default function CourseInfoOverlay({
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-1">
+                {onDock && (
                 <button
                   type="button"
                   onClick={onDock}
@@ -92,6 +94,7 @@ export default function CourseInfoOverlay({
                     <path d="M15 4v16" />
                   </svg>
                 </button>
+                )}
                 <button
                   type="button"
                   onClick={onClose}

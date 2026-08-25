@@ -6,6 +6,8 @@ export type ImportResult = {
   matched: number;
   unmatched: string[];
   excluded: number;
+  /** Enrollments dropped because they are no longer in the re-uploaded term. */
+  removed: number;
   boundStudent: boolean;
 };
 
@@ -50,6 +52,10 @@ export async function importExport(
   // contributing its own meeting — cleared once per (course, term) so a
   // second row this run appends instead of wiping the first's meeting.
   const clearedMeetings = new Set<string>();
+  // courseIds seen per term, so a re-upload can drop what the student is no
+  // longer registered in. Only terms the file actually covers are touched —
+  // a current-term export must never prune the academic-record terms.
+  const keptByTerm = new Map<string, Set<string>>();
 
   for (const row of parsed.rows) {
     const course = await db.course.findFirst({
@@ -91,6 +97,9 @@ export async function importExport(
       update: { verified: true },
     });
     matched += 1;
+    const kept = keptByTerm.get(term.id) ?? new Set<string>();
+    kept.add(course.id);
+    keptByTerm.set(term.id, kept);
 
     if (row.days.length > 0) {
       const key = `${course.id}:${term.id}`;
@@ -120,5 +129,18 @@ export async function importExport(
     }
   }
 
-  return { matched, unmatched, excluded: parsed.excluded.length, boundStudent };
+  let removed = 0;
+  for (const [termId, courseIds] of keptByTerm) {
+    const stale = { userId, termId, courseId: { notIn: [...courseIds] } };
+    removed += (await db.enrollment.deleteMany({ where: stale })).count;
+    await db.enrollmentMeeting.deleteMany({ where: stale });
+  }
+
+  return {
+    matched,
+    unmatched,
+    excluded: parsed.excluded.length,
+    removed,
+    boundStudent,
+  };
 }

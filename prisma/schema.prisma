@@ -131,6 +131,7 @@ model User {
   courseReviews CourseReview[]
   instructorReviews InstructorReview[]
   schedules SavedSchedule[]
+  enrollmentCalendarTokens EnrollmentCalendarToken[]
 }
 
 model Enrollment {
@@ -233,6 +234,23 @@ model CalendarToken {
   schedule   SavedSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   token      String        @unique
   createdAt  DateTime      @default(now())
+}
+
+/**
+ * Capability for the live ICS feed of a student's Workday-imported courses in
+ * one term — the enrollment counterpart to CalendarToken, which is scoped to a
+ * SavedSchedule. One token per (user, term) so a student can subscribe each
+ * term separately and the URL stays stable across re-uploads.
+ */
+model EnrollmentCalendarToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  termId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+
+  @@unique([userId, termId])
 }
 
 model GradeDistribution {

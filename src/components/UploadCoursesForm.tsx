@@ -9,6 +9,7 @@ type ImportResult = {
   matched: number;
   unmatched: string[];
   excluded: number;
+  removed: number;
   boundStudent: boolean;
 };
 
@@ -55,7 +56,9 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
   }
 
   return (
-    <section>
+    // Linked to as /onboarding#upload from the calendar's "Update courses" —
+    // scroll-mt keeps the heading clear of the sticky nav on landing.
+    <section id="upload" className="scroll-mt-24">
       <h2 className="text-xl font-semibold text-foreground">
         {verified ? 'Upload more courses' : "Verify you're a UBC student"}
       </h2>
@@ -136,6 +139,12 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
           <p className="text-lg font-medium text-foreground">
             Matched {result.matched} course{result.matched === 1 ? '' : 's'}
           </p>
+          {result.removed > 0 && (
+            <p className="mt-1 text-sm text-text-secondary">
+              Removed {result.removed} course{result.removed === 1 ? '' : 's'} you&apos;re no
+              longer registered in for {result.removed === 1 ? 'that term' : 'those terms'}.
+            </p>
+          )}
           {result.excluded > 0 && (
             <p className="mt-1 text-sm text-text-secondary">
               Skipped {result.excluded} transfer credit

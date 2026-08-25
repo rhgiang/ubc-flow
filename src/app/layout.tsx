@@ -4,6 +4,7 @@ import { APP_NAME } from "@/lib/version";
 import Nav from "@/components/Nav";
 import PageBackground from "@/components/PageBackground";
 import ThemeToggle from "@/components/ThemeToggle";
+import WeatherPreview from "@/components/WeatherPreview";
 import { AuthOverlayProvider } from "@/components/AuthOverlayContext";
 import AuthOverlay from "@/components/AuthOverlay";
 import { UnsavedChangesProvider } from "@/components/UnsavedChangesContext";
@@ -71,6 +72,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <UnsavedChangesProvider>
             <PageBackground nav={<Nav />}>{children}</PageBackground>
             <ThemeToggle weather={weather} />
+            <WeatherPreview />
             <AuthOverlay />
           </UnsavedChangesProvider>
         </AuthOverlayProvider>

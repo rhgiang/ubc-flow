@@ -102,7 +102,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
         ];
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
+    <main className="mx-auto w-full max-w-6xl px-6 py-10">
       <h1 className="sky-hero text-3xl font-semibold">Explore</h1>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_300px]">

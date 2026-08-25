@@ -106,7 +106,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
   const rmpHref = rmpSearchHref(instructor.name);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
+    <main className="mx-auto w-full max-w-4xl px-6 py-10">
       <h1 className="text-3xl font-semibold">{instructor.name}</h1>
       <p className="mt-1 text-sm text-text-tertiary">
         {courses.length} course{courses.length === 1 ? '' : 's'} taught

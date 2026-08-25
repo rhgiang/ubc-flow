@@ -2,6 +2,8 @@
 
 import { useRef, useState, useEffect, useSyncExternalStore } from 'react';
 import type { WeatherNow } from '@/lib/weather';
+import { saveThemeMode } from '@/app/actions/theme';
+import { type Mode, DEFAULT_MODE } from '@/lib/theme';
 
 /**
  * One button showing the current mode's icon. Clicking opens a small menu
@@ -24,8 +26,6 @@ import type { WeatherNow } from '@/lib/weather';
  * two palettes — `data-plain` is the only thing that separates them, and it is
  * what globals.css and SkyClouds key the sky off.
  */
-type Mode = 'day' | 'night' | 'weather' | 'light' | 'dark';
-
 const PLAIN: Mode[] = ['light', 'dark'];
 
 function apply(mode: Mode, weather: WeatherNow | null) {
@@ -154,10 +154,34 @@ export default function ThemeToggle({ weather }: { weather: WeatherNow | null })
   const dragged = useRef(false);
 
   // The inline init script guessed daylight from the clock; re-apply with the
-  // real observation once it's available.
+  // real observation once it's available. `?? DEFAULT_MODE` matters here: a
+  // first-time visitor has nothing stored yet and still starts in weather
+  // mode, so the guessed sky has to be corrected for them too.
   useEffect(() => {
-    if (localStorage.getItem('theme') === 'weather') apply('weather', weather);
+    if ((localStorage.getItem('theme') ?? DEFAULT_MODE) === 'weather') {
+      apply('weather', weather);
+    }
   }, [weather]);
+
+  // Campus conditions on a page that stays open. Without this, weather mode
+  // is only ever as current as the last full page load — a tab left open
+  // across sunset keeps drawing a daylight sky. Upstream is cached for 30
+  // minutes, so a 15-minute poll costs a round trip and nothing more.
+  useEffect(() => {
+    const id = setInterval(
+      async () => {
+        if ((localStorage.getItem('theme') ?? DEFAULT_MODE) !== 'weather') return;
+        try {
+          const res = await fetch('/api/weather');
+          if (res.ok) apply('weather', (await res.json()) as WeatherNow | null);
+        } catch {
+          // Keep whatever sky is already up.
+        }
+      },
+      15 * 60 * 1000,
+    );
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -257,6 +281,10 @@ export default function ThemeToggle({ weather }: { weather: WeatherNow | null })
               type="button"
               onClick={() => {
                 apply(o.mode, weather);
+                // Only a deliberate pick is persisted to the account —
+                // apply() also runs on re-hydration, and saving there would
+                // write the same value back on every page load.
+                void saveThemeMode(o.mode);
                 setOpen(false);
               }}
               className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-foreground hover:bg-surface-muted ${ROW_WHEN_ACTIVE[o.mode]}`}

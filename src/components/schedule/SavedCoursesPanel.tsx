@@ -10,11 +10,13 @@ export default function SavedCoursesPanel({
   onRemove,
   onInfo,
   onDock,
+  onSwap,
 }: {
   chosen: SectionHit[];
   onRemove: (sectionId: string) => void;
   onInfo: (courseId: string) => void;
   onDock: (courseId: string) => void;
+  onSwap?: (section: SectionHit) => void;
 }) {
   const groups = groupSectionsByCourse(chosen);
 
@@ -51,6 +53,7 @@ export default function SavedCoursesPanel({
                 slot={slot}
                 onInfo={() => onInfo(group.courseId)}
                 onDock={() => onDock(group.courseId)}
+                onSwap={onSwap ? () => onSwap(group.sections[0]) : undefined}
               />
             </summary>
 

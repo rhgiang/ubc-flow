@@ -171,7 +171,7 @@ body {
    deep navy overhead falling through indigo and mauve to a warm horizon. */
 .sky-base {
   z-index: -4;
-  background-image: url('/sky-light.jpg');
+  background-image: url('/sky-light.webp');
   background-size: cover;
   background-position: center top;
 }

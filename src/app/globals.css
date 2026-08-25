@@ -309,6 +309,122 @@ body {
   .sky-stars::after {
     animation: none;
   }
+  /* The bar still hides and returns, it just does so without the animation.
+     The hidden selector is listed too — it sets its own transition at a higher
+     specificity, so omitting it here would leave the collapse running. */
+  .sky-root > header,
+  .sky-root > header > .nav-bar,
+  .sky-root > header[data-nav-hidden] > .nav-bar {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Chrome that sits directly on the sky.
+ * ------------------------------------------------------------------------ */
+
+/* The bar dissolves into the sky, so its text and outlines go white in both
+   themes — overriding the tokens rather than the utilities means the existing
+   text-foreground / border-border classes recolour themselves. */
+/* The header itself is only a transparent gutter; the visible bar is the inner
+   .nav-bar, floated in from the viewport edges. */
+.sky-root > header {
+  --foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.45);
+  --border-hairline: transparent;
+  --surface-muted: rgba(255, 255, 255, 0.18);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: transparent;
+  border-bottom: 0;
+  padding: 14px 18px 0;
+  /* Backstop for the brightest moments; too faint to soften the type. */
+  text-shadow: 0 1px 3px rgba(8, 16, 36, 0.4);
+}
+
+/* Hidden state — see NavShell. The bar itself does the animating; the header
+   only stops catching clicks once it's closed. */
+.sky-root > header[data-nav-hidden] {
+  pointer-events: none;
+}
+
+/*
+ * Collapses inward from both edges toward the centre on the way down, and
+ * opens back outward on the way up. Clipping rather than scaling means the
+ * logo and links keep their proportions instead of squashing horizontally.
+ */
+.sky-root > header[data-nav-hidden] > .nav-bar {
+  clip-path: inset(0 50% 0 50% round 14px);
+  opacity: 0;
+  transform: scale(0.97);
+  /* This set applies while COLLAPSING. The opacity delay is the point: fading
+     on the way in hid most of the movement, so the bar now stays fully opaque
+     until it is almost shut, then drops out over the last moment. */
+  transition:
+    clip-path 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    transform 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.18s ease 0.66s;
+}
+
+/*
+ * Frosted glass with a guaranteed contrast floor. A white-tinted fill alone
+ * left the bar at the mercy of the sky — when a bright cloud drifted under it,
+ * white links sat on near-white and disappeared. The brightness() in the
+ * backdrop filter knocks down whatever is behind the bar, so the text keeps its
+ * contrast no matter what passes beneath; the stronger blur also smooths out
+ * cloud detail that was showing through as patchy light and dark.
+ */
+.sky-root > header > .nav-bar {
+  clip-path: inset(0 0 0 0 round 14px);
+  /* This set applies while EXPANDING: the fill returns immediately so the bar
+     is visible the whole way as it opens back outward. */
+  transition:
+    clip-path 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    transform 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.22s ease;
+  border-radius: 14px;
+  background: rgba(10, 18, 38, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(30px) saturate(135%) brightness(0.72);
+  -webkit-backdrop-filter: blur(30px) saturate(135%) brightness(0.72);
+  box-shadow: 0 4px 24px rgba(12, 20, 44, 0.16);
+}
+
+:root[data-theme="dark"] .sky-root > header > .nav-bar {
+  /* The dusk sky is already dark, so this only needs a light touch. */
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(30px) saturate(120%) brightness(0.94);
+  -webkit-backdrop-filter: blur(30px) saturate(120%) brightness(0.94);
+}
+
+/*
+ * Each link carries its own dark backing rather than relying on the bar behind
+ * it. Darkening the whole bar enough to guarantee contrast made it heavy and
+ * defeated the translucency; giving the links a controlled substrate lets the
+ * bar stay airy while the text stays readable over any passing cloud.
+ *
+ * In @layer base so the active link's bg-brand utility still wins, and the
+ * wordmark is excluded so it stays plain text.
+ */
+@layer base {
+  .sky-root > header .nav-bar :is(a, button):not(.nav-logo) {
+    background-color: rgba(8, 16, 34, 0.46);
+  }
+}
+
+/* Wordmark only — a geometric sans set uppercase at medium weight, with open
+   tracking rather than the compressed kind. Deliberately not applied to any
+   other text. */
+.nav-logo {
+  font-family: var(--font-outfit), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
+  /* The wordmark is the one bit of nav text with no pill behind it, so it
+     carries a tighter, darker halo of its own. */
+  text-shadow: 0 1px 2px rgba(6, 12, 28, 0.6), 0 0 12px rgba(6, 12, 28, 0.4);
 }
 
 /* Hero text sits straight on the sky with no panel behind it. */

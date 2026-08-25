@@ -381,29 +381,28 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           </div>
 
           {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between text-sm">
-              <Link
-                href={hrefWith(sp, { page: String(page - 1) })}
-                aria-disabled={page <= 1}
-                className={`rounded-pill border border-border px-5 py-2.5 ${
-                  page <= 1 ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
-                }`}
-              >
-                Previous
-              </Link>
-              <span className="text-text-secondary">
+            <nav
+              aria-label="Pagination"
+              className="sky-capsule mx-auto mt-6 flex w-fit items-center gap-1 p-1.5 text-sm font-medium"
+            >
+              {page <= 1 ? (
+                <span className="capsule-chip px-5 py-2.5 opacity-40">Previous</span>
+              ) : (
+                <Link href={hrefWith(sp, { page: String(page - 1) })} className="capsule-chip px-5 py-2.5">
+                  Previous
+                </Link>
+              )}
+              <span className="px-4 tabular-nums">
                 Page {page} of {totalPages}
               </span>
-              <Link
-                href={hrefWith(sp, { page: String(page + 1) })}
-                aria-disabled={page >= totalPages}
-                className={`rounded-pill border border-border px-5 py-2.5 ${
-                  page >= totalPages ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
-                }`}
-              >
-                Next
-              </Link>
-            </div>
+              {page >= totalPages ? (
+                <span className="capsule-chip px-5 py-2.5 opacity-40">Next</span>
+              ) : (
+                <Link href={hrefWith(sp, { page: String(page + 1) })} className="capsule-chip px-5 py-2.5">
+                  Next
+                </Link>
+              )}
+            </nav>
           )}
         </div>
 

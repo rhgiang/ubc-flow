@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { listCourses, listProfessors, PAGE_SIZE, type CourseSort, type ProfessorSort } from '@/lib/explore';
-import { getCurrentAndNextTerm } from '@/schedule/terms';
+import { isUpcomingTerm, compareTerms } from '@/schedule/terms';
 import ExploreSubjectSelect from '@/components/ExploreSubjectSelect';
 import ExploreSearchInput from '@/components/ExploreSearchInput';
 
@@ -54,8 +54,13 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
     db.course.count({ where: { campus: 'V' } }),
     db.instructor.count({ where: { campus: 'V' } }),
   ]);
-  const { current, next } = getCurrentAndNextTerm(terms);
-  const termId = sp.term === 'this' ? current?.id : sp.term === 'next' ? next?.id : undefined;
+  // Every term from the current one onward, not just this/next — a student
+  // browsing in the summer is usually planning both Winter terms, and the
+  // two-chip version could never show Winter Term 2.
+  const offeredTerms = terms.filter(isUpcomingTerm).sort(compareTerms);
+  // Matched against the real list rather than trusted, so the query only ever
+  // sees an id we chose to offer.
+  const termId = offeredTerms.some((t) => t.id === sp.term) ? sp.term : undefined;
 
   const courseResult =
     tab === 'courses'
@@ -98,11 +103,11 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <h1 className="text-3xl font-semibold">Explore</h1>
+      <h1 className="sky-hero text-3xl font-semibold">Explore</h1>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_300px]">
         <div>
-          <div className="flex rounded-card border border-border overflow-hidden">
+          <div className="sky-panel flex overflow-hidden">
             <Link
               href={hrefWith(sp, { tab: null })}
               className={`flex-1 px-4 py-3 text-center text-sm font-semibold ${
@@ -125,8 +130,8 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             <ExploreSearchInput />
           </div>
 
-          <div className="mt-4 overflow-x-auto rounded-card border border-border">
-            <table className="w-full text-left text-sm">
+          <div className="sky-panel mt-4 overflow-x-auto">
+            <table className="sky-table w-full text-left text-sm">
               <thead className="border-b border-border text-xs text-text-secondary">
                 <tr>
                   {SORT_HEADERS.map((h) => (
@@ -218,7 +223,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           )}
         </div>
 
-        <aside className="h-fit rounded-card border border-border p-5">
+        <aside className="sky-panel h-fit p-5">
           <p className="text-sm font-semibold text-foreground">Filter your results</p>
 
           {tab === 'courses' ? (
@@ -246,30 +251,19 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
 
               <p className="mt-5 text-xs font-medium text-text-secondary">Offered in</p>
               <div className="mt-2 flex flex-col gap-1.5">
-                {current && (
+                {offeredTerms.map((t) => (
                   <Link
-                    href={hrefWith(sp, { term: sp.term === 'this' ? null : 'this' })}
+                    key={t.id}
+                    href={hrefWith(sp, { term: sp.term === t.id ? null : t.id })}
                     className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
-                      sp.term === 'this'
+                      sp.term === t.id
                         ? 'border-brand bg-brand text-brand-foreground'
                         : 'border-border text-foreground hover:bg-surface-muted'
                     }`}
                   >
-                    This term ({current.name.replace(' (UBC-V)', '')})
+                    {t.name.replace(' (UBC-V)', '')}
                   </Link>
-                )}
-                {next && (
-                  <Link
-                    href={hrefWith(sp, { term: sp.term === 'next' ? null : 'next' })}
-                    className={`rounded-pill border px-3 py-1.5 text-left text-xs font-medium ${
-                      sp.term === 'next'
-                        ? 'border-brand bg-brand text-brand-foreground'
-                        : 'border-border text-foreground hover:bg-surface-muted'
-                    }`}
-                  >
-                    Next term ({next.name.replace(' (UBC-V)', '')})
-                  </Link>
-                )}
+                ))}
               </div>
 
               <p className="mt-5 text-xs font-medium text-text-secondary">Requirements</p>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getCurrentAndNextTerm, isUpcomingTerm, isPlannableTerm } from '@/schedule/terms';
+import { getCurrentAndNextTerm, isUpcomingTerm, isPlannableTerm, compareTerms } from '@/schedule/terms';
 
 const TERMS = [
   { id: 'w1-25', year: 2025, session: 'W', termNumber: 1 },
@@ -70,6 +70,29 @@ describe('isUpcomingTerm', () => {
     vi.setSystemTime(new Date(2026, 7, 22));
     expect(isUpcomingTerm(TERMS.find((t) => t.id === 'w2-25')!)).toBe(false);
     expect(isUpcomingTerm(TERMS.find((t) => t.id === 'w1-25')!)).toBe(false);
+  });
+});
+
+describe('compareTerms', () => {
+  it('orders Summer before Winter T1 before Winter T2 within an academic year', () => {
+    const shuffled = [
+      { id: 'w2-26', year: 2026, session: 'W', termNumber: 2 },
+      { id: 's-26', year: 2026, session: 'S', termNumber: null },
+      { id: 'w1-26', year: 2026, session: 'W', termNumber: 1 },
+    ];
+    expect([...shuffled].sort(compareTerms).map((t) => t.id)).toEqual(['s-26', 'w1-26', 'w2-26']);
+  });
+
+  it('sorts across academic years, keeping Winter T2 with the year it started', () => {
+    // 2025 Winter T2 runs Jan-Apr 2026 but is stored as year 2025, so it must
+    // still sort before Summer 2026 — a plain year comparison gets this wrong.
+    expect([...TERMS].sort(compareTerms).map((t) => t.id)).toEqual([
+      'w1-25',
+      'w2-25',
+      's-26',
+      'w1-26',
+      'w2-26',
+    ]);
   });
 });
 

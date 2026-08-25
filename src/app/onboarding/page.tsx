@@ -1,10 +1,10 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { isUpcomingTerm } from '@/schedule/terms';
 import SignOutButton from '@/components/SignOutButton';
 import UploadCoursesForm from '@/components/UploadCoursesForm';
+import EnrolledCourseCard from '@/components/EnrolledCourseCard';
 
 function courseHref(subjectCode: string, number: string): string {
   return `/course/${`${subjectCode} ${number}`.toLowerCase().replace(/\s+/g, '-')}`;
@@ -63,22 +63,16 @@ function MeetingLine({ m }: { m: MeetingLite }) {
 
 function CourseCard({ course }: { course: CourseRow }) {
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
-      <p>
-        <Link href={course.href} className="font-medium text-brand-accent hover:underline">
-          {course.code}
-        </Link>
-        <span className="ml-2 text-sm text-text-secondary">{course.title}</span>
-      </p>
-
-      {course.meetings.length > 0 && (
-        <div className="mt-3 space-y-3 border-t border-border pt-3">
-          {course.meetings.map((m) => (
-            <MeetingLine key={m.id} m={m} />
-          ))}
-        </div>
-      )}
-    </div>
+    <EnrolledCourseCard
+      code={course.code}
+      title={course.title}
+      href={course.href}
+      collapsible={course.meetings.length > 0}
+    >
+      {course.meetings.map((m) => (
+        <MeetingLine key={m.id} m={m} />
+      ))}
+    </EnrolledCourseCard>
   );
 }
 
@@ -86,7 +80,11 @@ function CourseGroup({ group, first }: { group: TermGroup; first: boolean }) {
   return (
     <div className={first ? '' : 'mt-5'}>
       <h3 className="text-sm font-medium text-foreground">{group.termName}</h3>
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
+      {/* A single column rather than a grid: collapsed cards are one-liners,
+          so a list stays compact, and expanding one simply pushes the rest
+          down. In two columns an expanded card leaves dead space beside it,
+          because a grid row is as tall as its tallest cell. */}
+      <div className="mt-2 flex flex-col gap-2">
         {group.rows.map((r) => (
           <CourseCard key={r.id} course={r} />
         ))}
@@ -144,14 +142,17 @@ export default async function OnboardingPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
-      <div className="flex items-center justify-between gap-4">
+      <div className="sky-hero flex items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold text-foreground">Account</h1>
         <SignOutButton />
       </div>
 
+      {/* Everything below the title sits on one solid panel — this page is
+          mostly small secondary text, which the sky behind it washes out. */}
+      <div className="sky-panel mt-6 p-6 sm:p-8">
       {verified ? (
         <>
-          <div className="mt-6 flex items-center gap-2 rounded-card border border-border bg-surface-muted px-4 py-3">
+          <div className="flex items-center gap-2 rounded-card border border-border bg-surface-muted px-4 py-3">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5 shrink-0 text-brand-accent">
               <circle cx="12" cy="12" r="9" />
               <path d="m8 12.5 2.5 2.5L16 9.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -182,10 +183,11 @@ export default async function OnboardingPage() {
           </div>
         </>
       ) : (
-        <div className="mt-6">
+        <div>
           <UploadCoursesForm verified={false} />
         </div>
       )}
+      </div>
     </main>
   );
 }

@@ -14,7 +14,7 @@ export default async function Home() {
           session?.user ? 'mb-48' : ''
         }`}
       >
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+        <h1 className="sky-hero text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Search and explore course and professor reviews from UBC students
         </h1>
 

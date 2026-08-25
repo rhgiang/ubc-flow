@@ -7,11 +7,12 @@ import SchedulePanelTabs from '@/components/schedule/SchedulePanelTabs';
 import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 import CourseInfoOverlay from '@/components/schedule/CourseInfoOverlay';
 import CourseInfoPanel from '@/components/schedule/course-info/CourseInfoPanel';
+import SwapOverlay from '@/components/schedule/SwapOverlay';
 import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
 import UnsavedWorkDialog from '@/components/schedule/UnsavedWorkDialog';
 import type { ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
 import { findConflicts } from '@/schedule/conflicts';
-import { diffSections } from '@/schedule/buffer';
+import { diffSections, swapSection } from '@/schedule/buffer';
 import {
   saveGuestSchedule,
   replaceScheduleSections,
@@ -91,6 +92,7 @@ export default function ScheduleBuilder({
   const [error, setError] = useState<string | null>(null);
   const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
   const [infoDocked, setInfoDocked] = useState(false);
+  const [swapping, setSwapping] = useState<SectionHit | null>(null);
   const [importOpen, setImportOpen] = useState(openImport);
   // A successful save moves the baseline immediately. router.refresh() is not
   // awaited, so the refreshed initialSections prop lands later — without this,
@@ -211,6 +213,17 @@ export default function ScheduleBuilder({
 
   function removeSection(sectionId: string) {
     setChosen((prev) => prev.filter((s) => s.sectionId !== sectionId));
+  }
+
+  function applySwap(next: SectionHit) {
+    if (!swapping) return;
+    setChosen((prev) => swapSection(prev, swapping.sectionId, next));
+    setSwapping(null);
+  }
+
+  /** The calendar knows a sectionId; the overlay needs the whole hit. */
+  function startSwapById(sectionId: string) {
+    setSwapping(chosen.find((s) => s.sectionId === sectionId) ?? null);
   }
 
   function applyImport(
@@ -395,6 +408,7 @@ export default function ScheduleBuilder({
               setInfoDocked(true);
               setInfoCourseId(courseId);
             }}
+            onSwap={(section) => setSwapping(section)}
           />
         </aside>
 
@@ -420,6 +434,7 @@ export default function ScheduleBuilder({
             onRemove={removeSection}
             showNowIndicator={showNowIndicator}
             onSelectCourse={setInfoCourseId}
+            onSwap={startSwapById}
           />
         </div>
 
@@ -447,6 +462,14 @@ export default function ScheduleBuilder({
         onRemoveSection={removeSection}
         onDock={() => setInfoDocked(true)}
         onClose={() => setInfoCourseId(null)}
+      />
+
+      <SwapOverlay
+        section={swapping}
+        termId={termId}
+        addedIds={addedSectionIds}
+        onSwap={applySwap}
+        onClose={() => setSwapping(null)}
       />
 
       <WorkdayImportOverlay

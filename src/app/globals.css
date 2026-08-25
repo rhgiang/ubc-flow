@@ -515,19 +515,15 @@ body {
     background-color 0.3s ease,
     border-color 0.3s ease;
   border-radius: 14px;
-  background: rgba(10, 18, 38, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  backdrop-filter: blur(30px) saturate(135%) brightness(0.72);
-  -webkit-backdrop-filter: blur(30px) saturate(135%) brightness(0.72);
+  /* Solid UBC navy always — no glass. The bar is chrome, not scenery. */
+  background: rgba(4, 26, 54, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: 0 4px 24px rgba(12, 20, 44, 0.16);
 }
 
 :root[data-theme="dark"] .sky-root > header > .nav-bar {
-  /* The dusk sky is already dark, so this only needs a light touch. */
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(30px) saturate(120%) brightness(0.94);
-  -webkit-backdrop-filter: blur(30px) saturate(120%) brightness(0.94);
+  background: rgba(10, 14, 34, 0.96);
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 /*

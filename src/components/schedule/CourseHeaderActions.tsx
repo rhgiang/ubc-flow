@@ -62,7 +62,7 @@ export default function CourseHeaderActions({
         aria-label={`Show ${code} beside the calendar`}
         title="Show beside the calendar"
         style={style}
-        className={`ml-1 hidden lg:inline-flex ${button}`}
+        className={`ml-2 hidden lg:inline-flex ${button}`}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
           <rect x="4" y="5" width="16" height="14" rx="2" />

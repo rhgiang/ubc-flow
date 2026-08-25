@@ -6,7 +6,7 @@ import { useAuthOverlay } from '@/components/AuthOverlayContext';
 import { useUnsavedChanges } from '@/components/UnsavedChangesContext';
 
 const BASE =
-  'rounded-full border px-4 py-2 text-sm font-medium transition duration-150 ease-out hover:scale-[1.02] active:scale-100';
+  'rounded-full border px-1.5 py-2 text-xs font-medium transition duration-150 ease-out hover:scale-[1.02] active:scale-100 sm:px-4 sm:text-sm';
 const INACTIVE = 'border-border text-foreground hover:bg-surface-muted';
 const ACTIVE = 'border-brand bg-brand text-brand-foreground';
 
@@ -33,7 +33,7 @@ export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
   ];
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-0.5 sm:gap-1">
       {items.map((item) => {
         const active =
           item.href !== undefined &&

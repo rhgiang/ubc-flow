@@ -107,11 +107,16 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
 
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
-      <h1 className="text-3xl font-semibold">{instructor.name}</h1>
-      <p className="mt-1 text-sm text-text-tertiary">
-        {courses.length} course{courses.length === 1 ? '' : 's'} taught
-      </p>
+      {/* Professor identity sits on the sky; everything below it lives on one
+          solid panel, so the background reads as a border around the content. */}
+      <div className="sky-hero">
+        <h1 className="text-3xl font-semibold">{instructor.name}</h1>
+        <p className="mt-1 text-sm text-text-tertiary">
+          {courses.length} course{courses.length === 1 ? '' : 's'} taught
+        </p>
+      </div>
 
+      <div className="sky-panel mt-6 p-6 sm:p-8">
       <a
         href={rmpHref}
         target="_blank"
@@ -229,6 +234,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
           ))}
         </ul>
       )}
+      </div>
     </main>
   );
 }

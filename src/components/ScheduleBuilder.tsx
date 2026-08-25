@@ -344,6 +344,15 @@ export default function ScheduleBuilder({
   // set-state-in-effect rule, and resetting on change needs no effect at all.
   // A new or different overlap produces a new key, so the banner returns.
   const currentConflictKey = conflictKey(conflicts);
+  // A dismissal must not outlive the overlaps it was for: once the set is
+  // empty, forget it — otherwise removing and re-adding the same pair would
+  // recompute the identical key and the banner would stay silently
+  // suppressed. Render-time state update (not an effect): React re-renders
+  // immediately without committing the stale intermediate frame, and this
+  // self-stabilises after one pass since it no longer fires once null.
+  if (conflicts.length === 0 && dismissedConflicts !== null) {
+    setDismissedConflicts(null);
+  }
   const showConflictBanner =
     conflicts.length > 0 && dismissedConflicts !== currentConflictKey;
   const showNowIndicator = getCurrentAndNextTerm(terms).current?.id === termId;

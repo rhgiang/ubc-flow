@@ -8,54 +8,64 @@ import { useSyncExternalStore } from 'react';
  * sibling at the foot of the page (.sky-capsule / .capsule-chip in globals.css
  * handle glass, reduced transparency, and the plain modes).
  *
- * Hidden until the page has been scrolled at all, so the first view of a short
- * page is hero and sky with nothing competing at the bottom edge. Read through
- * useSyncExternalStore rather than an effect: the server renders the hidden
- * state, and the client agrees on the first paint unless the browser restored
- * a scroll position.
+ * On a page that scrolls it stays hidden until you scroll, so the first view is
+ * content with nothing competing at the bottom edge; on one that doesn't, it is
+ * simply there. Read through useSyncExternalStore rather than an effect, so the
+ * server renders the hidden state and the client settles it on the first paint.
  *
  * Extra bottom padding on phones keeps it clear of the floating theme/sky
  * buttons pinned to a bottom corner.
  */
 function subscribe(onChange: () => void) {
   window.addEventListener('scroll', onChange, { passive: true });
-  return () => window.removeEventListener('scroll', onChange);
+  window.addEventListener('resize', onChange);
+  return () => {
+    window.removeEventListener('scroll', onChange);
+    window.removeEventListener('resize', onChange);
+  };
+}
+
+/**
+ * A page that cannot scroll shows the footer outright — body is `h-screen`
+ * and the content column is `flex-1`, so a short page like the home hero fits
+ * the viewport exactly and no amount of waiting would ever reveal it.
+ */
+function shown(): boolean {
+  return (
+    document.documentElement.scrollHeight <= window.innerHeight + 4 || window.scrollY > 24
+  );
 }
 
 export default function Footer() {
-  const scrolled = useSyncExternalStore(
-    subscribe,
-    () => window.scrollY > 24,
-    () => false,
-  );
+  const scrolled = useSyncExternalStore(subscribe, shown, () => false);
 
   return (
     <footer
       aria-hidden={!scrolled}
-      className={`sky-footer relative z-10 pb-24 pt-12 text-center transition-all duration-300 ease-out motion-reduce:transition-none sm:pb-10 ${
+      className={`sky-footer relative z-10 pb-20 pt-10 text-center transition-all duration-300 ease-out motion-reduce:transition-none sm:pb-8 ${
         scrolled ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'
       }`}
     >
-      <nav className="sky-capsule mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-1 p-1.5 text-sm font-medium">
-        <Link href="/about" className="capsule-chip px-4 py-2">
+      <nav className="sky-capsule mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-1 p-1 text-[13px] font-medium">
+        <Link href="/about" className="capsule-chip px-3.5 py-1.5">
           About
         </Link>
-        <Link href="/privacy" className="capsule-chip px-4 py-2">
+        <Link href="/privacy" className="capsule-chip px-3.5 py-1.5">
           Privacy
         </Link>
-        <Link href="/terms" className="capsule-chip px-4 py-2">
+        <Link href="/terms" className="capsule-chip px-3.5 py-1.5">
           Terms
         </Link>
         <a
           href="https://ubcgrades.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="capsule-chip whitespace-nowrap px-4 py-2"
+          className="capsule-chip whitespace-nowrap px-3.5 py-1.5"
         >
           Grade data: UBC PAIR
         </a>
       </nav>
-      <p className="mt-5 text-[13px]">
+      <p className="mt-4 text-xs">
         © 2026 UBC Flow ·{' '}
         <span className="whitespace-nowrap">Built by students, not affiliated with UBC</span>
       </p>

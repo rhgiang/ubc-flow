@@ -12,7 +12,7 @@ import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
 import UnsavedWorkDialog from '@/components/schedule/UnsavedWorkDialog';
 import ConflictSaveDialog from '@/components/schedule/ConflictSaveDialog';
 import type { ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
-import { findConflicts } from '@/schedule/conflicts';
+import { findConflicts, conflictKey } from '@/schedule/conflicts';
 import { diffSections, swapSection } from '@/schedule/buffer';
 import {
   saveGuestSchedule,
@@ -94,6 +94,7 @@ export default function ScheduleBuilder({
   const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
   const [infoDocked, setInfoDocked] = useState(false);
   const [swapping, setSwapping] = useState<SectionHit | null>(null);
+  const [dismissedConflicts, setDismissedConflicts] = useState<string | null>(null);
   // Non-null while the conflict gate is open, holding the options `trySave`
   // was originally called with — replayed verbatim (plus conflictsConfirmed)
   // when the student picks "Save anyway", so a gated save-and-switch still
@@ -339,6 +340,12 @@ export default function ScheduleBuilder({
     })),
   );
   const conflicts = findConflicts(entries);
+  // Derived, not an effect: this file is already subject to the
+  // set-state-in-effect rule, and resetting on change needs no effect at all.
+  // A new or different overlap produces a new key, so the banner returns.
+  const currentConflictKey = conflictKey(conflicts);
+  const showConflictBanner =
+    conflicts.length > 0 && dismissedConflicts !== currentConflictKey;
   const showNowIndicator = getCurrentAndNextTerm(terms).current?.id === termId;
   const addedSectionIds = new Set(chosen.map((c) => c.sectionId));
 
@@ -429,8 +436,16 @@ export default function ScheduleBuilder({
         </aside>
 
         <div className="min-w-0 flex-1 overflow-auto p-4">
-          {conflicts.length > 0 && (
-            <div className="mb-4 rounded-card border border-danger-border bg-danger-surface p-3 text-sm text-danger">
+          {showConflictBanner && (
+            <div className="relative mb-4 rounded-card border border-danger-border bg-danger-surface p-3 pr-9 text-sm text-danger">
+              <button
+                type="button"
+                onClick={() => setDismissedConflicts(currentConflictKey)}
+                aria-label="Dismiss conflict warning"
+                className="absolute right-2 top-2 rounded px-1 text-danger transition-opacity hover:opacity-70"
+              >
+                ×
+              </button>
               <p className="font-medium">
                 {conflicts.length} scheduling conflict
                 {conflicts.length === 1 ? '' : 's'} detected

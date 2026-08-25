@@ -8,12 +8,17 @@ type Subject = { code: string | null; name: string };
 export default function ExploreSubjectSelect({
   subjects,
   value,
+  multi = false,
 }: {
   subjects: Subject[];
+  /** In multi mode: a comma-separated list of subject codes. */
   value: string;
+  /** Picking a subject toggles it in the list instead of replacing it. */
+  multi?: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const selected = value.split(',').filter(Boolean);
   const current = subjects.find((s) => s.code === value);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('');
@@ -27,8 +32,16 @@ export default function ExploreSubjectSelect({
 
   function navigate(code: string | null) {
     const next = new URLSearchParams(params.toString());
-    if (code) next.set('subject', code);
-    else next.delete('subject');
+    if (code && multi) {
+      // Toggle within the list; the page renders removable chips for it too.
+      const list = selected.includes(code) ? selected.filter((c) => c !== code) : [...selected, code];
+      if (list.length) next.set('subject', list.join(','));
+      else next.delete('subject');
+    } else if (code) {
+      next.set('subject', code);
+    } else {
+      next.delete('subject');
+    }
     next.delete('page');
     router.push(`/explore?${next.toString()}`);
     setFilter('');
@@ -48,8 +61,16 @@ export default function ExploreSubjectSelect({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between rounded-input border border-border bg-background px-3 py-2 text-left text-sm text-foreground focus:border-foreground focus:outline-none"
       >
-        <span className={current ? '' : 'text-text-tertiary'}>
-          {current ? `${current.code} — ${current.name}` : 'All subjects'}
+        <span className={current || (multi && selected.length) ? '' : 'text-text-tertiary'}>
+          {multi
+            ? selected.length === 0
+              ? 'All subjects'
+              : selected.length === 1
+                ? selected[0]
+                : `${selected.length} subjects`
+            : current
+              ? `${current.code} — ${current.name}`
+              : 'All subjects'}
         </span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5 shrink-0 text-text-tertiary">
           <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -79,7 +100,9 @@ export default function ExploreSubjectSelect({
                 type="button"
                 onClick={() => navigate(s.code)}
                 className={`block w-full px-3 py-2 text-left text-sm hover:bg-surface-muted ${
-                  s.code === value ? 'bg-surface-muted font-medium text-foreground' : 'text-foreground'
+                  (multi ? selected.includes(s.code ?? '') : s.code === value)
+                    ? 'bg-surface-muted font-medium text-foreground'
+                    : 'text-foreground'
                 }`}
               >
                 {s.code} — {s.name}

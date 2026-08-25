@@ -46,6 +46,9 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
     .map(Number)
     .filter((n) => LEVELS.includes(n as (typeof LEVELS)[number]));
   const requirements = sp.requirements === 'none' || sp.requirements === 'has' ? sp.requirements : undefined;
+  // Professors accept several subjects at once (comma-separated); courses
+  // still filter by a single subject and just take the first.
+  const subjectList = (sp.subject ?? '').split(',').filter(Boolean);
   const page = Math.max(1, Number(sp.page) || 1);
 
   const [terms, subjects, courseTotal, professorTotal] = await Promise.all([
@@ -66,7 +69,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
     tab === 'courses'
       ? await listCourses({
           q,
-          subject: sp.subject,
+          subject: subjectList[0],
           levels,
           termId,
           requirements,
@@ -76,7 +79,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
       : null;
   const professorResult =
     tab === 'professors'
-      ? await listProfessors({ q, teachesSubject: sp.subject, sort: sp.sort as ProfessorSort | undefined, page })
+      ? await listProfessors({ q, teachesSubjects: subjectList, sort: sp.sort as ProfessorSort | undefined, page })
       : null;
 
   const total = tab === 'courses' ? courseResult!.total : professorResult!.total;
@@ -172,7 +175,26 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
       ) : (
         <>
           <p className="mt-4 text-xs font-medium text-text-secondary">Teaches</p>
-          <ExploreSubjectSelect subjects={subjects} value={sp.subject ?? ''} />
+          {subjectList.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {subjectList.map((code) => (
+                <Link
+                  key={code}
+                  href={hrefWith(sp, {
+                    subject: subjectList.filter((c) => c !== code).join(',') || null,
+                  })}
+                  aria-label={`Remove ${code} filter`}
+                  className="flex items-center gap-1.5 rounded-pill border border-brand bg-brand px-3.5 py-2 text-sm font-medium text-brand-foreground hover:bg-brand-hover"
+                >
+                  {code}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-3 w-3">
+                    <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+                  </svg>
+                </Link>
+              ))}
+            </div>
+          )}
+          <ExploreSubjectSelect subjects={subjects} value={sp.subject ?? ''} multi />
         </>
       )}
 

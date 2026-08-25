@@ -88,7 +88,7 @@ export default function AuthPanel({
 
   return (
     <div
-      className={`w-full max-w-sm rounded-card border border-border-hairline bg-surface/70 p-6 shadow-lg backdrop-blur-xl ${className}`}
+      className={`w-full max-w-sm rounded-card border border-border-hairline bg-surface p-6 shadow-lg ${className}`}
     >
       <div className="flex items-center justify-between">
         <p className="text-lg font-semibold text-foreground">

@@ -65,11 +65,13 @@ function nowMinutesOnWeekday(): number | null {
 export default function ScheduleCalendar({
   entries,
   onRemove,
+  onSwap,
   showNowIndicator = false,
   onSelectCourse,
 }: {
   entries: CalendarEntry[];
   onRemove?: (sectionId: string) => void;
+  onSwap?: (sectionId: string) => void;
   /** Only true when viewing the term that contains today (spec §current-time
    *  indicator). Also gates the 60s clock timer so calendars for terms that
    *  haven't started don't run a redundant interval. */
@@ -269,6 +271,20 @@ export default function ScheduleCalendar({
                             : undefined
                         }
                       >
+                        {onSwap && (
+                          <button
+                            type="button"
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              onSwap(e.sectionId);
+                            }}
+                            aria-label={`Swap ${e.label}`}
+                            title="Swap section"
+                            className="pointer-events-none absolute right-4 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100"
+                          >
+                            ⇄
+                          </button>
+                        )}
                         {onRemove && (
                           <button
                             type="button"

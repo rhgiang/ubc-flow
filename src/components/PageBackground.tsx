@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import SkyClouds from '@/components/SkyClouds';
 
 /**
@@ -21,6 +21,16 @@ export default function PageBackground({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+
+  // Home gets the full sky; every content page dims it to a backdrop — the
+  // shader and the veil both read this attribute.
+  const dim = pathname !== '/';
+  useEffect(() => {
+    const root = document.documentElement;
+    if (dim) root.setAttribute('data-sky-dim', '');
+    else root.removeAttribute('data-sky-dim');
+    return () => root.removeAttribute('data-sky-dim');
+  }, [dim]);
 
   if (pathname.startsWith('/schedule/')) {
     return (

@@ -69,41 +69,57 @@ float fbm(vec2 p) {
   return v;
 }
 
-// Screen-space rain: slanted columns, each with its own phase and speed, a
-// sparse hash deciding which cells actually carry a drop. Reads as rain on
-// the window rather than volumetric rain — right for a backdrop.
-float rain(vec2 uv, float t) {
-  uv.x += uv.y * 0.16; // slant
-  vec2 cell = vec2(uv.x * 90.0, uv.y * 2.4);
-  float col = floor(cell.x);
-  float ph = hash(vec2(col, 17.0));
-  cell.y += t * (2.1 + ph * 1.5) + ph * 19.0;
-  float row = floor(cell.y);
-  // "active" is a reserved word in GLSL ES 3.0 — hence "occupied".
-  float occupied = step(0.7, hash(vec2(col, row)));
-  vec2 f = fract(cell) - 0.5;
-  float streak = (1.0 - smoothstep(0.02, 0.08, abs(f.x))) *
-                 (1.0 - smoothstep(0.28, 0.48, abs(f.y)));
-  return streak * occupied;
+// One depth layer of rain: motion-blurred streaks in a jittered grid. Each
+// streak is a soft gaussian across its width, tapered at both ends so it
+// reads as a blurred falling drop rather than a printed dash.
+float rainLayer(vec2 uv, float t, vec2 grid, float speed, float keep) {
+  float col = floor(uv.x * grid.x);
+  // Per-column phase offset so streaks never form horizontal ranks.
+  uv.y += t * speed + hash(vec2(col, 9.7)) * 4.0;
+  vec2 id = floor(uv * grid);
+  float ph = hash(id);
+  vec2 f = fract(uv * grid);
+  float dx = f.x - (0.3 + 0.4 * hash(id + 5.3));
+  float streak = exp(-dx * dx * grid.x * grid.x * 0.35);
+  streak *= smoothstep(0.0, 0.35, f.y) * smoothstep(1.0, 0.55, f.y);
+  return streak * step(1.0 - keep, ph);
 }
 
-// Two drifting layers of soft dots with per-flake jitter and a sinusoidal
-// horizontal wobble.
+// Two depths of rain: near streaks longer, faster, and heavier; far ones
+// finer and dimmer. The parallax between them is what sells the volume.
+float rain(vec2 uv, float t) {
+  uv.x += uv.y * 0.14; // wind slant
+  float nearR = rainLayer(uv, t, vec2(55.0, 2.6), 2.4, 0.38);
+  float farR = rainLayer(uv + 3.1, t, vec2(90.0, 4.0), 1.6, 0.3) * 0.5;
+  return nearR + farR;
+}
+
+// One depth layer of snow: soft gaussian flakes, each with its own size,
+// fall phase, and sinusoidal sway.
+float snowLayer(vec2 uv, float t, float scale, float speed, float keep) {
+  vec2 g = uv * scale;
+  float col = floor(g.x);
+  g.y += t * speed * scale + hash(vec2(col, 3.3)) * 7.0;
+  vec2 id = floor(g);
+  float ph = hash(id);
+  vec2 f = fract(g) - 0.5;
+  vec2 off = vec2(
+    (ph - 0.5) * 0.5 + sin(t * (0.6 + 0.5 * ph) + ph * 6.28) * 0.18,
+    (hash(id + 11.1) - 0.5) * 0.5
+  );
+  float d = length(f - off);
+  float r = 0.09 + 0.07 * ph;
+  return exp(-(d * d) / (r * r)) * step(1.0 - keep, hash(id + 23.7));
+}
+
+// Three depths falling at the same screen speed but different sizes — the
+// small far layer reads as depth haze, the near one as flakes you could
+// catch. All drift gently; snow that falls rain-fast reads as sleet.
 float snow(vec2 uv, float t) {
-  float acc = 0.0;
-  for (int i = 0; i < 2; i++) {
-    float fi = float(i);
-    vec2 g = uv * (13.0 + fi * 9.0);
-    g.y += t * (0.55 + fi * 0.35);
-    g.x += sin(t * 0.6 + fi * 2.1 + uv.y * 5.0) * 0.3;
-    vec2 id = floor(g);
-    float ph = hash(id + fi * 31.0);
-    vec2 f = fract(g) - 0.5;
-    vec2 off = (vec2(ph, hash(id + 7.7)) - 0.5) * 0.6;
-    float d = length(f - off);
-    acc += (1.0 - smoothstep(0.03 + ph * 0.03, 0.09 + ph * 0.04, d)) * step(0.45, ph);
-  }
-  return min(acc, 1.0);
+  float nearS = snowLayer(uv, t, 9.0, 0.1, 0.16);
+  float midS = snowLayer(uv + 2.7, t, 16.0, 0.065, 0.2) * 0.7;
+  float farS = snowLayer(uv + 5.3, t, 28.0, 0.04, 0.24) * 0.45;
+  return min(nearS + midS + farS, 1.0);
 }
 
 void main() {
@@ -160,9 +176,16 @@ void main() {
     // Aspect-true coordinates so drops stay the same size on any viewport.
     vec2 suv = gl_FragCoord.xy / u_res.y;
     float pr = (u_ptype < 0.5 ? rain(suv, t) : snow(suv, t)) * u_precip;
-    // Rain reads as darker streaks against a grey sky; snow as white flakes.
-    vec3 pcol = u_ptype < 0.5 ? u_colorLow * 0.82 : vec3(1.0);
-    float pa = clamp(pr, 0.0, 1.0) * (u_ptype < 0.5 ? 0.35 : 0.8);
+    vec3 pcol;
+    if (u_ptype < 0.5) {
+      // Streaks darker than a bright sky, lighter than a dark one — night
+      // rain drawn darker than the night simply vanishes.
+      float skyLum = dot(u_colorLow, vec3(0.333));
+      pcol = skyLum > 0.5 ? u_colorLow * 0.72 : u_colorLow + vec3(0.28, 0.3, 0.34);
+    } else {
+      pcol = vec3(1.0);
+    }
+    float pa = clamp(pr, 0.0, 1.0) * (u_ptype < 0.5 ? 0.6 : 0.85);
     col = mix(col, pcol, pa / max(alpha + pa, 0.001));
     alpha = alpha + pa * (1.0 - alpha);
   }

@@ -152,7 +152,8 @@ export async function listCourses(
 
 export type ProfessorFilters = {
   q?: string;
-  teachesSubject?: string;
+  /** Match professors teaching ANY of these subject codes. */
+  teachesSubjects?: string[];
   sort?: ProfessorSort;
   page?: number;
 };
@@ -213,8 +214,12 @@ export async function listProfessors(
   const where: Prisma.InstructorWhereInput = {
     campus: 'V',
     ...(filters.q ? { name: { contains: filters.q, mode: 'insensitive' } } : {}),
-    ...(filters.teachesSubject
-      ? { sections: { some: { section: { course: { subject: { code: filters.teachesSubject } } } } } }
+    ...(filters.teachesSubjects?.length
+      ? {
+          sections: {
+            some: { section: { course: { subject: { code: { in: filters.teachesSubjects } } } } },
+          },
+        }
       : {}),
   };
 

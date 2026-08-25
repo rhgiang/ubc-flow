@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
 import { useUnsavedChanges } from '@/components/UnsavedChangesContext';
 
@@ -14,6 +14,7 @@ type NavItem = { href: string; label: string } | { href?: undefined; label: stri
 
 export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { open } = useAuthOverlay();
   const { confirmLeave } = useUnsavedChanges();
 
@@ -44,7 +45,10 @@ export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
             href={item.href}
             className={className}
             onNavigate={(e) => {
-              if (!confirmLeave()) e.preventDefault();
+              // The dialog is async where confirm() was blocking: block this
+              // navigation, and re-run it via the router if the student
+              // chooses to leave.
+              if (!confirmLeave(() => router.push(item.href!))) e.preventDefault();
             }}
           >
             {item.label}

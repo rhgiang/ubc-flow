@@ -9,6 +9,7 @@ import CourseInfoOverlay from '@/components/schedule/CourseInfoOverlay';
 import CourseInfoPanel from '@/components/schedule/course-info/CourseInfoPanel';
 import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
 import UnsavedWorkDialog from '@/components/schedule/UnsavedWorkDialog';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
 import { findConflicts } from '@/schedule/conflicts';
 import { diffSections } from '@/schedule/buffer';
@@ -88,6 +89,7 @@ export default function ScheduleBuilder({
   const [termId, setTermId] = useState(effectiveInitialTermId);
   const [chosen, setChosen] = useState<SectionHit[]>(initialSections);
   const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
   const [infoDocked, setInfoDocked] = useState(false);
@@ -282,12 +284,14 @@ export default function ScheduleBuilder({
     }
   }
 
-  async function onDelete() {
+  function onDelete() {
     if (!scheduleId) return;
-    const confirmed = window.confirm(
-      `Delete "${name}"? This cannot be undone.`,
-    );
-    if (!confirmed) return;
+    setConfirmingDelete(true);
+  }
+
+  async function doDelete() {
+    if (!scheduleId) return;
+    setConfirmingDelete(false);
     const result = await deleteSchedule(scheduleId);
     if (!result.ok) {
       setError(result.error);
@@ -454,6 +458,18 @@ export default function ScheduleBuilder({
         onClose={() => setImportOpen(false)}
         onImport={applyImport}
       />
+
+      {confirmingDelete && (
+        <ConfirmDialog
+          title={`Delete “${name}”?`}
+          body="This permanently removes the schedule and its saved sections from your account. It can't be undone."
+          confirmLabel="Delete schedule"
+          cancelLabel="Keep it"
+          danger
+          onConfirm={doDelete}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
 
       {pendingNav && (
         <UnsavedWorkDialog

@@ -15,7 +15,9 @@
   --foreground: #000000; /* Obsidian */
   --foreground-muted: #141414; /* Carbon */
   --text-secondary: #615f5c; /* Smoke */
-  --text-tertiary: #878581; /* Ash */
+  /* Darkened from the reference Ash (#878581), which only reached 3.5:1 on
+     white — small tertiary text needs 4.5:1 (WCAG AA). */
+  --text-tertiary: #6e6c68;
   --border: #d9d9d9; /* Pearl */
   --border-hairline: rgba(0, 0, 0, 0.1);
 
@@ -108,6 +110,33 @@
   --brand-accent: #7aa7e8;
 }
 
+/*
+ * High contrast: plain white and UBC navy, nothing else. No sky, no
+ * translucency, hard borders. Every text token is navy at 7:1+ on white
+ * (WCAG AAA); muted greys are dropped entirely because "muted" is exactly
+ * what this mode exists to remove.
+ */
+:root[data-theme="contrast"] {
+  --background: #ffffff;
+  --surface: #ffffff;
+  --surface-muted: #e8edf4;
+  --foreground: #002145;
+  --foreground-muted: #002145;
+  --text-secondary: #002145;
+  --text-tertiary: #244b78;
+  --border: #002145;
+  --border-hairline: #002145;
+
+  --brand: #002145;
+  --brand-hover: #001227;
+  --brand-foreground: #ffffff;
+  --brand-accent: #002145;
+
+  --danger: #8f1010;
+  --danger-surface: #ffecec;
+  --danger-border: #8f1010;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
@@ -139,6 +168,13 @@
  */
 html {
   scrollbar-gutter: stable;
+}
+
+/* Keyboard-only focus ring, themed from the brand. Applies everywhere the
+   browser default would otherwise show its own un-themed outline. */
+:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
 }
 
 body {
@@ -301,6 +337,59 @@ body {
     rgba(8, 11, 26, 0.2) 0%,
     rgba(12, 14, 32, 0.08) 45%,
     rgba(14, 12, 28, 0.09) 100%
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * Weather mode — data-weather mirrors campus conditions (see ThemeToggle).
+ * The shader reads the attribute itself for cloud density and rain/snow;
+ * these rules only retint the CSS layers behind it.
+ * ------------------------------------------------------------------------ */
+
+/* A grey day: the photographed blue sky would contradict the deck the shader
+   is drawing, so swap it for a soft overcast gradient. */
+:root[data-weather="overcast"] .sky-base,
+:root[data-weather="fog"] .sky-base,
+:root[data-weather="rain"] .sky-base,
+:root[data-weather="snow"] .sky-base,
+:root[data-weather="storm"] .sky-base {
+  background-image: linear-gradient(180deg, #9aa6b5 0%, #b9c2cd 52%, #d3d9e0 100%);
+}
+
+:root[data-weather="storm"] .sky-base {
+  background-image: linear-gradient(180deg, #6f7889 0%, #8d97a7 55%, #aeb6c2 100%);
+}
+
+/* Same grey days at night: keep the navy family, drop the warm afterglow —
+   an overcast night sky is lit from below, flat and starless. */
+:root[data-theme="dark"][data-weather="overcast"] .sky-base,
+:root[data-theme="dark"][data-weather="fog"] .sky-base,
+:root[data-theme="dark"][data-weather="rain"] .sky-base,
+:root[data-theme="dark"][data-weather="snow"] .sky-base,
+:root[data-theme="dark"][data-weather="storm"] .sky-base {
+  background-image: linear-gradient(180deg, #0a0f22 0%, #161b33 55%, #232a45 100%);
+}
+
+/* Clouds hide stars. Only a clear or lightly clouded night shows them. */
+:root[data-theme="dark"][data-weather="overcast"] .sky-stars,
+:root[data-theme="dark"][data-weather="fog"] .sky-stars,
+:root[data-theme="dark"][data-weather="rain"] .sky-stars,
+:root[data-theme="dark"][data-weather="snow"] .sky-stars,
+:root[data-theme="dark"][data-weather="storm"] .sky-stars {
+  opacity: 0;
+  animation: none;
+}
+
+/* Heavy weather darkens the scene, so the veil works a little harder to keep
+   panels and hero text on a steady substrate. Light theme only — this rule
+   would otherwise out-cascade the dark veil and grey out the night sky. */
+:root[data-theme="light"][data-weather="rain"] .sky-veil,
+:root[data-theme="light"][data-weather="storm"] .sky-veil {
+  background-image: linear-gradient(
+    180deg,
+    rgba(233, 238, 246, 0.12) 0%,
+    rgba(236, 241, 247, 0.18) 55%,
+    rgba(240, 243, 248, 0.28) 100%
   );
 }
 
@@ -469,5 +558,56 @@ body {
 @layer base {
   .sky-root :where([class~="rounded-card"]) {
     background-color: var(--background);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * High contrast mode — the sky machinery switched off.
+ * ------------------------------------------------------------------------ */
+
+/* All four layers, canvas included (SkyClouds also stops its render loop). */
+:root[data-theme="contrast"] .sky-layer {
+  display: none;
+}
+
+:root[data-theme="contrast"] .sky-root > header {
+  --foreground: #002145;
+  --border: #002145;
+  --border-hairline: #002145;
+  --surface-muted: #e8edf4;
+  text-shadow: none;
+}
+
+/* Solid white bar with a hard navy outline — no glass, no translucency. */
+:root[data-theme="contrast"] .sky-root > header > .nav-bar {
+  background: #ffffff;
+  border: 2px solid #002145;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+:root[data-theme="contrast"] .nav-logo {
+  text-shadow: none;
+}
+
+/* Hero text sits on plain white now, so it takes the navy tokens back. */
+:root[data-theme="contrast"] .sky-hero {
+  --foreground: #002145;
+  --text-secondary: #002145;
+  --text-tertiary: #244b78;
+  color: #002145;
+  text-shadow: none;
+}
+
+:root[data-theme="contrast"] .sky-panel {
+  border: 1.5px solid #002145;
+  box-shadow: none;
+}
+
+/* The links' dark sky-backing chips become invisible-on-white outlines. */
+@layer base {
+  :root[data-theme="contrast"] .sky-root > header .nav-bar :is(a, button):not(.nav-logo) {
+    background-color: transparent;
   }
 }

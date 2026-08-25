@@ -7,6 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { AuthOverlayProvider } from "@/components/AuthOverlayContext";
 import AuthOverlay from "@/components/AuthOverlay";
 import { UnsavedChangesProvider } from "@/components/UnsavedChangesContext";
+import { getCampusWeather } from "@/lib/weather";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,19 +31,28 @@ export const metadata: Metadata = {
 
 // Runs before paint so the stored theme applies immediately — without this,
 // a dark-mode visitor would flash white on every load until React hydrates.
+// Weather mode guesses daylight from the clock here; ThemeToggle re-applies
+// with the real campus observation after hydration.
 const THEME_INIT = `
 (function () {
   try {
     var stored = localStorage.getItem('theme');
-    var theme = stored === 'dark' || stored === 'light'
+    var mode = ['light', 'dark', 'weather', 'contrast'].indexOf(stored) >= 0
       ? stored
       : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var theme = mode;
+    if (mode === 'weather') {
+      var h = new Date().getHours();
+      theme = h >= 7 && h < 19 ? 'light' : 'dark';
+    }
+    document.documentElement.setAttribute('data-mode', mode);
     document.documentElement.setAttribute('data-theme', theme);
   } catch (e) {}
 })();
 `;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const weather = await getCampusWeather();
   return (
     <html
       lang="en"
@@ -60,7 +70,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AuthOverlayProvider>
           <UnsavedChangesProvider>
             <PageBackground nav={<Nav />}>{children}</PageBackground>
-            <ThemeToggle />
+            <ThemeToggle weather={weather} />
             <AuthOverlay />
           </UnsavedChangesProvider>
         </AuthOverlayProvider>

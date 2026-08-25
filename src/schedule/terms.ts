@@ -43,9 +43,18 @@ export function isPlannableTerm<T extends TermLike>(term: T): boolean {
 }
 
 /**
- * "This term" and "next term" for the explore-page filter — the two terms
- * chronologically nearest to today, a tighter pick than isPlannableTerm
- * above, which permissively includes every term from now onward.
+ * Chronological order, Summer before Winter T1 before Winter T2. Exported so
+ * callers listing several terms sort them the same way the pickers do, rather
+ * than by `year` alone — which interleaves the two Winter terms wrongly.
+ */
+export function compareTerms(a: TermLike, b: TermLike): number {
+  return ordinal(a) - ordinal(b);
+}
+
+/**
+ * "This term" and "next term" — the two terms chronologically nearest to
+ * today. A tighter pick than isPlannableTerm above, which permissively
+ * includes every term from now onward.
  */
 export function getCurrentAndNextTerm<T extends TermLike>(
   terms: T[],

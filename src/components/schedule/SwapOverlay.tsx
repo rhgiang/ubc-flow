@@ -44,7 +44,7 @@ export default function SwapOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50 p-4 sm:p-8"
+      className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/50 px-4 pb-4 sm:px-8 sm:pb-8 overlay-below-nav"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

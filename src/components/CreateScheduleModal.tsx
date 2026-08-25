@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
+import { writePendingTerms } from '@/schedule/pending-import';
 
 type Term = { id: string; name: string };
 
 export default function CreateScheduleModal({ terms }: { terms: Term[] }) {
   const [open, setOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [name, setName] = useState('');
   const [termId, setTermId] = useState(terms[0]?.id ?? '');
   const router = useRouter();
@@ -22,13 +24,29 @@ export default function CreateScheduleModal({ terms }: { terms: Term[] }) {
         >
           Build Schedule
         </button>
-        <Link
-          href="/schedule/new?import=1"
+        {/* Opens here rather than linking to /schedule/new?import=1: that sent
+            the student to an empty builder before the file was even chosen, and
+            left them stranded there if the import failed or was cancelled. */}
+        <button
+          type="button"
+          onClick={() => setImporting(true)}
           className="rounded-pill border border-border px-5 py-2.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
         >
           Import from Workday
-        </Link>
+        </button>
       </div>
+
+      <WorkdayImportOverlay
+        open={importing}
+        onClose={() => setImporting(false)}
+        plannableTermIds={terms.map((t) => t.id)}
+        onImport={(term, otherTerms) => {
+          // Only now is there something to build: park the terms and let the
+          // builder adopt the first one via ?fromImport=1.
+          writePendingTerms([term, ...otherTerms]);
+          router.push('/schedule/new?fromImport=1');
+        }}
+      />
 
       {open && (
         <div

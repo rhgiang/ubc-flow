@@ -24,31 +24,9 @@ import type { ImportedTerm } from '@/upload/match-schedule';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
 import { useUnsavedChanges } from '@/components/UnsavedChangesContext';
 import { getCurrentAndNextTerm } from '@/schedule/terms';
+import { readPendingTerms, writePendingTerms } from '@/schedule/pending-import';
 
 export type BuilderMode = { kind: 'draft' } | { kind: 'saved'; scheduleId: string };
-
-/** Terms from a multi-term Workday import that no schedule holds yet. */
-const PENDING_TERMS_KEY = 'ubcflow:workday-pending-terms';
-
-function readPendingTerms(): ImportedTerm[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.sessionStorage.getItem(PENDING_TERMS_KEY);
-    return raw ? (JSON.parse(raw) as ImportedTerm[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writePendingTerms(terms: ImportedTerm[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    if (terms.length === 0) window.sessionStorage.removeItem(PENDING_TERMS_KEY);
-    else window.sessionStorage.setItem(PENDING_TERMS_KEY, JSON.stringify(terms));
-  } catch {
-    // A blocked sessionStorage only costs the follow-up offer, not the import.
-  }
-}
 
 /**
  * The single schedule builder, behind both /schedule/new (draft) and
@@ -233,11 +211,9 @@ export default function ScheduleBuilder({
     setSwapping(chosen.find((s) => s.sectionId === sectionId) ?? null);
   }
 
-  function applyImport(
-    importedTermId: string,
-    sections: SectionHit[],
-    otherTerms: ImportedTerm[] = [],
-  ) {
+  function applyImport(term: ImportedTerm, otherTerms: ImportedTerm[] = []) {
+    const importedTermId = term.termId;
+    const sections = term.matched;
     // Only terms the student can actually plan; a past term can't be built.
     setPendingTerms(otherTerms.filter((t) => terms.some((x) => x.id === t.termId)));
     if (!terms.some((t) => t.id === importedTermId)) {
@@ -341,6 +317,7 @@ export default function ScheduleBuilder({
       startTime: m.startTime,
       endTime: m.endTime,
       location: m.building ? `${m.building}${m.room ? ` ${m.room}` : ''}` : null,
+      instructor: s.instructors[0] ?? null,
     })),
   );
   const conflicts = findConflicts(entries);
@@ -539,6 +516,7 @@ export default function ScheduleBuilder({
       <WorkdayImportOverlay
         open={importOpen}
         onClose={() => setImportOpen(false)}
+        plannableTermIds={terms.map((t) => t.id)}
         onImport={applyImport}
       />
 

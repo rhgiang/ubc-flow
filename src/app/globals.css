@@ -545,6 +545,17 @@ body {
   background: rgba(10, 14, 34, 0.88);
 }
 
+/* Users who turned transparency off in their OS get the solid navy bar
+   always — glass is an aesthetic, not a requirement. */
+@media (prefers-reduced-transparency: reduce) {
+  .sky-root > header > .nav-bar,
+  :root[data-theme="dark"] .sky-root > header > .nav-bar {
+    background: #041a36;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 /*
  * Each link carries its own dark backing rather than relying on the bar behind
  * it. Darkening the whole bar enough to guarantee contrast made it heavy and

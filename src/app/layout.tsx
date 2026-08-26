@@ -9,6 +9,8 @@ import { AuthOverlayProvider } from "@/components/AuthOverlayContext";
 import AuthOverlay from "@/components/AuthOverlay";
 import { UnsavedChangesProvider } from "@/components/UnsavedChangesContext";
 import { getCampusWeather } from "@/lib/weather";
+import { getSavedThemeMode } from "@/lib/saved-theme";
+import { MODES, DEFAULT_MODE, type Mode } from "@/lib/theme";
 import "./globals.css";
 
 const inter = Inter({
@@ -34,14 +36,21 @@ export const metadata: Metadata = {
 // a dark-mode visitor would flash white on every load until React hydrates.
 // Weather mode guesses daylight from the clock here; ThemeToggle re-applies
 // with the real campus observation after hydration.
-const THEME_INIT = `
+//
+// `seed` is the signed-in user's saved mode, or null. When present it wins
+// over localStorage and is written back to it: the account is the source of
+// truth across devices, and every deliberate change writes to both, so the
+// two converge rather than fighting. A signed-out visitor, or one who has
+// never chosen, falls through to localStorage and then to campus weather.
+function themeInit(seed: Mode | null) {
+  return `
 (function () {
   try {
+    var seed = ${JSON.stringify(seed)};
+    var modes = ${JSON.stringify(MODES)};
     var stored = localStorage.getItem('theme');
-    var modes = ['day', 'night', 'weather', 'light', 'dark'];
-    var mode = modes.indexOf(stored) >= 0
-      ? stored
-      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'day');
+    var mode = seed || (modes.indexOf(stored) >= 0 ? stored : ${JSON.stringify(DEFAULT_MODE)});
+    if (seed && seed !== stored) localStorage.setItem('theme', seed);
     var theme = mode === 'day' || mode === 'light' ? 'light' : 'dark';
     if (mode === 'weather') {
       var h = new Date().getHours();
@@ -55,9 +64,10 @@ const THEME_INIT = `
   } catch (e) {}
 })();
 `;
+}
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const weather = await getCampusWeather();
+  const [weather, savedMode] = await Promise.all([getCampusWeather(), getSavedThemeMode()]);
   return (
     <html
       lang="en"
@@ -69,7 +79,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+        <script dangerouslySetInnerHTML={{ __html: themeInit(savedMode) }} />
       </head>
       <body className="flex h-screen flex-col">
         <AuthOverlayProvider>

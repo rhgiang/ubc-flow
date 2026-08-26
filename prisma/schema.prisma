@@ -126,6 +126,9 @@ model User {
   createdAt     DateTime @default(now())
   studentIdHash String?   @unique
   verifiedAt    DateTime?
+  /// Chosen sky/theme mode, so it follows the account across devices.
+  /// Null means never chosen — the app falls back to campus weather.
+  themeMode     String?
   enrollments   Enrollment[]
   enrollmentMeetings EnrollmentMeeting[]
   courseReviews CourseReview[]

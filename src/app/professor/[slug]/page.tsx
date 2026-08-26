@@ -6,6 +6,7 @@ import { aggregateDistributions } from '@/grades/aggregate';
 import GradeChart from '@/components/GradeChart';
 import RatingsBox from '@/components/RatingsBox';
 import ReviewCard from '@/components/ReviewCard';
+import { timeAgo } from '@/lib/relative-time';
 import { rmpSearchHref } from '@/lib/rmp';
 
 const GRADE_DATA_SOURCE = 'https://github.com/DonneyF/ubc-pair-grade-data';
@@ -157,6 +158,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
                       ...(r.engaging !== null ? [{ label: 'Engaging', value: `${r.engaging + 1}/5` }] : []),
                     ]}
                     attribution="A student"
+                    when={timeAgo(r.createdAt)}
                   />
                 ))}
               </ul>

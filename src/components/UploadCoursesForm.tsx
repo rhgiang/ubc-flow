@@ -101,7 +101,7 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
             label, which read as two competing controls inside our styled box.
             The input is hidden and this label is the whole control: one line
             that names the file once chosen. */}
-        <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-input border border-border bg-background px-4 py-2 text-sm transition duration-150 ease-out hover:scale-[1.02] hover:border-foreground">
+        <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-input border border-border bg-background px-4 py-2 text-sm transition-colors duration-150 ease-out hover:border-foreground hover:bg-surface-muted focus-within:border-foreground focus-within:bg-surface-muted">
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -120,13 +120,21 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
             type="file"
             name="file"
             accept=".xlsx"
+            // Cleared on every open, so re-picking the SAME file still fires
+            // change. Without this a second upload of one file is silently
+            // ignored — the browser treats an identical selection as no change,
+            // and the box goes on saying no file is chosen.
+            onClick={(e) => {
+              e.currentTarget.value = '';
+              setFileName(null);
+            }}
             onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
             className="sr-only"
           />
         </label>
         <button
           disabled={busy}
-          className="rounded-pill bg-brand px-5 py-2 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50"
+          className="rounded-pill bg-brand px-5 py-2 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50 disabled:hover:scale-100"
         >
           {busy ? 'Reading…' : 'Upload'}
         </button>

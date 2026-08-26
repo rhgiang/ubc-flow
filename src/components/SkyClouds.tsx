@@ -357,6 +357,9 @@ export default function SkyClouds() {
     const root = document.documentElement;
     const isPlain = () => root.hasAttribute('data-plain');
 
+    // How fast the sky moves, set by applyPalette and read by the frame loop.
+    let motionScale = 1;
+
     const applyPalette = () => {
       const dark = root.getAttribute('data-theme') === 'dark';
       const base = dark ? DARK : LIGHT;
@@ -373,20 +376,24 @@ export default function SkyClouds() {
       // backdrop for reading there, not the show. Softened, not switched off —
       // the same weather still passes overhead, just quieter.
       const dim = root.hasAttribute('data-sky-dim');
+      // Drift and fall at about half speed behind content. Everything else
+      // here is a matter of how much sky you see; this is the part that pulls
+      // the eye off the page.
+      motionScale = dim ? 0.55 : 1;
       gl.uniform3f(u.color, ...p.color);
       gl.uniform3f(u.colorLow, ...p.colorLow);
-      gl.uniform1f(u.alpha, p.alpha * (dim ? 0.78 : 1));
-      gl.uniform1f(u.coverage, p.coverage + (dim ? 0.03 : 0));
+      gl.uniform1f(u.alpha, p.alpha * (dim ? 0.68 : 1));
+      gl.uniform1f(u.coverage, p.coverage + (dim ? 0.055 : 0));
       gl.uniform1f(u.top, 0.0);
       gl.uniform1f(u.bottom, 1.0);
-      gl.uniform1f(u.precip, (p.precip ?? 0) * (dim ? 0.7 : 1));
+      gl.uniform1f(u.precip, (p.precip ?? 0) * (dim ? 0.55 : 1));
       gl.uniform1f(u.ptype, p.ptype ?? 0);
     };
     applyPalette();
 
     let raf = 0;
-    let start = performance.now();
-    let elapsed = 0;
+    let skyTime = 0;
+    let lastTick = performance.now();
     let lastDraw = 0;
 
     const frame = (now: number) => {
@@ -401,10 +408,11 @@ export default function SkyClouds() {
       lastDraw = now;
 
       // Reduced motion still gets clouds, just held still.
-      if (!reduced.matches) elapsed = (now - start) / 1000;
-      else start = now - elapsed * 1000;
+      const dt = (now - lastTick) / 1000;
+      lastTick = now;
+      if (!reduced.matches) skyTime += dt * motionScale;
 
-      gl.uniform1f(u.time, elapsed);
+      gl.uniform1f(u.time, skyTime);
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -417,7 +425,7 @@ export default function SkyClouds() {
         cancelAnimationFrame(raf);
         raf = 0;
       } else if (!raf && !isPlain()) {
-        start = performance.now() - elapsed * 1000;
+        lastTick = performance.now();
         raf = requestAnimationFrame(frame);
       }
     };
@@ -435,7 +443,7 @@ export default function SkyClouds() {
       }
       applyPalette();
       if (!raf && !document.hidden) {
-        start = performance.now() - elapsed * 1000;
+        lastTick = performance.now();
         raf = requestAnimationFrame(frame);
       }
     };

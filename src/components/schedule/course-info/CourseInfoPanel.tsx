@@ -40,7 +40,7 @@ export default function CourseInfoPanel({
       ref={panelRef}
       tabIndex={-1}
       aria-label={detail ? `${detail.code} course information` : 'Course information'}
-      className="flex w-full shrink-0 flex-col overflow-y-auto border-t border-border lg:w-[380px] lg:border-l lg:border-t-0"
+      className="order-3 flex w-full shrink-0 flex-col overflow-y-auto border-t border-border lg:w-[380px] lg:border-l lg:border-t-0"
     >
       <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-border bg-surface px-4 py-3">
         <div className="min-w-0">

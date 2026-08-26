@@ -92,7 +92,7 @@ const OPTIONS: { mode: Mode; label: string; icon: React.ReactNode }[] = [
 ];
 
 // Shows this option's icon on the trigger button only while its mode is
-// active. Literal strings â€” Tailwind can't see interpolated class names.
+// active. Literal strings — Tailwind can't see interpolated class names.
 const ICON_WHEN_ACTIVE: Record<Mode, string> = {
   day: 'hidden [html[data-mode=day]_&]:block [html:not([data-mode])_&]:block',
   night: 'hidden [html[data-mode=night]_&]:block',

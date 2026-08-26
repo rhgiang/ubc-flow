@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import SkyClouds from '@/components/SkyClouds';
+import Footer from '@/components/Footer';
 
 /**
  * Sky background for every route except the schedule builder
@@ -49,6 +50,7 @@ export default function PageBackground({
       <div className="sky-layer sky-veil" aria-hidden="true" />
       {nav}
       <div className="relative z-10 flex flex-1 flex-col">{children}</div>
+      <Footer />
     </div>
   );
 }

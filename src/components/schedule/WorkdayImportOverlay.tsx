@@ -180,7 +180,7 @@ export default function WorkdayImportOverlay({
               {/* Same reasoning as the onboarding upload form: the native
                   control's own button plus its "no file chosen" label read as
                   two controls inside one styled box. */}
-              <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-input border border-border bg-background px-3 py-2 text-sm transition duration-150 ease-out hover:scale-[1.02] hover:border-foreground">
+              <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-input border border-border bg-background px-3 py-2 text-sm transition-colors duration-150 ease-out hover:border-foreground hover:bg-surface-muted focus-within:border-foreground focus-within:bg-surface-muted">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -200,6 +200,14 @@ export default function WorkdayImportOverlay({
                   name="file"
                   accept=".xlsx"
                   aria-label="Workday export file"
+                  // Cleared on every open, so re-picking the SAME file still fires
+                  // change. Without this a second upload of one file is silently
+                  // ignored — the browser treats an identical selection as no change,
+                  // and the box goes on saying no file is chosen.
+                  onClick={(e) => {
+                    e.currentTarget.value = '';
+                    setFileName(null);
+                  }}
                   onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
                   className="sr-only"
                 />

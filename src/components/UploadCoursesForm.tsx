@@ -81,12 +81,17 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
         </div>
         <ul className="mt-3 space-y-2 text-text-secondary">
           <li>
-            <span className="font-medium text-foreground">Current courses:</span> Workday → Academics →
+            <span className="font-medium text-foreground">Current courses:</span> Workday →
+            <span className="font-medium text-foreground"> Student</span> →
+            <span className="font-medium text-foreground"> Academics</span> →
+            <span className="font-medium text-foreground"> Registration &amp; Courses</span> →
             <span className="font-medium text-foreground"> View My Courses</span> → the
             <span className="font-medium text-foreground"> Export to Excel</span> icon above the table
           </li>
           <li>
-            <span className="font-medium text-foreground">Past courses:</span> Workday → Academics →
+            <span className="font-medium text-foreground">Past courses:</span> Workday →
+            <span className="font-medium text-foreground"> Student</span> →
+            <span className="font-medium text-foreground"> Academics</span> →
             <span className="font-medium text-foreground"> View My Academic Record</span> →
             <span className="font-medium text-foreground"> Export to Excel</span>
           </li>

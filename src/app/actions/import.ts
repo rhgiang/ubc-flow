@@ -64,7 +64,8 @@ export async function parseWorkdayForSchedule(formData: FormData): Promise<Impor
     if (!result) {
       return {
         ok: false,
-        error: "We couldn't find a term in that file. Export from Workday → Academics → View My Courses.",
+        error:
+          "We couldn't find a term in that file. Export from Workday → Student → Academics → Registration & Courses → View My Courses.",
         skipped,
       };
     }

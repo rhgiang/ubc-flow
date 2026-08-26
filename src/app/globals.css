@@ -161,6 +161,22 @@ html {
  * which had this ring boxing the search field on a plain mouse click (browsers
  * match :focus-visible on text inputs however they were focused). A text field
  * shows a caret; it does not need a box drawn round it. */
+/*
+ * Tailwind v4's preflight sets `cursor: default` on every button — a change
+ * from v3, and one that silently made every button in the app read as
+ * unclickable. Put the pointer back once here rather than sprinkling
+ * cursor-pointer down every call site. Disabled controls keep the default,
+ * since they are not pointing anywhere.
+ */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  summary,
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 @layer base {
   :focus-visible {
     outline: 2px solid var(--brand-accent);

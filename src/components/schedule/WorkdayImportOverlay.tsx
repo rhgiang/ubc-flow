@@ -170,7 +170,11 @@ export default function WorkdayImportOverlay({
                 >
                   Workday ↗
                 </a>
-                , go to <span className="font-medium text-foreground">Academics → View My Courses</span>.
+                , go to{' '}
+                <span className="font-medium text-foreground">
+                  Student → Academics → Registration &amp; Courses → View My Courses
+                </span>
+                .
               </li>
               <li>2. Click the <span className="font-medium text-foreground">Export to Excel</span> icon above the table.</li>
               <li>3. Upload the <code>.xlsx</code> file here.</li>

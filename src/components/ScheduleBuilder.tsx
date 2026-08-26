@@ -341,23 +341,6 @@ export default function ScheduleBuilder({
 
   return (
     <main className="flex min-h-0 w-full flex-1 flex-col">
-      <ScheduleHeader
-        name={name}
-        onNameChange={setName}
-        termId={termId}
-        onTermChange={setTermId}
-        terms={terms}
-        scheduleId={scheduleId}
-        schedules={schedules}
-        onSwitchSchedule={(id) => requestNav(() => router.push(`/schedule/${id}`))}
-        canSave={contentSaveable}
-        saving={saving}
-        dirty={dirty}
-        onSave={() => void trySave()}
-        onDelete={onDelete}
-        onImport={() => setImportOpen(true)}
-      />
-
       {error && (
         <p className="border-b border-border px-6 py-2 text-sm text-danger">{error}</p>
       )}
@@ -404,7 +387,7 @@ export default function ScheduleBuilder({
       )}
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <aside className="w-full shrink-0 overflow-y-auto border-b border-border lg:w-[340px] lg:border-b-0 lg:border-r">
+        <aside className="order-2 w-full shrink-0 overflow-y-auto border-b border-border lg:order-1 lg:w-[340px] lg:border-b-0 lg:border-r">
           <SchedulePanelTabs
             termId={termId}
             chosen={chosen}
@@ -425,7 +408,25 @@ export default function ScheduleBuilder({
           />
         </aside>
 
-        <div className="min-w-0 flex-1 overflow-auto p-4">
+        <div className="order-1 flex min-w-0 flex-1 flex-col lg:order-2">
+          <ScheduleHeader
+            name={name}
+            onNameChange={setName}
+            termId={termId}
+            onTermChange={setTermId}
+            terms={terms}
+            scheduleId={scheduleId}
+            schedules={schedules}
+            onSwitchSchedule={(id) => requestNav(() => router.push(`/schedule/${id}`))}
+            canSave={contentSaveable}
+            saving={saving}
+            dirty={dirty}
+            onSave={() => void trySave()}
+            onDelete={onDelete}
+            onImport={() => setImportOpen(true)}
+          />
+
+          <div className="min-h-0 flex-1 overflow-auto px-4 pb-4 pt-3">
           {showConflictBanner && (
             <div className="relative mb-4 rounded-card border border-danger-border bg-danger-surface p-3 pr-9 text-sm text-danger">
               <button
@@ -457,6 +458,7 @@ export default function ScheduleBuilder({
             onSelectCourse={setInfoCourseId}
             onSwap={startSwapById}
           />
+          </div>
         </div>
 
         {infoDocked && infoCourseId && (

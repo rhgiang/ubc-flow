@@ -4,14 +4,19 @@ import { db } from '@/lib/db';
 import { parseCourseCode } from '@/lib/format';
 import { auth } from '@/lib/auth';
 import { canReview } from '@/lib/gate';
-import { aggregateCourseReviews, aggregateInstructorReviews } from '@/reviews/aggregate';
+import { aggregateCourseReviews } from '@/reviews/aggregate';
 import { aggregateDistributions } from '@/grades/aggregate';
 import GradeChart from '@/components/GradeChart';
 import { addSection } from '@/app/actions/schedule';
 import RatingsBox from '@/components/RatingsBox';
 import CourseScheduleBox from '@/components/CourseScheduleBox';
 import RequirementSidebar from '@/components/RequirementSidebar';
-import ReviewCard from '@/components/ReviewCard';
+import CourseReviewTabs, {
+  type ProfessorGroup,
+  type ReviewItem,
+} from '@/components/CourseReviewTabs';
+import type { TaughtBy } from '@/components/ReviewCard';
+import { timeAgo } from '@/lib/relative-time';
 import HistoricalGradesTimeline from '@/components/HistoricalGradesTimeline';
 import { buildCourseGradeHistory } from '@/grades/history';
 import { isUpcomingTerm } from '@/schedule/terms';
@@ -68,9 +73,13 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
 
   const reviews = await db.courseReview.findMany({
     where: { courseId: course.id },
-    // userId is deliberately NOT selected — reviews are anonymous (spec 5).
+    // userId IS selected here, and never leaves this function: it is the only
+    // link between a course review and the instructor reviews the same student
+    // wrote, which is what "taught by" is built from below. Reviews stay
+    // anonymous (spec 5) — nothing rendered carries it.
     select: {
       id: true,
+      userId: true,
       liked: true,
       useful: true,
       difficulty: true,
@@ -124,10 +133,87 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
 
   const instructorReviews = await db.instructorReview.findMany({
     where: { courseId: course.id },
-    select: { id: true, liked: true, clear: true, engaging: true, text: true, createdAt: true },
+    select: {
+      id: true,
+      userId: true,
+      instructorId: true,
+      liked: true,
+      clear: true,
+      engaging: true,
+      text: true,
+      createdAt: true,
+    },
     orderBy: { createdAt: 'desc' },
   });
-  const instructorStats = aggregateInstructorReviews(instructorReviews);
+
+  // instructorId is a raw FK with no Prisma relation (the same cross-domain
+  // convention as CourseReview.courseId), so the names are a second query.
+  const reviewedInstructors = instructorReviews.length
+    ? await db.instructor.findMany({
+        where: { id: { in: [...new Set(instructorReviews.map((r) => r.instructorId))] } },
+        select: { id: true, name: true, slug: true },
+      })
+    : [];
+  const instructorById = new Map(reviewedInstructors.map((i) => [i.id, i]));
+
+  // Who each reviewer said taught them, for the "taught by" line. A student may
+  // review more than one instructor for a course, so this is a list.
+  const taughtByUser = new Map<string, TaughtBy[]>();
+  for (const r of instructorReviews) {
+    const instructor = instructorById.get(r.instructorId);
+    if (!instructor) continue;
+    const list = taughtByUser.get(r.userId) ?? [];
+    list.push({ name: instructor.name, slug: instructor.slug });
+    taughtByUser.set(r.userId, list);
+  }
+
+  const now = new Date();
+
+  const courseReviewItems: ReviewItem[] = reviews.map((r) => ({
+    id: r.id,
+    text: r.text,
+    when: timeAgo(r.createdAt, now),
+    taughtBy: taughtByUser.get(r.userId) ?? [],
+    tags: [
+      ...(r.liked !== null ? [{ label: 'Liked', value: r.liked ? 'Yes' : 'No' }] : []),
+      ...(r.useful !== null ? [{ label: 'Useful', value: `${r.useful + 1}/5` }] : []),
+      ...(r.difficulty !== null ? [{ label: 'Difficulty', value: `${r.difficulty + 1}/5` }] : []),
+      ...(r.workloadHours !== null
+        ? [{ label: 'Workload', value: `${r.workloadHours} hrs/wk` }]
+        : []),
+    ],
+  }));
+
+  // Grouped under the professor they are about — a flat list never said which
+  // one any of them belonged to.
+  const professorGroups: ProfessorGroup[] = [];
+  const groupByInstructor = new Map<string, ProfessorGroup>();
+  for (const r of instructorReviews) {
+    const instructor = instructorById.get(r.instructorId);
+    if (!instructor) continue;
+    let group = groupByInstructor.get(r.instructorId);
+    if (!group) {
+      group = {
+        instructorId: r.instructorId,
+        name: instructor.name,
+        slug: instructor.slug,
+        reviews: [],
+      };
+      groupByInstructor.set(r.instructorId, group);
+      professorGroups.push(group);
+    }
+    group.reviews.push({
+      id: r.id,
+      text: r.text,
+      when: timeAgo(r.createdAt, now),
+      tags: [
+        ...(r.liked !== null ? [{ label: 'Liked', value: r.liked ? 'Yes' : 'No' }] : []),
+        ...(r.clear !== null ? [{ label: 'Clear', value: `${r.clear + 1}/5` }] : []),
+        ...(r.engaging !== null ? [{ label: 'Engaging', value: `${r.engaging + 1}/5` }] : []),
+      ],
+    });
+  }
+  professorGroups.sort((a, b) => b.reviews.length - a.reviews.length || a.name.localeCompare(b.name));
 
   const session = await auth();
   const mayReview = session?.user?.id
@@ -313,56 +399,10 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
 
       <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_300px]">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">
-            Course reviews ({stats.count})
-          </h3>
-
-          {stats.count === 0 ? (
-            <p className="mt-4 text-sm text-text-secondary">No reviews yet.</p>
-          ) : (
-            <ul className="mt-4 space-y-4">
-              {reviews.map((r) => (
-                <ReviewCard
-                  key={r.id}
-                  id={r.id}
-                  text={r.text}
-                  tags={[
-                    ...(r.liked !== null ? [{ label: 'Liked', value: r.liked ? 'Yes' : 'No' }] : []),
-                    ...(r.useful !== null ? [{ label: 'Useful', value: `${r.useful + 1}/5` }] : []),
-                    ...(r.difficulty !== null ? [{ label: 'Difficulty', value: `${r.difficulty + 1}/5` }] : []),
-                    ...(r.workloadHours !== null
-                      ? [{ label: 'Workload', value: `${r.workloadHours} hrs/wk` }]
-                      : []),
-                  ]}
-                  attribution="A student"
-                />
-              ))}
-            </ul>
-          )}
-
-          <h3 className="mt-10 text-lg font-semibold text-foreground">
-            Professor reviews ({instructorStats.count})
-          </h3>
-
-          {instructorStats.count === 0 ? (
-            <p className="mt-4 text-sm text-text-secondary">No reviews yet.</p>
-          ) : (
-            <ul className="mt-4 space-y-4">
-              {instructorReviews.map((r) => (
-                <ReviewCard
-                  key={r.id}
-                  id={r.id}
-                  text={r.text}
-                  tags={[
-                    ...(r.liked !== null ? [{ label: 'Liked', value: r.liked ? 'Yes' : 'No' }] : []),
-                    ...(r.clear !== null ? [{ label: 'Clear', value: `${r.clear + 1}/5` }] : []),
-                    ...(r.engaging !== null ? [{ label: 'Engaging', value: `${r.engaging + 1}/5` }] : []),
-                  ]}
-                  attribution="A student"
-                />
-              ))}
-            </ul>
-          )}
+          <CourseReviewTabs
+            courseReviews={courseReviewItems}
+            professorGroups={professorGroups}
+          />
         </div>
 
         <RequirementSidebar

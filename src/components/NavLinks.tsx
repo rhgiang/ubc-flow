@@ -25,6 +25,10 @@ export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
     loggedIn
       ? { href: '/schedule', label: 'Schedules' }
       : { label: 'Schedules', onClick: () => open('login') },
+    // Unlike Schedules, this needs no account: the roadmap for a student
+    // starting fresh is useful on its own, and is the page's best argument
+    // for signing in. Personalisation is what login adds, not access.
+    { href: '/guidance', label: 'Guidance' },
     // Always reads "Account", whether or not you're signed in.
     loggedIn
       ? { href: '/onboarding', label: 'Account' }

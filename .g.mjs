@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1500, height: 1000 } });
+const errs = []; p.on('pageerror', e => errs.push(String(e).slice(0,140)));
+await p.goto('http://localhost:3402/guidance', { waitUntil: 'networkidle', timeout: 180000 });
+await p.evaluate(() => document.querySelectorAll('nextjs-portal').forEach(e => e.remove()));
+await p.evaluate(() => document.documentElement.setAttribute('data-theme','light'));
+await p.waitForTimeout(1200);
+await p.screenshot({ path: process.env.SHOTS + '/guidance.png', fullPage: true });
+console.log(errs.length ? 'ERRORS '+JSON.stringify(errs.slice(0,2)) : 'no page errors');

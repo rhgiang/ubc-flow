@@ -45,9 +45,15 @@ export const biocMajor2026W: Program = {
           kind: 'credits',
           label: 'Communication requirement (approved list)',
           n: 3,
-          from: { kind: 'codes', codes: [] },
+          from: {
+            kind: 'codes',
+            // The Calendar's approved list in full. The last two are marked
+            // there as REQUIRED of Chemistry and Environmental Sciences
+            // specializations respectively, but they are approved for anyone.
+            codes: ['WRDS 150', 'ENGL 110', 'ENGL 111', 'SCIE 300', 'CHEM 300', 'ENVR 200'],
+          },
           sourceUrl: COMM,
-          confidence: 'inferred',
+          confidence: 'stated',
         },
         course('bioc.biol112', 'BIOL 112'),
         one('bioc.chem1', 'CHEM 121, 111 or 141', ['CHEM 121', 'CHEM 111', 'CHEM 141']),

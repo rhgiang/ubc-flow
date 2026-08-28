@@ -132,7 +132,24 @@ export function tightenNotes(
 ): Requirement | null {
   if (!tree) return null;
   if (tree.type === 'and' || tree.type === 'or') {
-    return { ...tree, items: tree.items.map((i) => tightenNotes(i, codeToId) ?? i) };
+    const items = tree.items.map((i) => tightenNotes(i, codeToId) ?? i);
+    // An AND whose parts are alternatives is an OR. parseRequirements splits
+    // a lettered prerequisite on its semicolons and joins the pieces with
+    // AND, so STAT 305's "Either (a) …; or (b) …; or (c) …" arrives demanding
+    // all three at once — including DSCI 200, which a Statistics major never
+    // takes, making the course unreachable. A part that opens with "or" is a
+    // branch of the part before it, not an addition to it.
+    const alternatives =
+      tree.type === 'and' &&
+      tree.items.filter((i) => i.type === 'note' && i.text.trimStart().toLowerCase().startsWith('or ')).length > 0;
+    if (!alternatives) return { ...tree, items };
+    // Prose that names no course is commentary — "The Department recommends
+    // option (a)" — not a route. Harmless inside an AND, where a permissive
+    // note changes nothing, but fatal inside an OR: one always-true branch
+    // satisfies the whole prerequisite and the course becomes reachable with
+    // nothing taken at all.
+    const routes = items.filter((i) => i.type !== 'note');
+    return { ...tree, type: 'or', items: routes.length > 0 ? routes : items };
   }
   if (tree.type !== 'note') return tree;
 

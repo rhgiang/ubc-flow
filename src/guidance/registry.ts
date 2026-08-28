@@ -1,6 +1,7 @@
 import { withYears, type Program, type Rule } from '@/guidance/rules';
 import { apscCore2026W } from '@/guidance/programs/apsc-core-2026w';
 import {
+  chbeMajor2026W,
   civlMajor2026W,
   elecMajor2026W,
   mechMajor2026W,
@@ -44,6 +45,7 @@ const PROGRAMS: Program[] = [
   artsFacultyCore2026W,
   commerceCore2026W,
   scienceFacultyCore2026W,
+  chbeMajor2026W,
   civlMajor2026W,
   elecMajor2026W,
   mechMajor2026W,

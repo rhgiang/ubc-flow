@@ -77,40 +77,21 @@ function breakdown(rule: Rule): { label: string; detail: string }[] {
  * Fifteen credits is a standard term for a 120-credit degree — 30 a year, 120
  * over four years. Engineering is not that degree. A B.A.Sc. runs 148 to 158
  * credits, and at 15 a term it renders as a five-and-a-half-year plan when the
- * Calendar calls it four Winter Sessions at full credit load.
+ * Calendar itself calls it four Winter Sessions at full credit load.
  *
- * The degree average alone is still not enough, because engineering years are
- * uneven: Civil totals 158 (a 20-credit average) but its SECOND YEAR is 45
- * credits, and since a year cannot start early, 20 leaves it spilling into a
- * ninth term.
+ * Full engineering load is 22. Not the degree average, which is 19 to 20 and
+ * leaves every program spilling into a ninth term: a year's courses cannot
+ * start early, and the two terms inside a year are uneven. Chemical and
+ * Biological's third year is 40 credits, but the Department splits it 19 and
+ * 21, so sizing to the even half strands the remainder. All four B.A.Sc.
+ * programs fit eight terms at 22 and none of them do at 21.
  *
- * So the heaviest year sets the floor — but measured over REQUIRED courses
- * only. Elective buckets are split across years by us, not by the Calendar,
- * and counting them made Statistics look like a 48-credit year and asked for
- * 24 credits a term, which is both wrong and past the point where the solver
- * still produces a sane plan. Engineering has almost no free electives, so its
- * year weights are the Calendar's own and survive the filter intact.
+ * Applied only to oversized degrees. A 120-credit program already fits at 15,
+ * and pushing one past 21 breaks it — Statistics returns a three-term plan
+ * with half the degree unplaced, which is a solver bug in its own right.
  */
-function defaultLoad(total: number, rules: Rule[], credits: Map<string, number>): number {
-  const cost = (r: Rule): number => {
-    if (r.constraint || r.elective) return 0;
-    if (r.kind === 'credits') return r.n;
-    if (r.kind === 'chooseN') return r.of[0] ? cost(r.of[0]) * r.n : 0;
-    if (r.kind === 'group') return r.items.reduce((n, i) => n + cost(i), 0);
-    return r.kind === 'course' ? (credits.get(r.code) ?? 3) : 0;
-  };
-  const perYear = new Map<number, number>();
-  for (const rule of obligations(rules)) {
-    if (rule.year) perYear.set(rule.year, (perYear.get(rule.year) ?? 0) + cost(rule));
-  }
-  // The heaviest-year floor applies only to degrees larger than a standard
-  // four-year load. A 120-credit program already fits 15 a term, and applying
-  // this reasoning to one anyway pushed Statistics to 21+, where the solver's
-  // term-reserve logic comes apart and returns a three-term plan with half the
-  // degree unplaced. Capped at 22 regardless — no real student takes more.
-  const oversized = total > 130;
-  const heaviest = oversized ? Math.max(0, ...perYear.values()) : 0;
-  return Math.min(22, Math.max(15, Math.ceil(total / 8), Math.ceil(heaviest / 2)));
+function defaultLoad(total: number): number {
+  return total > 130 ? 22 : Math.max(15, Math.ceil(total / 8));
 }
 
 const STATE_STYLE: Record<string, string> = {
@@ -143,7 +124,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
     Math.max(
       3,
       Number(sp.credits) ||
-        defaultLoad(program.totalCredits, rules, new Map(catalogue.map((c) => [c.code, c.credits]))),
+        defaultLoad(program.totalCredits),
     ),
   );
 

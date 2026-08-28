@@ -17,6 +17,7 @@ const coursesIn = (t: PlannedTerm): CourseRef[] =>
   t.placements.flatMap((p) => (p.kind === 'course' ? [p.course] : []));
 const isCourse = (p: Placement): p is Extract<Placement, { kind: 'course' }> => p.kind === 'course';
 import type { Requirement } from '@/prereqs/parse';
+import { parseFacultyIndex, parseFacultySubjects } from '@/scrape/parse-faculties';
 
 /** courseId doubles as the code in these fixtures, so a tree is easy to build. */
 const need = (code: string): Requirement => ({ type: 'course', code, courseId: code });
@@ -480,5 +481,34 @@ describe('solver', () => {
     const slots = plan.terms.flatMap((t) => t.placements).filter((p) => p.kind === 'slot');
     expect(slots.reduce((s, p) => s + (p.kind === 'slot' ? p.credits : 0), 0)).toBeGreaterThanOrEqual(6);
     expect(slots[0].kind === 'slot' && slots[0].label).toContain('6cr');
+  });
+});
+
+describe('faculty index parsing', () => {
+  it('reads faculties and their institution paths off the index', () => {
+    const html = `<ul>
+      <li><a href="/course-descriptions/institution/120">Faculty of Science</a></li>
+      <li><a href="/course-descriptions/institution/88">Faculty of Arts</a></li>
+      <li><a href="/course-descriptions/institution/120">Faculty of Science</a></li>
+      <li><a href="/somewhere-else">Not a faculty</a></li>
+    </ul>`;
+    const out = parseFacultyIndex(html);
+    expect(out).toHaveLength(2); // deduped, and the unrelated link ignored
+    expect(out[0]).toEqual({ name: 'Faculty of Science', path: '/course-descriptions/institution/120' });
+  });
+
+  it('reads subject codes and strips the campus suffix', () => {
+    // Exactly how the Calendar writes them.
+    const html = `<div><a>CPSC_V - Computer Science</a><a>MATH_V - Mathematics</a>
+      <a>EOSC_V - Earth and Ocean Sciences</a><p>ASTR_V – Astronomy</p></div>`;
+    const codes = parseFacultySubjects(html);
+    expect(codes).toContain('CPSC');
+    expect(codes).toContain('MATH');
+    expect(codes).toContain('ASTR'); // en-dash separator too
+    expect(codes.some((c) => c.includes('_'))).toBe(false);
+  });
+
+  it('does not invent codes from ordinary prose', () => {
+    expect(parseFacultySubjects('<p>Courses offered by the Faculty of Science.</p>')).toEqual([]);
   });
 });

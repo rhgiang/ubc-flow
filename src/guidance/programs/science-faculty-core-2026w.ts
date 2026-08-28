@@ -50,10 +50,9 @@ export const scienceFacultyCore2026W: Program = {
       kind: 'credits',
       label: 'Arts credits',
       n: 12,
-      // Depends on Subject.faculty, which is unpopulated until phase 0. Until
-      // then this resolves to no courses and reads as outstanding, which is
-      // the safe direction to be wrong in.
-      from: { kind: 'pattern', faculty: 'Arts' },
+      // Matches Subject.faculty verbatim as the Calendar writes it, which is
+      // what scrape:faculties stores — not a friendly short name.
+      from: { kind: 'pattern', faculty: 'Faculty of Arts' },
       sourceUrl: SOURCE,
       confidence: 'stated', // "Minimum Total Arts Credits: 12"
     },

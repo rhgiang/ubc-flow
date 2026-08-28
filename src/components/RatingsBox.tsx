@@ -21,10 +21,28 @@ type Metric = {
  * it should — and is fixed across the bar: shifting it would put a green
  * shoulder on a red one and read as a different number. The sheen is
  * saturation and lightness only.
+ *
+ * Softened off the full-strength pair: enough saturation to read as red or
+ * green at a glance, light enough to sit on the frosted card without shouting.
+ * Both stops live here so the bars and the ring can never drift apart.
  */
+const SCALE_DEEP = { saturation: 58, lightness: 52 };
+const SCALE_BRIGHT = { saturation: 72, lightness: 68 };
+
+function scaleHue(percent: number): number {
+  return Math.round((percent / 100) * 140);
+}
+
+function scaleStops(hue: number): [string, string] {
+  return [
+    `hsl(${hue} ${SCALE_DEEP.saturation}% ${SCALE_DEEP.lightness}%)`,
+    `hsl(${hue} ${SCALE_BRIGHT.saturation}% ${SCALE_BRIGHT.lightness}%)`,
+  ];
+}
+
 function scaleGradient(percent: number, angle = '90deg'): string {
-  const hue = Math.round((percent / 100) * 140);
-  return `linear-gradient(${angle}, hsl(${hue} 68% 42%), hsl(${hue} 88% 60%))`;
+  const [deep, bright] = scaleStops(scaleHue(percent));
+  return `linear-gradient(${angle}, ${deep}, ${bright})`;
 }
 
 /**
@@ -44,6 +62,7 @@ export default function RatingsBox({
   reviewsHref = '#reviews',
   action,
   tone = 'panel',
+  noun = 'course',
 }: {
   likedPercent: number | null;
   /** Every review, with or without written comments. */
@@ -56,6 +75,8 @@ export default function RatingsBox({
   action?: ReactNode;
   /** 'glass' when the box floats on the sky rather than sitting on a panel. */
   tone?: 'panel' | 'glass';
+  /** What there are no ratings *of*, for the empty state's copy. */
+  noun?: string;
 }) {
   const [open, setOpen] = useState<number | null>(null);
   const [filled, setFilled] = useState(false);
@@ -77,27 +98,57 @@ export default function RatingsBox({
   const asPercent = (mean: number | null) =>
     mean === null ? null : Math.round(((mean - 1) / 4) * 100);
 
-  const ringHue = Math.round(((likedPercent ?? 0) / 100) * 140);
+  const [ringDeep, ringBright] = scaleStops(scaleHue(likedPercent ?? 0));
   const circumference = 2 * Math.PI * 54;
   const dash = ((likedPercent ?? 0) / 100) * circumference;
 
+  const shell =
+    tone === 'glass' ? 'sky-glass p-6' : 'rounded-card border border-border bg-surface p-6';
+
+  // Same card, same footprint, an empty ring — rather than a line of grey text
+  // floating where a card should be, which read as a page that had failed to
+  // load rather than one nobody has reviewed yet.
   if (ratingCount === 0) {
-    return <p className="text-sm text-text-secondary">No reviews yet.</p>;
+    return (
+      <div className={shell}>
+        <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
+          <div className="relative flex h-40 w-40 shrink-0 items-center justify-center">
+            <svg viewBox="0 0 120 120" className="h-40 w-40">
+              <circle
+                cx="60"
+                cy="60"
+                r="54"
+                fill="none"
+                stroke="var(--border)"
+                strokeWidth="10"
+                strokeDasharray="4 10"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="absolute text-2xl font-semibold text-text-tertiary">—</span>
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground">No ratings yet</p>
+            <p className="mt-1 text-xs text-text-secondary">
+              Be the first to review this {noun}.
+            </p>
+            {action && <div className="mt-4">{action}</div>}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div
-      className={
-        tone === 'glass' ? 'sky-glass p-6' : 'rounded-card border border-border bg-surface p-6'
-      }
-    >
+    <div className={shell}>
       <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
         <div className="relative flex h-40 w-40 shrink-0 items-center justify-center">
           <svg viewBox="0 0 120 120" className="h-40 w-40 -rotate-90">
             <defs>
               <linearGradient id={ringGradientId} x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor={`hsl(${ringHue} 68% 42%)`} />
-                <stop offset="100%" stopColor={`hsl(${ringHue} 88% 60%)`} />
+                <stop offset="0%" stopColor={ringDeep} />
+                <stop offset="100%" stopColor={ringBright} />
               </linearGradient>
             </defs>
             <circle cx="60" cy="60" r="54" fill="none" stroke="var(--border)" strokeWidth="10" />

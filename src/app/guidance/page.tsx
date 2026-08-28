@@ -7,7 +7,12 @@ import { solve } from '@/guidance/solver';
 
 export const revalidate = 300;
 
-type SP = { program?: string; load?: string; summer?: string };
+// `credits`, not `load`. The control used to mean courses per term and the
+// parameter was called load; changing its meaning to credits while keeping the
+// name left every existing link and bookmark reading "4" as four CREDITS —
+// one course a term, a twelve-term plan. A new name lets stale links fall
+// through to the default instead of silently meaning something else.
+type SP = { program?: string; credits?: string; summer?: string };
 
 const DEFAULT_PROGRAM = 'cpsc-major-bsc-2026w';
 
@@ -78,7 +83,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   const program = getProgram(sp.program ?? DEFAULT_PROGRAM) ?? getProgram(DEFAULT_PROGRAM)!;
   // 15 credits is a standard full-time term: 30 a year, 120 over four years,
   // which is exactly what this degree requires.
-  const load = Math.min(21, Math.max(3, Number(sp.load) || 15));
+  const load = Math.min(21, Math.max(3, Number(sp.credits) || 15));
   const useSummer = sp.summer === '1';
 
   const rules = effectiveRules(program);
@@ -108,7 +113,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   const href = (over: Record<string, string | number>) => {
     const p = new URLSearchParams({
       program: program.code,
-      load: String(load),
+      credits: String(load),
       ...(useSummer ? { summer: '1' } : {}),
       ...Object.fromEntries(Object.entries(over).map(([k, v]) => [k, String(v)])),
     });
@@ -149,7 +154,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                 {[12, 15, 18].map((n) => (
                   <Link
                     key={n}
-                    href={href({ load: n })}
+                    href={href({ credits: n })}
                     className={`rounded-pill border px-3 py-1 text-xs font-medium ${
                       n === load
                         ? 'border-brand bg-brand text-brand-foreground'

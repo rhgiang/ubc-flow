@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
 import { writePendingTerms } from '@/schedule/pending-import';
@@ -60,13 +61,19 @@ export default function CreateScheduleModal({
         }}
       />
 
-      {open && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-6 backdrop-blur-sm"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
-          }}
-        >
+      {/* Portalled to <body>: this component renders inside .sky-hero (see
+          /schedule/page.tsx), which overrides --foreground to white for its
+          own title text. A `fixed` dialog is still a DOM descendant even
+          though it's visually independent, so without the portal it inherited
+          that white text onto its own light card — invisible in light mode. */}
+      {open &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-6 backdrop-blur-sm"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setOpen(false);
+            }}
+          >
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -125,8 +132,9 @@ export default function CreateScheduleModal({
               </button>
             </div>
           </form>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

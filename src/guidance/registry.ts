@@ -1,6 +1,7 @@
 import type { Program, Rule } from '@/guidance/rules';
 import { cpscMajor2026W } from '@/guidance/programs/cpsc-major-2026w';
 import { scienceFacultyCore2026W } from '@/guidance/programs/science-faculty-core-2026w';
+import { statMajor2026W } from '@/guidance/programs/stat-major-2026w';
 
 /**
  * Every program the guidance engine knows about.
@@ -10,7 +11,7 @@ import { scienceFacultyCore2026W } from '@/guidance/programs/science-faculty-cor
  * Program table is what makes cross-program queries possible later; nothing in
  * the current page needs it, so it does not exist yet.
  */
-const PROGRAMS: Program[] = [scienceFacultyCore2026W, cpscMajor2026W];
+const PROGRAMS: Program[] = [scienceFacultyCore2026W, cpscMajor2026W, statMajor2026W];
 
 /** Programs a student can pick — faculty cores are building blocks, not choices. */
 export const selectable = PROGRAMS.filter((p) => p.extends.length > 0 || p.code.includes('major'));

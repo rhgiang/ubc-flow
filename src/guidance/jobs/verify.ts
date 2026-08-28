@@ -45,7 +45,11 @@ export function codesOnPage(html: string): Set<string> {
   const text = cheerio.load(html).text();
   const out = new Set<string>();
   // A subject token, a bare course number, or a sentence break.
-  const token = /([A-Z]{2,5})_[VO]|(\d{3}[A-Z]?)\d*|([.;:]\s)/g;
+  // A trailing capital is a course-letter suffix (491A) only when a lowercase
+  // letter does not follow it. Without that guard the last code in a run gets
+  // the next word's initial glued on — "…527, 528BiologyBIOL_V…" read as
+  // ANTH 528B — and every list's final entry looked invented.
+  const token = /([A-Z]{2,5})_[VO]|(\d{3}(?:[A-Z](?![a-z]))?)\d*|([.;:]\s)/g;
   let subject: string | null = null;
   for (const m of text.matchAll(token)) {
     if (m[1]) subject = m[1];

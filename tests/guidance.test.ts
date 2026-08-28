@@ -666,3 +666,18 @@ describe('calendar course listing', () => {
     expect(subjectPath('CPSC', 'V')).toBe('/course-descriptions/subject/cpscv');
   });
 });
+
+describe('course codes glued to the next word', () => {
+  it('does not absorb the following word\'s initial as a course letter', () => {
+    // The Calendar's thematic table renders as one run with no separators:
+    // "ANTH_V 418, 527, 528BiologyBIOL_V 300, 301Commerce".
+    const found = codesOnPage('<td>ANTH_V 418, 527, 528</td><td>Biology</td><td>BIOL_V 300, 301</td><td>Commerce</td>');
+    expect(found.has('ANTH 528')).toBe(true);  // not ANTH 528B
+    expect(found.has('BIOL 301')).toBe(true);  // not BIOL 301C
+    expect(found.has('ANTH 528B')).toBe(false);
+  });
+
+  it('still reads a genuine course-letter suffix', () => {
+    expect(codesOnPage('<td>CPSC_V 449A and CPSC_V 491</td>').has('CPSC 449A')).toBe(true);
+  });
+});

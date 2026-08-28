@@ -53,8 +53,12 @@ function themeInit(seed: Mode | null) {
     if (seed && seed !== stored) localStorage.setItem('theme', seed);
     var theme = mode === 'day' || mode === 'light' ? 'light' : 'dark';
     if (mode === 'weather') {
-      var h = new Date().getHours();
-      theme = h >= 7 && h < 19 ? 'light' : 'dark';
+      // Campus time, not the viewer's, and replaced a moment later by
+      // ThemeToggle with the real observation, which knows the true sunset.
+      var h = Number(new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Vancouver', hour: 'numeric', hour12: false,
+      }).format(new Date()));
+      theme = h >= 7 && h < 20 ? 'light' : 'dark';
     }
     document.documentElement.setAttribute('data-mode', mode);
     document.documentElement.setAttribute('data-theme', theme);

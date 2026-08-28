@@ -28,14 +28,31 @@ import { type Mode, DEFAULT_MODE } from '@/lib/theme';
  */
 const PLAIN: Mode[] = ['light', 'dark'];
 
+/**
+ * The hour it is at UBC, not wherever the viewer is sitting. Campus weather
+ * means campus: a student reading from Calgary was being put an hour into the
+ * evening while it was still afternoon on campus.
+ */
+function campusHour(): number {
+  return Number(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Vancouver',
+      hour: 'numeric',
+      hour12: false,
+    }).format(new Date()),
+  );
+}
+
 function apply(mode: Mode, weather: WeatherNow | null) {
   const root = document.documentElement;
   root.setAttribute('data-mode', mode);
   if (mode === 'weather') {
-    // No data (fetch failed): daylight falls back to the local clock, and the
-    // sky keeps its default clouds.
-    const hour = new Date().getHours();
-    const day = weather ? weather.isDay : hour >= 7 && hour < 19;
+    // No data (fetch failed): fall back to campus daylight hours, and the sky
+    // keeps its default clouds. 7-20 rather than 7-19 — Vancouver's sunset
+    // runs past 21:00 midsummer and before 16:30 midwinter, so any fixed
+    // window is a guess; this one errs toward daylight, which is both the
+    // signature look and the answer more of the day agrees with.
+    const day = weather ? weather.isDay : campusHour() >= 7 && campusHour() < 20;
     root.setAttribute('data-theme', day ? 'light' : 'dark');
     root.setAttribute('data-weather', weather?.condition ?? 'cloudy');
   } else {
@@ -168,19 +185,26 @@ export default function ThemeToggle({ weather }: { weather: WeatherNow | null })
   // across sunset keeps drawing a daylight sky. Upstream is cached for 30
   // minutes, so a 15-minute poll costs a round trip and nothing more.
   useEffect(() => {
-    const id = setInterval(
-      async () => {
-        if ((localStorage.getItem('theme') ?? DEFAULT_MODE) !== 'weather') return;
-        try {
-          const res = await fetch('/api/weather');
-          if (res.ok) apply('weather', (await res.json()) as WeatherNow | null);
-        } catch {
-          // Keep whatever sky is already up.
-        }
-      },
-      15 * 60 * 1000,
-    );
-    return () => clearInterval(id);
+    const refresh = async () => {
+      if (document.hidden) return;
+      if ((localStorage.getItem('theme') ?? DEFAULT_MODE) !== 'weather') return;
+      try {
+        const res = await fetch('/api/weather');
+        if (res.ok) apply('weather', (await res.json()) as WeatherNow | null);
+      } catch {
+        // Keep whatever sky is already up.
+      }
+    };
+    const id = setInterval(refresh, 15 * 60 * 1000);
+    // A backgrounded tab has its timers throttled, so the interval alone can
+    // leave a sky hours out of date the moment you look at it again.
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('focus', refresh);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('focus', refresh);
+    };
   }, []);
 
   useEffect(() => {

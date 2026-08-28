@@ -234,7 +234,24 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
         <div className="min-w-0">
           <div className="sky-panel p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-foreground">Suggested route</h2>
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">{program.name}</h2>
+                {/*
+                  Every rule here was transcribed by hand off one Calendar page,
+                  and the Calendar is the authority whenever the two disagree.
+                  Linking it is the honest thing to do rather than a courtesy —
+                  a student checking a requirement should be one click from the
+                  page it came from.
+                */}
+                <a
+                  href={program.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-brand-accent underline decoration-dotted underline-offset-2 hover:decoration-solid"
+                >
+                  {program.degree} · official UBC Calendar requirements ↗
+                </a>
+              </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-text-secondary">Credits per term</span>
                 {[12, 15, 18].map((n) => (

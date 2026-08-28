@@ -94,7 +94,23 @@ type Base = {
 
 export type Rule =
   /** One named course. */
-  | (Base & { kind: 'course'; code: string })
+  | (Base & {
+      kind: 'course';
+      code: string;
+      /**
+       * What the PROGRAM prices this course at, when that differs from the
+       * catalogue.
+       *
+       * UBC has variable-credit courses — CPEN 221 is "(4-5)", ELEC 491 and
+       * CPEN 491 are "(5-10)" — and the catalogue stores a single number,
+       * the bottom of the range. A program table that requires the top of it
+       * was first modelled as a credits rule over a one-code list, which got
+       * the arithmetic right and broke everything downstream: a credits rule
+       * plans as a SLOT, slots never enter the satisfied set, so CPEN 221 was
+       * never taken and CPEN 212, 331 and 391 all became unreachable.
+       */
+      credits?: number;
+    })
   /** N satisfied from among these alternatives. */
   | (Base & { kind: 'chooseN'; n: number; of: Rule[] })
   /** N credits drawn from a set. Covers electives and "9 credits of CPSC 300+". */

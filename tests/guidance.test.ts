@@ -792,3 +792,18 @@ describe('corequisites', () => {
     expect(treeMet(t, new Set())).toBe(false);
   });
 });
+
+describe('one number shared by two subjects', () => {
+  it('reads "GEOS_V (or GEOB_V) 270" as both codes', () => {
+    // EOSC's second year. Pairing the number with only the nearest subject
+    // made GEOS 270 look invented while it sat plainly on the page.
+    const found = codesOnPage('<td>EOSC_V 211 or GEOS_V (or GEOB_V) 270</td>');
+    expect([...found].sort()).toEqual(['EOSC 211', 'GEOB 270', 'GEOS 270']);
+  });
+
+  it('still closes the run at a number', () => {
+    // Without that, MICB would stay pending and pick up 305 as well.
+    const found = codesOnPage('<td>MICB_V 211 and BIOL_V 200, 305</td>');
+    expect([...found].sort()).toEqual(['BIOL 200', 'BIOL 305', 'MICB 211']);
+  });
+});

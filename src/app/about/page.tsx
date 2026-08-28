@@ -18,7 +18,7 @@ export default function AboutPage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-xl font-semibold text-foreground">Built by students</h2>
+          <h2 className="text-xl font-semibold text-foreground">Built by a student</h2>
           <p className="text-sm leading-relaxed text-text-secondary">
             This is a student project. UBC Flow is not affiliated with, endorsed by, or operated by
             the University of British Columbia. Nothing here is official — always confirm dates,

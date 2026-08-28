@@ -2,6 +2,10 @@ import type { Program } from '@/guidance/rules';
 
 const SOURCE =
   'https://vancouver.calendar.ubc.ca/faculties-colleges-and-schools/faculty-science/bachelor-science/general-degree-requirements';
+const UPPER =
+  'https://vancouver.calendar.ubc.ca/faculties-colleges-and-schools/faculty-science/bachelor-science/upper-level-requirement';
+const SCIARTS =
+  'https://vancouver.calendar.ubc.ca/faculties-colleges-and-schools/faculty-science/bachelor-science/science-and-arts-requirements';
 const BREADTH =
   'https://vancouver.calendar.ubc.ca/faculties-colleges-and-schools/faculty-science/bachelor-science/science-breadth-requirement';
 
@@ -55,7 +59,11 @@ export const scienceFacultyCore2026W: Program = {
       from: { kind: 'pattern', faculty: 'Faculty of Arts' },
       sourceUrl: SOURCE,
       constraint: true, // spent from electives, not added to them
-      confidence: 'stated', // "Minimum Total Arts Credits: 12"
+      // The Calendar adds a trap worth knowing: "Arts credits taken to fulfill
+      // the Communication Requirement may not be counted towards the Arts
+      // Requirement." The two are separate rules here, so the plan does not
+      // double-count them.
+      confidence: 'stated', // "At least 12 credits must be in courses offered by the Faculty of Arts"
     },
     {
       id: 'sci.breadth',
@@ -80,6 +88,40 @@ export const scienceFacultyCore2026W: Program = {
         sourceUrl: BREADTH,
         confidence: 'inferred' as const,
       })),
+    },
+    {
+      // "For the B.Sc. major, 30 of the 48 upper-level credits must be in
+      // science courses numbered 300 and higher."
+      //
+      // A constraint, like Arts and breadth: these are 48 of the degree's 120
+      // credits spent at the upper level, not 48 on top of it. Shown rather
+      // than placed — which specific upper-level courses satisfy it depends
+      // on the major's own requirements, and every program here already
+      // schedules well over 30 upper-level science credits through its
+      // third- and fourth-year rules.
+      id: 'sci.upper-level',
+      kind: 'note',
+      label: 'Upper-level: 48 credits, of which 30 in Science at 300+',
+      detail:
+        'For the B.Sc. major, 30 of the 48 upper-level credits must be in science ' +
+        'courses numbered 300 and higher. Your major requirements cover most of this; ' +
+        'the rest comes from how you spend upper-level electives.',
+      sourceUrl: UPPER,
+      constraint: true,
+      confidence: 'stated',
+    },
+    {
+      // "At least 72 credits must be in science courses."
+      id: 'sci.science-credits',
+      kind: 'note',
+      label: 'At least 72 credits in Science',
+      detail:
+        'Science credit is not simply "any SCIE-faculty course" — the Calendar also ' +
+        'counts particular geography and psychology courses, and some from Land and ' +
+        'Food Systems and Medicine. Shown rather than counted for that reason.',
+      sourceUrl: SCIARTS,
+      constraint: true,
+      confidence: 'stated',
     },
     {
       id: 'sci.non-science-cap',

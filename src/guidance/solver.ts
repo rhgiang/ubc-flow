@@ -407,11 +407,32 @@ export function solve(input: SolverInput): Plan {
 
       // A rule that names an amount rather than a course becomes a slot:
       // "3 credits of Arts". No prerequisites, so nothing to order.
-      const specs = slotSpecs(rule, entry.left, input, [
+      const covered = [
         ...input.completed,
         ...planned.flatMap((t) => t.placements.flatMap((pl) => (pl.kind === 'course' ? [pl.course] : []))),
         ...placements.flatMap((pl) => (pl.kind === 'course' ? [pl.course] : [])),
-      ], slotted);
+      ];
+
+      // A choose-N of credit buckets has to re-count what it still owes as the
+      // plan fills in. Science Breadth asks for 6 of 7 categories, and a CS
+      // major covers Computer Science, Mathematics and Statistics through its
+      // own required courses — but `left` was fixed at 6 when the plan began,
+      // so those three never came off the tally and the rule reported itself
+      // unplaceable no matter how many slots it was given.
+      if (rule.kind === 'chooseN' && rule.of.every((b) => b.kind === 'credits')) {
+        const met = rule.of.filter((b) => {
+          if (b.kind !== 'credits') return false;
+          if (slotted.has(b.id)) return true;
+          const earned = covered
+            .filter((c) => matches(b.from, c))
+            .reduce((n, c) => n + c.credits, 0);
+          return earned >= b.n;
+        }).length;
+        entry.left = Math.max(0, rule.n - met);
+        if (entry.left <= 0) continue;
+      }
+
+      const specs = slotSpecs(rule, entry.left, input, covered, slotted);
       if (isSlotRule) {
         // Never fall through to concrete placement. A slot rule that produces
         // no spec this term — every breadth category already slotted, say —

@@ -431,8 +431,11 @@ describe('solver', () => {
   });
 
   it('skips a breadth category the major already covers', () => {
+    // n = 2 on purpose. With n = 1 the student's CPSC course satisfies the
+    // whole requirement and offering anything more would be wrong; asking for
+    // two categories is what makes "which one is still owed" observable.
     const breadth: Rule = {
-      id: 'r.breadth', kind: 'chooseN', label: 'Science Breadth', n: 1,
+      id: 'r.breadth', kind: 'chooseN', label: 'Science Breadth', n: 2,
       of: [
         { id: 'b.cpsc', kind: 'credits', label: 'Computer Science', n: 3, from: { kind: 'pattern', subjects: ['CPSC'] } },
         { id: 'b.chem', kind: 'credits', label: 'Chemistry', n: 3, from: { kind: 'pattern', subjects: ['CHEM'] } },
@@ -590,6 +593,29 @@ describe('a four-year degree plans in four years', () => {
       .flatMap((t) => t.placements)
       .reduce((n, p) => n + (p.kind === 'slot' ? p.credits : p.course.credits), 0);
     expect(total).toBe(24); // NOT 36
+  });
+
+  it('stops asking for categories the plan itself satisfies', () => {
+    // Science Breadth asks for 6 of 7 and a CS major covers three through its
+    // own required courses. Counting `left` once at the start left those three
+    // permanently owed, so the rule reported itself unplaceable however many
+    // slots it got.
+    const breadth: Rule = {
+      id: 'r.b', kind: 'chooseN', label: 'Breadth', n: 2, constraint: true,
+      of: [
+        { id: 'b.cpsc', kind: 'credits', label: 'Computer Science', n: 3, from: { kind: 'pattern', subjects: ['CPSC'] } },
+        { id: 'b.chem', kind: 'credits', label: 'Chemistry', n: 3, from: { kind: 'pattern', subjects: ['CHEM'] } },
+      ],
+    };
+    const plan = solve({
+      outstanding: outstanding([], [breadth]),
+      completed: [course('CPSC 110', 4)], // one category already met
+      catalogue: [course('CPSC 110', 4)],
+      prereqs: new Map(), offerings: new Map(),
+      terms: Array.from({ length: 6 }, (_, i) => ({ id: `t${i}`, name: `T${i}`, available: true, projected: true })),
+      prefs: { creditsPerTerm: 15, useSummer: false, targetTermId: null },
+    });
+    expect(plan.unplaced).toHaveLength(0); // the remaining one gets a slot
   });
 
   it('a slot rule never falls through to placing individual courses', () => {

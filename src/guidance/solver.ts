@@ -529,10 +529,20 @@ export function solve(input: SolverInput): Plan {
    * elective bucket still has room.
    */
   const spendFromElectives = (credits: number) => {
-    const bucket = need.find(
-      (n) => n.left > 0 && n.p.rule.kind === 'credits' && !n.p.rule.constraint,
-    );
-    if (bucket) bucket.left = Math.max(0, bucket.left - credits);
+    // Charged across buckets until it is fully spent. Electives are split per
+    // year, so one bucket often holds less than the charge; clamping at zero
+    // against a single bucket loses the remainder, and the plan then places
+    // those credits twice — once as the constraint and again as an elective
+    // that was never charged for. That is how the totals ran over 120.
+    let owed = credits;
+    for (const bucket of need) {
+      if (owed <= 0) break;
+      const rule = bucket.p.rule;
+      if (bucket.left <= 0 || rule.kind !== 'credits' || rule.constraint) continue;
+      const taken = Math.min(bucket.left, owed);
+      bucket.left -= taken;
+      owed -= taken;
+    }
   };
 
   for (const term of placeable) {
@@ -654,9 +664,20 @@ export function solve(input: SolverInput): Plan {
         // requirements are left to draw from.
         const cap = pass === 'topup' ? Infinity : 1;
         let placedForRule = 0;
-        for (const spec of specs) {
+        for (let spec of specs) {
           if (placedForRule >= cap) break;
-          if (spec.credits > free()) break;
+          // A slot may shrink to close the term. Slots come in threes and the
+          // gaps left by 3- and 4-credit courses are ones and twos, so a term
+          // finishes a credit or two short and those credits queue up until
+          // they need a term of their own — five of them across four terms
+          // became a ninth term holding five credits. Shrinking is honest:
+          // UBC has 1- and 2-credit courses, so "2 credits of electives" is a
+          // real instruction. Only on the top-up, where the alternative is
+          // leaving the credits stranded.
+          if (spec.credits > free()) {
+            if (pass !== 'topup' || free() < 1) break;
+            spec = { ...spec, credits: free() };
+          }
           const { branchId, ...rest } = spec as typeof spec & { branchId?: string };
           placements.push({ kind: 'slot', ...rest, forRules: [rule.id] });
           if (branchId) slotted.add(branchId);

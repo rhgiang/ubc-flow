@@ -87,9 +87,14 @@ const STATE_STYLE: Record<string, string> = {
 export default async function GuidancePage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const program = getProgram(sp.program ?? DEFAULT_PROGRAM) ?? getProgram(DEFAULT_PROGRAM)!;
-  // 15 credits is a standard full-time term: 30 a year, 120 over four years,
-  // which is exactly what this degree requires.
-  const load = Math.min(21, Math.max(3, Number(sp.credits) || 15));
+  // 15 credits is a standard full-time term for a 120-credit degree: 30 a
+  // year, 120 over four years. Engineering is not that degree. A B.A.Sc.
+  // runs 148 to 158 credits, which at 15 a term reads as a five-and-a-half
+  // year plan when the Calendar calls it four Winter Sessions at full credit
+  // load. The default is what the credential actually needs across eight
+  // terms; the control still overrides it.
+  const fullLoad = Math.max(15, Math.ceil(program.totalCredits / 8));
+  const load = Math.min(21, Math.max(3, Number(sp.credits) || fullLoad));
   const useSummer = sp.summer === '1';
 
   const rules = effectiveRules(program);

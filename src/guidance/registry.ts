@@ -1,4 +1,10 @@
 import { withYears, type Program, type Rule } from '@/guidance/rules';
+import { apscCore2026W } from '@/guidance/programs/apsc-core-2026w';
+import {
+  civlMajor2026W,
+  elecMajor2026W,
+  mechMajor2026W,
+} from '@/guidance/programs/apsc-majors-2026w';
 import { artsFacultyCore2026W } from '@/guidance/programs/arts-faculty-core-2026w';
 import { biocMajor2026W } from '@/guidance/programs/bioc-major-2026w';
 import { biolMajor2026W } from '@/guidance/programs/biol-major-2026w';
@@ -34,9 +40,13 @@ import { statMajor2026W } from '@/guidance/programs/stat-major-2026w';
  * the current page needs it, so it does not exist yet.
  */
 const PROGRAMS: Program[] = [
+  apscCore2026W,
   artsFacultyCore2026W,
   commerceCore2026W,
   scienceFacultyCore2026W,
+  civlMajor2026W,
+  elecMajor2026W,
+  mechMajor2026W,
   biocMajor2026W,
   biolMajor2026W,
   chemMajor2026W,

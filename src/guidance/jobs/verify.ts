@@ -125,23 +125,30 @@ export async function verifyPrograms(): Promise<number> {
     // top — Arts and breadth come OUT of the elective allowance. Stating both
     // in full makes a 120-credit degree total 150 and stretches the plan by a
     // year and a half, which is invisible until someone counts.
-    let sum = 0;
-    for (const rule of obligations(rules)) {
-      if (rule.constraint) continue; // restricts other credits, adds none
-      if (rule.kind === 'credits') sum += rule.n;
-      else if (rule.kind === 'course') sum += real.get(rule.code) ?? 3;
-      else if (rule.kind === 'chooseN') {
+    /**
+     * What a rule costs the degree.
+     *
+     * A choose-N branch is not always a single course. Chemical and Biological
+     * Engineering picks between two-course streams, so its branches are
+     * groups worth 6 and 12 credits; assuming 3 for anything that was not a
+     * course or a credits rule undercounted that program by exactly 12 and
+     * reported it short of its own degree total.
+     */
+    const cost = (rule: Rule): number => {
+      if (rule.constraint) return 0; // restricts other credits, adds none
+      if (rule.kind === 'credits') return rule.n;
+      if (rule.kind === 'course') return real.get(rule.code) ?? 3;
+      if (rule.kind === 'group') return rule.items.reduce((n, i) => n + cost(i), 0);
+      if (rule.kind === 'chooseN') {
         // One branch satisfies one unit of the choice, so cost is n branches.
         const branch = rule.of[0];
-        const each =
-          branch?.kind === 'credits'
-            ? branch.n
-            : branch?.kind === 'course'
-              ? (real.get(branch.code) ?? 3)
-              : 3;
-        sum += each * rule.n;
+        return branch ? cost(branch) * rule.n : 0;
       }
-    }
+      return 0; // a note costs nothing
+    };
+
+    let sum = 0;
+    for (const rule of obligations(rules)) sum += cost(rule);
     if (sum !== program.totalCredits) {
       errors++;
       console.log(

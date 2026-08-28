@@ -188,7 +188,15 @@ export function tightenNotes(
     .replace(/\bco-?requisites?\s*:[\s\S]*$/i, '')
     // "and a corequisite of BIOC 303" — a clause inside a larger sentence,
     // ending at the next branch marker or full stop.
-    .replace(/\b(?:and\s+)?a\s+co-?requisite\s+of\b[^.;]*/gi, '');
+    .replace(/\b(?:and\s+)?a\s+co-?requisite\s+of\b[^.;]*/gi, '')
+    // "100-level PHYS_V beyond PHYS_V 100" names PHYS 100 to EXCLUDE it, and
+    // reading it as a requirement asked for the one course the rule rules out
+    // — the remedial physics a qualified student never takes. Same for "other
+    // than". CAPS names its first-year physics this way throughout.
+    .replace(/\b(?:beyond|other than)\s+[A-Z]{2,5}(?:_[A-Z])?\s?\d{2,3}[A-Z]?/gi, '')
+    // "PHYS 100-level" is a level, not the course PHYS 100. Reading it as one
+    // asked CAPS 310 for the remedial physics its own sentence excludes.
+    .replace(/\b\d{3}-level\b/gi, '');
   if (text !== tree.text) return tightenNotes({ type: 'note', text }, codeToId);
 
   // Lettered alternatives inside a single note. BIOL 200 reads "Either (a)
@@ -200,7 +208,12 @@ export function tightenNotes(
   //
   // Split on the "or (x)" markers before anything else, and read each branch
   // with the ordinary rules below.
-  const branches = tree.text.split(/\bor\s*\([a-z]\)/i);
+  // The opening bracket is optional. CAPS 205 writes its branches as
+  // "a) … or b) SCIE_V 001" with no parenthesis at all, and requiring one
+  // meant the whole sentence stayed a single AND — demanding SCIE 001 of
+  // every student alongside the branch they actually took, which made CAPS
+  // 205, 206, 305 and 310 unreachable.
+  const branches = tree.text.split(/\bor\s*\(?[a-z]\)/i);
   if (branches.length > 1) {
     const parsed = branches
       .map((text) => tightenNotes({ type: 'note', text }, codeToId))
@@ -824,7 +837,14 @@ export function solve(input: SolverInput): Plan {
                 )
                 .filter((c) => c && !bundle.some((x) => x.code === c))
             : [];
-        for (const course of bundle) {
+        for (const c of bundle) {
+          // A program may price a variable-credit course above what the
+          // catalogue stores — CPEN 221 is "(4-5)" there and 5 in the table.
+          // The course still counts as taken; only its weight changes.
+          const course =
+            rule.kind === 'course' && rule.credits !== undefined && rule.code === c.code
+              ? { ...c, credits: rule.credits }
+              : c;
           placements.push({ kind: 'course', course, forRules: [rule.id], alternatives });
           placedIds.add(course.id);
           courseCredits += course.credits;

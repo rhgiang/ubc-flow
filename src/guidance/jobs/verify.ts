@@ -137,7 +137,8 @@ export async function verifyPrograms(): Promise<number> {
     const cost = (rule: Rule): number => {
       if (rule.constraint) return 0; // restricts other credits, adds none
       if (rule.kind === 'credits') return rule.n;
-      if (rule.kind === 'course') return real.get(rule.code) ?? 3;
+      // A program may price a variable-credit course above the catalogue.
+      if (rule.kind === 'course') return rule.credits ?? real.get(rule.code) ?? 3;
       if (rule.kind === 'group') return rule.items.reduce((n, i) => n + cost(i), 0);
       if (rule.kind === 'chooseN') {
         // One branch satisfies one unit of the choice, so cost is n branches.

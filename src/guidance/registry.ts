@@ -3,12 +3,14 @@ import { apscCore2026W } from '@/guidance/programs/apsc-core-2026w';
 import {
   chbeMajor2026W,
   civlMajor2026W,
+  cpenMajor2026W,
   elecMajor2026W,
   mechMajor2026W,
 } from '@/guidance/programs/apsc-majors-2026w';
 import { artsFacultyCore2026W } from '@/guidance/programs/arts-faculty-core-2026w';
 import { biocMajor2026W } from '@/guidance/programs/bioc-major-2026w';
 import { biolMajor2026W } from '@/guidance/programs/biol-major-2026w';
+import { capsMajor2026W } from '@/guidance/programs/caps-major-2026w';
 import { chemMajor2026W } from '@/guidance/programs/chem-major-2026w';
 import {
   commAccounting2026W,
@@ -45,8 +47,10 @@ const PROGRAMS: Program[] = [
   artsFacultyCore2026W,
   commerceCore2026W,
   scienceFacultyCore2026W,
+  capsMajor2026W,
   chbeMajor2026W,
   civlMajor2026W,
+  cpenMajor2026W,
   elecMajor2026W,
   mechMajor2026W,
   biocMajor2026W,

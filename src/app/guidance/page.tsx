@@ -11,6 +11,9 @@ type SP = { program?: string; load?: string; summer?: string };
 
 const DEFAULT_PROGRAM = 'cpsc-major-bsc-2026w';
 
+/** Course pages are keyed the way /explore links them: "cpsc-310". */
+const courseHref = (code: string) => `/course/${code.toLowerCase().replace(' ', '-')}`;
+
 /** Subjects any rule in the program mentions — what the catalogue query needs. */
 function subjectsUsed(rules: Rule[]): string[] {
   const out = new Set<string>();
@@ -139,17 +142,37 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                       {t.term.name}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {t.placements.map((pl) => (
-                        <span
-                          key={pl.course.id}
-                          className="rounded-pill border border-border bg-surface-muted px-3 py-1 text-sm font-medium text-foreground"
-                        >
-                          {pl.course.code}
-                          <span className="ml-1.5 text-xs text-text-tertiary">
-                            {pl.course.credits}cr
+                      {t.placements.map((pl, i) =>
+                        pl.kind === 'course' ? (
+                          <Link
+                            key={pl.course.id}
+                            href={courseHref(pl.course.code)}
+                            className="rounded-pill border border-border bg-surface-muted px-3 py-1 text-sm font-medium text-foreground hover:border-brand hover:bg-brand hover:text-brand-foreground"
+                          >
+                            {pl.course.code}
+                            <span className="ml-1.5 text-xs opacity-70">{pl.course.credits}cr</span>
+                          </Link>
+                        ) : (
+                          // Dashed: a slot is a decision the student still has
+                          // to make, not a course we are telling them to take.
+                          <span
+                            key={`${pl.label}-${i}`}
+                            className="rounded-pill border border-dashed border-border px-3 py-1 text-sm font-medium text-text-secondary"
+                            title={
+                              pl.examples.length > 0
+                                ? `e.g. ${pl.examples.map((e) => e.code).join(', ')}`
+                                : undefined
+                            }
+                          >
+                            {pl.credits}cr · {pl.label}
+                            {pl.examples.length > 0 && (
+                              <span className="ml-1.5 text-xs opacity-70">
+                                e.g. {pl.examples[0].code}
+                              </span>
+                            )}
                           </span>
-                        </span>
-                      ))}
+                        ),
+                      )}
                     </div>
                   </li>
                 ))}

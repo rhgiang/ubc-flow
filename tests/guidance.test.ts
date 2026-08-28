@@ -1,7 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { type CourseRef, type CourseSet, type Rule, courseLevel, matches, obligations } from '@/guidance/rules';
 import { type Completion, outstanding, progress } from '@/guidance/progress';
-import { type PlanTerm, type SolverInput, depth, solve, tightenNotes, treeMet } from '@/guidance/solver';
+import {
+  type PlannedTerm,
+  type PlanTerm,
+  type Placement,
+  type SolverInput,
+  depth,
+  solve,
+  tightenNotes,
+  treeMet,
+} from '@/guidance/solver';
+
+/** Concrete courses in a planned term; slots carry no course. */
+const coursesIn = (t: PlannedTerm): CourseRef[] =>
+  t.placements.flatMap((p) => (p.kind === 'course' ? [p.course] : []));
+const isCourse = (p: Placement): p is Extract<Placement, { kind: 'course' }> => p.kind === 'course';
 import type { Requirement } from '@/prereqs/parse';
 
 /** courseId doubles as the code in these fixtures, so a tree is easy to build. */
@@ -268,18 +282,18 @@ describe('solver', () => {
     const plan = solve(base());
     const seen = new Set<string>();
     for (const t of plan.terms) {
-      for (const pl of t.placements) {
+      for (const c of coursesIn(t)) {
         // Everything this course needs must already be satisfied by an
         // EARLIER term — not by anything sharing its own term.
-        expect(treeMet(prereqs.get(pl.course.id), seen)).toBe(true);
+        expect(treeMet(prereqs.get(c.id), seen)).toBe(true);
       }
-      for (const pl of t.placements) seen.add(pl.course.id);
+      for (const c of coursesIn(t)) seen.add(c.id);
     }
   });
 
   it('does not let two courses in the same term satisfy each other', () => {
     const plan = solve(base({ prefs: { load: 5, useSummer: false, targetTermId: null } }));
-    const first = plan.terms[0]?.placements.map((p) => p.course.code) ?? [];
+    const first = plan.terms[0] ? coursesIn(plan.terms[0]).map((c) => c.code) : [];
     expect(first).toContain('CPSC 110');
     expect(first).not.toContain('CPSC 210'); // needs 110, placed same term
   });
@@ -288,8 +302,8 @@ describe('solver', () => {
     const offerings = new Map([['CPSC 110', new Set(['t2'])]]);
     const plan = solve(base({ offerings }));
     for (const t of plan.terms) {
-      for (const pl of t.placements) {
-        const when = offerings.get(pl.course.id);
+      for (const c of coursesIn(t)) {
+        const when = offerings.get(c.id);
         if (when) expect(when.has(t.term.id)).toBe(true);
       }
     }
@@ -320,7 +334,116 @@ describe('solver', () => {
         outstanding: outstanding([], [{ id: 'r.210', kind: 'course', label: '210', code: 'CPSC 210' }]),
       }),
     );
-    expect(plan.terms[0].placements[0].course.code).toBe('CPSC 210');
+    expect(coursesIn(plan.terms[0])[0].code).toBe('CPSC 210');
+  });
+
+  it('can plan a multi-course alternative, not just single-course branches', () => {
+    // "CPSC 110, or CPSC 103 and 107" with 110 unavailable. An earlier version
+    // only looked at single-course branches and silently dropped the pair, so
+    // a program whose only route was a bundle could never be planned.
+    const rule: Rule = {
+      id: 'r.intro', kind: 'chooseN', label: 'intro', n: 1,
+      of: [
+        { id: 'r.intro.110', kind: 'course', label: '110', code: 'CPSC 110' },
+        {
+          id: 'r.intro.pair', kind: 'group', label: '103 + 107',
+          items: [
+            { id: 'r.intro.103', kind: 'course', label: '103', code: 'CPSC 103' },
+            { id: 'r.intro.107', kind: 'course', label: '107', code: 'CPSC 107' },
+          ],
+        },
+      ],
+    };
+    const plan = solve(
+      base({
+        outstanding: outstanding([], [rule]),
+        catalogue: [course('CPSC 103'), course('CPSC 107')], // no 110
+        prereqs: new Map(),
+        prefs: { load: 3, useSummer: false, targetTermId: null },
+      }),
+    );
+    expect(coursesIn(plan.terms[0]).map((c) => c.code).sort()).toEqual(['CPSC 103', 'CPSC 107']);
+  });
+
+  it('does not split a bundle across the load limit', () => {
+    // Placing only half of "103 and 107" would satisfy nothing.
+    const rule: Rule = {
+      id: 'r.intro', kind: 'chooseN', label: 'intro', n: 1,
+      of: [{
+        id: 'r.intro.pair', kind: 'group', label: '103 + 107',
+        items: [
+          { id: 'r.intro.103', kind: 'course', label: '103', code: 'CPSC 103' },
+          { id: 'r.intro.107', kind: 'course', label: '107', code: 'CPSC 107' },
+        ],
+      }],
+    };
+    const plan = solve(
+      base({
+        outstanding: outstanding([], [rule]),
+        catalogue: [course('CPSC 103'), course('CPSC 107')],
+        prereqs: new Map(),
+        prefs: { load: 1, useSummer: false, targetTermId: null }, // room for one
+      }),
+    );
+    expect(plan.terms.flatMap(coursesIn)).toHaveLength(0);
+  });
+
+  it('emits a slot for a requirement that names an amount, not a course', () => {
+    const plan = solve(
+      base({
+        outstanding: outstanding([], [
+          { id: 'r.arts', kind: 'credits', label: 'Arts credits', n: 6, from: { kind: 'codes', codes: [] } },
+        ]),
+        prefs: { load: 4, useSummer: false, targetTermId: null },
+      }),
+    );
+    const slots = plan.terms.flatMap((t) => t.placements).filter((p) => p.kind === 'slot');
+    // Unresolvable set, so no concrete course — but still planned, not dropped.
+    expect(slots.length).toBeGreaterThan(0);
+    expect(slots.reduce((s, p) => s + (p.kind === 'slot' ? p.credits : 0), 0)).toBe(6);
+    expect(plan.terms.flatMap(coursesIn)).toHaveLength(0);
+  });
+
+  it('offers a breadth category once, not once per term', () => {
+    const breadth: Rule = {
+      id: 'r.breadth', kind: 'chooseN', label: 'Science Breadth — 3 credits from any 2 of 3', n: 2,
+      of: [
+        { id: 'b.chem', kind: 'credits', label: 'Chemistry', n: 3, from: { kind: 'pattern', subjects: ['CHEM'] } },
+        { id: 'b.phys', kind: 'credits', label: 'Physics', n: 3, from: { kind: 'pattern', subjects: ['PHYS'] } },
+        { id: 'b.biol', kind: 'credits', label: 'Life Science', n: 3, from: { kind: 'pattern', subjects: ['BIOL'] } },
+      ],
+    };
+    const plan = solve(
+      base({
+        outstanding: outstanding([], [breadth]),
+        prereqs: new Map(),
+        prefs: { load: 1, useSummer: false, targetTermId: null }, // forces a spread across terms
+      }),
+    );
+    const labels = plan.terms.flatMap((t) => t.placements).flatMap((p) => (p.kind === 'slot' ? [p.label] : []));
+    expect(labels).toHaveLength(2);                   // n = 2
+    expect(new Set(labels).size).toBe(labels.length); // and no repeats
+  });
+
+  it('skips a breadth category the major already covers', () => {
+    const breadth: Rule = {
+      id: 'r.breadth', kind: 'chooseN', label: 'Science Breadth', n: 1,
+      of: [
+        { id: 'b.cpsc', kind: 'credits', label: 'Computer Science', n: 3, from: { kind: 'pattern', subjects: ['CPSC'] } },
+        { id: 'b.chem', kind: 'credits', label: 'Chemistry', n: 3, from: { kind: 'pattern', subjects: ['CHEM'] } },
+      ],
+    };
+    const plan = solve(
+      base({
+        outstanding: outstanding([], [breadth]),
+        completed: [course('CPSC 110', 4)], // CS category already covered
+        prereqs: new Map(),
+        prefs: { load: 2, useSummer: false, targetTermId: null },
+      }),
+    );
+    const labels = plan.terms.flatMap((t) => t.placements).flatMap((p) => (p.kind === 'slot' ? [p.label] : []));
+    expect(labels.join(' ')).toContain('Chemistry');
+    expect(labels.join(' ')).not.toContain('Computer Science');
   });
 
   it('reports what it could not place rather than dropping it', () => {
@@ -353,7 +476,9 @@ describe('solver', () => {
         prefs: { load: 5, useSummer: false, targetTermId: null },
       }),
     );
-    const placed = plan.terms.flatMap((t) => t.placements);
-    expect(placed.reduce((s, p) => s + p.course.credits, 0)).toBeGreaterThanOrEqual(6);
+    // A credits rule now yields SLOTS rather than arbitrary concrete courses.
+    const slots = plan.terms.flatMap((t) => t.placements).filter((p) => p.kind === 'slot');
+    expect(slots.reduce((s, p) => s + (p.kind === 'slot' ? p.credits : 0), 0)).toBeGreaterThanOrEqual(6);
+    expect(slots[0].kind === 'slot' && slots[0].label).toContain('6cr');
   });
 });

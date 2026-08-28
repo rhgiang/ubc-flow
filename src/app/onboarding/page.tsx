@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { isUpcomingTerm } from '@/schedule/terms';
 import SignOutButton from '@/components/SignOutButton';
 import UploadCoursesForm from '@/components/UploadCoursesForm';
+import DeleteAccountButton from '@/components/DeleteAccountButton';
 import EnrolledCourseCard from '@/components/EnrolledCourseCard';
 
 function courseHref(subjectCode: string, number: string): string {
@@ -187,6 +188,17 @@ export default async function OnboardingPage() {
           <UploadCoursesForm verified={false} />
         </div>
       )}
+
+      <div className="mt-8 border-t border-border pt-6">
+        <h2 className="text-sm font-semibold text-foreground">Delete your account and data</h2>
+        <p className="mt-1 text-sm text-text-secondary">
+          This removes everything tied to your account: reviews, saved schedules, and enrollment
+          records.
+        </p>
+        <div className="mt-3">
+          <DeleteAccountButton />
+        </div>
+      </div>
       </div>
     </main>
   );

@@ -61,6 +61,14 @@
   --danger-surface: #fef2f2;
   --danger-border: #dc2626;
 
+  /* Informational, for rules a student should know but cannot complete —
+     the degree rules beside the guidance checklist. A lighter relative of
+     the brand navy rather than a new hue, so it reads as part of the same
+     family without competing with brand blue's "selected" meaning. */
+  --info: #2f5d9e;
+  --info-surface: #eff4fc;
+  --info-border: #c3d6f0;
+
   /* Pill radius is mandatory per the reference system. */
   --radius-pill: 100px;
   --radius-card: 10px;
@@ -107,6 +115,10 @@
   --danger-surface: #3b1f1f;
   --danger-border: #f87171;
 
+  --info: #9dc0f0;
+  --info-surface: #1e2a3a;
+  --info-border: #35496a;
+
   --brand-accent: #7aa7e8;
 }
 
@@ -137,6 +149,9 @@
   --color-danger: var(--danger);
   --color-danger-surface: var(--danger-surface);
   --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
+  --color-info-border: var(--info-border);
   --radius-pill: var(--radius-pill);
   --radius-card: var(--radius-card);
   --radius-input: var(--radius-input);

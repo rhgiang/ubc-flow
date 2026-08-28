@@ -20,11 +20,9 @@ export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
   const items: NavItem[] = [
     { href: '/', label: 'Home' },
     { href: '/explore', label: 'Explore' },
-    // Logged out, this never navigates to /schedule (which would just
-    // hard-redirect to /login) — it opens the same login panel in place.
-    loggedIn
-      ? { href: '/schedule', label: 'Schedules' }
-      : { label: 'Schedules', onClick: () => open('login') },
+    // /schedule itself handles signed-out visitors (browse freely; building
+    // or importing prompts sign-in), so this is a plain link either way.
+    { href: '/schedule', label: 'Schedules' },
     // Always reads "Account", whether or not you're signed in.
     loggedIn
       ? { href: '/onboarding', label: 'Account' }

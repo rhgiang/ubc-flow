@@ -4,6 +4,14 @@ import { loadCatalogue, loadOfferings, loadPrereqs, loadTerms } from '@/guidance
 import { obligations, walk, type CourseSet, type Rule } from '@/guidance/rules';
 import { progress, outstanding, type Completion } from '@/guidance/progress';
 import { solve } from '@/guidance/solver';
+import {
+  COOP_PATTERNS,
+  applyCoop,
+  degreeYears,
+  fromFirstWinter,
+  getCoopPattern,
+  workTermIds,
+} from '@/guidance/coop';
 
 export const revalidate = 300;
 
@@ -12,7 +20,7 @@ export const revalidate = 300;
 // name left every existing link and bookmark reading "4" as four CREDITS —
 // one course a term, a twelve-term plan. A new name lets stale links fall
 // through to the default instead of silently meaning something else.
-type SP = { program?: string; credits?: string; summer?: string };
+type SP = { program?: string; credits?: string; summer?: string; coop?: string };
 
 const DEFAULT_PROGRAM = 'cpsc-major-bsc-2026w';
 
@@ -111,11 +119,18 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const program = getProgram(sp.program ?? DEFAULT_PROGRAM) ?? getProgram(DEFAULT_PROGRAM)!;
   const rules = effectiveRules(program);
-  const useSummer = sp.summer === '1';
+  const coop = getCoopPattern(sp.coop);
+  // Co-op runs year-round — three of the four work terms in a standard
+  // sequence are summers — so it opens summer up rather than leaving that
+  // to a separate toggle the student would have to find.
+  const useSummer = sp.summer === '1' || coop !== null;
 
   const subjects = subjectsUsed(rules);
 
-  const [catalogue, terms] = await Promise.all([loadCatalogue(subjects), loadTerms()]);
+  const [catalogue, allTerms] = await Promise.all([loadCatalogue(subjects), loadTerms()]);
+  const terms = applyCoop(fromFirstWinter(allTerms), coop);
+  const work = workTermIds(allTerms, coop);
+  const yearOfTerm = degreeYears(allTerms);
   const ids = catalogue.map((c) => c.id);
   const [prereqs, offerings] = await Promise.all([loadPrereqs(catalogue), loadOfferings(ids)]);
 
@@ -161,13 +176,31 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   // than among rules a student can actually finish.
   const trackable = checklist.filter((p) => p.rule.kind !== 'note');
   const degreeRules = checklist.filter((p) => p.rule.kind === 'note');
-  /** Year of the degree a term sits in — two winter terms to a year. */
-  const yearOf = (i: number) => Math.floor(i / 2) + 1;
+  // Work terms hold no coursework, so the solver never returns them. Merge
+  // them back in by calendar order — a plan that silently skipped them would
+  // show co-op finishing in the same four years as everything else, which is
+  // the opposite of what co-op does.
+  const planned = new Map(plan.terms.map((t) => [t.term.id, t.placements]));
+  const lastId = plan.terms.at(-1)?.term.id;
+  // Runs to the last planned term OR the last work term, whichever is later.
+  // Cutting at the coursework alone hid the whole sequence for a student who
+  // finishes their courses before the work terms begin — which is exactly the
+  // case co-op exists to handle, and it reported "no work terms".
+  const end = Math.max(
+    lastId ? allTerms.findIndex((t) => t.id === lastId) : -1,
+    ...[...work].map((id) => allTerms.findIndex((t) => t.id === id)),
+  );
+  const timeline = allTerms
+    .slice(0, end + 1)
+    .filter((t) => planned.has(t.id) || work.has(t.id))
+    .map((t) => ({ term: t, placements: planned.get(t.id) ?? null }));
+
   const href = (over: Record<string, string | number>) => {
     const p = new URLSearchParams({
       program: program.code,
       credits: String(load),
-      ...(useSummer ? { summer: '1' } : {}),
+      ...(useSummer && !coop ? { summer: '1' } : {}),
+      ...(coop ? { coop: coop.id } : {}),
       ...Object.fromEntries(Object.entries(over).map(([k, v]) => [k, String(v)])),
     });
     return `/guidance?${p}`;
@@ -218,7 +251,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                   </Link>
                 ))}
                 <Link
-                  href={href({ summer: useSummer ? '' : '1' })}
+                  href={href({ summer: useSummer ? '' : '1', coop: '' })}
                   className={`ml-1 rounded-pill border px-3 py-1 text-xs font-medium ${
                     useSummer
                       ? 'border-brand bg-brand text-brand-foreground'
@@ -230,6 +263,48 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
               </div>
             </div>
 
+            {/*
+              Co-op is a separate row rather than another pill beside the credit
+              load: it changes the shape of the degree, not its pace. Most
+              programs run more than one sequence, so this is a list of them
+              rather than an on/off switch.
+            */}
+            <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
+              <span className="text-xs text-text-secondary">Co-op</span>
+              <Link
+                href={href({ coop: '' })}
+                className={`rounded-pill border px-3 py-1 text-xs font-medium ${
+                  coop === null
+                    ? 'border-brand bg-brand text-brand-foreground'
+                    : 'border-border text-foreground hover:bg-surface-muted'
+                }`}
+              >
+                None
+              </Link>
+              {COOP_PATTERNS.map((p) => (
+                <Link
+                  key={p.id}
+                  href={href({ coop: p.id })}
+                  className={`rounded-pill border px-3 py-1 text-xs font-medium ${
+                    coop?.id === p.id
+                      ? 'border-brand bg-brand text-brand-foreground'
+                      : 'border-border text-foreground hover:bg-surface-muted'
+                  }`}
+                >
+                  {p.label}
+                </Link>
+              ))}
+            </div>
+            {coop && (
+              <p className="mt-2 rounded-card border border-info-border bg-info-surface px-3 py-2 text-xs text-info">
+                <span className="font-medium">{coop.work.length} work terms.</span> {coop.detail} The
+                Calendar sets the rules — four work terms, at least one in a Winter term, and the
+                degree must end on an academic term — but leaves the sequence to each department, so
+                check yours for the exact placement. Work terms earn co-op course credit on your
+                transcript and none of it counts toward the degree, which is why co-op adds a year.
+              </p>
+            )}
+
             {plan.terms.length === 0 ? (
               <p className="mt-4 text-sm text-text-secondary">
                 No terms could be planned — the catalogue has no upcoming sections to place
@@ -237,11 +312,26 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
               </p>
             ) : (
               <ol className="mt-4 space-y-3">
-                {plan.terms.map((t, i) => (
+                {timeline.map((t) =>
+                  t.placements === null ? (
+                    <li
+                      key={t.term.id}
+                      className="rounded-card border border-dashed border-info-border bg-info-surface p-3"
+                    >
+                      <p className="flex flex-wrap items-baseline gap-2 text-xs font-semibold uppercase tracking-wide text-info">
+                        <span className="rounded-pill border border-info-border px-2 py-0.5">
+                          Year {yearOfTerm.get(t.term.id) ?? 1}
+                        </span>
+                        {t.term.name}
+                        <span className="ml-auto font-normal normal-case opacity-80">work term</span>
+                      </p>
+                      <p className="mt-1.5 text-sm">Co-op placement — no coursework this term.</p>
+                    </li>
+                  ) : (
                   <li key={t.term.id} className="rounded-card border border-border p-3">
                     <p className="flex flex-wrap items-baseline gap-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       <span className="rounded-pill bg-surface-muted px-2 py-0.5 text-foreground">
-                        Year {yearOf(i)}
+                        Year {yearOfTerm.get(t.term.id) ?? 1}
                       </span>
                       {t.term.name}
                       <span className="ml-auto font-normal normal-case opacity-70">
@@ -340,7 +430,8 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                       )}
                     </div>
                   </li>
-                ))}
+                  ),
+                )}
               </ol>
             )}
 

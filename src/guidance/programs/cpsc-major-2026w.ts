@@ -141,10 +141,12 @@ export const cpscMajor2026W: Program = {
           label: 'Statistics',
           n: 1,
           sourceUrl: SOURCE,
-          // The Calendar allows STAT 200/201 to replace STAT 251 under
-          // conditions it states on a linked page; the alternatives are
-          // recorded, the conditions are not.
-          confidence: 'inferred',
+          // Footnote 2 on the Calendar's second-year table: STAT 200 and 201
+          // may stand in for STAT 251. Confirmed against the page rather than
+          // carried over from a summary, so this is stated rather than
+          // inferred. The conditions attached to the substitution are not
+          // modelled — only the alternatives.
+          confidence: 'stated',
           of: [
             { id: 'cpsc.stat.251', kind: 'course', label: 'STAT 251', code: 'STAT 251' },
             { id: 'cpsc.stat.200', kind: 'course', label: 'STAT 200', code: 'STAT 200' },

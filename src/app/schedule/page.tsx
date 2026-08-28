@@ -129,7 +129,7 @@ export default async function SchedulePage() {
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
       <div className="sky-hero flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold text-foreground">My Schedules</h1>
-        <CreateScheduleModal terms={plannableTerms} />
+        <CreateScheduleModal terms={plannableTerms} loggedIn={userId !== undefined} />
       </div>
 
       {/* Tabs and their contents sit on one solid panel — term headings and
@@ -137,8 +137,7 @@ export default async function SchedulePage() {
       <div className="sky-panel mt-6 p-6 sm:p-8">
         {!userId && (
           <p className="mb-4 text-sm text-text-secondary">
-            You can build a schedule without an account — you&apos;ll only need to sign in when
-            you&apos;re ready to save it.
+            Sign in to build or import a schedule — you can look around this page first.
           </p>
         )}
 

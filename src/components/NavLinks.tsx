@@ -20,11 +20,15 @@ export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
   const items: NavItem[] = [
     { href: '/', label: 'Home' },
     { href: '/explore', label: 'Explore' },
-    // Logged out, this never navigates to /schedule (which would just
-    // hard-redirect to /login) — it opens the same login panel in place.
-    loggedIn
-      ? { href: '/schedule', label: 'Schedules' }
-      : { label: 'Schedules', onClick: () => open('login') },
+    // /schedule itself handles signed-out visitors (browse freely; building
+    // or importing prompts sign-in), so this is a plain link either way.
+    // This replaced an older login gate here — the page owns that decision
+    // now, and the nav should not second-guess it.
+    { href: '/schedule', label: 'Schedules' },
+    // Guidance needs no account either: the roadmap for a student starting
+    // fresh is useful on its own, and is the page's best argument for signing
+    // in. Personalisation is what login adds, not access.
+    { href: '/guidance', label: 'Guidance' },
     // Always reads "Account", whether or not you're signed in.
     loggedIn
       ? { href: '/onboarding', label: 'Account' }

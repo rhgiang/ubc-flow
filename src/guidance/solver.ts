@@ -510,6 +510,10 @@ function constrainedCredits(rule: Rule, left: number): number {
 /** Slots are sized to a typical UBC course. */
 const SLOT_CREDITS = 3;
 
+/** A summer session carries two courses, not a full winter term's worth. */
+const SUMMER_TERM_CREDITS = (term: PlanTerm, load: number) =>
+  /summer/i.test(term.name) ? Math.min(load, 6) : load;
+
 export function solve(input: SolverInput): Plan {
   const { prefs } = input;
   const placeable = input.terms.filter(
@@ -641,7 +645,19 @@ export function solve(input: SolverInput): Plan {
     const yearOfTerm = Math.floor(planned.length / 2) + 1;
     let courseCredits = 0;
     let slotCredits = 0;
-    const free = () => prefs.creditsPerTerm - courseCredits - slotCredits;
+    /**
+     * Summer is not a third full term.
+     *
+     * UBC offers a fraction of its catalogue in summer and students take one
+     * or two courses in it. The offering check cannot say so here — a
+     * projected term has no section data, so it permits everything — and with
+     * summer enabled the plan moved whole SECOND YEARS into a summer session:
+     * Mech 2 as a block, Civil's entire 45-credit year, a 12-credit MECH 221
+     * sitting in July. Co-op made this visible by turning summer on for
+     * everyone, but the toggle always had it.
+     */
+    const capacity = SUMMER_TERM_CREDITS(term, prefs.creditsPerTerm);
+    const free = () => capacity - courseCredits - slotCredits;
 
     // Two passes. Concrete courses first, because they sit in prerequisite
     // chains and a term lost to a flexible requirement delays everything

@@ -18,6 +18,7 @@ import CourseReviewTabs, {
 } from '@/components/CourseReviewTabs';
 import type { TaughtBy } from '@/components/ReviewCard';
 import { timeAgo } from '@/lib/relative-time';
+import { voteSummary } from '@/reviews/votes';
 import HistoricalGradesTimeline from '@/components/HistoricalGradesTimeline';
 import { buildCourseGradeHistory } from '@/grades/history';
 import { isUpcomingTerm } from '@/schedule/terms';
@@ -168,15 +169,25 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
     taughtByUser.set(r.userId, list);
   }
 
+  const session = await auth();
+  const viewerId = session?.user?.id ?? null;
+  const { counts: voteCounts, mine: myVotes } = await voteSummary(
+    [...reviews.map((r) => r.id), ...instructorReviews.map((r) => r.id)],
+    viewerId,
+  );
+
   const now = new Date();
 
   const courseReviewItems: ReviewItem[] = reviews.map((r) => ({
     id: r.id,
     text: r.text,
+    liked: r.liked,
     when: timeAgo(r.createdAt, now),
+    createdAt: r.createdAt.getTime(),
+    votes: voteCounts.get(r.id) ?? 0,
+    voted: myVotes.has(r.id),
     taughtBy: taughtByUser.get(r.userId) ?? [],
     tags: [
-      ...(r.liked !== null ? [{ label: 'Liked', value: r.liked ? 'Yes' : 'No' }] : []),
       ...(r.useful !== null ? [{ label: 'Useful', value: `${r.useful + 1}/5` }] : []),
       ...(r.difficulty !== null ? [{ label: 'Difficulty', value: `${r.difficulty + 1}/5` }] : []),
       ...(r.workloadHours !== null
@@ -206,9 +217,12 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
     group.reviews.push({
       id: r.id,
       text: r.text,
+      liked: r.liked,
       when: timeAgo(r.createdAt, now),
+      createdAt: r.createdAt.getTime(),
+      votes: voteCounts.get(r.id) ?? 0,
+      voted: myVotes.has(r.id),
       tags: [
-        ...(r.liked !== null ? [{ label: 'Liked', value: r.liked ? 'Yes' : 'No' }] : []),
         ...(r.clear !== null ? [{ label: 'Clear', value: `${r.clear + 1}/5` }] : []),
         ...(r.engaging !== null ? [{ label: 'Engaging', value: `${r.engaging + 1}/5` }] : []),
       ],
@@ -216,13 +230,10 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
   }
   professorGroups.sort((a, b) => b.reviews.length - a.reviews.length || a.name.localeCompare(b.name));
 
-  const session = await auth();
-  const mayReview = session?.user?.id
-    ? await canReview(session.user.id, course.id)
-    : false;
-  const myReview = session?.user?.id
+  const mayReview = viewerId ? await canReview(viewerId, course.id) : false;
+  const myReview = viewerId
     ? await db.courseReview.findUnique({
-        where: { userId_courseId: { userId: session.user.id, courseId: course.id } },
+        where: { userId_courseId: { userId: viewerId, courseId: course.id } },
         select: { id: true },
       })
     : null;
@@ -257,7 +268,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
           two things you read first, read together. Centred against each other
           rather than top-aligned — the title block is half the card's height,
           and hanging it from the top left an obvious hole under it. */}
-      <div className="grid gap-8 lg:grid-cols-[1fr_28rem] lg:items-start">
+      <div className="grid gap-8 lg:grid-cols-[1fr_32rem] lg:items-start">
         <div className="sky-hero min-w-0">
           <p className="text-sm text-text-tertiary">{course.subject.name}</p>
           <h1 className="text-3xl font-semibold">
@@ -426,6 +437,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
           <CourseReviewTabs
             courseReviews={courseReviewItems}
             professorGroups={professorGroups}
+            signedIn={viewerId !== null}
           />
         </div>
 

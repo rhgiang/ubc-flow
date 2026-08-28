@@ -135,6 +135,7 @@ model User {
   instructorReviews InstructorReview[]
   schedules SavedSchedule[]
   enrollmentCalendarTokens EnrollmentCalendarToken[]
+  reviewVotes ReviewVote[]
 }
 
 model Enrollment {
@@ -209,6 +210,28 @@ model InstructorReview {
   createdAt    DateTime @default(now())
 
   @@unique([userId, instructorId, courseId])
+}
+
+/**
+ * "This review was helpful", from one student on one review. Anonymous in the
+ * same sense reviews are: the row records who so a vote can be taken back and
+ * counted once, and nothing but the total is ever rendered.
+ *
+ * reviewId points at either CourseReview.id or InstructorReview.id — cuids, so
+ * unique across both — with `kind` naming which, following the raw-FK
+ * convention the rest of the cross-domain joins use.
+ */
+model ReviewVote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewId  String
+  /** 'course' | 'instructor' */
+  kind      String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, reviewId])
+  @@index([reviewId])
 }
 
 model SavedSchedule {

@@ -1,12 +1,14 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { db } from '@/lib/db';
+import { auth } from '@/lib/auth';
 import { aggregateInstructorReviews } from '@/reviews/aggregate';
 import { aggregateDistributions } from '@/grades/aggregate';
 import GradeChart from '@/components/GradeChart';
 import RatingsBox from '@/components/RatingsBox';
 import ReviewCard from '@/components/ReviewCard';
 import { timeAgo } from '@/lib/relative-time';
+import { voteSummary } from '@/reviews/votes';
 import { rmpSearchHref } from '@/lib/rmp';
 
 const GRADE_DATA_SOURCE = 'https://github.com/DonneyF/ubc-pair-grade-data';
@@ -106,11 +108,18 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
 
   const rmpHref = rmpSearchHref(instructor.name);
 
+  const session = await auth();
+  const viewerId = session?.user?.id ?? null;
+  const { counts: voteCounts, mine: myVotes } = await voteSummary(
+    reviews.map((r) => r.id),
+    viewerId,
+  );
+
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
       {/* Same arrangement as a course page: identity and blurb on the sky at
           the left, the ratings card floating beside them. */}
-      <div className="grid gap-8 lg:grid-cols-[1fr_28rem] lg:items-start">
+      <div className="grid gap-8 lg:grid-cols-[1fr_32rem] lg:items-start">
         <div className="sky-hero min-w-0">
           <h1 className="text-3xl font-semibold">{instructor.name}</h1>
           <p className="mt-1 text-sm text-text-tertiary">
@@ -159,39 +168,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
       </div>
 
       <div className="sky-panel mt-8 p-6 sm:p-8">
-      {courseGroups.length > 0 && (
-        <div id="reviews" className="mt-6 scroll-mt-24 space-y-8">
-          {courseGroups.map((group) => (
-            <div key={group.courseId}>
-              <Link
-                href={`/course/${group.code.toLowerCase().replace(' ', '-')}`}
-                className="text-lg font-semibold text-brand-accent hover:underline"
-              >
-                {group.code}
-              </Link>
-              <p className="text-sm text-text-secondary">{group.title}</p>
-              <ul className="mt-3 space-y-3">
-                {group.reviews.map((r) => (
-                  <ReviewCard
-                    key={r.id}
-                    id={r.id}
-                    text={r.text}
-                    tags={[
-                      ...(r.liked !== null ? [{ label: 'Liked', value: r.liked ? 'Yes' : 'No' }] : []),
-                      ...(r.clear !== null ? [{ label: 'Clear', value: `${r.clear + 1}/5` }] : []),
-                      ...(r.engaging !== null ? [{ label: 'Engaging', value: `${r.engaging + 1}/5` }] : []),
-                    ]}
-                    attribution="A student"
-                    when={timeAgo(r.createdAt)}
-                  />
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <h2 className="mt-10 text-xl font-semibold">Grades</h2>
+      <h2 className="text-xl font-semibold">Grades</h2>
       {grades.sectionCount === 0 ? (
         <p className="mt-2 text-text-tertiary">No grade data available.</p>
       ) : (
@@ -254,6 +231,47 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
             </li>
           ))}
         </ul>
+      )}
+
+      <h2 id="reviews" className="mt-10 scroll-mt-24 text-xl font-semibold">Student reviews</h2>
+      {courseGroups.length === 0 ? (
+        <p className="mt-2 text-text-tertiary">No reviews yet.</p>
+      ) : (
+        <div className="mt-4 space-y-8">
+          {courseGroups.map((group) => (
+            <div key={group.courseId}>
+              <Link
+                href={`/course/${group.code.toLowerCase().replace(' ', '-')}`}
+                className="text-lg font-semibold text-brand-accent hover:underline"
+              >
+                {group.code}
+              </Link>
+              <p className="text-sm text-text-secondary">{group.title}</p>
+              <ul className="mt-3 space-y-3">
+                {group.reviews.map((r) => (
+                  <ReviewCard
+                    key={r.id}
+                    id={r.id}
+                    text={r.text}
+                    liked={r.liked}
+                    tags={[
+                      ...(r.clear !== null ? [{ label: 'Clear', value: `${r.clear + 1}/5` }] : []),
+                      ...(r.engaging !== null ? [{ label: 'Engaging', value: `${r.engaging + 1}/5` }] : []),
+                    ]}
+                    attribution="A student"
+                    when={timeAgo(r.createdAt)}
+                    vote={{
+                      kind: 'instructor',
+                      votes: voteCounts.get(r.id) ?? 0,
+                      voted: myVotes.has(r.id),
+                      signedIn: viewerId !== null,
+                    }}
+                  />
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
       </div>
     </main>

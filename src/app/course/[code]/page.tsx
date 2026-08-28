@@ -9,6 +9,7 @@ import { aggregateDistributions } from '@/grades/aggregate';
 import GradeChart from '@/components/GradeChart';
 import { addSection } from '@/app/actions/schedule';
 import RatingsBox from '@/components/RatingsBox';
+import RedditButton from '@/components/RedditButton';
 import CourseScheduleBox from '@/components/CourseScheduleBox';
 import RequirementSidebar from '@/components/RequirementSidebar';
 import CourseReviewTabs, {
@@ -249,54 +250,76 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
   const redditHref = `https://www.reddit.com/r/UBC/search/?q=${encodeURIComponent(`${course.subject.code} ${course.number}`)}`;
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-10">
+    <main className="mx-auto w-full max-w-6xl px-6 py-10">
       {/* Course identity sits on the sky; everything below it lives on one
           solid panel, so the background reads as a border around the content. */}
-      <div className="sky-hero">
-        <p className="text-sm text-text-tertiary">{course.subject.name}</p>
-        <h1 className="text-3xl font-semibold">
-          {course.subject.code} {course.number}
-        </h1>
-        <p className="mt-1 text-lg text-foreground">{course.title}</p>
+      {/* Identity and ratings side by side on the sky, above the panel: the
+          two things you read first, read together. Centred against each other
+          rather than top-aligned — the title block is half the card's height,
+          and hanging it from the top left an obvious hole under it. */}
+      <div className="grid gap-8 lg:grid-cols-[1fr_28rem] lg:items-start">
+        <div className="sky-hero min-w-0">
+          <p className="text-sm text-text-tertiary">{course.subject.name}</p>
+          <h1 className="text-3xl font-semibold">
+            {course.subject.code} {course.number}
+          </h1>
+          <p className="mt-1 text-lg text-foreground">{course.title}</p>
 
-        {course.credits !== null && (
-          <p className="mt-2 text-sm text-text-tertiary">{course.credits} credits</p>
-        )}
+          {course.credits !== null && (
+            <p className="mt-2 text-sm text-text-tertiary">{course.credits} credits</p>
+          )}
+
+          {/* Description belongs with the title, not buried at the top of the
+              panel below it — this is the block a student reads first. */}
+          {course.description && (
+            <p className="mt-4 leading-relaxed">{course.description}</p>
+          )}
+
+          <div className="mt-5">
+            <RedditButton
+              tone="glass"
+              href={redditHref}
+              label={`Search Reddit for ${course.subject.code} ${course.number}`}
+            />
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          {/* No "Ratings" heading: the card says liked, useful and difficulty
+              on its face, and the heading was only there to push it out of
+              line with the title. */}
+          <div>
+            <RatingsBox
+              tone="glass"
+              action={
+                mayReview ? (
+                  <Link
+                    href={`/course/${code}/review`}
+                    className="rounded-pill bg-brand px-4 py-1.5 text-xs font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100"
+                  >
+                    {myReview ? 'Edit your review' : 'Write a review'}
+                  </Link>
+                ) : null
+              }
+              likedPercent={stats.likedPercent}
+              ratingCount={stats.count}
+              commentCount={courseReviewItems.filter((r) => r.text !== null).length}
+              metrics={[
+                { label: 'Useful', mean: stats.useful, histogram: stats.histograms.useful },
+                {
+                  label: 'Difficulty',
+                  mean: stats.difficulty,
+                  histogram: stats.histograms.difficulty,
+                  higherIsBetter: false,
+                },
+              ]}
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="sky-panel mt-6 p-6 sm:p-8">
-      {course.description && <p className="leading-relaxed">{course.description}</p>}
-
-      <a
-        href={redditHref}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-4 inline-flex items-center gap-1.5 text-sm text-brand-accent hover:underline"
-      >
-        Search Reddit for {course.subject.code} {course.number}
-      </a>
-
-      <div className="mt-10 flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Ratings</h2>
-        {mayReview && (
-          <Link href={`/course/${code}/review`} className="text-sm text-brand-accent hover:underline">
-            {myReview ? 'Edit your review' : 'Write a review'}
-          </Link>
-        )}
-      </div>
-      <div className="mt-4">
-        <RatingsBox
-          likedPercent={stats.likedPercent}
-          reviewCount={stats.count}
-          metrics={[
-            { label: 'Useful', mean: stats.useful, histogram: stats.histograms.useful },
-            { label: 'Difficulty', mean: stats.difficulty, histogram: stats.histograms.difficulty },
-          ]}
-          externalLink={{ href: redditHref, label: 'Search Reddit' }}
-        />
-      </div>
-
-      <h2 className="mt-10 text-xl font-semibold">Grades</h2>
+      <div className="sky-panel mt-8 p-6 sm:p-8">
+      <h2 className="text-xl font-semibold">Grades</h2>
       {grades.sectionCount === 0 ? (
         <p className="mt-2 text-text-tertiary">No grade data available.</p>
       ) : (
@@ -399,6 +422,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
 
       <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_300px]">
         <div>
+          <div id="reviews" className="scroll-mt-24" />
           <CourseReviewTabs
             courseReviews={courseReviewItems}
             professorGroups={professorGroups}

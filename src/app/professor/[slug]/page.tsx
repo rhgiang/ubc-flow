@@ -107,36 +107,59 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
   const rmpHref = rmpSearchHref(instructor.name);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <h1 className="text-3xl font-semibold">{instructor.name}</h1>
-      <p className="mt-1 text-sm text-text-tertiary">
-        {courses.length} course{courses.length === 1 ? '' : 's'} taught
-      </p>
+    <main className="mx-auto w-full max-w-6xl px-6 py-10">
+      {/* Same arrangement as a course page: identity and blurb on the sky at
+          the left, the ratings card floating beside them. */}
+      <div className="grid gap-8 lg:grid-cols-[1fr_28rem] lg:items-start">
+        <div className="sky-hero min-w-0">
+          <h1 className="text-3xl font-semibold">{instructor.name}</h1>
+          <p className="mt-1 text-sm text-text-tertiary">
+            {courses.length} course{courses.length === 1 ? '' : 's'} taught
+          </p>
 
-      <a
-        href={rmpHref}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-4 inline-flex items-center gap-1.5 text-sm text-brand-accent hover:underline"
-      >
-        Find {instructor.name} on RateMyProfessors
-      </a>
+          <p className="mt-4 leading-relaxed">
+            Ratings come from students who took a course with {instructor.name} and reviewed it
+            here. Their comments sit under each course below.
+          </p>
 
-      <h2 className="mt-10 text-xl font-semibold">Ratings</h2>
-      <div className="mt-4">
-        <RatingsBox
-          likedPercent={stats.likedPercent}
-          reviewCount={stats.count}
-          metrics={[
-            { label: 'Clear', mean: stats.clear, histogram: stats.histograms.clear },
-            { label: 'Engaging', mean: stats.engaging, histogram: stats.histograms.engaging },
-          ]}
-          externalLink={{ href: rmpHref, label: 'View on RateMyProfessors' }}
-        />
+          <a
+            href={rmpHref}
+            target="_blank"
+            rel="noreferrer"
+            className="sky-capsule mt-5 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] active:scale-100"
+          >
+            Find {instructor.name} on RateMyProfessors
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.75}
+              aria-hidden
+              className="h-3.5 w-3.5 shrink-0"
+            >
+              <path d="M14 4h6v6M20 4l-8 8" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" strokeLinecap="round" />
+            </svg>
+          </a>
+        </div>
+
+        <div className="min-w-0">
+          <RatingsBox
+            tone="glass"
+            likedPercent={stats.likedPercent}
+            ratingCount={stats.count}
+            commentCount={reviews.filter((r) => r.text !== null).length}
+            metrics={[
+              { label: 'Clear', mean: stats.clear, histogram: stats.histograms.clear },
+              { label: 'Engaging', mean: stats.engaging, histogram: stats.histograms.engaging },
+            ]}
+          />
+        </div>
       </div>
 
+      <div className="sky-panel mt-8 p-6 sm:p-8">
       {courseGroups.length > 0 && (
-        <div className="mt-6 space-y-8">
+        <div id="reviews" className="mt-6 scroll-mt-24 space-y-8">
           {courseGroups.map((group) => (
             <div key={group.courseId}>
               <Link
@@ -231,6 +254,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
           ))}
         </ul>
       )}
+      </div>
     </main>
   );
 }

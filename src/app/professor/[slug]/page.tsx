@@ -146,6 +146,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
         <div className="min-w-0">
           <RatingsBox
             tone="glass"
+            noun="professor"
             likedPercent={stats.likedPercent}
             ratingCount={stats.count}
             commentCount={reviews.filter((r) => r.text !== null).length}

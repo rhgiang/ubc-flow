@@ -46,6 +46,10 @@ const CAT: CourseRef[] = [
   course('ENGL 112', 3, 'Arts'),
   course('HIST 102', 3, 'Arts'),
   course('PHIL 220', 6, 'Arts'),
+  // Breadth categories need real courses to draw examples from.
+  course('CHEM 121', 3),
+  course('PHYS 117', 3),
+  course('BIOL 200', 3),
 ];
 
 const passed = (...codes: string[]): Completion[] =>
@@ -425,9 +429,13 @@ describe('solver', () => {
         prefs: { creditsPerTerm: 4, useSummer: false, targetTermId: null }, // forces a spread across terms
       }),
     );
-    const labels = plan.terms.flatMap((t) => t.placements).flatMap((p) => (p.kind === 'slot' ? [p.label] : []));
-    expect(labels).toHaveLength(2);                   // n = 2
-    expect(new Set(labels).size).toBe(labels.length); // and no repeats
+    // Slots are labelled generically now — "Science Breadth", not
+    // "Science Breadth: Chemistry" — because the category is the student's
+    // choice. Identity is checked through the example courses instead.
+    const slots = plan.terms.flatMap((t) => t.placements).flatMap((p) => (p.kind === 'slot' ? [p] : []));
+    expect(slots).toHaveLength(2); // n = 2
+    const subjects = slots.map((s) => s.examples[0]?.subject);
+    expect(new Set(subjects).size).toBe(subjects.length); // no category twice
   });
 
   it('skips a breadth category the major already covers', () => {
@@ -449,9 +457,11 @@ describe('solver', () => {
         prefs: { creditsPerTerm: 8, useSummer: false, targetTermId: null },
       }),
     );
-    const labels = plan.terms.flatMap((t) => t.placements).flatMap((p) => (p.kind === 'slot' ? [p.label] : []));
-    expect(labels.join(' ')).toContain('Chemistry');
-    expect(labels.join(' ')).not.toContain('Computer Science');
+    const subjects = plan.terms
+      .flatMap((t) => t.placements)
+      .flatMap((p) => (p.kind === 'slot' ? p.examples.map((e) => e.subject) : []));
+    expect(subjects).toContain('CHEM');   // the category still owed
+    expect(subjects).not.toContain('CPSC'); // the one the major already covers
   });
 
   it('reports what it could not place rather than dropping it', () => {

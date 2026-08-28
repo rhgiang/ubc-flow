@@ -317,9 +317,15 @@ function slotSpecs(
       const earned = covered.filter((c) => matches(b.from, c)).reduce((s, c) => s + c.credits, 0);
       return earned < b.n;
     });
+    // Labelled generically. Naming the category — "Science Breadth:
+    // Chemistry" — reads as an instruction to take chemistry, when the
+    // requirement is "any 6 of 7" and the choice is the student's. The
+    // branch is still tracked so the count is right and no category is
+    // offered twice; it just is not presented as the answer. Examples come
+    // from the branch, as a hint rather than a prescription.
     return unmet.slice(0, left).map((b) => ({
       credits: b.n,
-      label: `${rule.label.split(' — ')[0]}: ${b.label}`,
+      label: rule.label.split(' — ')[0],
       examples: examplesFor(b),
       branchId: b.id,
     }));
@@ -451,29 +457,32 @@ export function solve(input: SolverInput): Plan {
   /** chooseN branches already given a slot, so no category repeats. */
   const slotted = new Set<string>();
 
+  // Constrained requirements are considered before the plain elective
+  // buckets. A constraint is spent FROM the electives, so if the electives
+  // hand out their own slots first and run dry, a later Arts slot finds
+  // nothing to charge against and is added on top — the plan then carries
+  // more credits than the degree asks for.
+  need.sort((a, b) => Number(!!b.p.rule.constraint) - Number(!!a.p.rule.constraint));
+
   /**
-   * The elective allowance a constraint is spent from. A student meeting
-   * "12 credits of Arts" is spending electives on Arts, not taking 12 credits
-   * beyond the degree — so placing a constraint slot has to draw the pool
-   * down too, or the plan runs long by exactly the constrained credits.
+   * Spend a constrained slot out of the elective allowance.
    *
-   * The pool is the largest unconstrained credit bucket, which is the
-   * Electives row in every program shaped like this one.
+   * Deducting the nominal total up front loses whatever a constraint never
+   * spends. Science Breadth is nominally 18 credits, but a CS major covers
+   * three of its six categories through required courses, so only 9 are ever
+   * slotted — and the other 9 came off the electives and were never given
+   * back. The plan totalled 111 credits of 120 for exactly that reason, while
+   * reporting nothing unplaced.
+   *
+   * Charged as each slot is actually placed instead, against whichever
+   * elective bucket still has room.
    */
-  const pool = need
-    .filter((n) => n.p.rule.kind === 'credits' && !n.p.rule.constraint)
-    .sort((a, b) => b.left - a.left)[0];
-  if (pool) {
-    // Once, up front, rather than per placement. Doing it as each constraint
-    // slot lands needs the constrained buckets to be placed first, and gating
-    // on that starves any term where no constraint happens to fit — which left
-    // terms holding a single course. The totals are what matter, so settle
-    // them before placing anything.
-    const constrained = need
-      .filter((n) => n.p.rule.constraint)
-      .reduce((sum, n) => sum + constrainedCredits(n.p.rule, n.left), 0);
-    pool.left = Math.max(0, pool.left - constrained);
-  }
+  const spendFromElectives = (credits: number) => {
+    const bucket = need.find(
+      (n) => n.left > 0 && n.p.rule.kind === 'credits' && !n.p.rule.constraint,
+    );
+    if (bucket) bucket.left = Math.max(0, bucket.left - credits);
+  };
 
   for (const term of placeable) {
     if (need.every((n) => n.left <= 0)) break;
@@ -582,13 +591,28 @@ export function solve(input: SolverInput): Plan {
         // must simply wait, not start placing individual courses out of its
         // own course set. That is what put MATH 120 and MATH 398 in fourth
         // year long after the calculus requirement was met.
+        // At most one slot per requirement per term. Without this the Arts
+        // rule empties its whole 12 credits into the first term with room —
+        // four Arts courses in one term of a CS degree, which nobody takes.
+        // Spreading them is also more honest: they are a requirement to meet
+        // over the degree, not a block to clear in one go.
+        // One per requirement in the spreading pass, unlimited in the top-up.
+        // The cap is what stops the Arts rule emptying its 12 credits into the
+        // first term with room; lifting it for the top-up is what stops the
+        // last terms trailing off at 9, 6 and 5 credits once only a couple of
+        // requirements are left to draw from.
+        const cap = pass === 'topup' ? Infinity : 1;
+        let placedForRule = 0;
         for (const spec of specs) {
+          if (placedForRule >= cap) break;
           if (spec.credits > free()) break;
           const { branchId, ...rest } = spec as typeof spec & { branchId?: string };
           placements.push({ kind: 'slot', ...rest, forRules: [rule.id] });
           if (branchId) slotted.add(branchId);
           slotCredits += spec.credits;
+          placedForRule++;
           entry.left -= rule.kind === 'credits' ? spec.credits : 1;
+          if (rule.constraint) spendFromElectives(spec.credits);
         }
         continue;
       }

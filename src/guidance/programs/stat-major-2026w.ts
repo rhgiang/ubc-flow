@@ -79,6 +79,7 @@ export const statMajor2026W: Program = {
       id: 'stat.first-year',
       kind: 'group',
       label: 'First year',
+      year: 1,
       sourceUrl: SOURCE,
       items: [
         course('stat.scie113', 'SCIE 113'),
@@ -137,6 +138,7 @@ export const statMajor2026W: Program = {
       id: 'stat.second-year',
       kind: 'group',
       label: 'Second year',
+      year: 2,
       sourceUrl: SOURCE,
       items: [
         // Footnote 6 warns MATH 210 may not run every year and costs an extra
@@ -155,6 +157,7 @@ export const statMajor2026W: Program = {
       id: 'stat.upper-years',
       kind: 'group',
       label: 'Third and fourth years',
+      year: 3,
       sourceUrl: SOURCE,
       items: [
         course('stat.stat301', 'STAT 301'),
@@ -214,16 +217,14 @@ export const statMajor2026W: Program = {
         },
       ],
     },
-    {
-      // 11 + 8 + 18 across the three tables. One rule rather than three: the
-      // Calendar says students may move elective credits between years.
-      id: 'stat.electives',
-      kind: 'credits',
-      label: 'Electives',
-      n: 37,
-      from: { kind: 'codes', codes: [] },
-      sourceUrl: SOURCE,
-      confidence: 'stated',
-    },
+    // 11, 8 and 18 across the three tables, kept per year: the Calendar has
+    // already decided how many electives belong in each year, and following it
+    // spreads them better than any heuristic the solver could invent.
+    { id: 'stat.electives.y1', kind: 'credits', label: 'Electives', n: 11, year: 1,
+      from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
+    { id: 'stat.electives.y2', kind: 'credits', label: 'Electives', n: 8, year: 2,
+      from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
+    { id: 'stat.electives.y34', kind: 'credits', label: 'Electives', n: 18, year: 3,
+      from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
   ],
 };

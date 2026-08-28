@@ -1,4 +1,4 @@
-import type { Program, Rule } from '@/guidance/rules';
+import { withYears, type Program, type Rule } from '@/guidance/rules';
 import { cpscMajor2026W } from '@/guidance/programs/cpsc-major-2026w';
 import { scienceFacultyCore2026W } from '@/guidance/programs/science-faculty-core-2026w';
 import { statMajor2026W } from '@/guidance/programs/stat-major-2026w';
@@ -36,5 +36,7 @@ export function effectiveRules(program: Program, seen: Set<string> = new Set()):
     const parent = getProgram(code);
     return parent ? effectiveRules(parent, seen) : [];
   });
-  return [...inherited, ...program.rules];
+  // Years are declared on the year groups; push them down so every rule
+  // carries its own and the solver can read one without its parent.
+  return [...inherited, ...withYears(program.rules)];
 }

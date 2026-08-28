@@ -220,11 +220,11 @@ export const statMajor2026W: Program = {
     // 11, 8 and 18 across the three tables, kept per year: the Calendar has
     // already decided how many electives belong in each year, and following it
     // spreads them better than any heuristic the solver could invent.
-    { id: 'stat.electives.y1', kind: 'credits', label: 'Electives', n: 11, year: 1,
+    { id: 'stat.electives.y1', kind: 'credits', label: 'Electives', elective: true, n: 11, year: 1,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'stat.electives.y2', kind: 'credits', label: 'Electives', n: 8, year: 2,
+    { id: 'stat.electives.y2', kind: 'credits', label: 'Electives', elective: true, n: 8, year: 2,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'stat.electives.y34', kind: 'credits', label: 'Electives', n: 18, year: 3,
+    { id: 'stat.electives.y34', kind: 'credits', label: 'Electives', elective: true, n: 18, year: 3,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
   ],
 };

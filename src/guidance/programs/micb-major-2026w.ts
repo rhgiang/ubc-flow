@@ -143,11 +143,11 @@ export const micbMajor2026W: Program = {
       ],
     },
     // 4 in first year, 8 in second, and 24 across the upper years.
-    { id: 'micb.electives.y1', kind: 'credits', label: 'Electives', n: 4, year: 1,
+    { id: 'micb.electives.y1', kind: 'credits', label: 'Electives', elective: true, n: 4, year: 1,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'micb.electives.y2', kind: 'credits', label: 'Electives', n: 8, year: 2,
+    { id: 'micb.electives.y2', kind: 'credits', label: 'Electives', elective: true, n: 8, year: 2,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'micb.electives.y34', kind: 'credits', label: 'Electives', n: 24, year: 3,
+    { id: 'micb.electives.y34', kind: 'credits', label: 'Electives', elective: true, n: 24, year: 3,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
   ],
 };

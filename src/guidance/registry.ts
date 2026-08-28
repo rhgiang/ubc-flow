@@ -5,10 +5,14 @@ import { biolMajor2026W } from '@/guidance/programs/biol-major-2026w';
 import { chemMajor2026W } from '@/guidance/programs/chem-major-2026w';
 import { cpscMajor2026W } from '@/guidance/programs/cpsc-major-2026w';
 import { scienceFacultyCore2026W } from '@/guidance/programs/science-faculty-core-2026w';
+import { econMajor2026W } from '@/guidance/programs/econ-major-2026w';
 import { eoscMajor2026W } from '@/guidance/programs/eosc-major-2026w';
 import { mathMajor2026W } from '@/guidance/programs/math-major-2026w';
 import { micbMajor2026W } from '@/guidance/programs/micb-major-2026w';
+import { philMajor2026W } from '@/guidance/programs/phil-major-2026w';
 import { physMajor2026W } from '@/guidance/programs/phys-major-2026w';
+import { psycMajor2026W } from '@/guidance/programs/psyc-major-2026w';
+import { sociMajor2026W } from '@/guidance/programs/soci-major-2026w';
 import { statMajor2026W } from '@/guidance/programs/stat-major-2026w';
 
 /**
@@ -26,10 +30,14 @@ const PROGRAMS: Program[] = [
   biolMajor2026W,
   chemMajor2026W,
   cpscMajor2026W,
+  econMajor2026W,
   eoscMajor2026W,
   mathMajor2026W,
   micbMajor2026W,
+  philMajor2026W,
   physMajor2026W,
+  psycMajor2026W,
+  sociMajor2026W,
   statMajor2026W,
 ];
 

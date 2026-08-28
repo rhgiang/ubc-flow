@@ -138,13 +138,13 @@ export const physMajor2026W: Program = {
     },
     // 7 + 8 + 11 + 15 across the four tables. Footnote 5 states the intent
     // outright: the elective count each year is whatever makes the year 30.
-    { id: 'phys.electives.y1', kind: 'credits', label: 'Electives', n: 7, year: 1,
+    { id: 'phys.electives.y1', kind: 'credits', label: 'Electives', elective: true, n: 7, year: 1,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'phys.electives.y2', kind: 'credits', label: 'Electives', n: 8, year: 2,
+    { id: 'phys.electives.y2', kind: 'credits', label: 'Electives', elective: true, n: 8, year: 2,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'phys.electives.y3', kind: 'credits', label: 'Electives', n: 11, year: 3,
+    { id: 'phys.electives.y3', kind: 'credits', label: 'Electives', elective: true, n: 11, year: 3,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'phys.electives.y4', kind: 'credits', label: 'Electives', n: 15, year: 4,
+    { id: 'phys.electives.y4', kind: 'credits', label: 'Electives', elective: true, n: 15, year: 4,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
   ],
 };

@@ -592,7 +592,7 @@ describe('a four-year degree plans in four years', () => {
     // Counting them separately turned a 120-credit degree into 135 and
     // stretched the plan by a year and a half.
     const rules: Rule[] = [
-      { id: 'elect', kind: 'credits', label: 'Electives', n: 24, from: { kind: 'codes', codes: [] } },
+      { id: 'elect', kind: 'credits', label: 'Electives', elective: true, n: 24, from: { kind: 'codes', codes: [] } },
       { id: 'arts', kind: 'credits', label: 'Arts credits', n: 12, constraint: true, from: { kind: 'codes', codes: [] } },
     ];
     const plan = solve({
@@ -913,5 +913,66 @@ describe('Science Breadth categories match the Calendar', () => {
       ?? (() => { let f: Rule | undefined; walk(scienceFacultyCore2026W.rules, (r) => { if (r.id === 'sci.arts') f = r; }); return f as Extract<Rule, { kind: 'credits' }>; })();
     expect(matches(arts.from, course('GEOS 102', 3, 'Faculty of Arts'))).toBe(false);
     expect(matches(arts.from, course('ENGL 112', 3, 'Faculty of Arts'))).toBe(true);
+  });
+});
+
+describe('a constraint is charged to electives only', () => {
+  const terms = Array.from({ length: 8 }, (_, i) => ({ id: `t${i}`, name: `T${i}`, available: true, projected: true }));
+  const run = (rules: Rule[]) =>
+    solve({
+      outstanding: outstanding([], rules), completed: [], catalogue: [],
+      prereqs: new Map(), offerings: new Map(), terms,
+      prefs: { creditsPerTerm: 15, useSummer: false, targetTermId: null },
+    });
+  const creditsFor = (plan: ReturnType<typeof run>, id: string) =>
+    plan.terms
+      .flatMap((t) => t.placements)
+      .filter((p) => p.forRules.includes(id))
+      .reduce((n, p) => n + (p.kind === 'slot' ? p.credits : p.course.credits), 0);
+
+  it('does not eat a real requirement that happens to be a credits rule', () => {
+    // The Psychology bug. A requirement whose approved list is not
+    // transcribed looks exactly like an elective — a credits rule over an
+    // empty code list — and the constraint was charged against it. 18 credits
+    // of required psychology vanished from the plan with nothing reported
+    // unplaced.
+    const rules: Rule[] = [
+      { id: 'req', kind: 'credits', label: 'Required', n: 12, from: { kind: 'codes', codes: [] } },
+      { id: 'elect', kind: 'credits', label: 'Electives', elective: true, n: 24, from: { kind: 'codes', codes: [] } },
+      { id: 'arts', kind: 'credits', label: 'Arts credits', n: 12, constraint: true, from: { kind: 'codes', codes: [] } },
+    ];
+    const plan = run(rules);
+    expect(creditsFor(plan, 'req')).toBe(12); // untouched by the constraint
+    expect(creditsFor(plan, 'arts')).toBe(12);
+    expect(creditsFor(plan, 'elect')).toBe(12); // 24 less the 12 charged
+    const total = plan.terms
+      .flatMap((t) => t.placements)
+      .reduce((n, p) => n + (p.kind === 'slot' ? p.credits : p.course.credits), 0);
+    expect(total).toBe(36); // 12 required + 24 of elective allowance
+  });
+
+  it('never shrinks a chooseN branch to close a term', () => {
+    // Shrinking is what stops a couple of stranded credits needing a term of
+    // their own, and a plain credits rule survives it: `left` counts credits,
+    // so the remainder comes back in a later term. A chooseN counts BRANCHES,
+    // so one shortened slot closes a whole branch — a 6-credit Psychology
+    // content area was reported satisfied by a 3-credit slot.
+    const areas: Rule = {
+      id: 'areas', kind: 'chooseN', label: 'Two content areas', n: 2,
+      of: [
+        { id: 'areas.a', kind: 'credits', label: 'A', n: 6, from: { kind: 'codes', codes: [] } },
+        { id: 'areas.b', kind: 'credits', label: 'B', n: 6, from: { kind: 'codes', codes: [] } },
+      ],
+    };
+    const plan = run([areas, { id: 'elect', kind: 'credits', label: 'Electives', elective: true, n: 8, from: { kind: 'codes', codes: [] } }]);
+    expect(creditsFor(plan, 'areas')).toBe(12); // two full branches, never 6 + 3
+  });
+
+  it('still shrinks a plain credits rule, which re-slots the remainder', () => {
+    // The behaviour that stopped five stranded credits needing a ninth term.
+    const plan = run([
+      { id: 'req', kind: 'credits', label: 'Required', n: 8, from: { kind: 'codes', codes: [] } },
+    ]);
+    expect(creditsFor(plan, 'req')).toBe(8); // 3 + 3 + a shrunk 2
   });
 });

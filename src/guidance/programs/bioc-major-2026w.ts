@@ -139,13 +139,13 @@ export const biocMajor2026W: Program = {
       ],
     },
     // 4 + 7 + 12 + 18 across the four tables.
-    { id: 'bioc.electives.y1', kind: 'credits', label: 'Electives', n: 4, year: 1,
+    { id: 'bioc.electives.y1', kind: 'credits', label: 'Electives', elective: true, n: 4, year: 1,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'bioc.electives.y2', kind: 'credits', label: 'Electives', n: 7, year: 2,
+    { id: 'bioc.electives.y2', kind: 'credits', label: 'Electives', elective: true, n: 7, year: 2,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'bioc.electives.y3', kind: 'credits', label: 'Electives', n: 12, year: 3,
+    { id: 'bioc.electives.y3', kind: 'credits', label: 'Electives', elective: true, n: 12, year: 3,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'bioc.electives.y4', kind: 'credits', label: 'Electives', n: 18, year: 4,
+    { id: 'bioc.electives.y4', kind: 'credits', label: 'Electives', elective: true, n: 18, year: 4,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
   ],
 };

@@ -58,6 +58,22 @@ type Base = {
    */
   constraint?: boolean;
   /**
+   * Free credits, spendable on anything — the residual a program leaves after
+   * its named requirements, and the only pool a `constraint` may be charged
+   * against.
+   *
+   * This has to be declared rather than detected. Electives are written as a
+   * credits rule over an empty code list, but so are real requirements whose
+   * approved list has not been transcribed (the B.Sc. Additional
+   * Communication Requirement, the Ways of Knowing breadth areas), and the
+   * solver charged constraints against whichever of them came first. In the
+   * Psychology major that silently ate the 6 credits of Behavioural
+   * Neuroscience and the 12 further upper-level credits — 18 credits of
+   * required psychology replaced by Ways of Knowing slots, with nothing
+   * reported unplaced.
+   */
+  elective?: boolean;
+  /**
    * The year of the degree the Calendar puts this requirement in.
    *
    * UBC already publishes a curated sequence — which courses pair well, which

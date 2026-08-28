@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type CourseRef, type CourseSet, type Rule, courseLevel, matches, obligations } from '@/guidance/rules';
+import { type CourseRef, type CourseSet, type Rule, courseLevel, matches, obligations, walk } from '@/guidance/rules';
 import { type Completion, outstanding, progress } from '@/guidance/progress';
 import {
   type PlannedTerm,
@@ -21,6 +21,7 @@ import { parseFacultyIndex, parseFacultySubjects } from '@/scrape/parse-facultie
 import { parseCourseDescriptions, subjectPath } from '@/scrape/parse-course-descriptions';
 import { codesOnPage } from '@/guidance/jobs/verify';
 import { validateProgram } from '@/guidance/validate';
+import { artsFacultyCore2026W } from '@/guidance/programs/arts-faculty-core-2026w';
 import type { Program } from '@/guidance/rules';
 
 /** courseId doubles as the code in these fixtures, so a tree is easy to build. */
@@ -805,5 +806,60 @@ describe('one number shared by two subjects', () => {
     // Without that, MICB would stay pending and pick up 305 as well.
     const found = codesOnPage('<td>MICB_V 211 and BIOL_V 200, 305</td>');
     expect([...found].sort()).toEqual(['BIOL 200', 'BIOL 305', 'MICB 211']);
+  });
+});
+
+describe('Arts faculty core', () => {
+  const flat: Rule[] = [];
+  walk(artsFacultyCore2026W.rules, (r) => flat.push(r));
+
+  it('reserves exactly the 18 Ways of Knowing breadth credits', () => {
+    // 9 in one course code, 6 in another, 3 in the last — the fourth area is
+    // covered by the student's own major.
+    const wok = flat.filter((r) => r.id.startsWith('arts.wok.') && r.kind === 'credits');
+    expect(wok.map((r) => (r as Extract<Rule, { kind: 'credits' }>).n).sort((a, b) => b - a)).toEqual([9, 6, 3]);
+  });
+
+  it('offers only 3-credit courses for the Writing Component', () => {
+    // Arts One is 18 credits and the CAP seminar is 6. Both satisfy the
+    // requirement, but putting them in the choice would have the plan reserve
+    // 18 credits for a 3-credit rule, so they are carried as a note instead.
+    const choice = flat.find((r) => r.id === 'arts.writing.course');
+    expect(choice?.kind).toBe('chooseN');
+    const codes = (choice as Extract<Rule, { kind: 'chooseN' }>).of.map(
+      (b) => (b as Extract<Rule, { kind: 'course' }>).code,
+    );
+    expect(codes).not.toContain('ARTS 001');
+    expect(codes).not.toContain('ASTU 100');
+    expect(codes).toContain('WRDS 150');
+  });
+
+  it('carries the Arts credit minimum as a constraint, not a credits bucket', () => {
+    // A credits bucket only counts down when the solver slots FOR it, so a
+    // 72-credit rule could not see the 42 Arts credits the major already
+    // supplies. It scheduled all 72 on top and took the degree to 141.
+    const min = flat.find((r) => r.id === 'arts.arts-minimum');
+    expect(min?.kind).toBe('note');
+    expect(min?.constraint).toBe(true);
+  });
+
+  it('a constraint larger than the elective pool overruns the plan', () => {
+    // The mechanism behind that bug, pinned on its own: spendFromElectives can
+    // only charge against buckets that still have room, so anything past the
+    // pool is added on top instead of drawn from it.
+    const rules: Rule[] = [
+      { id: 'elect', kind: 'credits', label: 'Electives', n: 24, from: { kind: 'codes', codes: [] } },
+      { id: 'big', kind: 'credits', label: 'Too big', n: 72, constraint: true, from: { kind: 'codes', codes: [] } },
+    ];
+    const plan = solve({
+      outstanding: outstanding([], rules),
+      completed: [], catalogue: [], prereqs: new Map(), offerings: new Map(),
+      terms: Array.from({ length: 12 }, (_, i) => ({ id: `t${i}`, name: `T${i}`, available: true, projected: true })),
+      prefs: { creditsPerTerm: 15, useSummer: false, targetTermId: null },
+    });
+    const total = plan.terms
+      .flatMap((t) => t.placements)
+      .reduce((n, p) => n + (p.kind === 'slot' ? p.credits : p.course.credits), 0);
+    expect(total).toBeGreaterThan(24);
   });
 });

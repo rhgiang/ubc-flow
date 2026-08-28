@@ -576,6 +576,76 @@ body {
   -webkit-backdrop-filter: blur(30px) saturate(120%) brightness(0.94);
 }
 
+/*
+ * The capsule recipe at card radius, for a panel that floats on the sky rather
+ * than sitting on the page. Every token inside flips to the white-on-sky set,
+ * so text, bar tracks and the ring recolour themselves without the components
+ * knowing where they are. --surface stays nearly opaque: popovers inside still
+ * need something to sit on.
+ */
+.sky-glass {
+  --foreground: #ffffff;
+  --foreground-muted: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.82);
+  --text-tertiary: rgba(255, 255, 255, 0.66);
+  --border: rgba(255, 255, 255, 0.32);
+  --border-hairline: rgba(255, 255, 255, 0.22);
+  --surface: rgba(12, 20, 42, 0.92);
+  --surface-muted: rgba(255, 255, 255, 0.22);
+  --brand: #ffffff;
+  --brand-hover: rgba(255, 255, 255, 0.88);
+  --brand-foreground: #0b1428;
+  --brand-accent: #ffffff;
+
+  border-radius: var(--radius-card);
+  background: rgba(10, 18, 38, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(30px) saturate(135%) brightness(0.72);
+  -webkit-backdrop-filter: blur(30px) saturate(135%) brightness(0.72);
+  box-shadow: 0 4px 24px rgba(12, 20, 44, 0.16);
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(8, 16, 36, 0.4);
+}
+
+:root[data-theme="dark"] .sky-glass {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(30px) saturate(120%) brightness(0.94);
+  -webkit-backdrop-filter: blur(30px) saturate(120%) brightness(0.94);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .sky-glass,
+  :root[data-theme="dark"] .sky-glass {
+    background: #041a36;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* No sky to float on: an ordinary card again, in the ordinary palette. */
+:root[data-plain] .sky-glass {
+  --foreground: inherit;
+  --foreground-muted: inherit;
+  --text-secondary: inherit;
+  --text-tertiary: inherit;
+  --border: inherit;
+  --border-hairline: inherit;
+  --surface: inherit;
+  --surface-muted: inherit;
+  --brand: inherit;
+  --brand-hover: inherit;
+  --brand-foreground: inherit;
+  --brand-accent: inherit;
+  background: var(--background);
+  border: 1px solid var(--border-hairline);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  color: var(--foreground);
+  text-shadow: none;
+}
+
 /* The dark backing chip inside a capsule — same trick as the nav links. */
 .capsule-chip {
   border-radius: 100px;

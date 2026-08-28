@@ -67,7 +67,7 @@ export default function Footer() {
       </nav>
       <p className="mt-5 text-[13px]">
         © 2026 UBC Flow ·{' '}
-        <span className="whitespace-nowrap">Built by students, not affiliated with UBC</span>
+        <span className="whitespace-nowrap">Built by a student, not affiliated with UBC</span>
       </p>
     </footer>
   );

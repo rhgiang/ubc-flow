@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { effectiveRules, getProgram, selectable } from '@/guidance/registry';
 import { loadCatalogue, loadOfferings, loadPrereqs, loadTerms } from '@/guidance/load';
-import { obligations, walk, type Rule } from '@/guidance/rules';
+import { obligations, walk, type CourseSet, type Rule } from '@/guidance/rules';
 import { progress, outstanding, type Completion } from '@/guidance/progress';
 import { solve } from '@/guidance/solver';
 
@@ -23,6 +23,47 @@ function subjectsUsed(rules: Rule[]): string[] {
     if (r.kind === 'credits' && r.from.kind === 'codes') r.from.codes.forEach((c) => out.add(c.split(' ')[0]));
   });
   return [...out];
+}
+
+
+/** A course set in words, so a student can see what a rule actually accepts. */
+function describeSet(set: CourseSet): string {
+  if (set.kind === 'codes') {
+    return set.codes.length > 0 ? set.codes.join(', ') : 'an approved list (not yet transcribed)';
+  }
+  const bits: string[] = [];
+  if (set.subjects?.length) bits.push(set.subjects.join(' or '));
+  if (set.faculty) bits.push(`any ${set.faculty} subject`);
+  if (set.levelMin && set.levelMax) bits.push(`${set.levelMin}–${set.levelMax}`);
+  else if (set.levelMin) bits.push(`${set.levelMin} or higher`);
+  else if (set.levelMax) bits.push(`up to ${set.levelMax}`);
+  if (set.exclude?.length) bits.push(`excluding ${set.exclude.join(', ')}`);
+  return bits.join(', ') || 'any course';
+}
+
+/**
+ * The sub-requirements behind a rule, for the expandable detail. Breadth is
+ * the case that needs it — "any 6 of 7 categories" means nothing without the
+ * list of categories and what counts in each.
+ */
+function breakdown(rule: Rule): { label: string; detail: string }[] {
+  if (rule.kind === 'chooseN') {
+    return rule.of.map((b) => ({
+      label: b.label,
+      detail:
+        b.kind === 'credits'
+          ? `${b.n} credits from ${describeSet(b.from)}`
+          : b.kind === 'course'
+            ? b.code
+            : b.kind === 'group'
+              ? b.items.map((i) => (i.kind === 'course' ? i.code : i.label)).join(' + ')
+              : '',
+    }));
+  }
+  if (rule.kind === 'credits') {
+    return [{ label: `${rule.n} credits`, detail: describeSet(rule.from) }];
+  }
+  return [];
 }
 
 const STATE_STYLE: Record<string, string> = {
@@ -201,15 +242,52 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
           </p>
 
           <ul className="mt-3 space-y-1.5">
-            {checklist.map((p) => (
-              <li
-                key={p.rule.id}
-                className={`rounded-card border px-3 py-2 text-xs ${STATE_STYLE[p.state]}`}
-              >
-                <span className="font-medium">{p.rule.label}</span>
-                <span className="ml-1.5 opacity-80">{p.detail}</span>
-              </li>
-            ))}
+            {checklist.map((p) => {
+              const parts = breakdown(p.rule);
+              const body = (
+                <>
+                  <span className="font-medium">{p.rule.label}</span>
+                  <span className="ml-1.5 opacity-80">{p.detail}</span>
+                </>
+              );
+              return (
+                <li
+                  key={p.rule.id}
+                  className={`rounded-card border px-3 py-2 text-xs ${STATE_STYLE[p.state]}`}
+                >
+                  {parts.length > 0 ? (
+                    // A native disclosure — "any 6 of 7 categories" means
+                    // nothing without the categories and what counts in each.
+                    <details>
+                      <summary className="cursor-pointer list-none">
+                        {body}
+                        <span className="ml-1 opacity-60">· see requirements</span>
+                      </summary>
+                      <ul className="mt-1.5 space-y-1 border-t border-current/20 pt-1.5 opacity-90">
+                        {parts.map((part) => (
+                          <li key={part.label}>
+                            <span className="font-medium">{part.label}</span>
+                            {part.detail && <span className="opacity-75"> — {part.detail}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                      {p.rule.sourceUrl && (
+                        <a
+                          href={p.rule.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1.5 inline-block underline opacity-70 hover:opacity-100"
+                        >
+                          UBC Calendar
+                        </a>
+                      )}
+                    </details>
+                  ) : (
+                    body
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </aside>
       </div>

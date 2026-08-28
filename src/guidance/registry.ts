@@ -1,8 +1,10 @@
 import { withYears, type Program, type Rule } from '@/guidance/rules';
 import { biocMajor2026W } from '@/guidance/programs/bioc-major-2026w';
 import { biolMajor2026W } from '@/guidance/programs/biol-major-2026w';
+import { chemMajor2026W } from '@/guidance/programs/chem-major-2026w';
 import { cpscMajor2026W } from '@/guidance/programs/cpsc-major-2026w';
 import { scienceFacultyCore2026W } from '@/guidance/programs/science-faculty-core-2026w';
+import { eoscMajor2026W } from '@/guidance/programs/eosc-major-2026w';
 import { mathMajor2026W } from '@/guidance/programs/math-major-2026w';
 import { micbMajor2026W } from '@/guidance/programs/micb-major-2026w';
 import { physMajor2026W } from '@/guidance/programs/phys-major-2026w';
@@ -20,7 +22,9 @@ const PROGRAMS: Program[] = [
   scienceFacultyCore2026W,
   biocMajor2026W,
   biolMajor2026W,
+  chemMajor2026W,
   cpscMajor2026W,
+  eoscMajor2026W,
   mathMajor2026W,
   micbMajor2026W,
   physMajor2026W,

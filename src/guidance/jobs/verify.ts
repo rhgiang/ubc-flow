@@ -54,11 +54,23 @@ export function codesOnPage(html: string): Set<string> {
   // looked invented, while MICB 123M and its siblings appeared out of
   // nowhere. A real suffix is always followed by space or punctuation.
   const token = /([A-Z]{2,5})_[VO]|(\d{3}(?:[A-Z](?![A-Za-z]))?)\d*|([.;:]\s)/g;
-  let subject: string | null = null;
+  // Subjects accumulate, because one number can belong to several of them:
+  // "GEOS_V (or GEOB_V) 270" is GEOS 270 or GEOB 270, not just the latter.
+  // A number closes the run, so the next subject starts a fresh one.
+  let subjects: string[] = [];
+  let open = false;
   for (const m of text.matchAll(token)) {
-    if (m[1]) subject = m[1];
-    else if (m[2] && subject) out.add(`${subject} ${m[2]}`);
-    else if (m[3]) subject = null;
+    if (m[1]) {
+      if (!open) subjects = [];
+      subjects.push(m[1]);
+      open = true;
+    } else if (m[2]) {
+      for (const s of subjects) out.add(`${s} ${m[2]}`);
+      open = false;
+    } else if (m[3]) {
+      subjects = [];
+      open = false;
+    }
   }
   return out;
 }

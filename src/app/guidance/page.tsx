@@ -71,6 +71,48 @@ function breakdown(rule: Rule): { label: string; detail: string }[] {
   return [];
 }
 
+/**
+ * The credit load a program runs at, used when the student has not picked one.
+ *
+ * Fifteen credits is a standard term for a 120-credit degree — 30 a year, 120
+ * over four years. Engineering is not that degree. A B.A.Sc. runs 148 to 158
+ * credits, and at 15 a term it renders as a five-and-a-half-year plan when the
+ * Calendar calls it four Winter Sessions at full credit load.
+ *
+ * The degree average alone is still not enough, because engineering years are
+ * uneven: Civil totals 158 (a 20-credit average) but its SECOND YEAR is 45
+ * credits, and since a year cannot start early, 20 leaves it spilling into a
+ * ninth term.
+ *
+ * So the heaviest year sets the floor — but measured over REQUIRED courses
+ * only. Elective buckets are split across years by us, not by the Calendar,
+ * and counting them made Statistics look like a 48-credit year and asked for
+ * 24 credits a term, which is both wrong and past the point where the solver
+ * still produces a sane plan. Engineering has almost no free electives, so its
+ * year weights are the Calendar's own and survive the filter intact.
+ */
+function defaultLoad(total: number, rules: Rule[], credits: Map<string, number>): number {
+  const cost = (r: Rule): number => {
+    if (r.constraint || r.elective) return 0;
+    if (r.kind === 'credits') return r.n;
+    if (r.kind === 'chooseN') return r.of[0] ? cost(r.of[0]) * r.n : 0;
+    if (r.kind === 'group') return r.items.reduce((n, i) => n + cost(i), 0);
+    return r.kind === 'course' ? (credits.get(r.code) ?? 3) : 0;
+  };
+  const perYear = new Map<number, number>();
+  for (const rule of obligations(rules)) {
+    if (rule.year) perYear.set(rule.year, (perYear.get(rule.year) ?? 0) + cost(rule));
+  }
+  // The heaviest-year floor applies only to degrees larger than a standard
+  // four-year load. A 120-credit program already fits 15 a term, and applying
+  // this reasoning to one anyway pushed Statistics to 21+, where the solver's
+  // term-reserve logic comes apart and returns a three-term plan with half the
+  // degree unplaced. Capped at 22 regardless — no real student takes more.
+  const oversized = total > 130;
+  const heaviest = oversized ? Math.max(0, ...perYear.values()) : 0;
+  return Math.min(22, Math.max(15, Math.ceil(total / 8), Math.ceil(heaviest / 2)));
+}
+
 const STATE_STYLE: Record<string, string> = {
   satisfied: 'border-brand bg-brand text-brand-foreground',
   partial: 'border-border bg-surface-muted text-foreground',
@@ -87,22 +129,23 @@ const STATE_STYLE: Record<string, string> = {
 export default async function GuidancePage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const program = getProgram(sp.program ?? DEFAULT_PROGRAM) ?? getProgram(DEFAULT_PROGRAM)!;
-  // 15 credits is a standard full-time term for a 120-credit degree: 30 a
-  // year, 120 over four years. Engineering is not that degree. A B.A.Sc.
-  // runs 148 to 158 credits, which at 15 a term reads as a five-and-a-half
-  // year plan when the Calendar calls it four Winter Sessions at full credit
-  // load. The default is what the credential actually needs across eight
-  // terms; the control still overrides it.
-  const fullLoad = Math.max(15, Math.ceil(program.totalCredits / 8));
-  const load = Math.min(21, Math.max(3, Number(sp.credits) || fullLoad));
+  const rules = effectiveRules(program);
   const useSummer = sp.summer === '1';
 
-  const rules = effectiveRules(program);
   const subjects = subjectsUsed(rules);
 
   const [catalogue, terms] = await Promise.all([loadCatalogue(subjects), loadTerms()]);
   const ids = catalogue.map((c) => c.id);
   const [prereqs, offerings] = await Promise.all([loadPrereqs(catalogue), loadOfferings(ids)]);
+
+  const load = Math.min(
+    24,
+    Math.max(
+      3,
+      Number(sp.credits) ||
+        defaultLoad(program.totalCredits, rules, new Map(catalogue.map((c) => [c.code, c.credits]))),
+    ),
+  );
 
   // No completion data yet — Enrollment records registration, not whether a
   // course was passed, so treating it as completed would be wrong in the

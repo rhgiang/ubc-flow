@@ -211,8 +211,27 @@ export function tightenNotes(
     return tree;
   }
 
+  // Where the conjunct boundaries are.
+  //
+  // "One of CHEM 121 and CHEM 123 or CHEM 154" offers two routes: 121 with
+  // 123, or 154 alone. The "one of" scopes the whole list, so the "and" binds
+  // TIGHTER than the "or" and is not a boundary. Splitting on every "and"
+  // made CHEM 121 a conjunct of its own and demanded it outright — which an
+  // engineering student who took CHEM 154 never has. CHBE 241 reads exactly
+  // that way, and it took CHBE 244, 345, 355 and the rest of the department
+  // down with it: the plan plateaued at 76 credits of 155.
+  //
+  // Scoped to text that OPENS with "one of", because the other shape is the
+  // reverse. In "CPSC 213 and either CPSC 221 or DSCI 221" the "either"
+  // scopes the or, the "and" really is a boundary, and CPSC 313 depends on
+  // reading it that way.
+  const oneOfScoped = /^\s*one\s+of\b/i.test(tree.text) && /\bor\b/i.test(tree.text);
+  const boundary = oneOfScoped
+    ? /,\s*\band\b|\band\b(?=\s+(?:one|all)\s+of\b)/i
+    : /\band\b/i;
+
   const segments: Requirement[] = [];
-  for (const segment of tree.text.split(/\band\b/i)) {
+  for (const segment of tree.text.split(boundary)) {
     const options: Requirement[] = [];
     // Bare numbers inherit the nearest subject, the same shorthand the
     // Calendar uses. "MICB_V 211 (or 201)" names two courses, and reading

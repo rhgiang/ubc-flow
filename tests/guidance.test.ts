@@ -18,6 +18,9 @@ const coursesIn = (t: PlannedTerm): CourseRef[] =>
 const isCourse = (p: Placement): p is Extract<Placement, { kind: 'course' }> => p.kind === 'course';
 import type { Requirement } from '@/prereqs/parse';
 import { parseFacultyIndex, parseFacultySubjects } from '@/scrape/parse-faculties';
+import { codesOnPage } from '@/guidance/jobs/verify';
+import { validateProgram } from '@/guidance/validate';
+import type { Program } from '@/guidance/rules';
 
 /** courseId doubles as the code in these fixtures, so a tree is easy to build. */
 const need = (code: string): Requirement => ({ type: 'course', code, courseId: code });
@@ -510,5 +513,59 @@ describe('faculty index parsing', () => {
 
   it('does not invent codes from ordinary prose', () => {
     expect(parseFacultySubjects('<p>Courses offered by the Faculty of Science.</p>')).toEqual([]);
+  });
+});
+
+describe('transcription verification', () => {
+  it('reads the Calendar\'s subject-carrying shorthand', () => {
+    // "CPSC_V 310, 313, 320" — only the first number carries a subject.
+    const found = codesOnPage('<td>CPSC_V 310, 313, 320</td>');
+    expect([...found].sort()).toEqual(['CPSC 310', 'CPSC 313', 'CPSC 320']);
+  });
+
+  it('strips footnote markers glued to a course number', () => {
+    // The rendered table writes CPSC 121 with footnote 3 as "CPSC_V 1213".
+    expect([...codesOnPage('<td>CPSC_V 1213</td>')]).toEqual(['CPSC 121']);
+    expect([...codesOnPage('<td>STAT_V 2512</td>')]).toEqual(['STAT 251']);
+  });
+
+  it('stops carrying a subject across a sentence end', () => {
+    const found = codesOnPage('<p>CPSC_V 110 is recommended. See 350 for details.</p>');
+    expect(found.has('CPSC 110')).toBe(true);
+    expect(found.has('CPSC 350')).toBe(false); // different sentence
+  });
+
+  it('flags a duplicate rule id', () => {
+    const dup: Program = {
+      code: 'x', name: 'x', degree: 'BSc', faculty: 'Science', catalogYear: '2026W',
+      extends: [], sourceUrl: 'u', totalCredits: 120,
+      rules: [
+        { id: 'a', kind: 'course', label: 'a', code: 'CPSC 110', sourceUrl: 'u' },
+        { id: 'a', kind: 'course', label: 'b', code: 'CPSC 121', sourceUrl: 'u' },
+      ],
+    };
+    const errs = validateProgram(dup, new Set()).filter((i) => i.severity === 'error');
+    expect(errs.map((e) => e.message)).toContain('duplicate rule id');
+  });
+
+  it('flags a choice asking for more branches than it offers', () => {
+    const bad: Program = {
+      code: 'x', name: 'x', degree: 'BSc', faculty: 'Science', catalogYear: '2026W',
+      extends: [], sourceUrl: 'u', totalCredits: 120,
+      rules: [{
+        id: 'c', kind: 'chooseN', label: 'c', n: 3, sourceUrl: 'u',
+        of: [{ id: 'c1', kind: 'course', label: 'c1', code: 'CPSC 110', sourceUrl: 'u' }],
+      }],
+    };
+    const errs = validateProgram(bad, new Set()).filter((i) => i.severity === 'error');
+    expect(errs[0].message).toMatch(/can never be satisfied/);
+  });
+
+  it('flags an extends pointing at nothing', () => {
+    const orphan: Program = {
+      code: 'x', name: 'x', degree: 'BSc', faculty: 'Science', catalogYear: '2026W',
+      extends: ['does-not-exist'], sourceUrl: 'u', totalCredits: 120, rules: [],
+    };
+    expect(validateProgram(orphan, new Set()).some((i) => i.severity === 'error')).toBe(true);
   });
 });

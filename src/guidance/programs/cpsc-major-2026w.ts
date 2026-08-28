@@ -154,6 +154,21 @@ export const cpscMajor2026W: Program = {
       ],
     },
     {
+      // The Calendar's own rows: Electives 10 / 9 / 32 credits across the four
+      // years. Omitting them left the plan 51 credits short of the 120 the
+      // degree requires, which is why it finished a year early. Kept as one
+      // rule rather than three, because the same page notes that "students are
+      // permitted to move elective credits between years" — splitting them by
+      // year would impose an ordering the Calendar explicitly does not.
+      id: 'cpsc.electives',
+      kind: 'credits',
+      label: 'Electives',
+      n: 51,
+      from: { kind: 'codes', codes: [] },
+      sourceUrl: SOURCE,
+      confidence: 'stated',
+    },
+    {
       id: 'cpsc.upper-years',
       kind: 'group',
       label: 'Third and fourth years',

@@ -522,4 +522,39 @@ export const chbeMajor2026W = prog('chbe-basc-2026w', 'Chemical and Biological E
     sourceUrl: CHBE,
     confidence: 'stated',
   },
+  {
+    id: 'chbe.complementary-course',
+    kind: 'note',
+    label: 'The Complementary Studies credits are APSC 262',
+    detail:
+      'The Calendar asks for 3 credits of Complementary Studies electives in third year ' +
+      'and 3 more in fourth. The Department’s own curriculum names APSC 262, Technology ' +
+      'and Society, for the third-year one, in Term 2 for Chemical Engineering and Term 1 ' +
+      'for Chemical and Biological. It is left as a generic slot above because the ' +
+      'Calendar page this program cites does not name it.',
+    sourceUrl: CHBE,
+    confidence: 'inferred',
+  },
+  {
+    id: 'chbe.technical-electives',
+    kind: 'note',
+    label: 'Half the technical electives must be CHBE',
+    detail:
+      'At least 6 of the 12 technical elective credits must come from CHBE courses, off ' +
+      'the Department-approved list. And students who took CHBE 356 before 2021W must ' +
+      'spend 3 of those credits on CHBE 474 specifically.',
+    sourceUrl: CHBE,
+    confidence: 'stated',
+  },
+  {
+    id: 'chbe.credit-changes',
+    kind: 'note',
+    label: 'Three courses changed credit value in 2021W',
+    detail:
+      'CHBE 453 and 454 went from 6 credits to 8, and CHBE 481 from 3 to 4. The values ' +
+      'used above are the current ones, so a student who started earlier should check ' +
+      'their own year’s curriculum.',
+    sourceUrl: CHBE,
+    confidence: 'stated',
+  },
 ]);

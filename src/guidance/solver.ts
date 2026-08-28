@@ -153,6 +153,26 @@ export function tightenNotes(
   }
   if (tree.type !== 'note') return tree;
 
+  // Lettered alternatives inside a single note. BIOL 200 reads "Either (a)
+  // BIOL 112 and one of CHEM 123, CHEM 130 or (b) SCIE 001 or (c) 8 transfer
+  // credits … or (d) …", all in one sentence, so the whole thing arrives as
+  // one note rather than as an AND of several. Splitting it on "and" first
+  // would join clauses that are alternatives, demanding branches (a) and (c)
+  // and (d) together — which no student satisfies.
+  //
+  // Split on the "or (x)" markers before anything else, and read each branch
+  // with the ordinary rules below.
+  const branches = tree.text.split(/\bor\s*\([a-z]\)/i);
+  if (branches.length > 1) {
+    const parsed = branches
+      .map((text) => tightenNotes({ type: 'note', text }, codeToId))
+      .filter((r): r is Requirement => !!r && r.type !== 'note');
+    if (parsed.length > 0) {
+      return parsed.length === 1 ? parsed[0] : { type: 'or', items: parsed };
+    }
+    return tree;
+  }
+
   const segments: Requirement[] = [];
   for (const segment of tree.text.split(/\band\b/i)) {
     const options: Requirement[] = [];

@@ -718,3 +718,30 @@ describe('lettered prerequisite alternatives', () => {
     expect(treeMet(t, new Set())).toBe(false);
   });
 });
+
+describe('lettered alternatives inside a single note', () => {
+  it('splits "(a) … or (b) … or (c) …" into branches before reading "and"', () => {
+    // BIOL 200's real prerequisite, all in one sentence. Splitting on "and"
+    // first joins clauses that are alternatives, demanding (a) and (c) and
+    // (d) together — which nobody satisfies.
+    const note: Requirement = {
+      type: 'note',
+      text:
+        'Either (a) BIOL_V 112 and one of CHEM_V 123, CHEM_V 130 or (b) SCIE_V 001 ' +
+        'or (c) 8 transfer credits of first-year BIOL_V or (d) one of BIOL_V 112 or BIOL_V 121',
+    };
+    const ids = new Map([
+      ['BIOL 112', 'BIOL 112'], ['BIOL 121', 'BIOL 121'],
+      ['CHEM 123', 'CHEM 123'], ['CHEM 130', 'CHEM 130'], ['SCIE 001', 'SCIE 001'],
+    ]);
+    const t = tightenNotes(note, ids);
+    // Branch (a): BIOL 112 AND one of CHEM 123/130.
+    expect(treeMet(t, new Set(['BIOL 112', 'CHEM 123']))).toBe(true);
+    // Branch (b) alone.
+    expect(treeMet(t, new Set(['SCIE 001']))).toBe(true);
+    // Branch (d) alone.
+    expect(treeMet(t, new Set(['BIOL 121']))).toBe(true);
+    // Nothing at all is still not enough.
+    expect(treeMet(t, new Set())).toBe(false);
+  });
+});

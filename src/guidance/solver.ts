@@ -50,7 +50,21 @@ export type Prefs = {
  * ordering — which is why this is easier than concrete placement, not harder.
  */
 export type Placement =
-  | { kind: 'course'; course: CourseRef; forRules: string[] }
+  | {
+      kind: 'course';
+      course: CourseRef;
+      forRules: string[];
+      /**
+       * The other courses that would satisfy the same requirement.
+       *
+       * A choice with seven branches — the calculus requirement has that many
+       * — is shown as one course, and without this the plan reads as though
+       * that course were the requirement. Carrying the alternatives lets the
+       * page say "or one of these" instead of quietly deciding for the
+       * student.
+       */
+      alternatives: string[];
+    }
   | {
       kind: 'slot';
       credits: number;
@@ -695,8 +709,22 @@ export function solve(input: SolverInput): Plan {
         // courses in one term cannot satisfy each other.
         if (!bundle.every((c) => treeMet(input.prereqs.get(c.id), satisfied))) continue;
 
+        // Sibling branches of the same choice, as codes. A group branch —
+        // "CPSC 103 and 107" — is joined so it reads as the pair it is.
+        const alternatives =
+          rule.kind === 'chooseN'
+            ? rule.of
+                .map((b) =>
+                  b.kind === 'course'
+                    ? b.code
+                    : b.kind === 'group'
+                      ? b.items.map((i) => (i.kind === 'course' ? i.code : '')).filter(Boolean).join(' + ')
+                      : '',
+                )
+                .filter((c) => c && !bundle.some((x) => x.code === c))
+            : [];
         for (const course of bundle) {
-          placements.push({ kind: 'course', course, forRules: [rule.id] });
+          placements.push({ kind: 'course', course, forRules: [rule.id], alternatives });
           placedIds.add(course.id);
           courseCredits += course.credits;
         }

@@ -216,14 +216,60 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {t.placements.map((pl, i) =>
                         pl.kind === 'course' ? (
-                          <Link
-                            key={pl.course.id}
-                            href={courseHref(pl.course.code)}
-                            className="rounded-pill border border-border bg-surface-muted px-3 py-1 text-sm font-medium text-foreground hover:border-brand hover:bg-brand hover:text-brand-foreground"
-                          >
-                            {pl.course.code}
-                            <span className="ml-1.5 text-xs opacity-70">{pl.course.credits}cr</span>
-                          </Link>
+                          pl.alternatives.length === 0 ? (
+                            <Link
+                              key={pl.course.id}
+                              href={courseHref(pl.course.code)}
+                              className="rounded-pill border border-border bg-surface-muted px-3 py-1 text-sm font-medium text-foreground hover:border-brand hover:bg-brand hover:text-brand-foreground"
+                            >
+                              {pl.course.code}
+                              <span className="ml-1.5 text-xs opacity-70">{pl.course.credits}cr</span>
+                            </Link>
+                          ) : (
+                            // A requirement with alternatives is shown as one
+                            // course, which reads as though that course were
+                            // the requirement. The marker says a choice exists
+                            // and opens the other routes rather than deciding
+                            // silently for the student.
+                            <details key={pl.course.id} className="group relative">
+                              <summary className="cursor-pointer list-none rounded-pill border border-border bg-surface-muted px-3 py-1 text-sm font-medium text-foreground hover:border-brand">
+                                {pl.course.code}
+                                <span className="ml-1.5 text-xs opacity-70">{pl.course.credits}cr</span>
+                                <span className="ml-1.5 text-xs opacity-60 group-open:opacity-100">
+                                  or {pl.alternatives.length}
+                                </span>
+                              </summary>
+                              <div className="absolute left-0 top-full z-20 mt-1 w-56 rounded-card border border-border bg-surface p-2 shadow-lg">
+                                <p className="px-1 pb-1 text-xs text-text-secondary">
+                                  Any one of these satisfies it:
+                                </p>
+                                <Link
+                                  href={courseHref(pl.course.code)}
+                                  className="block rounded px-1 py-0.5 text-xs font-medium text-foreground hover:bg-surface-muted"
+                                >
+                                  {pl.course.code} · planned
+                                </Link>
+                                {pl.alternatives.map((alt) => (
+                                  <span key={alt} className="block">
+                                    {alt.includes('+') ? (
+                                      // "CPSC 103 + CPSC 107" — a pair, not a
+                                      // single course, so it is not one link.
+                                      <span className="block px-1 py-0.5 text-xs text-text-secondary">
+                                        {alt}
+                                      </span>
+                                    ) : (
+                                      <Link
+                                        href={courseHref(alt)}
+                                        className="block rounded px-1 py-0.5 text-xs text-text-secondary hover:bg-surface-muted hover:text-foreground"
+                                      >
+                                        {alt}
+                                      </Link>
+                                    )}
+                                  </span>
+                                ))}
+                              </div>
+                            </details>
+                          )
                         ) : (
                           // Dashed: a slot is a decision the student still has
                           // to make, not a course we are telling them to take.
@@ -292,7 +338,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                     <details>
                       <summary className="cursor-pointer list-none">
                         {body}
-                        <span className="ml-1 opacity-60">· see requirements</span>
+                        <span className="mt-0.5 block text-[11px] opacity-60">see requirements</span>
                       </summary>
                       <ul className="mt-1.5 space-y-1 border-t border-current/20 pt-1.5 opacity-90">
                         {parts.map((part) => (

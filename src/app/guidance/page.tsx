@@ -293,7 +293,15 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                               <summary className="cursor-pointer list-none rounded-pill border border-border bg-surface-muted px-3 py-1 text-sm font-medium text-foreground hover:border-brand">
                                 {pl.course.code}
                                 <span className="ml-1.5 text-xs opacity-70">{pl.course.credits}cr</span>
-                                <span className="ml-1.5 text-xs opacity-60 group-open:opacity-100">
+                                {/*
+                                  Underlined and in the accent colour because
+                                  it is the only thing on the chip you can act
+                                  on. At 60% opacity in the body text colour it
+                                  read as a footnote rather than a control, and
+                                  a student had no reason to think MATH 104
+                                  came with six other routes.
+                                */}
+                                <span className="ml-1.5 text-xs font-medium text-brand-accent underline decoration-dotted underline-offset-2 group-open:decoration-solid">
                                   or {pl.alternatives.length}
                                 </span>
                               </summary>

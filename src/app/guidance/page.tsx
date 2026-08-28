@@ -76,7 +76,9 @@ const STATE_STYLE: Record<string, string> = {
 export default async function GuidancePage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const program = getProgram(sp.program ?? DEFAULT_PROGRAM) ?? getProgram(DEFAULT_PROGRAM)!;
-  const load = Math.min(6, Math.max(1, Number(sp.load) || 4));
+  // 15 credits is a standard full-time term: 30 a year, 120 over four years,
+  // which is exactly what this degree requires.
+  const load = Math.min(21, Math.max(3, Number(sp.load) || 15));
   const useSummer = sp.summer === '1';
 
   const rules = effectiveRules(program);
@@ -99,7 +101,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
     prereqs,
     offerings,
     terms,
-    prefs: { load, useSummer, targetTermId: null },
+    prefs: { creditsPerTerm: load, useSummer, targetTermId: null },
   });
 
   const totalRules = obligations(rules).filter((r) => r.kind !== 'note').length;
@@ -143,8 +145,8 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-sm font-semibold text-foreground">Suggested route</h2>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-text-secondary">Courses per term</span>
-                {[3, 4, 5].map((n) => (
+                <span className="text-xs text-text-secondary">Credits per term</span>
+                {[12, 15, 18].map((n) => (
                   <Link
                     key={n}
                     href={href({ load: n })}

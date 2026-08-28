@@ -195,7 +195,7 @@ describe('solver', () => {
     prereqs,
     offerings: new Map(),
     terms,
-    prefs: { load: 2, useSummer: false, targetTermId: null },
+    prefs: { creditsPerTerm: 8, useSummer: false, targetTermId: null },
     ...over,
   });
 
@@ -296,7 +296,7 @@ describe('solver', () => {
   });
 
   it('does not let two courses in the same term satisfy each other', () => {
-    const plan = solve(base({ prefs: { load: 5, useSummer: false, targetTermId: null } }));
+    const plan = solve(base({ prefs: { creditsPerTerm: 20, useSummer: false, targetTermId: null } }));
     const first = plan.terms[0] ? coursesIn(plan.terms[0]).map((c) => c.code) : [];
     expect(first).toContain('CPSC 110');
     expect(first).not.toContain('CPSC 210'); // needs 110, placed same term
@@ -313,15 +313,15 @@ describe('solver', () => {
     }
   });
 
-  it('respects the course load per term', () => {
-    const plan = solve(base({ prefs: { load: 1, useSummer: false, targetTermId: null } }));
-    for (const t of plan.terms) expect(t.placements.length).toBeLessThanOrEqual(1);
+  it('respects the credit load per term', () => {
+    const plan = solve(base({ prefs: { creditsPerTerm: 4, useSummer: false, targetTermId: null } }));
+    for (const t of plan.terms) expect(coursesIn(t).reduce((n, c) => n + c.credits, 0)).toBeLessThanOrEqual(4);
   });
 
   it('skips summer sessions unless asked', () => {
     const plan = solve(base());
     expect(plan.terms.map((t) => t.term.id)).not.toContain('t3');
-    const withSummer = solve(base({ prefs: { load: 2, useSummer: true, targetTermId: null } }));
+    const withSummer = solve(base({ prefs: { creditsPerTerm: 8, useSummer: true, targetTermId: null } }));
     expect(withSummer.terms.length).toBeGreaterThan(0);
   });
 
@@ -363,7 +363,7 @@ describe('solver', () => {
         outstanding: outstanding([], [rule]),
         catalogue: [course('CPSC 103'), course('CPSC 107')], // no 110
         prereqs: new Map(),
-        prefs: { load: 3, useSummer: false, targetTermId: null },
+        prefs: { creditsPerTerm: 12, useSummer: false, targetTermId: null },
       }),
     );
     expect(coursesIn(plan.terms[0]).map((c) => c.code).sort()).toEqual(['CPSC 103', 'CPSC 107']);
@@ -386,7 +386,7 @@ describe('solver', () => {
         outstanding: outstanding([], [rule]),
         catalogue: [course('CPSC 103'), course('CPSC 107')],
         prereqs: new Map(),
-        prefs: { load: 1, useSummer: false, targetTermId: null }, // room for one
+        prefs: { creditsPerTerm: 4, useSummer: false, targetTermId: null }, // room for one
       }),
     );
     expect(plan.terms.flatMap(coursesIn)).toHaveLength(0);
@@ -398,7 +398,7 @@ describe('solver', () => {
         outstanding: outstanding([], [
           { id: 'r.arts', kind: 'credits', label: 'Arts credits', n: 6, from: { kind: 'codes', codes: [] } },
         ]),
-        prefs: { load: 4, useSummer: false, targetTermId: null },
+        prefs: { creditsPerTerm: 15, useSummer: false, targetTermId: null },
       }),
     );
     const slots = plan.terms.flatMap((t) => t.placements).filter((p) => p.kind === 'slot');
@@ -421,7 +421,7 @@ describe('solver', () => {
       base({
         outstanding: outstanding([], [breadth]),
         prereqs: new Map(),
-        prefs: { load: 1, useSummer: false, targetTermId: null }, // forces a spread across terms
+        prefs: { creditsPerTerm: 4, useSummer: false, targetTermId: null }, // forces a spread across terms
       }),
     );
     const labels = plan.terms.flatMap((t) => t.placements).flatMap((p) => (p.kind === 'slot' ? [p.label] : []));
@@ -442,7 +442,7 @@ describe('solver', () => {
         outstanding: outstanding([], [breadth]),
         completed: [course('CPSC 110', 4)], // CS category already covered
         prereqs: new Map(),
-        prefs: { load: 2, useSummer: false, targetTermId: null },
+        prefs: { creditsPerTerm: 8, useSummer: false, targetTermId: null },
       }),
     );
     const labels = plan.terms.flatMap((t) => t.placements).flatMap((p) => (p.kind === 'slot' ? [p.label] : []));
@@ -477,7 +477,7 @@ describe('solver', () => {
         outstanding: outstanding([], [
           { id: 'r.u', kind: 'credits', label: '6cr', n: 6, from: { kind: 'pattern', subjects: ['CPSC'], levelMin: 400 } },
         ]),
-        prefs: { load: 5, useSummer: false, targetTermId: null },
+        prefs: { creditsPerTerm: 20, useSummer: false, targetTermId: null },
       }),
     );
     // A credits rule now yields SLOTS rather than arbitrary concrete courses.
@@ -567,5 +567,44 @@ describe('transcription verification', () => {
       extends: ['does-not-exist'], sourceUrl: 'u', totalCredits: 120, rules: [],
     };
     expect(validateProgram(orphan, new Set()).some((i) => i.severity === 'error')).toBe(true);
+  });
+});
+
+describe('a four-year degree plans in four years', () => {
+  it('a constraint is spent from the elective pool, not added to it', () => {
+    // "12 credits of Arts" is 12 OF the electives, not 12 beyond them.
+    // Counting them separately turned a 120-credit degree into 135 and
+    // stretched the plan by a year and a half.
+    const rules: Rule[] = [
+      { id: 'elect', kind: 'credits', label: 'Electives', n: 24, from: { kind: 'codes', codes: [] } },
+      { id: 'arts', kind: 'credits', label: 'Arts credits', n: 12, constraint: true, from: { kind: 'codes', codes: [] } },
+    ];
+    const plan = solve({
+      outstanding: outstanding([], rules), completed: [], catalogue: [],
+      prereqs: new Map(), offerings: new Map(),
+      terms: Array.from({ length: 8 }, (_, i) => ({ id: `t${i}`, name: `T${i}`, available: true, projected: true })),
+      prefs: { creditsPerTerm: 15, useSummer: false, targetTermId: null },
+    });
+    const total = plan.terms
+      .flatMap((t) => t.placements)
+      .reduce((n, p) => n + (p.kind === 'slot' ? p.credits : p.course.credits), 0);
+    expect(total).toBe(24); // NOT 36
+  });
+
+  it('a slot rule never falls through to placing individual courses', () => {
+    // Once every breadth category is slotted the rule yields no more specs;
+    // falling through put unrelated MATH courses in fourth year.
+    const breadth: Rule = {
+      id: 'b', kind: 'chooseN', label: 'Breadth', n: 1, constraint: true,
+      of: [{ id: 'b.m', kind: 'credits', label: 'Mathematics', n: 3, from: { kind: 'pattern', subjects: ['CPSC'] } }],
+    };
+    const plan = solve({
+      outstanding: outstanding([], [breadth]), completed: [],
+      catalogue: [course('CPSC 110', 4), course('CPSC 121', 4), course('CPSC 310', 4)],
+      prereqs: new Map(), offerings: new Map(),
+      terms: Array.from({ length: 6 }, (_, i) => ({ id: `t${i}`, name: `T${i}`, available: true, projected: true })),
+      prefs: { creditsPerTerm: 15, useSummer: false, targetTermId: null },
+    });
+    expect(plan.terms.flatMap(coursesIn)).toHaveLength(0); // slots only
   });
 });

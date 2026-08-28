@@ -54,6 +54,7 @@ export const scienceFacultyCore2026W: Program = {
       // what scrape:faculties stores — not a friendly short name.
       from: { kind: 'pattern', faculty: 'Faculty of Arts' },
       sourceUrl: SOURCE,
+      constraint: true, // spent from electives, not added to them
       confidence: 'stated', // "Minimum Total Arts Credits: 12"
     },
     {
@@ -64,6 +65,7 @@ export const scienceFacultyCore2026W: Program = {
       // complete at least 3 credits from any 6 of the 7 categories."
       n: 6,
       sourceUrl: BREADTH,
+      constraint: true, // spent from electives, not added to them
       // The rule and its numbers are stated; the mapping from each named
       // category to subject codes is ours, so a student whose course sits in
       // a subject we did not list will be under-credited here.

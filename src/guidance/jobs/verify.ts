@@ -82,11 +82,14 @@ export async function verifyPrograms(): Promise<number> {
     const real = new Map(rows.map((r) => [`${r.subject.code} ${r.number}`, r.credits]));
     const missing = codes.filter((c) => !real.has(c));
     if (missing.length > 0) {
-      // Not an error. The Calendar is the authority on what a degree requires;
-      // the scraped catalogue is the authority on what is currently offered,
-      // and it legitimately lacks courses the Calendar still lists. The solver
-      // ignores a code it cannot resolve, so the cost is a narrower choice,
-      // not a wrong plan.
+      // Not an error, and usually not a transcription mistake either.
+      // Course rows are only ever created by the sections scraper — it holds
+      // the single course.upsert in the codebase — so the catalogue is really
+      // "courses offered in a term we have scraped". A course on hiatus, or
+      // one running in a term outside that window, is simply absent. MATH 102
+      // and 104 are current UBC courses that no scraped term happens to offer.
+      // The solver ignores a code it cannot resolve, so the cost is a narrower
+      // set of alternatives, not a wrong plan.
       console.log(
         `  warn    ${missing.length} code(s) named by the Calendar but absent from the ` +
           `catalogue: ${missing.join(', ')}`,

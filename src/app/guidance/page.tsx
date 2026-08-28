@@ -75,7 +75,11 @@ const STATE_STYLE: Record<string, string> = {
   satisfied: 'border-brand bg-brand text-brand-foreground',
   partial: 'border-border bg-surface-muted text-foreground',
   outstanding: 'border-border text-text-secondary',
-  unevaluated: 'border-danger-border bg-danger-surface text-danger',
+  // A note is something to know, not something wrong. This used to carry the
+  // danger palette, which turned the whole sidebar red — the Arts core alone
+  // contributes ten notes, and a B.A. showed eleven red blocks against seven
+  // ordinary rows. Dashed and muted says "not tracked" without alarming.
+  unevaluated: 'border-dashed border-border text-text-secondary',
 };
 
 export default async function GuidancePage({ searchParams }: { searchParams: Promise<SP> }) {
@@ -122,6 +126,10 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   );
 
   const totalRules = obligations(rules).filter((r) => r.kind !== 'note').length;
+  // A note carries no completion state, so it belongs in its own list rather
+  // than among rules a student can actually finish.
+  const trackable = checklist.filter((p) => p.rule.kind !== 'note');
+  const degreeRules = checklist.filter((p) => p.rule.kind === 'note');
   /** Year of the degree a term sits in — two winter terms to a year. */
   const yearOf = (i: number) => Math.floor(i / 2) + 1;
   const href = (over: Record<string, string | number>) => {
@@ -313,13 +321,21 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
         </div>
 
         <aside className="sky-panel h-fit p-5">
+          {/*
+            Two lists, because they answer different questions. Trackable
+            rules are work to do and can be ticked off; degree rules are
+            conditions on how the whole degree is spent — residency, the
+            outside requirement, credit caps — which no amount of course
+            picking "completes". Mixing them made a B.A. look like it had
+            thirty requirements when it has nineteen.
+          */}
           <p className="text-sm font-semibold text-foreground">Requirements</p>
           <p className="mt-1 text-xs text-text-secondary">
-            {totalRules} checkable · {program.totalCredits} credits total
+            {totalRules} to complete · {program.totalCredits} credits total
           </p>
 
           <ul className="mt-3 space-y-1.5">
-            {checklist.map((p) => {
+            {trackable.map((p) => {
               const parts = breakdown(p.rule);
               const body = (
                 <>
@@ -366,6 +382,46 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
               );
             })}
           </ul>
+
+          {degreeRules.length > 0 && (
+            <>
+              <p className="mt-5 border-t border-border pt-4 text-sm font-semibold text-foreground">
+                Degree rules
+              </p>
+              <p className="mt-1 text-xs text-text-secondary">
+                {degreeRules.length} to know · nothing to tick off
+              </p>
+              <ul className="mt-3 space-y-1.5">
+                {degreeRules.map((p) => (
+                  <li
+                    key={p.rule.id}
+                    className={`rounded-card border px-3 py-2 text-xs ${STATE_STYLE[p.state]}`}
+                  >
+                    {/* Collapsed by default: these run to a paragraph each,
+                        and expanded they buried the list above them. */}
+                    <details>
+                      <summary className="cursor-pointer list-none font-medium">
+                        {p.rule.label}
+                      </summary>
+                      <p className="mt-1.5 border-t border-current/20 pt-1.5 opacity-90">
+                        {p.detail}
+                      </p>
+                      {p.rule.sourceUrl && (
+                        <a
+                          href={p.rule.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1.5 inline-block underline opacity-70 hover:opacity-100"
+                        >
+                          UBC Calendar
+                        </a>
+                      )}
+                    </details>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </aside>
       </div>
 

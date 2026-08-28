@@ -4,7 +4,7 @@ import { fetchText } from '@/scrape/http';
 import { getProgram, selectable } from '@/guidance/registry';
 import { effectiveRules } from '@/guidance/registry';
 import { codesIn, validateProgram } from '@/guidance/validate';
-import { walk, type Rule } from '@/guidance/rules';
+import { obligations, walk, type Rule } from '@/guidance/rules';
 
 /**
  * Check a transcribed program against the world, in three directions.
@@ -95,7 +95,41 @@ export async function verifyPrograms(): Promise<number> {
       console.log(`  catalogue: all ${codes.length} codes resolve`);
     }
 
-    // 3. Every code appears on the page it cites.
+    // 3. The rules add up to the credential.
+    //
+    // The check that catches double counting. Faculty-wide requirements are
+    // constraints on how a student spends their credits, not extra credits on
+    // top — Arts and breadth come OUT of the elective allowance. Stating both
+    // in full makes a 120-credit degree total 150 and stretches the plan by a
+    // year and a half, which is invisible until someone counts.
+    let sum = 0;
+    for (const rule of obligations(rules)) {
+      if (rule.constraint) continue; // restricts other credits, adds none
+      if (rule.kind === 'credits') sum += rule.n;
+      else if (rule.kind === 'course') sum += real.get(rule.code) ?? 3;
+      else if (rule.kind === 'chooseN') {
+        // One branch satisfies one unit of the choice, so cost is n branches.
+        const branch = rule.of[0];
+        const each =
+          branch?.kind === 'credits'
+            ? branch.n
+            : branch?.kind === 'course'
+              ? (real.get(branch.code) ?? 3)
+              : 3;
+        sum += each * rule.n;
+      }
+    }
+    if (sum !== program.totalCredits) {
+      errors++;
+      console.log(
+        `  ERROR   rules total ${sum} credits but the degree is ${program.totalCredits} — ` +
+          `${sum > program.totalCredits ? `${sum - program.totalCredits} over, likely double-counted` : `${program.totalCredits - sum} short`}`,
+      );
+    } else {
+      console.log(`  credits: rules total ${sum}, matching the degree`);
+    }
+
+    // 4. Every code appears on the page it cites.
     const pages = new Map<string, Set<string>>();
     for (const url of sourceUrls(rules)) {
       try {

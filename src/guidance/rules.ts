@@ -37,6 +37,19 @@ type Base = {
   label: string;
   sourceUrl?: string;
   confidence?: Confidence;
+  /**
+   * A restriction on how other credits are spent, adding none of its own.
+   *
+   * "12 credits of Arts" and Science Breadth are both of this kind: a student
+   * does not take 12 Arts credits ON TOP of their degree, they take 12 of
+   * their elective credits in Arts. Counting them as additional obligations
+   * inflated a 120-credit degree to 135 and added a year and a half to the
+   * plan — the Calendar's own table sums to exactly 120 with electives in it.
+   *
+   * A constraint still appears in the checklist and still gets a slot in the
+   * plan; the slot is drawn from the elective pool rather than added beside it.
+   */
+  constraint?: boolean;
 };
 
 export type Rule =

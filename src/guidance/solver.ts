@@ -23,8 +23,16 @@ export type PlanTerm = {
 };
 
 export type Prefs = {
-  /** Courses per term. */
-  load: number;
+  /**
+   * Credits per term, not courses.
+   *
+   * A degree is measured in credits and UBC states load the same way — 15 is
+   * a standard full-time term, 30 a year, 120 a four-year degree. Counting
+   * courses instead made a 4-credit CPSC course and a 3-credit elective slot
+   * cost the same, and a default of "4 courses" quietly meant 12 credits a
+   * term, which stretches a four-year degree to five.
+   */
+  creditsPerTerm: number;
   useSummer: boolean;
   /** Term id to finish by, or null for "as early as possible". */
   targetTermId: string | null;
@@ -320,6 +328,17 @@ function slotSpecs(
   return [];
 }
 
+/** Credits a constraint will consume from the elective allowance. */
+function constrainedCredits(rule: Rule, left: number): number {
+  if (rule.kind === 'credits') return left;
+  // A choose-N of credit buckets: `left` counts branches still needed.
+  if (rule.kind === 'chooseN') {
+    const branch = rule.of[0];
+    return branch?.kind === 'credits' ? branch.n * left : 0;
+  }
+  return 0;
+}
+
 /** Slots are sized to a typical UBC course. */
 const SLOT_CREDITS = 3;
 
@@ -340,9 +359,36 @@ export function solve(input: SolverInput): Plan {
   /** chooseN branches already given a slot, so no category repeats. */
   const slotted = new Set<string>();
 
+  /**
+   * The elective allowance a constraint is spent from. A student meeting
+   * "12 credits of Arts" is spending electives on Arts, not taking 12 credits
+   * beyond the degree — so placing a constraint slot has to draw the pool
+   * down too, or the plan runs long by exactly the constrained credits.
+   *
+   * The pool is the largest unconstrained credit bucket, which is the
+   * Electives row in every program shaped like this one.
+   */
+  const pool = need
+    .filter((n) => n.p.rule.kind === 'credits' && !n.p.rule.constraint)
+    .sort((a, b) => b.left - a.left)[0];
+  if (pool) {
+    // Once, up front, rather than per placement. Doing it as each constraint
+    // slot lands needs the constrained buckets to be placed first, and gating
+    // on that starves any term where no constraint happens to fit — which left
+    // terms holding a single course. The totals are what matter, so settle
+    // them before placing anything.
+    const constrained = need
+      .filter((n) => n.p.rule.constraint)
+      .reduce((sum, n) => sum + constrainedCredits(n.p.rule, n.left), 0);
+    pool.left = Math.max(0, pool.left - constrained);
+  }
+
   for (const term of placeable) {
     if (need.every((n) => n.left <= 0)) break;
     const placements: Placement[] = [];
+
+    let credits = 0;
+    const room = () => prefs.creditsPerTerm - credits;
 
     // Two passes. Concrete courses first, because they sit in prerequisite
     // chains and a term lost to a flexible requirement delays everything
@@ -351,7 +397,7 @@ export function solve(input: SolverInput): Plan {
     // CPSC 110 into second year, which is not how anyone takes this degree.
     for (const pass of ['courses', 'slots'] as const) {
     for (const entry of need) {
-      if (placements.length >= prefs.load) break;
+      if (room() <= 0) break;
       if (entry.left <= 0) continue;
       const rule = entry.p.rule;
       const isSlotRule =
@@ -366,19 +412,26 @@ export function solve(input: SolverInput): Plan {
         ...planned.flatMap((t) => t.placements.flatMap((pl) => (pl.kind === 'course' ? [pl.course] : []))),
         ...placements.flatMap((pl) => (pl.kind === 'course' ? [pl.course] : [])),
       ], slotted);
-      if (specs.length > 0) {
+      if (isSlotRule) {
+        // Never fall through to concrete placement. A slot rule that produces
+        // no spec this term — every breadth category already slotted, say —
+        // must simply wait, not start placing individual courses out of its
+        // own course set. That is what put MATH 120 and MATH 398 in fourth
+        // year long after the calculus requirement was met.
         for (const spec of specs) {
-          if (placements.length >= prefs.load) break;
+          if (spec.credits > room()) break;
           const { branchId, ...rest } = spec as typeof spec & { branchId?: string };
           placements.push({ kind: 'slot', ...rest, forRules: [rule.id] });
           if (branchId) slotted.add(branchId);
+          credits += spec.credits;
           entry.left -= rule.kind === 'credits' ? spec.credits : 1;
         }
         continue;
       }
 
       for (const bundle of bundlesFor(rule, input)) {
-        if (placements.length + bundle.length > prefs.load) continue;
+        // A bundle is all-or-nothing, so it needs room for the whole thing.
+        if (bundle.reduce((n, c) => n + c.credits, 0) > room()) continue;
         if (bundle.some((c) => placedIds.has(c.id) || satisfied.has(c.id))) continue;
 
         // Offered this term? Only enforced where we actually know — a
@@ -399,6 +452,7 @@ export function solve(input: SolverInput): Plan {
         for (const course of bundle) {
           placements.push({ kind: 'course', course, forRules: [rule.id] });
           placedIds.add(course.id);
+          credits += course.credits;
         }
         entry.left -= 1;
         break; // one alternative satisfies the rule
@@ -419,7 +473,7 @@ export function solve(input: SolverInput): Plan {
       rule: n.p.rule,
       reason:
         n.p.rule.kind === 'credits'
-          ? `${n.left} credits still unplaced — not enough terms at this course load`
+          ? `${n.left} credits still unplaced — not enough terms at this credit load`
           : 'no offered term found where its prerequisites are met first',
     }));
 
@@ -431,7 +485,7 @@ export function solve(input: SolverInput): Plan {
     );
   }
   if (prefs.targetTermId && unplaced.length > 0) {
-    warnings.push('Not everything fits before your target term at this course load.');
+    warnings.push('Not everything fits before your target term at this credit load.');
   }
 
   return { terms: planned, unplaced, warnings };

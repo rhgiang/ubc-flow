@@ -21,10 +21,28 @@ type Metric = {
  * it should — and is fixed across the bar: shifting it would put a green
  * shoulder on a red one and read as a different number. The sheen is
  * saturation and lightness only.
+ *
+ * Softened off the full-strength pair: enough saturation to read as red or
+ * green at a glance, light enough to sit on the frosted card without shouting.
+ * Both stops live here so the bars and the ring can never drift apart.
  */
+const SCALE_DEEP = { saturation: 58, lightness: 52 };
+const SCALE_BRIGHT = { saturation: 72, lightness: 68 };
+
+function scaleHue(percent: number): number {
+  return Math.round((percent / 100) * 140);
+}
+
+function scaleStops(hue: number): [string, string] {
+  return [
+    `hsl(${hue} ${SCALE_DEEP.saturation}% ${SCALE_DEEP.lightness}%)`,
+    `hsl(${hue} ${SCALE_BRIGHT.saturation}% ${SCALE_BRIGHT.lightness}%)`,
+  ];
+}
+
 function scaleGradient(percent: number, angle = '90deg'): string {
-  const hue = Math.round((percent / 100) * 140);
-  return `linear-gradient(${angle}, hsl(${hue} 68% 42%), hsl(${hue} 88% 60%))`;
+  const [deep, bright] = scaleStops(scaleHue(percent));
+  return `linear-gradient(${angle}, ${deep}, ${bright})`;
 }
 
 /**
@@ -77,7 +95,7 @@ export default function RatingsBox({
   const asPercent = (mean: number | null) =>
     mean === null ? null : Math.round(((mean - 1) / 4) * 100);
 
-  const ringHue = Math.round(((likedPercent ?? 0) / 100) * 140);
+  const [ringDeep, ringBright] = scaleStops(scaleHue(likedPercent ?? 0));
   const circumference = 2 * Math.PI * 54;
   const dash = ((likedPercent ?? 0) / 100) * circumference;
 
@@ -96,8 +114,8 @@ export default function RatingsBox({
           <svg viewBox="0 0 120 120" className="h-40 w-40 -rotate-90">
             <defs>
               <linearGradient id={ringGradientId} x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor={`hsl(${ringHue} 68% 42%)`} />
-                <stop offset="100%" stopColor={`hsl(${ringHue} 88% 60%)`} />
+                <stop offset="0%" stopColor={ringDeep} />
+                <stop offset="100%" stopColor={ringBright} />
               </linearGradient>
             </defs>
             <circle cx="60" cy="60" r="54" fill="none" stroke="var(--border)" strokeWidth="10" />

@@ -328,6 +328,64 @@ function slotSpecs(
   return [];
 }
 
+
+/**
+ * How many terms of prerequisite chain sit AHEAD of a course, within the set
+ * this program actually requires.
+ *
+ * `depth` measures the chain behind a course; this measures the chain in
+ * front. Together they give its float — the number of terms it could be
+ * delayed without making the whole plan longer:
+ *
+ *     float = (planLength - 1 - height) - depth
+ *
+ * A course with zero float is on the critical path: CPSC 110 must go in term
+ * one because 210, 213 and 310 queue behind it. A course with float to spare
+ * can move later so an elective can sit beside it instead. This is the
+ * distinction a plain greedy pass cannot make — it packs every required
+ * course as early as possible, which is right for the critical path and
+ * needless for everything else, and leaves the electives stacked at the end.
+ */
+function heights(
+  required: CourseRef[],
+  prereqs: Map<string, Requirement | null>,
+): Map<string, number> {
+  const ids = new Set(required.map((c) => c.id));
+  // course -> the required courses that depend on it
+  const dependents = new Map<string, string[]>();
+  for (const c of required) {
+    for (const need of treeCourseIds(prereqs.get(c.id))) {
+      if (ids.has(need)) dependents.set(need, [...(dependents.get(need) ?? []), c.id]);
+    }
+  }
+  const memo = new Map<string, number>();
+  const walkUp = (id: string, seen: Set<string>): number => {
+    if (memo.has(id)) return memo.get(id) as number;
+    if (seen.has(id)) return 0; // a mis-parsed prereq could cycle
+    const kids = dependents.get(id) ?? [];
+    const h = kids.length === 0 ? 0 : 1 + Math.max(...kids.map((k) => walkUp(k, new Set([...seen, id]))));
+    memo.set(id, h);
+    return h;
+  };
+  return new Map(required.map((c) => [c.id, walkUp(c.id, new Set())]));
+}
+
+/** Every course id a prerequisite tree names, whatever the and/or shape. */
+function treeCourseIds(tree: Requirement | null | undefined): string[] {
+  if (!tree) return [];
+  if (tree.type === 'course') return tree.courseId ? [tree.courseId] : [];
+  if (tree.type === 'and' || tree.type === 'or') return tree.items.flatMap(treeCourseIds);
+  return [];
+}
+
+/** A rule that names an amount rather than a course, and so plans as slots. */
+function isSlotShaped(rule: Rule): boolean {
+  return (
+    rule.kind === 'credits' ||
+    (rule.kind === 'chooseN' && rule.of.every((b) => b.kind === 'credits'))
+  );
+}
+
 /** Credits a constraint will consume from the elective allowance. */
 function constrainedCredits(rule: Rule, left: number): number {
   if (rule.kind === 'credits') return left;
@@ -356,6 +414,40 @@ export function solve(input: SolverInput): Plan {
 
   const planned: PlannedTerm[] = [];
   const placedIds = new Set<string>();
+
+  /**
+   * How long the plan has to be, and therefore how much slack exists.
+   *
+   * Two independent lower bounds: the credits owed divided by the term load,
+   * and the longest prerequisite chain. The plan can be no shorter than
+   * either, and the difference between them is the room available to move
+   * flexible requirements around without costing a term.
+   */
+  // The CHEAPEST bundle per rule, not every alternative. Flattening them all
+  // counts each of the seven calculus options as a separate obligation, which
+  // roughly doubled the credits the plan thought it owed; that inflated the
+  // plan length, which shrank every term's share, which starved each term to
+  // a single course and stretched an eight-term degree to twelve.
+  const requiredCourses = need
+    .filter((n) => !isSlotShaped(n.p.rule))
+    .flatMap((n) => bundlesFor(n.p.rule, input)[0] ?? []);
+  const height = heights(requiredCourses, input.prereqs);
+  const totalCreditsNeeded = need.reduce(
+    (sum, n) =>
+      sum +
+      (isSlotShaped(n.p.rule)
+        ? n.p.rule.kind === 'credits'
+          ? n.left
+          : constrainedCredits(n.p.rule, n.left)
+        : 0),
+    requiredCourses.reduce((sum, c) => sum + c.credits, 0),
+  );
+  const byCredits = Math.ceil(totalCreditsNeeded / Math.max(1, prefs.creditsPerTerm));
+  const byChain = requiredCourses.reduce(
+    (max, c) => Math.max(max, depth(c.id, input.prereqs) + (height.get(c.id) ?? 0) + 1),
+    0,
+  );
+  const planLength = Math.max(byCredits, byChain, 1);
   /** chooseN branches already given a slot, so no category repeats. */
   const slotted = new Set<string>();
 
@@ -388,22 +480,76 @@ export function solve(input: SolverInput): Plan {
     const placements: Placement[] = [];
 
     let credits = 0;
-    const room = () => prefs.creditsPerTerm - credits;
+
+    /**
+     * Hold part of the term back for flexible requirements.
+     *
+     * Without this, required courses take every term they can reach and the
+     * electives, Arts and breadth all pile into the final years — four terms
+     * of nothing but slots, which is not how anyone takes a degree. The
+     * Calendar spreads them too: its own tables put elective credits in every
+     * year rather than saving them for the end.
+     *
+     * The reserve is what is still owed in slots divided by the terms left, so
+     * it shrinks as those requirements are met and disappears once they are.
+     * It is a floor on elective room, not a cap on progress: if the reserve
+     * would leave a term unable to fit any required course, it is ignored —
+     * delaying a prerequisite to make space for an elective costs a term
+     * later, which is the trade this must not make.
+     */
+    // Sized from what the REQUIRED courses still need, not from the slots.
+    // Reserving "slots divided by terms" looks equivalent and is not: it can
+    // leave less room than the required courses need in a term, which pushes
+    // them later and adds a term — the plan grew from eight to nine that way.
+    // Deriving it from the required side guarantees by construction that the
+    // course pass always has room for its fair share, and whatever is left is
+    // genuinely spare and goes to electives.
+    //
+    // Recomputed each term, so a term that could not use its share hands the
+    // surplus to the next one instead of losing it.
+    const termsLeft = Math.max(1, planLength - planned.length);
+    const requiredLeft = need
+      .filter((n) => n.left > 0 && !isSlotShaped(n.p.rule))
+      .flatMap((n) => bundlesFor(n.p.rule, input)[0] ?? [])
+      .filter((c) => !placedIds.has(c.id))
+      .reduce((sum, c) => sum + c.credits, 0);
+    const slotLeft = need
+      .filter((n) => n.left > 0 && isSlotShaped(n.p.rule))
+      .reduce(
+        (sum, n) => sum + (n.p.rule.kind === 'credits' ? n.left : constrainedCredits(n.p.rule, n.left)),
+        0,
+      );
+    // Both sides get a share of the term, and each treats it as a floor it may
+    // overshoot by one item rather than a ceiling it must fit inside. Metering
+    // only the courses does not work: slots have no prerequisites so they
+    // always fit, and they swallow whatever room is left, leaving a
+    // prerequisite-blocked course with nowhere to go later.
+    const perTermForCourses = Math.ceil(requiredLeft / termsLeft);
+    const perTermForSlots = Math.ceil(slotLeft / termsLeft);
+
+    let courseCredits = 0;
+    let slotCredits = 0;
+    const free = () => prefs.creditsPerTerm - courseCredits - slotCredits;
 
     // Two passes. Concrete courses first, because they sit in prerequisite
     // chains and a term lost to a flexible requirement delays everything
     // behind it; slots then top up whatever capacity is left. Placing them in
     // rule order instead filled first year with Arts and breadth and pushed
     // CPSC 110 into second year, which is not how anyone takes this degree.
-    for (const pass of ['courses', 'slots'] as const) {
+    // A third pass tops the term back up. The share is a floor either side may
+    // overshoot, and when the course pass does — two 3- and 4-credit courses
+    // against a 6-credit share — the slot share no longer fits in what is
+    // left, so the term closes a couple of credits short. A few credits lost
+    // every term is a whole extra term across a degree, which is what turned
+    // an eight-term plan into twelve. The top-up ignores the slot share and
+    // simply fills whatever room the two metered passes left behind.
+    for (const pass of ['courses', 'slots', 'topup'] as const) {
     for (const entry of need) {
-      if (room() <= 0) break;
+      if (free() <= 0) break;
       if (entry.left <= 0) continue;
       const rule = entry.p.rule;
-      const isSlotRule =
-        rule.kind === 'credits' ||
-        (rule.kind === 'chooseN' && rule.of.every((b) => b.kind === 'credits'));
-      if (isSlotRule !== (pass === 'slots')) continue;
+      const isSlotRule = isSlotShaped(rule);
+      if (isSlotRule !== (pass !== 'courses')) continue;
 
       // A rule that names an amount rather than a course becomes a slot:
       // "3 credits of Arts". No prerequisites, so nothing to order.
@@ -440,11 +586,14 @@ export function solve(input: SolverInput): Plan {
         // own course set. That is what put MATH 120 and MATH 398 in fourth
         // year long after the calculus requirement was met.
         for (const spec of specs) {
-          if (spec.credits > room()) break;
+          // Stop once this term has had its share — except on the top-up,
+          // which exists precisely to spend what the shares left over.
+          if (pass === 'slots' && slotCredits >= perTermForSlots) break;
+          if (spec.credits > free()) break;
           const { branchId, ...rest } = spec as typeof spec & { branchId?: string };
           placements.push({ kind: 'slot', ...rest, forRules: [rule.id] });
           if (branchId) slotted.add(branchId);
-          credits += spec.credits;
+          slotCredits += spec.credits;
           entry.left -= rule.kind === 'credits' ? spec.credits : 1;
         }
         continue;
@@ -452,7 +601,35 @@ export function solve(input: SolverInput): Plan {
 
       for (const bundle of bundlesFor(rule, input)) {
         // A bundle is all-or-nothing, so it needs room for the whole thing.
-        if (bundle.reduce((n, c) => n + c.credits, 0) > room()) continue;
+        const cost = bundle.reduce((n, c) => n + c.credits, 0);
+        // A bundle with no float is on the critical path: delaying it makes
+        // the whole plan longer, so it takes the reserved elective room
+        // rather than waiting for it. Everything else respects the reserve,
+        // which is what leaves an elective beside it instead of four terms of
+        // slots at the end.
+        const slack = Math.min(
+          ...bundle.map(
+            (c) => planLength - 1 - (height.get(c.id) ?? 0) - depth(c.id, input.prereqs),
+          ),
+        );
+        // The term's share of required credits is a floor it may overshoot by
+        // one course, never a ceiling it must fit inside. Courses come in 3
+        // and 4 credit lumps and a share is rarely a multiple of either, so
+        // treating it as a hard cap means a 4-credit course cannot start
+        // against a 6-credit share — one course a term, and a twelve-term
+        // plan. Placing while still under the share, and stopping once past
+        // it, spreads the work without ever starving a term.
+        //
+        // Zero slack overrides both: a course on the critical path delays the
+        // whole plan if it waits, so it takes whatever room is left.
+        // The share is a floor this may overshoot, never a ceiling it must fit
+        // inside. Treating it as a ceiling looks tidier and is worse: a
+        // 4-credit course cannot start against a 6-credit share once a
+        // 3-credit one has gone in, so required courses trickle one a term
+        // and the tail of the plan empties out.
+        const underShare = courseCredits < perTermForCourses;
+        if (!(underShare || slack <= 0)) continue;
+        if (cost > free()) continue;
         if (bundle.some((c) => placedIds.has(c.id) || satisfied.has(c.id))) continue;
 
         // Offered this term? Only enforced where we actually know — a
@@ -473,7 +650,7 @@ export function solve(input: SolverInput): Plan {
         for (const course of bundle) {
           placements.push({ kind: 'course', course, forRules: [rule.id] });
           placedIds.add(course.id);
-          credits += course.credits;
+          courseCredits += course.credits;
         }
         entry.left -= 1;
         break; // one alternative satisfies the rule

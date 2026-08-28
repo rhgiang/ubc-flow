@@ -78,8 +78,10 @@ const STATE_STYLE: Record<string, string> = {
   // A note is something to know, not something wrong. This used to carry the
   // danger palette, which turned the whole sidebar red — the Arts core alone
   // contributes ten notes, and a B.A. showed eleven red blocks against seven
-  // ordinary rows. Dashed and muted says "not tracked" without alarming.
-  unevaluated: 'border-dashed border-border text-text-secondary',
+  // ordinary rows. Informational blue instead: a lighter relative of the
+  // brand navy, so it belongs to the same family without borrowing brand
+  // blue's "selected" meaning.
+  unevaluated: 'border-info-border bg-info-surface text-info',
 };
 
 export default async function GuidancePage({ searchParams }: { searchParams: Promise<SP> }) {
@@ -388,9 +390,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
               <p className="mt-5 border-t border-border pt-4 text-sm font-semibold text-foreground">
                 Degree rules
               </p>
-              <p className="mt-1 text-xs text-text-secondary">
-                {degreeRules.length} to know · nothing to tick off
-              </p>
+              <p className="mt-1 text-xs text-text-secondary">{degreeRules.length} to know</p>
               <ul className="mt-3 space-y-1.5">
                 {degreeRules.map((p) => (
                   <li

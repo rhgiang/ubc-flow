@@ -27,6 +27,7 @@ export const cpscMajor2026W: Program = {
       id: 'cpsc.first-year',
       kind: 'group',
       label: 'First year',
+      year: 1,
       sourceUrl: SOURCE,
       items: [
         {
@@ -117,6 +118,7 @@ export const cpscMajor2026W: Program = {
       id: 'cpsc.second-year',
       kind: 'group',
       label: 'Second year',
+      year: 2,
       sourceUrl: SOURCE,
       items: [
         { id: 'cpsc.210', kind: 'course', label: 'CPSC 210', code: 'CPSC 210', sourceUrl: SOURCE, confidence: 'stated' },
@@ -155,17 +157,38 @@ export const cpscMajor2026W: Program = {
         },
       ],
     },
+    // The Calendar's own elective rows — 10, 9 and 32 credits — kept as three
+    // rules rather than one 51-credit bucket. Splitting them by year is what
+    // spreads electives across the degree: the Calendar has already decided
+    // how many belong in each year, and following that beats any share or
+    // reserve heuristic the solver could invent. Students may still move
+    // elective credits between years, which raising the credit load expresses.
     {
-      // The Calendar's own rows: Electives 10 / 9 / 32 credits across the four
-      // years. Omitting them left the plan 51 credits short of the 120 the
-      // degree requires, which is why it finished a year early. Kept as one
-      // rule rather than three, because the same page notes that "students are
-      // permitted to move elective credits between years" — splitting them by
-      // year would impose an ordering the Calendar explicitly does not.
-      id: 'cpsc.electives',
+      id: 'cpsc.electives.y1',
       kind: 'credits',
       label: 'Electives',
-      n: 51,
+      n: 10,
+      year: 1,
+      from: { kind: 'codes', codes: [] },
+      sourceUrl: SOURCE,
+      confidence: 'stated',
+    },
+    {
+      id: 'cpsc.electives.y2',
+      kind: 'credits',
+      label: 'Electives',
+      n: 9,
+      year: 2,
+      from: { kind: 'codes', codes: [] },
+      sourceUrl: SOURCE,
+      confidence: 'stated',
+    },
+    {
+      id: 'cpsc.electives.y34',
+      kind: 'credits',
+      label: 'Electives',
+      n: 32,
+      year: 3,
       from: { kind: 'codes', codes: [] },
       sourceUrl: SOURCE,
       confidence: 'stated',
@@ -174,6 +197,7 @@ export const cpscMajor2026W: Program = {
       id: 'cpsc.upper-years',
       kind: 'group',
       label: 'Third and fourth years',
+      year: 3,
       sourceUrl: SOURCE,
       items: [
         { id: 'cpsc.310', kind: 'course', label: 'CPSC 310', code: 'CPSC 310', sourceUrl: SOURCE, confidence: 'stated' },

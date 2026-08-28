@@ -507,26 +507,10 @@ export function solve(input: SolverInput): Plan {
     //
     // Recomputed each term, so a term that could not use its share hands the
     // surplus to the next one instead of losing it.
-    const termsLeft = Math.max(1, planLength - planned.length);
-    const requiredLeft = need
-      .filter((n) => n.left > 0 && !isSlotShaped(n.p.rule))
-      .flatMap((n) => bundlesFor(n.p.rule, input)[0] ?? [])
-      .filter((c) => !placedIds.has(c.id))
-      .reduce((sum, c) => sum + c.credits, 0);
-    const slotLeft = need
-      .filter((n) => n.left > 0 && isSlotShaped(n.p.rule))
-      .reduce(
-        (sum, n) => sum + (n.p.rule.kind === 'credits' ? n.left : constrainedCredits(n.p.rule, n.left)),
-        0,
-      );
-    // Both sides get a share of the term, and each treats it as a floor it may
-    // overshoot by one item rather than a ceiling it must fit inside. Metering
-    // only the courses does not work: slots have no prerequisites so they
-    // always fit, and they swallow whatever room is left, leaving a
-    // prerequisite-blocked course with nowhere to go later.
-    const perTermForCourses = Math.ceil(requiredLeft / termsLeft);
-    const perTermForSlots = Math.ceil(slotLeft / termsLeft);
-
+    // Which year of the degree this term belongs to. Two winter terms a year,
+    // and a summer session sits inside the year it follows rather than
+    // starting a new one.
+    const yearOfTerm = Math.floor(planned.length / 2) + 1;
     let courseCredits = 0;
     let slotCredits = 0;
     const free = () => prefs.creditsPerTerm - courseCredits - slotCredits;
@@ -550,6 +534,19 @@ export function solve(input: SolverInput): Plan {
       const rule = entry.p.rule;
       const isSlotRule = isSlotShaped(rule);
       if (isSlotRule !== (pass !== 'courses')) continue;
+
+      // Anchor to the Calendar's own sequence. UBC has already decided which
+      // year a requirement belongs to and its tables say so; deriving an order
+      // from prerequisite depth instead reconstructs that badly — it put
+      // CPSC 110 in fourth year, because nothing in a prerequisite graph says
+      // an intro course belongs early.
+      //
+      // Later than its year is allowed and happens naturally when a
+      // prerequisite is missing or the course is not offered. Earlier is not:
+      // a student wanting to compress raises their credit load instead.
+      // The last year is open-ended, so a fourth-year rule is written year 3
+      // and simply never blocks after that.
+      if ((rule.year ?? 1) > yearOfTerm) continue;
 
       // A rule that names an amount rather than a course becomes a slot:
       // "3 credits of Arts". No prerequisites, so nothing to order.
@@ -586,9 +583,6 @@ export function solve(input: SolverInput): Plan {
         // own course set. That is what put MATH 120 and MATH 398 in fourth
         // year long after the calculus requirement was met.
         for (const spec of specs) {
-          // Stop once this term has had its share — except on the top-up,
-          // which exists precisely to spend what the shares left over.
-          if (pass === 'slots' && slotCredits >= perTermForSlots) break;
           if (spec.credits > free()) break;
           const { branchId, ...rest } = spec as typeof spec & { branchId?: string };
           placements.push({ kind: 'slot', ...rest, forRules: [rule.id] });
@@ -622,13 +616,6 @@ export function solve(input: SolverInput): Plan {
         //
         // Zero slack overrides both: a course on the critical path delays the
         // whole plan if it waits, so it takes whatever room is left.
-        // The share is a floor this may overshoot, never a ceiling it must fit
-        // inside. Treating it as a ceiling looks tidier and is worse: a
-        // 4-credit course cannot start against a 6-credit share once a
-        // 3-credit one has gone in, so required courses trickle one a term
-        // and the tail of the plan empties out.
-        const underShare = courseCredits < perTermForCourses;
-        if (!(underShare || slack <= 0)) continue;
         if (cost > free()) continue;
         if (bundle.some((c) => placedIds.has(c.id) || satisfied.has(c.id))) continue;
 

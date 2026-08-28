@@ -50,6 +50,23 @@ type Base = {
    * plan; the slot is drawn from the elective pool rather than added beside it.
    */
   constraint?: boolean;
+  /**
+   * The year of the degree the Calendar puts this requirement in.
+   *
+   * UBC already publishes a curated sequence — which courses pair well, which
+   * crush a term — and the program tables state it directly. Deriving an
+   * order from prerequisite depth instead reconstructs, badly, an answer we
+   * were handed: it produced plans with CPSC 110 in fourth year, because
+   * nothing in a prerequisite graph says an intro course belongs early.
+   *
+   * A rule may be pushed LATER than its year when a prerequisite is missing
+   * or the course is not offered, and the plan says so. It is never pulled
+   * earlier on its own; a student wanting to compress raises their credit
+   * load, which is already a control.
+   *
+   * Inherited from the enclosing group, so only the year groups carry it.
+   */
+  year?: number;
 };
 
 export type Rule =
@@ -82,6 +99,23 @@ export type Program = {
   /** Minimum credits for the credential as a whole. */
   totalCredits: number;
 };
+
+/**
+ * Push each group's year down onto its children, so a rule can be read on its
+ * own. Only the year groups declare it; nothing nested has to repeat it.
+ */
+export function withYears(rules: Rule[], inherited?: number): Rule[] {
+  return rules.map((rule) => {
+    const year = rule.year ?? inherited;
+    if (rule.kind === 'group') {
+      return { ...rule, year, items: withYears(rule.items, year) };
+    }
+    if (rule.kind === 'chooseN') {
+      return { ...rule, year, of: withYears(rule.of, year) };
+    }
+    return { ...rule, year };
+  });
+}
 
 /** Depth-first walk, parents before children. */
 export function walk(rules: Rule[], visit: (r: Rule) => void): void {

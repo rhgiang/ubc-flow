@@ -98,7 +98,6 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   // dangerous direction. Until grades are captured this plans a fresh start,
   // which is exactly the public roadmap a signed-out visitor should see.
   const completions: Completion[] = [];
-  const checklist = progress(completions, rules);
   const plan = solve({
     outstanding: outstanding(completions, rules),
     completed: [],
@@ -109,7 +108,22 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
     prefs: { creditsPerTerm: load, useSummer, targetTermId: null },
   });
 
+  // The checklist reads against the plan, not just against what is already
+  // done. A required MATH or STAT course counts toward Science Breadth like
+  // any other, so a plan that schedules them has met those categories — and
+  // reporting "0 of 6" beside a plan that covers three of them is simply
+  // wrong about its own output.
+  const plannedCourses = plan.terms.flatMap((t) =>
+    t.placements.flatMap((pl) => (pl.kind === 'course' ? [pl.course] : [])),
+  );
+  const checklist = progress(
+    [...completions, ...plannedCourses.map((course) => ({ course, status: 'passed' as const }))],
+    rules,
+  );
+
   const totalRules = obligations(rules).filter((r) => r.kind !== 'note').length;
+  /** Year of the degree a term sits in — two winter terms to a year. */
+  const yearOf = (i: number) => Math.floor(i / 2) + 1;
   const href = (over: Record<string, string | number>) => {
     const p = new URLSearchParams({
       program: program.code,
@@ -184,10 +198,20 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
               </p>
             ) : (
               <ol className="mt-4 space-y-3">
-                {plan.terms.map((t) => (
+                {plan.terms.map((t, i) => (
                   <li key={t.term.id} className="rounded-card border border-border p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                    <p className="flex flex-wrap items-baseline gap-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                      <span className="rounded-pill bg-surface-muted px-2 py-0.5 text-foreground">
+                        Year {yearOf(i)}
+                      </span>
                       {t.term.name}
+                      <span className="ml-auto font-normal normal-case opacity-70">
+                        {t.placements.reduce(
+                          (n, pl) => n + (pl.kind === 'course' ? pl.course.credits : pl.credits),
+                          0,
+                        )}{' '}
+                        credits
+                      </span>
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {t.placements.map((pl, i) =>

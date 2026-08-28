@@ -807,6 +807,25 @@ export function solve(input: SolverInput): Plan {
     if (prefs.targetTermId && term.id === prefs.targetTermId) break;
   }
 
+  // A tail term holding nothing but a sliver of slots is not a term anyone
+  // registers in. The B.Com. is the case that surfaced it: 121 credits at 15
+  // a term is 8.07 terms, so a ninth term opened to hold one credit of
+  // electives. Real students take 16 credits once instead, which is what the
+  // Calendar's own 31-credit second year describes.
+  //
+  // Only slots move, and only backwards into the term before. A slot has no
+  // prerequisites, so relocating it cannot invalidate an ordering; a course
+  // can, which is why courses stay where the solver put them.
+  const last = planned[planned.length - 1];
+  const previous = planned[planned.length - 2];
+  if (last && previous && last.placements.every((p) => p.kind === 'slot')) {
+    const tail = last.placements.reduce((n, p) => n + (p.kind === 'slot' ? p.credits : 0), 0);
+    if (tail < SLOT_CREDITS) {
+      previous.placements.push(...last.placements);
+      planned.pop();
+    }
+  }
+
   const unplaced = need
     .filter((n) => n.left > 0)
     .map((n) => ({

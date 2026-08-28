@@ -976,3 +976,38 @@ describe('a constraint is charged to electives only', () => {
     expect(creditsFor(plan, 'req')).toBe(8); // 3 + 3 + a shrunk 2
   });
 });
+
+describe('a degree that does not divide evenly into terms', () => {
+  it('does not open a term for a sliver of credits', () => {
+    // The B.Com. is 121 credits, and 121 at 15 a term is 8.07 terms. A ninth
+    // term opened to hold one credit of electives, which nobody registers in.
+    // Real students take 16 credits once instead — the Calendar's own
+    // second-year table is 31 credits for the same reason.
+    const plan = solve({
+      outstanding: outstanding([], [
+        { id: 'e', kind: 'credits', label: 'Electives', elective: true, n: 121, from: { kind: 'codes', codes: [] } },
+      ]),
+      completed: [], catalogue: [], prereqs: new Map(), offerings: new Map(),
+      terms: Array.from({ length: 12 }, (_, i) => ({ id: `t${i}`, name: `T${i}`, available: true, projected: true })),
+      prefs: { creditsPerTerm: 15, useSummer: false, targetTermId: null },
+    });
+    const credits = (t: (typeof plan.terms)[number]) =>
+      t.placements.reduce((n, p) => n + (p.kind === 'slot' ? p.credits : p.course.credits), 0);
+    expect(plan.terms).toHaveLength(8);
+    expect(credits(plan.terms[7])).toBe(16);
+    expect(plan.terms.reduce((n, t) => n + credits(t), 0)).toBe(121);
+  });
+
+  it('leaves a full final term alone', () => {
+    // The merge is for slivers only — a tail worth a real term stays put.
+    const plan = solve({
+      outstanding: outstanding([], [
+        { id: 'e', kind: 'credits', label: 'Electives', elective: true, n: 126, from: { kind: 'codes', codes: [] } },
+      ]),
+      completed: [], catalogue: [], prereqs: new Map(), offerings: new Map(),
+      terms: Array.from({ length: 12 }, (_, i) => ({ id: `t${i}`, name: `T${i}`, available: true, projected: true })),
+      prefs: { creditsPerTerm: 15, useSummer: false, targetTermId: null },
+    });
+    expect(plan.terms).toHaveLength(9); // 8 x 15 + 6
+  });
+});

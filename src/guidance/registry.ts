@@ -3,6 +3,13 @@ import { artsFacultyCore2026W } from '@/guidance/programs/arts-faculty-core-2026
 import { biocMajor2026W } from '@/guidance/programs/bioc-major-2026w';
 import { biolMajor2026W } from '@/guidance/programs/biol-major-2026w';
 import { chemMajor2026W } from '@/guidance/programs/chem-major-2026w';
+import {
+  commAccounting2026W,
+  commFinance2026W,
+  commGeneral2026W,
+  commMarketing2026W,
+} from '@/guidance/programs/comm-options-2026w';
+import { commerceCore2026W } from '@/guidance/programs/commerce-core-2026w';
 import { cpscMajor2026W } from '@/guidance/programs/cpsc-major-2026w';
 import { scienceFacultyCore2026W } from '@/guidance/programs/science-faculty-core-2026w';
 import { econMajor2026W } from '@/guidance/programs/econ-major-2026w';
@@ -28,10 +35,15 @@ import { statMajor2026W } from '@/guidance/programs/stat-major-2026w';
  */
 const PROGRAMS: Program[] = [
   artsFacultyCore2026W,
+  commerceCore2026W,
   scienceFacultyCore2026W,
   biocMajor2026W,
   biolMajor2026W,
   chemMajor2026W,
+  commAccounting2026W,
+  commFinance2026W,
+  commGeneral2026W,
+  commMarketing2026W,
   cpscMajor2026W,
   econMajor2026W,
   englMajor2026W,

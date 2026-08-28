@@ -691,3 +691,30 @@ describe('course codes glued to the next word', () => {
     expect(codesOnPage('<td>CPSC_V 449A and CPSC_V 491</td>').has('CPSC 449A')).toBe(true);
   });
 });
+
+describe('lettered prerequisite alternatives', () => {
+  it('reads "(a) …; or (b) …" as alternatives, not as a conjunction', () => {
+    // STAT 305's real shape. parseRequirements splits on the semicolons and
+    // joins the pieces with AND, which demands every option at once —
+    // including DSCI 200, which a Statistics major never takes.
+    const parsed: Requirement = {
+      type: 'and',
+      items: [
+        { type: 'note', text: 'Either (a) one of STAT_V 200 and one of STAT_V 302' },
+        { type: 'note', text: 'or (b) DSCI_V 200 and STAT_V 201 and one of STAT_V 302' },
+        { type: 'note', text: 'The Department recommends option (a).' },
+      ],
+    };
+    const ids = new Map([
+      ['STAT 200', 'STAT 200'], ['STAT 201', 'STAT 201'],
+      ['STAT 302', 'STAT 302'], ['DSCI 200', 'DSCI 200'],
+    ]);
+    const t = tightenNotes(parsed, ids);
+    // Option (a) alone is enough; DSCI 200 is not needed.
+    expect(treeMet(t, new Set(['STAT 200', 'STAT 302']))).toBe(true);
+    // And option (b) alone is also enough.
+    expect(treeMet(t, new Set(['DSCI 200', 'STAT 201', 'STAT 302']))).toBe(true);
+    // But nothing at all is still not enough.
+    expect(treeMet(t, new Set())).toBe(false);
+  });
+});

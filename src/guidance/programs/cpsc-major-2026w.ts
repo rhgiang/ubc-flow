@@ -166,7 +166,7 @@ export const cpscMajor2026W: Program = {
     {
       id: 'cpsc.electives.y1',
       kind: 'credits',
-      label: 'Electives',
+      label: 'Electives', elective: true,
       n: 10,
       year: 1,
       from: { kind: 'codes', codes: [] },
@@ -176,7 +176,7 @@ export const cpscMajor2026W: Program = {
     {
       id: 'cpsc.electives.y2',
       kind: 'credits',
-      label: 'Electives',
+      label: 'Electives', elective: true,
       n: 9,
       year: 2,
       from: { kind: 'codes', codes: [] },
@@ -186,7 +186,7 @@ export const cpscMajor2026W: Program = {
     {
       id: 'cpsc.electives.y34',
       kind: 'credits',
-      label: 'Electives',
+      label: 'Electives', elective: true,
       n: 32,
       year: 3,
       from: { kind: 'codes', codes: [] },

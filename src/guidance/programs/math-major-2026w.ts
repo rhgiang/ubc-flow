@@ -159,11 +159,11 @@ export const mathMajor2026W: Program = {
     },
     // 11 + 15 + 30 across the three tables, kept per year so they spread the
     // way the Calendar intends rather than by a solver heuristic.
-    { id: 'math.electives.y1', kind: 'credits', label: 'Electives', n: 11, year: 1,
+    { id: 'math.electives.y1', kind: 'credits', label: 'Electives', elective: true, n: 11, year: 1,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'math.electives.y2', kind: 'credits', label: 'Electives', n: 15, year: 2,
+    { id: 'math.electives.y2', kind: 'credits', label: 'Electives', elective: true, n: 15, year: 2,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'math.electives.y34', kind: 'credits', label: 'Electives', n: 30, year: 3,
+    { id: 'math.electives.y34', kind: 'credits', label: 'Electives', elective: true, n: 30, year: 3,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
   ],
 };

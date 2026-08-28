@@ -177,9 +177,9 @@ export const biolMajor2026W: Program = {
       ],
     },
     // 3 in second year and 29 across the upper years.
-    { id: 'biol.electives.y2', kind: 'credits', label: 'Electives', n: 3, year: 2,
+    { id: 'biol.electives.y2', kind: 'credits', label: 'Electives', elective: true, n: 3, year: 2,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'biol.electives.y34', kind: 'credits', label: 'Electives', n: 29, year: 3,
+    { id: 'biol.electives.y34', kind: 'credits', label: 'Electives', elective: true, n: 29, year: 3,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
   ],
 };

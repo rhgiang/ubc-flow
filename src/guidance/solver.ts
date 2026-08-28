@@ -572,7 +572,12 @@ export function solve(input: SolverInput): Plan {
     for (const bucket of need) {
       if (owed <= 0) break;
       const rule = bucket.p.rule;
-      if (bucket.left <= 0 || rule.kind !== 'credits' || rule.constraint) continue;
+      // Only genuine electives. Testing for "a credits rule that is not a
+      // constraint" also matched real requirements — the Communication
+      // Requirement and the Ways of Knowing areas are credits rules over an
+      // untranscribed list — and charging them meant the plan quietly
+      // replaced required coursework with the constraint's own slots.
+      if (bucket.left <= 0 || !rule.elective) continue;
       const taken = Math.min(bucket.left, owed);
       bucket.left -= taken;
       owed -= taken;
@@ -708,8 +713,14 @@ export function solve(input: SolverInput): Plan {
           // UBC has 1- and 2-credit courses, so "2 credits of electives" is a
           // real instruction. Only on the top-up, where the alternative is
           // leaving the credits stranded.
+          // Only a plain credits rule may shrink. There `left` counts credits,
+          // so a shortened slot leaves the remainder owed and it comes back in
+          // a later term. A chooseN counts BRANCHES — one slot closes a whole
+          // branch however small it was cut — so shrinking one silently
+          // under-delivers it. That is how a 6-credit Psychology content area
+          // was satisfied by a 3-credit slot.
           if (spec.credits > free()) {
-            if (pass !== 'topup' || free() < 1) break;
+            if (pass !== 'topup' || free() < 1 || rule.kind !== 'credits') break;
             spec = { ...spec, credits: free() };
           }
           const { branchId, ...rest } = spec as typeof spec & { branchId?: string };

@@ -127,11 +127,11 @@ export const chemMajor2026W: Program = {
       ],
     },
     // 7 + 6 + 20 across the three tables.
-    { id: 'chem.electives.y1', kind: 'credits', label: 'Electives', n: 7, year: 1,
+    { id: 'chem.electives.y1', kind: 'credits', label: 'Electives', elective: true, n: 7, year: 1,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'chem.electives.y2', kind: 'credits', label: 'Electives', n: 6, year: 2,
+    { id: 'chem.electives.y2', kind: 'credits', label: 'Electives', elective: true, n: 6, year: 2,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
-    { id: 'chem.electives.y34', kind: 'credits', label: 'Electives', n: 20, year: 3,
+    { id: 'chem.electives.y34', kind: 'credits', label: 'Electives', elective: true, n: 20, year: 3,
       from: { kind: 'codes', codes: [] }, sourceUrl: SOURCE, confidence: 'stated' },
   ],
 };

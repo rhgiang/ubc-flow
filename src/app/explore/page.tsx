@@ -16,6 +16,7 @@ type SP = {
   level?: string; // comma-separated: "1,2,3"
   term?: string; // "this" | "next"
   requirements?: string; // "none" | "has"
+  faculty?: string; // Subject.faculty, e.g. "Faculty of Science"
   sort?: string;
   page?: string;
 };
@@ -37,6 +38,27 @@ function hrefWith(sp: SP, overrides: Partial<Record<keyof SP, string | null>>): 
 
 const LEVELS = [1, 2, 3, 4, 5] as const;
 
+/**
+ * Degree label -> Subject.faculty, as the Calendar writes it.
+ *
+ * A course is not itself a BA or a BSc — degrees are programs. What people
+ * mean by "BSc courses" is courses whose subject belongs to Science, so the
+ * filter is by faculty and the label names the degree that faculty grants.
+ * Only the faculties with a well-known undergraduate degree are listed;
+ * filtering by School of Audiology helps nobody.
+ *
+ * Nursing and Kinesiology are deliberately absent. UBC nests those schools
+ * inside a parent faculty, and the Calendar files their subjects there —
+ * NURS courses come back under Applied Science. Offering "BSN · Nursing" as
+ * its own row would return nothing, which is worse than not offering it.
+ */
+const DEGREE_FACULTIES: [string, string][] = [
+  ['BA · Arts', 'Faculty of Arts'],
+  ['BSc · Science', 'Faculty of Science'],
+  ['BASc · Applied Science', 'Faculty of Applied Science'],
+  ['BCom · Commerce', 'Faculty of Commerce and Business Administration'],
+];
+
 export default async function ExplorePage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const tab: Tab = sp.tab === 'professors' ? 'professors' : 'courses';
@@ -47,6 +69,9 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
     .filter((n) => LEVELS.includes(n as (typeof LEVELS)[number]));
   const requirements = sp.requirements === 'none' || sp.requirements === 'has' ? sp.requirements : undefined;
   const page = Math.max(1, Number(sp.page) || 1);
+  // Matched against the list we offer, so the query only ever sees a faculty
+  // we chose to expose — same treatment termId gets.
+  const faculty = DEGREE_FACULTIES.some(([, f]) => f === sp.faculty) ? sp.faculty : undefined;
 
   const [terms, subjects, courseTotal, professorTotal] = await Promise.all([
     db.term.findMany({ where: { campus: 'V' } }),
@@ -70,6 +95,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
       ? await listCourses({
           q,
           subject: subjectList[0],
+          faculty,
           levels,
           termId,
           requirements,
@@ -84,7 +110,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
 
   const total = tab === 'courses' ? courseResult!.total : professorResult!.total;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const hasFilters = Boolean(q || sp.subject || levels.length || sp.term || requirements);
+  const hasFilters = Boolean(q || sp.subject || levels.length || sp.term || requirements || faculty);
 
   const SORT_HEADERS: { key: CourseSort | ProfessorSort; label: string }[] =
     tab === 'courses'
@@ -144,6 +170,23 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                 }`}
               >
                 {t.name.replace(' (UBC-V)', '')}
+              </Link>
+            ))}
+          </div>
+
+          <p className="mt-5 text-xs font-medium text-text-secondary">Degree</p>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {DEGREE_FACULTIES.map(([label, f]) => (
+              <Link
+                key={f}
+                href={hrefWith(sp, { faculty: faculty === f ? null : f })}
+                className={`rounded-pill border px-3.5 py-2 text-left text-sm font-medium ${
+                  faculty === f
+                    ? 'border-brand bg-brand text-brand-foreground'
+                    : 'border-border text-foreground hover:bg-surface-muted'
+                }`}
+              >
+                {label}
               </Link>
             ))}
           </div>

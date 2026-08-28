@@ -10,6 +10,8 @@ export type ProfessorSort = 'ratings' | 'name' | 'clear' | 'engaging' | 'liked';
 export type CourseFilters = {
   q?: string;
   subject?: string;
+  /** Subject.faculty verbatim, e.g. "Faculty of Science". */
+  faculty?: string;
   levels?: number[]; // 1-4 = that hundred level, 5 = 500 and up
   termId?: string;
   requirements?: 'none' | 'has';
@@ -99,6 +101,10 @@ export async function listCourses(
     campus: 'V',
     ...(filters.q ? buildSearchWhere(filters.q) : {}),
     ...(filters.subject ? { subject: { code: filters.subject } } : {}),
+    // A course has no degree of its own — degrees are programs. What a "BSc
+    // course" actually means is one whose subject belongs to Science, so the
+    // filter is by faculty and the labels name the degree it maps to.
+    ...(filters.faculty ? { subject: { faculty: filters.faculty } } : {}),
     ...levelWhere(levels),
     ...(filters.requirements === 'none' ? { prereqText: null } : {}),
     ...(filters.requirements === 'has' ? { prereqText: { not: null } } : {}),

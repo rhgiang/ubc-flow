@@ -53,3 +53,6 @@ rgschedule/
 # Source wallpaper images. The one actually used is copied into
 # public/sky-light.jpg; keeping the ~10MB originals out of git history.
 wallpaper/
+
+# Throwaway verification scripts (screenshots, one-off probes).
+.*.mjs

@@ -19,7 +19,14 @@ const MIN_RETAINED_FRACTION = 0.8;
  *
  * One request per subject, rate-limited to one a second by fetchText, so
  * roughly four minutes for Vancouver. Kept out of scrape:all: the catalogue
- * changes on the Calendar's yearly cycle, not per term.
+ * changes on the Calendar's yearly cycle, not per term. Bootstrap order for a
+ * fresh database is scrape:catalog, scrape:faculties, scrape:courses,
+ * scrape:sections, scrape:descriptions, enrich:prereqs.
+ *
+ * ponytail: a findUnique then an update or create per course — about 11,000
+ * round trips for a full run. Fine for a yearly job against localhost; batch
+ * per subject with createMany + updateMany if this ever runs against a remote
+ * database on a schedule.
  *
  * Existing rows are updated in title and credits only. Descriptions,
  * prerequisite text and the parsed trees belong to the descriptions and
@@ -84,11 +91,19 @@ export async function scrapeCatalogueCourses() {
   }
 
   const after = await db.course.count({ where: { campus: CAMPUS } });
-  if (before > 0 && after < before * MIN_RETAINED_FRACTION) {
-    console.error(`ABORT-WORTHY: course count fell from ${before} to ${after}.`);
-  }
   console.log(
     `created ${created}, updated ${updated}, ${failed} subject page(s) unavailable. ` +
       `Courses: ${before} -> ${after}.`,
   );
+
+  // The other scrapers refuse to write when a parse comes back suspiciously
+  // thin. This job cannot do the same — it only ever adds, so the count never
+  // falls — but it can say when a run found almost nothing, which is what a
+  // markup change would look like from here.
+  if (before > 0 && created + updated < before * MIN_RETAINED_FRACTION) {
+    console.error(
+      `WARNING: only ${created + updated} courses parsed against ${before} known. ` +
+        'Calendar markup may have changed.',
+    );
+  }
 }

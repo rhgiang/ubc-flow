@@ -22,6 +22,7 @@ import { parseCourseDescriptions, subjectPath } from '@/scrape/parse-course-desc
 import { codesOnPage } from '@/guidance/jobs/verify';
 import { validateProgram } from '@/guidance/validate';
 import { artsFacultyCore2026W } from '@/guidance/programs/arts-faculty-core-2026w';
+import { scienceFacultyCore2026W } from '@/guidance/programs/science-faculty-core-2026w';
 import type { Program } from '@/guidance/rules';
 
 /** courseId doubles as the code in these fixtures, so a tree is easy to build. */
@@ -861,5 +862,56 @@ describe('Arts faculty core', () => {
       .flatMap((t) => t.placements)
       .reduce((n, p) => n + (p.kind === 'slot' ? p.credits : p.course.credits), 0);
     expect(total).toBeGreaterThan(24);
+  });
+});
+
+describe('Science Breadth categories match the Calendar', () => {
+  const cats = new Map<string, Extract<Rule, { kind: 'credits' }>>();
+  walk(scienceFacultyCore2026W.rules, (r) => {
+    if (r.kind === 'credits' && r.id.startsWith('sci.breadth.')) cats.set(r.id, r);
+  });
+  const subjectsOf = (id: string) => {
+    const set = cats.get(id)!.from;
+    return set.kind === 'pattern' ? (set.subjects ?? []) : [];
+  };
+
+  it('puts Astronomy under Earth & Planetary Science, not Physics', () => {
+    // ASTR was guessed into Physics. The Calendar lists it in category 7.
+    expect(subjectsOf('sci.breadth.phys')).not.toContain('ASTR');
+    expect(subjectsOf('sci.breadth.eosc')).toContain('ASTR');
+  });
+
+  it('does not invent CAPS as a Life Science subject', () => {
+    // CAPS carries science credit, which is a different rule; the Calendar
+    // lists no CAPS in any breadth category.
+    expect(subjectsOf('sci.breadth.life')).not.toContain('CAPS');
+  });
+
+  it('covers the subjects that were missing entirely', () => {
+    expect(subjectsOf('sci.breadth.cpsc')).toContain('AI');
+    expect(subjectsOf('sci.breadth.eosc')).toEqual(
+      expect.arrayContaining(['ATSC', 'GEOS', 'ENVR', 'EOSC']),
+    );
+  });
+
+  it('keeps the excluded courses out of their own subject category', () => {
+    const excluded = (id: string) => {
+      const set = cats.get(id)!.from;
+      return set.kind === 'pattern' ? (set.exclude ?? []) : [];
+    };
+    expect(excluded('sci.breadth.phys')).toContain('PHYS 100');
+    expect(excluded('sci.breadth.chem')).toEqual(expect.arrayContaining(['CHEM 100', 'CHEM 300']));
+    expect(excluded('sci.breadth.math')).toContain('MATH 302');
+    expect(excluded('sci.breadth.eosc')).toEqual(expect.arrayContaining(['EOSC 111', 'GEOS 207']));
+  });
+
+  it('excludes GEOS from the 12 Arts credits', () => {
+    // Geography is a Faculty of Arts subject, so a bare faculty pattern
+    // counted GEOS toward the Arts requirement. The Calendar excludes it —
+    // those courses carry science credit instead.
+    const arts = [...cats.values()].find((r) => r.id === 'sci.arts')
+      ?? (() => { let f: Rule | undefined; walk(scienceFacultyCore2026W.rules, (r) => { if (r.id === 'sci.arts') f = r; }); return f as Extract<Rule, { kind: 'credits' }>; })();
+    expect(matches(arts.from, course('GEOS 102', 3, 'Faculty of Arts'))).toBe(false);
+    expect(matches(arts.from, course('ENGL 112', 3, 'Faculty of Arts'))).toBe(true);
   });
 });

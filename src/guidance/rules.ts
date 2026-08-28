@@ -30,6 +30,13 @@ export type CourseSet =
       levelMax?: number;
       /** Codes to remove from whatever the pattern matched. */
       exclude?: string[];
+      /**
+       * Whole subjects to remove, for a faculty pattern that does not want
+       * all of its faculty. The B.Sc. Arts requirement is the case: Geography
+       * sits in the Faculty of Arts, but the Calendar excludes GEOS from the
+       * 12 Arts credits because those courses carry science credit instead.
+       */
+      excludeSubjects?: string[];
     };
 
 type Base = {
@@ -167,6 +174,7 @@ export function courseLevel(number: string): number {
 export function matches(set: CourseSet, course: CourseRef): boolean {
   if (set.kind === 'codes') return set.codes.includes(course.code);
   if (set.exclude?.includes(course.code)) return false;
+  if (set.excludeSubjects?.includes(course.subject)) return false;
   if (set.subjects && !set.subjects.includes(course.subject)) return false;
   // A faculty pattern with no faculty data matches nothing rather than
   // everything — an unpopulated Subject.faculty must not silently turn

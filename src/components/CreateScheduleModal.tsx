@@ -1,25 +1,36 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
 import { writePendingTerms } from '@/schedule/pending-import';
+import { useAuthOverlay } from '@/components/AuthOverlayContext';
 
 type Term = { id: string; name: string };
 
-export default function CreateScheduleModal({ terms }: { terms: Term[] }) {
+export default function CreateScheduleModal({
+  terms,
+  loggedIn,
+}: {
+  terms: Term[];
+  /** Signed-out visitors can browse /schedule, but starting either flow
+   *  below requires an account — so both buttons prompt sign-in first. */
+  loggedIn: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [name, setName] = useState('');
   const [termId, setTermId] = useState(terms[0]?.id ?? '');
   const router = useRouter();
+  const { open: openAuth } = useAuthOverlay();
 
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => (loggedIn ? setOpen(true) : openAuth('login', () => setOpen(true)))}
           className="rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100"
         >
           Build Schedule
@@ -29,7 +40,9 @@ export default function CreateScheduleModal({ terms }: { terms: Term[] }) {
             left them stranded there if the import failed or was cancelled. */}
         <button
           type="button"
-          onClick={() => setImporting(true)}
+          onClick={() =>
+            loggedIn ? setImporting(true) : openAuth('login', () => setImporting(true))
+          }
           className="rounded-pill border border-border px-5 py-2.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
         >
           Import from Workday
@@ -48,13 +61,19 @@ export default function CreateScheduleModal({ terms }: { terms: Term[] }) {
         }}
       />
 
-      {open && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-6 backdrop-blur-sm"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
-          }}
-        >
+      {/* Portalled to <body>: this component renders inside .sky-hero (see
+          /schedule/page.tsx), which overrides --foreground to white for its
+          own title text. A `fixed` dialog is still a DOM descendant even
+          though it's visually independent, so without the portal it inherited
+          that white text onto its own light card — invisible in light mode. */}
+      {open &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-6 backdrop-blur-sm"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setOpen(false);
+            }}
+          >
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -113,8 +132,9 @@ export default function CreateScheduleModal({ terms }: { terms: Term[] }) {
               </button>
             </div>
           </form>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

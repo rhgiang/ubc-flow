@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { parseWorkdayForSchedule, type ImportResult, type SkippedRow } from '@/app/actions/import';
 import type { ImportedTerm } from '@/upload/match-schedule';
 import { UBC_WORKDAY_URL } from '@/lib/links';
@@ -132,7 +133,13 @@ export default function WorkdayImportOverlay({
     }
   }
 
-  return (
+  // Portalled to <body> because CreateScheduleModal (one of two callers)
+  // renders this inside .sky-hero, which overrides --foreground to white for
+  // its own title text. A `fixed` dialog is still a DOM descendant even
+  // though it's visually independent, so without the portal it inherited
+  // that white text onto its own light card — invisible in light mode. The
+  // builder-page caller has no sky ancestor, so the portal is a no-op there.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -324,6 +331,7 @@ export default function WorkdayImportOverlay({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

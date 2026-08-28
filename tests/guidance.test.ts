@@ -745,3 +745,50 @@ describe('lettered alternatives inside a single note', () => {
     expect(treeMet(t, new Set())).toBe(false);
   });
 });
+
+describe('subject codes glued to a footnote and the next subject', () => {
+  it('does not read the next subject\'s initial as a course-letter suffix', () => {
+    // The real run from the Microbiology page: course, footnote marker,
+    // credit count and the next subject, with no separator anywhere.
+    const found = codesOnPage('<td>MICB_V 471 (or 421 or 447)123MICB_V 305 (or 401 or 475)123</td>');
+    expect(found.has('MICB 471')).toBe(true);
+    expect(found.has('MICB 305')).toBe(true);
+    expect(found.has('MICB 123M')).toBe(false); // the artifact
+    expect([...found].some((c) => c.startsWith('ICB'))).toBe(false); // the corrupted subject
+  });
+
+  it('still reads a real course-letter suffix', () => {
+    expect(codesOnPage('<td>CPSC_V 449A and MATH_V 449</td>').has('CPSC 449A')).toBe(true);
+  });
+});
+
+describe('corequisites', () => {
+  const ids = new Map([
+    ['BIOC 203', 'BIOC 203'], ['BIOC 303', 'BIOC 303'],
+    ['MICB 211', 'MICB 211'], ['BIOL 200', 'BIOL 200'], ['CHEM 233', 'CHEM 233'],
+  ]);
+
+  it('does not require a corequisite named in a clause', () => {
+    // BIOC 306. Requiring BIOC 303 earlier makes 306 unplaceable against a
+    // plan that schedules both in the same year.
+    const t = tightenNotes(
+      { type: 'note', text: 'BIOC_V 203 and a corequisite of BIOC_V 303' },
+      ids,
+    );
+    expect(treeMet(t, new Set(['BIOC 203']))).toBe(true);
+    expect(treeMet(t, new Set())).toBe(false); // the real prerequisite still holds
+  });
+
+  it('does not require corequisites listed in their own sentence', () => {
+    // MICB 322, which took MICB 323 down with it.
+    const t = tightenNotes(
+      {
+        type: 'note',
+        text: 'MICB_V 211 (or 201). Co-requisites: All of BIOL_V 200, CHEM_V 233.',
+      },
+      ids,
+    );
+    expect(treeMet(t, new Set(['MICB 211']))).toBe(true);
+    expect(treeMet(t, new Set())).toBe(false);
+  });
+});

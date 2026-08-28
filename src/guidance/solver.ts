@@ -115,6 +115,11 @@ export type SolverInput = {
  */
 /** SUBJ[_CAMPUS] NNN[letter], the same shape src/prereqs/parse.ts matches. */
 const CODE_IN_TEXT = /\b([A-Z]{2,5})(?:_[A-Z])?\s?(\d{2,3}[A-Z]?)\b/g;
+/**
+ * A subject token or a bare course number, for reading prose where the
+ * subject is stated once and the numbers that follow inherit it.
+ */
+const SUBJECT_OR_NUMBER = /([A-Z]{2,5})(?:_[A-Z])?\s?(?=\d)|(\d{2,3}[A-Z]?)/g;
 
 /**
  * Rewrite `note` nodes that actually name courses into course requirements.
@@ -167,6 +172,25 @@ export function tightenNotes(
   }
   if (tree.type !== 'note') return tree;
 
+  // Corequisites are not ordering constraints. A corequisite may be taken in
+  // the SAME term, so requiring it to be satisfied by an earlier one — which
+  // is what every other course reference here means — makes the course
+  // permanently unplaceable against a plan that schedules both together.
+  // MICB 322 lists four of them and was unreachable for exactly that reason,
+  // taking MICB 323 with it; BIOC 306's "a corequisite of BIOC 303" did the
+  // same.
+  //
+  // The clause is dropped rather than modelled. Co-scheduling is a real
+  // constraint, but the plan already places both courses, and the honest
+  // failure here is being too strict rather than too loose.
+  const text = tree.text
+    // "Co-requisites: All of BIOL 200, …" — a sentence of its own, to the end.
+    .replace(/\bco-?requisites?\s*:[\s\S]*$/i, '')
+    // "and a corequisite of BIOC 303" — a clause inside a larger sentence,
+    // ending at the next branch marker or full stop.
+    .replace(/\b(?:and\s+)?a\s+co-?requisite\s+of\b[^.;]*/gi, '');
+  if (text !== tree.text) return tightenNotes({ type: 'note', text }, codeToId);
+
   // Lettered alternatives inside a single note. BIOL 200 reads "Either (a)
   // BIOL 112 and one of CHEM 123, CHEM 130 or (b) SCIE 001 or (c) 8 transfer
   // credits … or (d) …", all in one sentence, so the whole thing arrives as
@@ -190,8 +214,18 @@ export function tightenNotes(
   const segments: Requirement[] = [];
   for (const segment of tree.text.split(/\band\b/i)) {
     const options: Requirement[] = [];
-    for (const m of segment.matchAll(CODE_IN_TEXT)) {
-      const code = `${m[1]} ${m[2]}`;
+    // Bare numbers inherit the nearest subject, the same shorthand the
+    // Calendar uses. "MICB_V 211 (or 201)" names two courses, and reading
+    // only the first made MICB 322 demand 211 specifically — unsatisfiable
+    // for a student the plan had sent to 201, and it took MICB 323 with it.
+    let subject: string | null = null;
+    for (const m of segment.matchAll(SUBJECT_OR_NUMBER)) {
+      if (m[1]) {
+        subject = m[1];
+        continue;
+      }
+      if (!m[2] || !subject) continue;
+      const code = `${subject} ${m[2]}`;
       const id = codeToId.get(code);
       if (id && !options.some((o) => o.type === 'course' && o.courseId === id)) {
         options.push({ type: 'course', code, courseId: id });

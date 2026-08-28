@@ -45,11 +45,15 @@ export function codesOnPage(html: string): Set<string> {
   const text = cheerio.load(html).text();
   const out = new Set<string>();
   // A subject token, a bare course number, or a sentence break.
-  // A trailing capital is a course-letter suffix (491A) only when a lowercase
-  // letter does not follow it. Without that guard the last code in a run gets
-  // the next word's initial glued on — "…527, 528BiologyBIOL_V…" read as
-  // ANTH 528B — and every list's final entry looked invented.
-  const token = /([A-Z]{2,5})_[VO]|(\d{3}(?:[A-Z](?![a-z]))?)\d*|([.;:]\s)/g;
+  //
+  // A trailing capital is a course-letter suffix (491A) only when NO letter
+  // follows it at all. Excluding just a following lowercase is not enough:
+  // "…447)123MICB_V 305…" — a footnote marker, a credit count and the next
+  // subject with no separator — let the M of MICB be read as the suffix,
+  // leaving "ICB_V 305" behind. The subject then parsed as ICB and MICB 305
+  // looked invented, while MICB 123M and its siblings appeared out of
+  // nowhere. A real suffix is always followed by space or punctuation.
+  const token = /([A-Z]{2,5})_[VO]|(\d{3}(?:[A-Z](?![A-Za-z]))?)\d*|([.;:]\s)/g;
   let subject: string | null = null;
   for (const m of text.matchAll(token)) {
     if (m[1]) subject = m[1];

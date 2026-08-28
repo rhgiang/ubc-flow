@@ -93,9 +93,15 @@ export const eoscMajor2026W: Program = {
           kind: 'credits',
           label: 'Communication requirement (approved list)',
           n: 3,
-          from: { kind: 'codes', codes: [] },
+          from: {
+            kind: 'codes',
+            // The Calendar's approved list in full. The last two are marked
+            // there as REQUIRED of Chemistry and Environmental Sciences
+            // specializations respectively, but they are approved for anyone.
+            codes: ['WRDS 150', 'ENGL 110', 'ENGL 111', 'SCIE 300', 'CHEM 300', 'ENVR 200'],
+          },
           sourceUrl: COMM,
-          confidence: 'inferred',
+          confidence: 'stated',
         },
         one('eosc.211', 'EOSC 211 or GEOS/GEOB 270', ['EOSC 211', 'GEOS 270', 'GEOB 270']),
         course('eosc.212', 'EOSC 212'),

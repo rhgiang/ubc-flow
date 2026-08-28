@@ -60,9 +60,15 @@ export const physMajor2026W: Program = {
           kind: 'credits',
           label: 'Communication requirement (approved list)',
           n: 3,
-          from: { kind: 'codes', codes: [] },
+          from: {
+            kind: 'codes',
+            // The Calendar's approved list in full. The last two are marked
+            // there as REQUIRED of Chemistry and Environmental Sciences
+            // specializations respectively, but they are approved for anyone.
+            codes: ['WRDS 150', 'ENGL 110', 'ENGL 111', 'SCIE 300', 'CHEM 300', 'ENVR 200'],
+          },
           sourceUrl: COMM,
-          confidence: 'inferred',
+          confidence: 'stated',
         },
         one('phys.chem', 'CHEM 121 or 111', ['CHEM 121', 'CHEM 111']),
         one('phys.calc1', 'Differential calculus', [

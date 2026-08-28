@@ -44,7 +44,24 @@ export function validateProgram(program: Program, known: Set<string>): Issue[] {
     }
   }
 
-  walk(program.rules, (rule) => {
+  /**
+   * Depth-first, carrying down the nearest ancestor's source page.
+   *
+   * A choose-N branch almost never cites a page of its own, and it does not
+   * need to: the choice above it cites the page that names the whole choice,
+   * and the branch is one line of it. Warning per branch buried the real
+   * warnings — 237 of them across sixteen programs, every one a false alarm.
+   */
+  const visit = (rules: Rule[], inheritedSource?: string) => {
+    for (const rule of rules) {
+      check(rule, rule.sourceUrl ?? inheritedSource);
+      const source = rule.sourceUrl ?? inheritedSource;
+      if (rule.kind === 'group') visit(rule.items, source);
+      else if (rule.kind === 'chooseN') visit(rule.of, source);
+    }
+  };
+
+  function check(rule: Rule, source: string | undefined) {
     if (seen.has(rule.id)) {
       // Progress keys off rule id; a duplicate makes one rule silently
       // shadow the other and under-report what a student still owes.
@@ -55,7 +72,7 @@ export function validateProgram(program: Program, known: Set<string>): Issue[] {
     if (!rule.label.trim()) {
       issues.push({ severity: 'error', ruleId: rule.id, message: 'empty label' });
     }
-    if (!rule.sourceUrl) {
+    if (!source) {
       issues.push({
         severity: 'warning',
         ruleId: rule.id,
@@ -80,7 +97,11 @@ export function validateProgram(program: Program, known: Set<string>): Issue[] {
       if (rule.n <= 0) {
         issues.push({ severity: 'error', ruleId: rule.id, message: `requires ${rule.n} credits` });
       }
-      if (setIsEmpty(rule.from)) {
+      // An elective is unconstrained by definition — that is what makes it
+      // free credit — so saying so for every one of them is noise, not a
+      // finding. The warning is for a REQUIREMENT that plans as a bare slot,
+      // which means its approved list has not been transcribed yet.
+      if (setIsEmpty(rule.from) && !rule.elective) {
         // Not an error: the Communication top-up is deliberately an empty set
         // because the approved list is not transcribed, and it plans as a slot.
         issues.push({
@@ -94,7 +115,9 @@ export function validateProgram(program: Program, known: Set<string>): Issue[] {
     if (rule.kind === 'group' && rule.items.length === 0) {
       issues.push({ severity: 'error', ruleId: rule.id, message: 'empty group' });
     }
-  });
+  }
+
+  visit(program.rules, program.sourceUrl);
 
   return issues;
 }

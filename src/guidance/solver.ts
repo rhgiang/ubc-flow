@@ -30,11 +30,27 @@ export type Prefs = {
   targetTermId: string | null;
 };
 
-export type Placement = {
-  course: CourseRef;
-  /** Rule ids this placement works toward. */
-  forRules: string[];
-};
+/**
+ * One thing to do in a term. Either a specific course, or a slot — "3 credits
+ * of Arts" — for a requirement that names an amount rather than a course.
+ *
+ * Slots are not a fallback for the unresolvable; they are the honest form for
+ * a whole class of requirement. Breadth and elective rules say how much, not
+ * which, and picking a particular course to fill them is a guess presented as
+ * advice. It is also what produced graduate seminars in a third-year term
+ * before the level caps went in. A slot has no prerequisites, so it needs no
+ * ordering — which is why this is easier than concrete placement, not harder.
+ */
+export type Placement =
+  | { kind: 'course'; course: CourseRef; forRules: string[] }
+  | {
+      kind: 'slot';
+      credits: number;
+      label: string;
+      /** A few real courses that would fit, to make the slot actionable. */
+      examples: CourseRef[];
+      forRules: string[];
+    };
 
 export type PlannedTerm = { term: PlanTerm; placements: Placement[] };
 
@@ -187,29 +203,51 @@ function treeDepth(
   }
 }
 
-/** Candidate courses that would advance a rule, best first. */
-function candidatesFor(
-  p: RuleProgress,
-  input: SolverInput,
-): CourseRef[] {
-  const { rule } = p;
+/**
+ * The course sets a rule could be advanced by, best first.
+ *
+ * Each entry is a BUNDLE — one alternative, which may be more than one course.
+ * "CPSC 110, or CPSC 103 and 107" offers two: [110] and [103, 107]. An earlier
+ * version flattened only the single-course branches and silently dropped the
+ * multi-course ones, so a program whose only viable route was a pair could
+ * never be planned. It failed safely (reported unplaceable rather than
+ * inventing a plan), which is why it went unnoticed.
+ */
+function bundlesFor(rule: Rule, input: SolverInput): CourseRef[][] {
+  const byCode = (code: string) => input.catalogue.find((x) => x.code === code);
+
   if (rule.kind === 'course') {
-    const c = input.catalogue.find((x) => x.code === rule.code);
-    return c ? [c] : [];
+    const c = byCode(rule.code);
+    return c ? [[c]] : [];
   }
+
+  if (rule.kind === 'group') {
+    // Every member is required, so the group is a single all-or-nothing bundle.
+    const parts = rule.items.flatMap((i) => bundlesFor(i, input));
+    const flat = parts.map((b) => b[0]).filter(Boolean);
+    return flat.length === parts.length && flat.length > 0 ? [flat] : [];
+  }
+
   if (rule.kind === 'chooseN') {
-    // Any single branch satisfies one unit of the choice. Shallowest first —
-    // an alternative with fewer prerequisites is genuinely easier to fit.
     return rule.of
-      .flatMap((b) => (b.kind === 'course' ? input.catalogue.filter((x) => x.code === b.code) : []))
-      .sort((a, b) => depth(a.id, input.prereqs) - depth(b.id, input.prereqs));
+      .flatMap((b) => bundlesFor(b, input))
+      .sort((a, b) => cost(a, input) - cost(b, input));
   }
+
   if (rule.kind === 'credits') {
     return input.catalogue
       .filter((c) => matches(rule.from, c))
-      .sort((a, b) => depth(a.id, input.prereqs) - depth(b.id, input.prereqs));
+      .sort((a, b) => depth(a.id, input.prereqs) - depth(b.id, input.prereqs))
+      .map((c) => [c]);
   }
+
   return [];
+}
+
+/** Prefer the alternative that is cheapest to reach: shallowest, then fewest courses. */
+function cost(bundle: CourseRef[], input: SolverInput): number {
+  const d = Math.max(0, ...bundle.map((c) => depth(c.id, input.prereqs)));
+  return d * 10 + bundle.length;
 }
 
 /** How many credits a rule still needs; 1 "unit" for non-credit rules. */
@@ -228,6 +266,63 @@ function remaining(p: RuleProgress): number {
  * that term. A student wants a plan that works, not the provably shortest one,
  * and a greedy pass is easy to explain when it refuses to place something.
  */
+
+/**
+ * Slot specifications for a rule that names an amount rather than a course.
+ *
+ * Two shapes qualify. A plain `credits` rule is one bucket. A `chooseN` whose
+ * branches are all credit rules — Science Breadth, "3 credits from any 6 of 7
+ * categories" — is a set of buckets, and only the categories the student has
+ * not already covered should appear. A CS major covers the Computer Science,
+ * Mathematics and Statistics categories through their major courses; offering
+ * them breadth slots for those would be telling them to do work they have
+ * already done.
+ */
+function slotSpecs(
+  rule: Rule,
+  left: number,
+  input: SolverInput,
+  covered: CourseRef[],
+  alreadySlotted: Set<string>,
+): { credits: number; label: string; examples: CourseRef[] }[] {
+  const examplesFor = (r: Extract<Rule, { kind: 'credits' }>) =>
+    input.catalogue.filter((c) => matches(r.from, c)).slice(0, 3);
+
+  if (rule.kind === 'credits') {
+    const out = [];
+    let need = left;
+    while (need > 0) {
+      const size = Math.min(SLOT_CREDITS, need);
+      out.push({ credits: size, label: rule.label, examples: examplesFor(rule) });
+      need -= size;
+    }
+    return out;
+  }
+
+  if (rule.kind === 'chooseN' && rule.of.every((b) => b.kind === 'credits')) {
+    const branches = rule.of as Extract<Rule, { kind: 'credits' }>[];
+    const unmet = branches.filter((b) => {
+      // A category already given a slot in an earlier term is spoken for.
+      // Without this the same category is offered again every term until the
+      // choose-6 count runs out, and a student sees Chemistry twice.
+      if (alreadySlotted.has(b.id)) return false;
+      const earned = covered.filter((c) => matches(b.from, c)).reduce((s, c) => s + c.credits, 0);
+      return earned < b.n;
+    });
+    return unmet.slice(0, left).map((b) => ({
+      credits: b.n,
+      label: `${rule.label.split(' — ')[0]}: ${b.label}`,
+      examples: examplesFor(b),
+      branchId: b.id,
+    }));
+  }
+
+  return [];
+}
+
+/** Slots are sized to a typical UBC course. */
+const SLOT_CREDITS = 3;
+
 export function solve(input: SolverInput): Plan {
   const { prefs } = input;
   const placeable = input.terms.filter(
@@ -242,42 +337,78 @@ export function solve(input: SolverInput): Plan {
 
   const planned: PlannedTerm[] = [];
   const placedIds = new Set<string>();
+  /** chooseN branches already given a slot, so no category repeats. */
+  const slotted = new Set<string>();
 
   for (const term of placeable) {
     if (need.every((n) => n.left <= 0)) break;
     const placements: Placement[] = [];
 
+    // Two passes. Concrete courses first, because they sit in prerequisite
+    // chains and a term lost to a flexible requirement delays everything
+    // behind it; slots then top up whatever capacity is left. Placing them in
+    // rule order instead filled first year with Arts and breadth and pushed
+    // CPSC 110 into second year, which is not how anyone takes this degree.
+    for (const pass of ['courses', 'slots'] as const) {
     for (const entry of need) {
       if (placements.length >= prefs.load) break;
       if (entry.left <= 0) continue;
+      const rule = entry.p.rule;
+      const isSlotRule =
+        rule.kind === 'credits' ||
+        (rule.kind === 'chooseN' && rule.of.every((b) => b.kind === 'credits'));
+      if (isSlotRule !== (pass === 'slots')) continue;
 
-      for (const course of candidatesFor(entry.p, input)) {
-        if (placements.length >= prefs.load) break;
-        if (placedIds.has(course.id) || satisfied.has(course.id)) continue;
+      // A rule that names an amount rather than a course becomes a slot:
+      // "3 credits of Arts". No prerequisites, so nothing to order.
+      const specs = slotSpecs(rule, entry.left, input, [
+        ...input.completed,
+        ...planned.flatMap((t) => t.placements.flatMap((pl) => (pl.kind === 'course' ? [pl.course] : []))),
+        ...placements.flatMap((pl) => (pl.kind === 'course' ? [pl.course] : [])),
+      ], slotted);
+      if (specs.length > 0) {
+        for (const spec of specs) {
+          if (placements.length >= prefs.load) break;
+          const { branchId, ...rest } = spec as typeof spec & { branchId?: string };
+          placements.push({ kind: 'slot', ...rest, forRules: [rule.id] });
+          if (branchId) slotted.add(branchId);
+          entry.left -= rule.kind === 'credits' ? spec.credits : 1;
+        }
+        continue;
+      }
+
+      for (const bundle of bundlesFor(rule, input)) {
+        if (placements.length + bundle.length > prefs.load) continue;
+        if (bundle.some((c) => placedIds.has(c.id) || satisfied.has(c.id))) continue;
 
         // Offered this term? Only enforced where we actually know — a
         // projected term has no section data, and treating "unknown" as
         // "not offered" would stop the plan at the catalogue's horizon.
-        if (!term.projected) {
-          const when = input.offerings.get(course.id);
-          if (when && when.size > 0 && !when.has(term.id)) continue;
-        }
+        const offered = bundle.every((c) => {
+          if (term.projected) return true;
+          const when = input.offerings.get(c.id);
+          return !when || when.size === 0 || when.has(term.id);
+        });
+        if (!offered) continue;
 
         // Prerequisites met by completions plus everything placed in an
         // EARLIER term. Courses placed in this same term do not count — two
         // courses in one term cannot satisfy each other.
-        if (!treeMet(input.prereqs.get(course.id), satisfied)) continue;
+        if (!bundle.every((c) => treeMet(input.prereqs.get(c.id), satisfied))) continue;
 
-        placements.push({ course, forRules: [entry.p.rule.id] });
-        placedIds.add(course.id);
-        entry.left -= entry.p.rule.kind === 'credits' ? course.credits : 1;
-        if (entry.left <= 0) break;
+        for (const course of bundle) {
+          placements.push({ kind: 'course', course, forRules: [rule.id] });
+          placedIds.add(course.id);
+        }
+        entry.left -= 1;
+        break; // one alternative satisfies the rule
       }
+    }
     }
 
     if (placements.length > 0) planned.push({ term, placements });
     // Only now do this term's courses become prerequisites for later terms.
-    for (const pl of placements) satisfied.add(pl.course.id);
+    for (const pl of placements) if (pl.kind === 'course') satisfied.add(pl.course.id);
 
     if (prefs.targetTermId && term.id === prefs.targetTermId) break;
   }
@@ -288,7 +419,7 @@ export function solve(input: SolverInput): Plan {
       rule: n.p.rule,
       reason:
         n.p.rule.kind === 'credits'
-          ? `${n.left} credits still unplaced — no offered course fits the remaining terms`
+          ? `${n.left} credits still unplaced — not enough terms at this course load`
           : 'no offered term found where its prerequisites are met first',
     }));
 

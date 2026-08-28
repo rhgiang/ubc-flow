@@ -38,14 +38,18 @@ export const cpscMajor2026W: Program = {
           confidence: 'stated',
         },
         {
+          // "In addition to SCIE_V 113, B.Sc. students are required to receive
+          // three credits of approved communications courses." The approved
+          // list is not transcribed, so this resolves to no concrete course
+          // and the solver places it as a slot — which is the right shape
+          // regardless, since the student picks from a list.
           id: 'cpsc.comm-additional',
-          kind: 'note',
-          label: 'Additional Communication Requirement (3 credits)',
-          detail:
-            'The Calendar names this as 3 further credits of Communication beyond ' +
-            'SCIE 113, with the eligible list on a linked subpage not yet ' +
-            'transcribed. Shown rather than evaluated — confirm with an advisor.',
-          sourceUrl: SOURCE,
+          kind: 'credits',
+          label: 'Communication requirement (approved list)',
+          n: 3,
+          from: { kind: 'codes', codes: [] },
+          sourceUrl:
+            'https://vancouver.calendar.ubc.ca/faculties-colleges-and-schools/faculty-science/bachelor-science/communication-requirements',
           confidence: 'inferred',
         },
         {

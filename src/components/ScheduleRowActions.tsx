@@ -89,8 +89,11 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
     ? `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}`
     : null;
 
+  // text-left resets the cell: the actions column is right-aligned so the
+  // trigger sits against its edge, and without this the menu's links inherit
+  // that alignment and hang off the wrong side of the popover.
   return (
-    <div ref={containerRef} className="relative inline-block">
+    <div ref={containerRef} className="relative inline-block text-left">
       <button
         type="button"
         onClick={toggleOpen}

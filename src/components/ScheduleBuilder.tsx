@@ -421,6 +421,7 @@ export default function ScheduleBuilder({
             canSave={contentSaveable}
             saving={saving}
             dirty={dirty}
+            saved={savedBaseline !== null && !dirty}
             onSave={() => void trySave()}
             onDelete={onDelete}
             onImport={() => setImportOpen(true)}

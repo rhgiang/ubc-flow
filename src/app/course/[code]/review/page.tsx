@@ -5,8 +5,18 @@ import { canReview } from '@/lib/gate';
 import { parseCourseCode } from '@/lib/format';
 import { ReviewForm } from './form';
 
-export default async function ReviewPage({ params }: { params: Promise<{ code: string }> }) {
+export default async function ReviewPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ code: string }>;
+  // ?instructor= is set by the button on a professor page, so arriving from
+  // there lands on the thing you came to do instead of making you find them
+  // in a list of everyone who has ever taught the course.
+  searchParams: Promise<{ instructor?: string }>;
+}) {
   const { code } = await params;
+  const { instructor: preselectInstructor } = await searchParams;
   const parsed = parseCourseCode(code);
   if (!parsed) notFound();
 
@@ -50,6 +60,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ code: s
       courseLabel={`${course.subject.code} ${course.number}`}
       courseTitle={course.title}
       instructors={instructors.map((i) => ({ id: i.id, name: i.name }))}
+      preselectInstructorId={preselectInstructor ?? null}
       existing={
         existing && {
           liked: existing.liked,

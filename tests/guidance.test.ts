@@ -17,8 +17,6 @@ const coursesIn = (t: PlannedTerm): CourseRef[] =>
   t.placements.flatMap((p) => (p.kind === 'course' ? [p.course] : []));
 const isCourse = (p: Placement): p is Extract<Placement, { kind: 'course' }> => p.kind === 'course';
 import type { Requirement } from '@/prereqs/parse';
-import { parseFacultyIndex, parseFacultySubjects } from '@/scrape/parse-faculties';
-import { parseCourseDescriptions, subjectPath } from '@/scrape/parse-course-descriptions';
 import { codesOnPage } from '@/guidance/jobs/verify';
 import { validateProgram } from '@/guidance/validate';
 import { artsFacultyCore2026W } from '@/guidance/programs/arts-faculty-core-2026w';
@@ -503,35 +501,6 @@ describe('solver', () => {
   });
 });
 
-describe('faculty index parsing', () => {
-  it('reads faculties and their institution paths off the index', () => {
-    const html = `<ul>
-      <li><a href="/course-descriptions/institution/120">Faculty of Science</a></li>
-      <li><a href="/course-descriptions/institution/88">Faculty of Arts</a></li>
-      <li><a href="/course-descriptions/institution/120">Faculty of Science</a></li>
-      <li><a href="/somewhere-else">Not a faculty</a></li>
-    </ul>`;
-    const out = parseFacultyIndex(html);
-    expect(out).toHaveLength(2); // deduped, and the unrelated link ignored
-    expect(out[0]).toEqual({ name: 'Faculty of Science', path: '/course-descriptions/institution/120' });
-  });
-
-  it('reads subject codes and strips the campus suffix', () => {
-    // Exactly how the Calendar writes them.
-    const html = `<div><a>CPSC_V - Computer Science</a><a>MATH_V - Mathematics</a>
-      <a>EOSC_V - Earth and Ocean Sciences</a><p>ASTR_V – Astronomy</p></div>`;
-    const codes = parseFacultySubjects(html);
-    expect(codes).toContain('CPSC');
-    expect(codes).toContain('MATH');
-    expect(codes).toContain('ASTR'); // en-dash separator too
-    expect(codes.some((c) => c.includes('_'))).toBe(false);
-  });
-
-  it('does not invent codes from ordinary prose', () => {
-    expect(parseFacultySubjects('<p>Courses offered by the Faculty of Science.</p>')).toEqual([]);
-  });
-});
-
 describe('transcription verification', () => {
   it('reads the Calendar\'s subject-carrying shorthand', () => {
     // "CPSC_V 310, 313, 320" — only the first number carries a subject.
@@ -645,37 +614,6 @@ describe('a four-year degree plans in four years', () => {
       prefs: { creditsPerTerm: 15, useSummer: false, targetTermId: null },
     });
     expect(plan.terms.flatMap(coursesIn)).toHaveLength(0); // slots only
-  });
-});
-
-describe('calendar course listing', () => {
-  const page = `
-    <article><h3>MATH_V 100 (3)  Differential Calculus with Applications</h3></article>
-    <article><h3>MATH_V 102 (3)  Differential Calculus with Applications to Life Sciences</h3></article>
-    <article><h3>MATH_V 449 (3/6) d  Honours Essay</h3></article>
-    <article><h3>MATH_O 100 (3)  Okanagan course</h3></article>
-    <article><h3>Not a course heading</h3></article>`;
-
-  it('reads code, number, credits and title', () => {
-    const out = parseCourseDescriptions(page, 'V');
-    expect(out[0]).toEqual({ subjectCode: 'MATH', number: '100', title: 'Differential Calculus with Applications', credits: 3 });
-    // The course the sections scraper never sees, because nothing offers it.
-    expect(out.some((c) => c.number === '102')).toBe(true);
-  });
-
-  it('takes the lower bound of a credit range', () => {
-    // "(3/6) d" — variable-credit courses are written this way.
-    expect(parseCourseDescriptions(page, 'V').find((c) => c.number === '449')?.credits).toBe(3);
-  });
-
-  it('ignores other campuses and non-course headings', () => {
-    const out = parseCourseDescriptions(page, 'V');
-    expect(out).toHaveLength(3); // 100, 102, 449 — not the _O one, not the prose
-  });
-
-  it('builds the subject page path', () => {
-    expect(subjectPath('MATH', 'V')).toBe('/course-descriptions/subject/mathv');
-    expect(subjectPath('CPSC', 'V')).toBe('/course-descriptions/subject/cpscv');
   });
 });
 

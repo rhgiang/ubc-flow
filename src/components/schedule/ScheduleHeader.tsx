@@ -16,6 +16,7 @@ export default function ScheduleHeader({
   canSave,
   saving,
   dirty,
+  saved,
   onSave,
   onDelete,
   onImport,
@@ -31,6 +32,8 @@ export default function ScheduleHeader({
   canSave: boolean;
   saving: boolean;
   dirty: boolean;
+  /** A save landed this session and nothing has changed since. */
+  saved: boolean;
   onSave: () => void;
   onDelete: () => void;
   onImport: () => void;
@@ -68,7 +71,23 @@ export default function ScheduleHeader({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {dirty && <span className="text-xs text-text-tertiary">Unsaved changes</span>}
+          {/*
+            The counterpart to "Unsaved changes". Saving used to succeed in
+            total silence — the button simply went disabled — so the only
+            signal that it worked was the absence of an error, which is not a
+            signal. No timer clears it: it is true whenever a save has landed
+            and nothing has changed since, so editing anything removes it on
+            its own and it can never claim more than it knows.
+          */}
+          {dirty ? (
+            <span className="text-xs text-text-tertiary">Unsaved changes</span>
+          ) : (
+            saved && (
+              <span role="status" className="text-xs font-medium text-info">
+                Saved
+              </span>
+            )
+          )}
 
           {/* Nothing changed means nothing to save — a live button there just
               fires a no-op round trip and makes "Unsaved changes" ambiguous. */}

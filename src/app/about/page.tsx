@@ -27,8 +27,8 @@ export default function AboutPage() {
             We want to know everything about your student experience, how brutal the course
             material actually is, whether a professor&apos;s lectures match the textbook, or that
             one professor you absolutely adored. All of the feedback you don&apos;t get in a course
-            description. Every review you leave makes course selection easier for the nearly 75,000
-            other UBC students.
+            description. Every review you leave makes course selection easier for the 60,000 other
+            UBC students.
           </p>
         </section>
 

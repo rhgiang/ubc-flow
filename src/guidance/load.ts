@@ -1,9 +1,10 @@
-import 'server-only';
-import { db } from '@/lib/db';
-import type { CourseRef } from '@/guidance/rules';
-import { type PlanTerm, tightenNotes } from '@/guidance/solver';
-import type { Requirement } from '@/prereqs/parse';
-import { isUpcomingTerm, compareTerms } from '@/schedule/terms';
+import "server-only";
+import { db } from "@/lib/db";
+import type { CourseRef } from "@/guidance/rules";
+import type { Completion } from "@/guidance/progress";
+import { type PlanTerm, tightenNotes } from "@/guidance/solver";
+import type { Requirement } from "@/prereqs/parse";
+import { isUpcomingTerm, compareTerms } from "@/schedule/terms";
 
 /**
  * Everything the guidance engine needs out of the database, in its own shapes.
@@ -14,7 +15,7 @@ import { isUpcomingTerm, compareTerms } from '@/schedule/terms';
  *  degree is waste, so callers pass the subjects their rules actually mention. */
 export async function loadCatalogue(subjects: string[]): Promise<CourseRef[]> {
   const rows = await db.course.findMany({
-    where: { campus: 'V', subject: { code: { in: subjects } } },
+    where: { campus: "V", subject: { code: { in: subjects } } },
     select: {
       id: true,
       number: true,
@@ -42,7 +43,9 @@ export async function loadCatalogue(subjects: string[]): Promise<CourseRef[]> {
  * requires all of them demands a pair no student takes, which made most of a
  * CS degree unplaceable. The tree keeps the or.
  */
-export async function loadPrereqs(catalogue: CourseRef[]): Promise<Map<string, Requirement | null>> {
+export async function loadPrereqs(
+  catalogue: CourseRef[],
+): Promise<Map<string, Requirement | null>> {
   const rows = await db.course.findMany({
     where: { id: { in: catalogue.map((c) => c.id) } },
     select: { id: true, prereqTree: true },
@@ -66,11 +69,13 @@ export async function loadPrereqs(catalogue: CourseRef[]): Promise<Map<string, R
  * catalogue has no future sections loaded, and refusing to plan those would
  * empty the roadmap.
  */
-export async function loadOfferings(courseIds: string[]): Promise<Map<string, Set<string>>> {
+export async function loadOfferings(
+  courseIds: string[],
+): Promise<Map<string, Set<string>>> {
   const sections = await db.section.findMany({
     where: { courseId: { in: courseIds } },
     select: { courseId: true, termId: true },
-    distinct: ['courseId', 'termId'],
+    distinct: ["courseId", "termId"],
   });
   const map = new Map<string, Set<string>>();
   for (const s of sections) {
@@ -91,28 +96,175 @@ export async function loadOfferings(courseIds: string[]): Promise<Map<string, Se
  * program as unplaceable, which is what it did before this existed.
  */
 export async function loadTerms(years = 5): Promise<PlanTerm[]> {
-  const terms = await db.term.findMany({ where: { campus: 'V' } });
+  const terms = await db.term.findMany({ where: { campus: "V" } });
   const real = terms
     .filter(isUpcomingTerm)
     .sort(compareTerms)
     .map((t) => ({
       id: t.id,
-      name: t.name.replace(' (UBC-V)', ''),
+      name: t.name.replace(" (UBC-V)", ""),
       // Always true today. Co-op work terms are the reason this is data:
       // marking a term unavailable must not require touching the solver.
       available: true,
     }));
 
   // Continue from the last real Winter session we know about.
-  const lastYear = Math.max(...terms.map((t) => t.year), new Date().getFullYear());
+  const lastYear = Math.max(
+    ...terms.map((t) => t.year),
+    new Date().getFullYear(),
+  );
   const projected: PlanTerm[] = [];
   for (let i = 0; i < years; i++) {
     const start = lastYear + i;
     projected.push(
-      { id: `p-${start}S`, name: `${start + 1} Summer Session`, available: true, projected: true },
-      { id: `p-${start + 1}W1`, name: `${start + 1}-${String(start + 2).slice(2)} Winter Term 1`, available: true, projected: true },
-      { id: `p-${start + 1}W2`, name: `${start + 1}-${String(start + 2).slice(2)} Winter Term 2`, available: true, projected: true },
+      {
+        id: `p-${start}S`,
+        name: `${start + 1} Summer Session`,
+        available: true,
+        projected: true,
+      },
+      {
+        id: `p-${start + 1}W1`,
+        name: `${start + 1}-${String(start + 2).slice(2)} Winter Term 1`,
+        available: true,
+        projected: true,
+      },
+      {
+        id: `p-${start + 1}W2`,
+        name: `${start + 1}-${String(start + 2).slice(2)} Winter Term 2`,
+        available: true,
+        projected: true,
+      },
     );
   }
   return [...real, ...projected];
+}
+
+/**
+ * What a student has actually done, for checking a degree against a person
+ * rather than against a plan.
+ *
+ * Read from `Enrollment.status`, which the Workday import now derives from the
+ * grade Workday reports. A row whose grade we could not read stays
+ * "registered" and counts as in progress rather than done — guessing in the
+ * permissive direction is how a student gets told they finished a course they
+ * have to retake.
+ *
+ * Rows written before the grade column existed default to "registered" too,
+ * so an old import understates progress until it is uploaded again. That is
+ * the safe direction, and the page says which rows are which.
+ *
+ * Transfer credit is reported as `transfer` rather than `passed`. UBC grants
+ * the credit, so a roadmap that ignored it would overstate what a student
+ * still owes — but it is earned elsewhere and must never confer review rights
+ * for UBC's version of the course, which `canReview` enforces separately on
+ * `verified`.
+ */
+export async function loadCompletions(userId: string): Promise<Completion[]> {
+  const [rows, terms] = await Promise.all([
+    db.enrollment.findMany({
+      where: { userId },
+      select: { courseId: true, termId: true, source: true, status: true },
+    }),
+    // Kept for the in-progress distinction only. Term.startDate and endDate
+    // are null on every row the scraper writes, so this uses the ordinal
+    // comparison isUpcomingTerm already does rather than a date.
+    db.term.findMany({
+      select: { id: true, year: true, session: true, termNumber: true },
+    }),
+  ]);
+
+  // No early return on an empty enrollment list. A student who transferred in
+  // has no enrollments at all, and returning here skipped the transfer credits
+  // below — which is precisely the person this is meant to help.
+  const finished = new Map(terms.map((t) => [t.id, !isUpcomingTerm(t)]));
+  const courses = rows.length
+    ? await db.course.findMany({
+        where: { id: { in: [...new Set(rows.map((r) => r.courseId))] } },
+        select: {
+          id: true,
+          number: true,
+          credits: true,
+          subject: { select: { code: true, faculty: true } },
+        },
+      })
+    : [];
+  const byId = new Map(courses.map((c) => [c.id, c]));
+
+  const out: Completion[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    const c = byId.get(row.courseId);
+    if (!c || !c.subject.code) continue;
+    // One row per course: a repeated course should not count twice toward a
+    // credit requirement.
+    if (seen.has(c.id)) continue;
+    seen.add(c.id);
+
+    // The import's own verdict, not a guess. "registered" means the grade was
+    // blank or unreadable, which is in progress if the term is still running
+    // and unknown if it is not — either way not something to count as done.
+    const status: Completion["status"] =
+      row.status === "transfer"
+        ? "transfer"
+        : row.status === "passed"
+          ? "passed"
+          : row.status === "failed"
+            ? "failed"
+            : finished.get(row.termId)
+              ? "in_progress"
+              : "in_progress";
+
+    out.push({
+      status,
+      course: {
+        id: c.id,
+        subject: c.subject.code,
+        number: c.number,
+        code: `${c.subject.code} ${c.number}`,
+        credits: c.credits ?? 3,
+        faculty: c.subject.faculty,
+      },
+    });
+  }
+
+  // Credit earned elsewhere counts toward the degree. Only the rows that
+  // resolved to a real UBC course can satisfy a NAMED requirement; unassigned
+  // credit like "PHYS_V 1ST" is real credit against the total but matches no
+  // rule, so it is left out here rather than attached to a course it is not.
+  const transfers = await db.transferCredit.findMany({
+    where: { userId, courseId: { not: null } },
+    select: {
+      credits: true,
+      course: {
+        select: {
+          id: true,
+          number: true,
+          credits: true,
+          subject: { select: { code: true, faculty: true } },
+        },
+      },
+    },
+  });
+  for (const t of transfers) {
+    const c = t.course;
+    if (!c || !c.subject.code || seen.has(c.id)) continue;
+    seen.add(c.id);
+    out.push({
+      status: "transfer",
+      course: {
+        id: c.id,
+        subject: c.subject.code,
+        number: c.number,
+        code: `${c.subject.code} ${c.number}`,
+        // Falls through on zero as well as null. A transfer row exists
+        // because credit was granted, so an empty Credits cell is missing
+        // data rather than a grant of nothing — APSC 160 arrived as 0 and
+        // would have shown as a 0-credit course a student had "done".
+        credits: t.credits || c.credits || 3,
+        faculty: c.subject.faculty,
+      },
+    });
+  }
+  return out;
 }

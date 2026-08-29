@@ -1,25 +1,29 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { isUpcomingTerm } from '@/schedule/terms';
-import SignOutButton from '@/components/SignOutButton';
-import UploadCoursesForm from '@/components/UploadCoursesForm';
-import DeleteAccountButton from '@/components/DeleteAccountButton';
-import EnrolledCourseCard from '@/components/EnrolledCourseCard';
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { isUpcomingTerm } from "@/schedule/terms";
+import SignOutButton from "@/components/SignOutButton";
+import UploadCoursesForm from "@/components/UploadCoursesForm";
+import DeleteAccountButton from "@/components/DeleteAccountButton";
+import EnrolledCourseCard from "@/components/EnrolledCourseCard";
 
 function courseHref(subjectCode: string, number: string): string {
-  return `/course/${`${subjectCode} ${number}`.toLowerCase().replace(/\s+/g, '-')}`;
+  return `/course/${`${subjectCode} ${number}`.toLowerCase().replace(/\s+/g, "-")}`;
 }
 
 /** "10:00" -> "10:00 AM", "15:30" -> "3:30 PM". */
 function formatTime(t: string): string {
-  const [h, m] = t.split(':').map(Number);
-  const period = h < 12 ? 'AM' : 'PM';
+  const [h, m] = t.split(":").map(Number);
+  const period = h < 12 ? "AM" : "PM";
   const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-const MONTH_DAY = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const MONTH_DAY = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+});
 
 /** Sep 8, 2026 – Dec 7, 2026 -> "Sep 8 – Dec 7, 2026" (year shown once, off the end date). */
 function formatDateRange(start: Date, end: Date): string {
@@ -39,23 +43,41 @@ type MeetingLite = {
   endDate: Date | null;
 };
 
-type CourseRow = { id: string; code: string; title: string; href: string; meetings: MeetingLite[] };
+type CourseRow = {
+  id: string;
+  code: string;
+  title: string;
+  href: string;
+  meetings: MeetingLite[];
+};
 type TermGroup = { termId: string; termName: string; rows: CourseRow[] };
 
 function MeetingLine({ m }: { m: MeetingLite }) {
-  const location = m.building ? `${m.building}${m.room ? ` ${m.room}` : ''}` : null;
-  const time = m.startTime && m.endTime ? `${formatTime(m.startTime)} – ${formatTime(m.endTime)}` : null;
-  const dateRange = m.startDate && m.endDate ? formatDateRange(m.startDate, m.endDate) : null;
+  const location = m.building
+    ? `${m.building}${m.room ? ` ${m.room}` : ""}`
+    : null;
+  const time =
+    m.startTime && m.endTime
+      ? `${formatTime(m.startTime)} – ${formatTime(m.endTime)}`
+      : null;
+  const dateRange =
+    m.startDate && m.endDate ? formatDateRange(m.startDate, m.endDate) : null;
 
   return (
     <div className="text-xs">
       <p className="font-medium text-foreground">
-        {m.activity ?? 'Class'}
-        {m.instructor && <span className="font-normal text-text-secondary"> · {m.instructor}</span>}
+        {m.activity ?? "Class"}
+        {m.instructor && (
+          <span className="font-normal text-text-secondary">
+            {" "}
+            · {m.instructor}
+          </span>
+        )}
       </p>
       <p className="mt-0.5 text-text-secondary">
-        {[m.days.length > 0 ? m.days.join(' ') : null, time, location].filter(Boolean).join(' · ') ||
-          'No fixed meeting time'}
+        {[m.days.length > 0 ? m.days.join(" ") : null, time, location]
+          .filter(Boolean)
+          .join(" · ") || "No fixed meeting time"}
       </p>
       {dateRange && <p className="mt-0.5 text-text-tertiary">{dateRange}</p>}
     </div>
@@ -79,7 +101,7 @@ function CourseCard({ course }: { course: CourseRow }) {
 
 function CourseGroup({ group, first }: { group: TermGroup; first: boolean }) {
   return (
-    <div className={first ? '' : 'mt-5'}>
+    <div className={first ? "" : "mt-5"}>
       <h3 className="text-sm font-medium text-foreground">{group.termName}</h3>
       {/* A single column rather than a grid: collapsed cards are one-liners,
           so a list stays compact, and expanding one simply pushes the rest
@@ -96,20 +118,41 @@ function CourseGroup({ group, first }: { group: TermGroup; first: boolean }) {
 
 export default async function OnboardingPage() {
   const session = await auth();
-  if (!session?.user?.id) redirect('/login');
+  if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
 
   const [user, enrollments, meetings, terms] = await Promise.all([
     db.user.findUnique({ where: { id: userId }, select: { verifiedAt: true } }),
     db.enrollment.findMany({ where: { userId } }),
     db.enrollmentMeeting.findMany({ where: { userId } }),
-    db.term.findMany({ where: { campus: 'V' }, orderBy: [{ year: 'desc' }, { termNumber: 'desc' }] }),
+    db.term.findMany({
+      where: { campus: "V" },
+      orderBy: [{ year: "desc" }, { termNumber: "desc" }],
+    }),
   ]);
+
+  /**
+   * Whether this account's courses predate the grade columns.
+   *
+   * An import from before them recorded registration only, so every row reads
+   * "registered" and degree progress counts none of it. That is the safe
+   * direction — the alternative is telling someone they passed a course they
+   * failed — but it leaves the guidance panel looking inert on an account
+   * that has clearly uploaded something, with no hint that a re-upload is
+   * what fixes it.
+   */
+  const graded = enrollments.filter((e) => e.status !== "registered").length;
+  const transferCount = await db.transferCredit.count({ where: { userId } });
+  const staleImport =
+    enrollments.length > 0 && graded === 0 && transferCount === 0;
 
   const termById = new Map(terms.map((t) => [t.id, t]));
   const courseIds = [...new Set(enrollments.map((e) => e.courseId))];
   const courses = courseIds.length
-    ? await db.course.findMany({ where: { id: { in: courseIds } }, include: { subject: true } })
+    ? await db.course.findMany({
+        where: { id: { in: courseIds } },
+        include: { subject: true },
+      })
     : [];
   const courseById = new Map(courses.map((c) => [c.id, c]));
 
@@ -128,12 +171,16 @@ export default async function OnboardingPage() {
     const course = courseById.get(e.courseId);
     if (!term || !course) continue;
     const bucket = isUpcomingTerm(term) ? currentByTerm : pastByTerm;
-    const group = bucket.get(e.termId) ?? { termId: e.termId, termName: term.name, rows: [] };
+    const group = bucket.get(e.termId) ?? {
+      termId: e.termId,
+      termName: term.name,
+      rows: [],
+    };
     group.rows.push({
       id: e.id,
       code: `${course.subject.code} ${course.number}`,
       title: course.title,
-      href: courseHref(course.subject.code ?? '', course.number),
+      href: courseHref(course.subject.code ?? "", course.number),
       meetings: meetingsByKey.get(`${e.courseId}:${e.termId}`) ?? [],
     });
     bucket.set(e.termId, group);
@@ -151,54 +198,95 @@ export default async function OnboardingPage() {
       {/* Everything below the title sits on one solid panel — this page is
           mostly small secondary text, which the sky behind it washes out. */}
       <div className="sky-panel mt-6 p-6 sm:p-8">
-      {verified ? (
-        <>
-          <div className="flex items-center gap-2 rounded-card border border-border bg-surface-muted px-4 py-3">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5 shrink-0 text-brand-accent">
-              <circle cx="12" cy="12" r="9" />
-              <path d="m8 12.5 2.5 2.5L16 9.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <p className="text-sm font-medium text-foreground">UBC Student — Verified</p>
+        {verified ? (
+          <>
+            <div className="flex items-center gap-2 rounded-card border border-border bg-surface-muted px-4 py-3">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                className="h-5 w-5 shrink-0 text-brand-accent"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path
+                  d="m8 12.5 2.5 2.5L16 9.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <p className="text-sm font-medium text-foreground">
+                UBC Student — Verified
+              </p>
+            </div>
+
+            <section className="mt-6">
+              <h2 className="text-xl font-semibold text-foreground">
+                Current courses
+              </h2>
+              {currentByTerm.size === 0 ? (
+                <p className="mt-2 text-sm text-text-secondary">
+                  No current courses on record.
+                </p>
+              ) : (
+                [...currentByTerm.values()].map((g, i) => (
+                  <CourseGroup key={g.termId} group={g} first={i === 0} />
+                ))
+              )}
+            </section>
+
+            <section className="mt-6">
+              <h2 className="text-xl font-semibold text-foreground">
+                Past courses
+              </h2>
+              {pastByTerm.size === 0 ? (
+                <p className="mt-2 text-sm text-text-secondary">
+                  No past courses on record.
+                </p>
+              ) : (
+                [...pastByTerm.values()].map((g, i) => (
+                  <CourseGroup key={g.termId} group={g} first={i === 0} />
+                ))
+              )}
+            </section>
+
+            <div className="mt-8 border-t border-border pt-6">
+              {staleImport && (
+                <p className="mb-4 rounded-card border border-info-border bg-info-surface px-3 py-2.5 text-sm text-info">
+                  <strong className="font-semibold">
+                    Re-upload to track your degree.
+                  </strong>{" "}
+                  Your courses were imported before grades were recorded, so we
+                  know what you registered in but not how it went — and{" "}
+                  <Link href="/guidance" className="underline">
+                    Guidance
+                  </Link>{" "}
+                  counts none of it toward your requirements. Uploading the same
+                  export again fills that in, and picks up any transfer credit,
+                  which used to be discarded.
+                </p>
+              )}
+              <UploadCoursesForm verified />
+            </div>
+          </>
+        ) : (
+          <div>
+            <UploadCoursesForm verified={false} />
           </div>
+        )}
 
-          <section className="mt-6">
-            <h2 className="text-xl font-semibold text-foreground">Current courses</h2>
-            {currentByTerm.size === 0 ? (
-              <p className="mt-2 text-sm text-text-secondary">No current courses on record.</p>
-            ) : (
-              [...currentByTerm.values()].map((g, i) => <CourseGroup key={g.termId} group={g} first={i === 0} />)
-            )}
-          </section>
-
-          <section className="mt-6">
-            <h2 className="text-xl font-semibold text-foreground">Past courses</h2>
-            {pastByTerm.size === 0 ? (
-              <p className="mt-2 text-sm text-text-secondary">No past courses on record.</p>
-            ) : (
-              [...pastByTerm.values()].map((g, i) => <CourseGroup key={g.termId} group={g} first={i === 0} />)
-            )}
-          </section>
-
-          <div className="mt-8 border-t border-border pt-6">
-            <UploadCoursesForm verified />
+        <div className="mt-8 border-t border-border pt-6">
+          <h2 className="text-sm font-semibold text-foreground">
+            Delete your account and data
+          </h2>
+          <p className="mt-1 text-sm text-text-secondary">
+            This removes everything tied to your account: reviews, saved
+            schedules, and enrollment records.
+          </p>
+          <div className="mt-3">
+            <DeleteAccountButton />
           </div>
-        </>
-      ) : (
-        <div>
-          <UploadCoursesForm verified={false} />
         </div>
-      )}
-
-      <div className="mt-8 border-t border-border pt-6">
-        <h2 className="text-sm font-semibold text-foreground">Delete your account and data</h2>
-        <p className="mt-1 text-sm text-text-secondary">
-          This removes everything tied to your account: reviews, saved schedules, and enrollment
-          records.
-        </p>
-        <div className="mt-3">
-          <DeleteAccountButton />
-        </div>
-      </div>
       </div>
     </main>
   );

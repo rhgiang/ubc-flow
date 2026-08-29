@@ -35,6 +35,24 @@ function stripEquivalency(text: string): string {
 }
 
 /**
+ * Phrases where a course number does NOT name a course to take.
+ *
+ * "PHYS 100-level beyond PHYS_V 100" asks for any first-year physics EXCEPT
+ * PHYS 100 — and reading it literally produced a requirement for the one
+ * course the sentence rules out, the remedial physics a qualified student
+ * never takes. CAPS 205, 206, 305 and 310 were all unreachable for that
+ * reason.
+ *
+ * Two shapes: an exclusion ("beyond X", "other than X"), and a level
+ * descriptor, where "100-level" is a range and not the course numbered 100.
+ */
+function stripNonRequirements(text: string): string {
+  return text
+    .replace(/\b(?:beyond|other than)\s+[A-Z]{2,5}(?:_[A-Z])?\s?\d{2,3}[A-Z]?/gi, ' ')
+    .replace(/\b\d{3}-level\b/gi, ' ');
+}
+
+/**
  * The codes inside an "Equivalency:" clause — captured, not discarded, the
  * way stripEquivalency (used by parseRequirements) throws them away. These
  * are credit exclusions, not prerequisites, so they never enter a
@@ -137,7 +155,7 @@ function splitOnAnd(text: string): string[] {
 export function parseRequirements(text: string | null): Requirement | null {
   if (!text || !text.trim()) return null;
 
-  const clauses = stripEquivalency(text)
+  const clauses = stripNonRequirements(stripEquivalency(text))
     .split(/[.;]/)
     .map((c) => c.trim())
     .filter(Boolean);

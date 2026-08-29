@@ -36,6 +36,19 @@ const c = (id: string, code: string, year: number, src: string): Rule => ({
   id, kind: 'course', label: code, code, year, sourceUrl: src, confidence: 'stated',
 });
 
+/**
+ * A required course the PROGRAM prices differently from the catalogue.
+ *
+ * UBC's variable-credit courses — CPEN 221 is "(4-5)", ELEC 491 and CPEN 491
+ * are "(5-10)" — are stored at the bottom of their range, while the program
+ * tables require the top. It has to stay a course rather than become a credits
+ * rule: a credits rule plans as a slot, slots never enter the satisfied set,
+ * and CPEN 212, 331 and 391 all depend on CPEN 221 having been taken.
+ */
+const cAt = (id: string, code: string, year: number, src: string, credits: number): Rule => ({
+  id, kind: 'course', label: code, code, year, credits, sourceUrl: src, confidence: 'stated',
+});
+
 /** Technical or complementary electives — restricted lists held by departments. */
 const el = (id: string, label: string, n: number, year: number, src: string): Rule => ({
   id, kind: 'credits', label, n, year,
@@ -253,20 +266,7 @@ export const elecMajor2026W = prog('elec-basc-2026w', 'Electrical Engineering', 
           { id: 'elec.481.cpen', kind: 'course', label: 'CPEN 481', code: 'CPEN 481' },
         ],
       },
-      {
-        // ELEC 491 is a variable-credit course, listed in the course
-        // descriptions as (5-10). The program table pins it at 10, so it is
-        // stated here as credits rather than taken from the catalogue, which
-        // stores only the bottom of the range.
-        id: 'elec.491',
-        kind: 'credits',
-        label: 'ELEC 491 — Capstone Design Project',
-        n: 10,
-        year: 4,
-        from: { kind: 'codes', codes: ['ELEC 491'] },
-        sourceUrl: ELEC,
-        confidence: 'stated',
-      },
+      cAt('elec.491', 'ELEC 491', 4, ELEC, 10), // (5-10) on the page, 10 in the table
       el('elec.tech.y4', 'Electrical Engineering electives', 18, 4, ELEC),
       el('elec.science.y4', 'Science elective', 3, 4, ELEC),
     ],
@@ -300,6 +300,126 @@ export const elecMajor2026W = prog('elec-basc-2026w', 'Electrical Engineering', 
     detail:
       'It replaces ELEC 291 with ELEC 271 and 292 in second year, and swaps much of third ' +
       'and fourth year for BMEG courses and ELEC 494. Not transcribed here.',
+    sourceUrl: ELEC,
+    confidence: 'stated',
+  },
+]);
+
+/**
+ * Computer Engineering — 37 + 38 + 38 + 38 = 151.
+ *
+ * Shares a department and a Calendar page with Electrical, and about half its
+ * second year, but diverges completely above that: CPSC 221 and 320 in place
+ * of the circuits stream, and CPEN's own 331, 391 and 491.
+ *
+ * The Calendar prints two second-year tables, for students who entered in
+ * 2022W or earlier and in 2023W or later. The later one is transcribed.
+ */
+export const cpenMajor2026W = prog('cpen-basc-2026w', 'Computer Engineering', 'electrical-and-computer-engineering', 151, [
+  {
+    id: 'cpen.second-year',
+    kind: 'group',
+    label: 'Second year',
+    year: 2,
+    sourceUrl: ELEC,
+    items: [
+      c('cpen.211', 'CPEN 211', 2, ELEC),
+      cAt('cpen.221', 'CPEN 221', 2, ELEC, 5), // (4-5) on the page, 5 in the table
+      {
+        id: 'cpen.281',
+        kind: 'chooseN',
+        label: 'CPEN 281 or ELEC 281',
+        n: 1,
+        year: 2,
+        sourceUrl: ELEC,
+        confidence: 'stated',
+        of: [
+          { id: 'cpen.281.cpen', kind: 'course', label: 'CPEN 281', code: 'CPEN 281' },
+          { id: 'cpen.281.elec', kind: 'course', label: 'ELEC 281', code: 'ELEC 281' },
+        ],
+      },
+      c('cpen.cpsc221', 'CPSC 221', 2, ELEC),
+      c('cpen.212', 'CPEN 212', 2, ELEC),
+      c('cpen.elec201', 'ELEC 201', 2, ELEC),
+      c('cpen.math220', 'MATH 220', 2, ELEC),
+      c('cpen.math253', 'MATH 253', 2, ELEC),
+      c('cpen.math255', 'MATH 255', 2, ELEC),
+      el('cpen.tech.y2', 'Computer Engineering electives', 4, 2, ELEC),
+    ],
+  },
+  {
+    id: 'cpen.third-year',
+    kind: 'group',
+    label: 'Third year',
+    year: 3,
+    sourceUrl: ELEC,
+    items: [
+      c('cpen.331', 'CPEN 331', 3, ELEC),
+      c('cpen.391', 'CPEN 391', 3, ELEC),
+      c('cpen.cpsc320', 'CPSC 320', 3, ELEC),
+      {
+        id: 'cpen.stats',
+        kind: 'chooseN',
+        label: 'One of MATH 318, STAT 251, MATH 302 or STAT 302',
+        n: 1,
+        year: 3,
+        sourceUrl: ELEC,
+        confidence: 'stated',
+        of: ['MATH 318', 'STAT 251', 'MATH 302', 'STAT 302'].map((code) => ({
+          id: `cpen.stats.${code.replace(' ', '')}`,
+          kind: 'course' as const,
+          label: code,
+          code,
+        })),
+      },
+      el('cpen.tech.y3', 'Computer Engineering electives', 16, 3, ELEC),
+      el('cpen.comp.y3', 'Complementary Studies electives', 6, 3, ELEC),
+    ],
+  },
+  {
+    id: 'cpen.fourth-year',
+    kind: 'group',
+    label: 'Fourth year',
+    year: 4,
+    sourceUrl: ELEC,
+    items: [
+      c('cpen.apsc450', 'APSC 450', 4, ELEC),
+      {
+        id: 'cpen.481',
+        kind: 'chooseN',
+        label: 'CPEN 481 or ELEC 481',
+        n: 1,
+        year: 4,
+        sourceUrl: ELEC,
+        confidence: 'stated',
+        of: [
+          { id: 'cpen.481.cpen', kind: 'course', label: 'CPEN 481', code: 'CPEN 481' },
+          { id: 'cpen.481.elec', kind: 'course', label: 'ELEC 481', code: 'ELEC 481' },
+        ],
+      },
+      cAt('cpen.491', 'CPEN 491', 4, ELEC, 10), // (5-10) on the page, 10 in the table
+      el('cpen.tech.y4', 'Computer Engineering electives', 20, 4, ELEC),
+      el('cpen.science.y4', 'Science elective', 3, 4, ELEC),
+    ],
+  },
+  {
+    id: 'cpen.variable-credits',
+    kind: 'note',
+    label: 'CPEN 221 and 491 are variable-credit courses',
+    detail:
+      'The course descriptions list CPEN 221 as 4 to 5 credits and CPEN 491 as 5 to 10. ' +
+      'The program table requires the top of each range, which is what is used above.',
+    sourceUrl: ELEC,
+    confidence: 'stated',
+  },
+  {
+    id: 'cpen.entry-year',
+    kind: 'note',
+    label: 'A different second year applies if you entered before 2023W',
+    detail:
+      'That table has CPEN 221 at 4 credits, adds CPEN 291, and takes MATH 256 instead ' +
+      'of MATH 255 — 39 credits rather than 38, with no second-year electives. Students ' +
+      'who entered second year in 2022W or earlier should follow it instead.',
     sourceUrl: ELEC,
     confidence: 'stated',
   },

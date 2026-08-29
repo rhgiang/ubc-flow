@@ -22,8 +22,11 @@ const unusedColumns = {
 
 const parsed: ParsedExport = {
   studentNumber: '99999999',
+  transfers: [],
   rows: [
     {
+      grade: null,
+      status: 'registered' as const,
       subjectCode: 'CPSC',
       campus: 'V',
       courseNumber: '110',
@@ -44,6 +47,8 @@ const parsed: ParsedExport = {
       ...unusedColumns,
     },
     {
+      grade: null,
+      status: 'registered' as const,
       subjectCode: 'ZZNOPE',
       campus: 'V',
       courseNumber: '999',
@@ -158,6 +163,7 @@ describe('importExport', () => {
     const first: ParsedExport = {
       studentNumber: '11111111',
       rows: [],
+      transfers: [],
       excluded: [],
       unparsedTables: [],
     };
@@ -170,6 +176,7 @@ describe('importExport', () => {
     const second: ParsedExport = {
       studentNumber: '22222222',
       rows: [],
+      transfers: [],
       excluded: [],
       unparsedTables: [],
     };

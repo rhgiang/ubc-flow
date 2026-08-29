@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { saveThemeMode } from '@/app/actions/theme';
+import { DEFAULT_MODE } from '@/lib/theme';
 
 // ponytail: temporary dev control — lets you preview every sky state without
 // waiting for real weather. Delete this component (and its line in layout.tsx)
@@ -70,10 +72,17 @@ export default function WeatherPreview() {
   // highlighted buttons, so there is no second copy of the state to drift.
   function show(cond: Condition, isNight: boolean) {
     const r = document.documentElement;
-    // No data-mode write: that attribute is the theme menu's record of what
-    // the user picked, and stamping 'weather' here made the menu highlight
-    // "Campus weather" after any preview click. The sky only reads
-    // data-weather/data-theme.
+    // In campus weather mode the 15-minute poll and the focus/visibility
+    // refresh repaint the campus sky over anything previewed here, so a click
+    // is treated as leaving weather mode for the day/night it asked for.
+    // Outside weather mode, data-mode stays the theme menu's record of what
+    // the user picked — the sky only reads data-weather/data-theme.
+    if ((localStorage.getItem('theme') ?? DEFAULT_MODE) === 'weather') {
+      const mode = isNight ? 'night' : 'day';
+      r.setAttribute('data-mode', mode);
+      localStorage.setItem('theme', mode);
+      void saveThemeMode(mode);
+    }
     r.setAttribute('data-theme', isNight ? 'dark' : 'light');
     r.setAttribute('data-weather', cond);
   }

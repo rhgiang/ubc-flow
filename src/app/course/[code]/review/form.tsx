@@ -99,7 +99,7 @@ function ScoreGroup({
             onMouseEnter={() => setHovered(n)}
             onFocus={() => setHovered(n)}
             onBlur={() => setHovered(null)}
-            aria-label={`${n} — ${descriptions[n - 1]}`}
+            aria-label={`${n} · ${descriptions[n - 1]}`}
             aria-pressed={value === n}
             className={`h-9 w-9 rounded-lg border text-sm transition-transform duration-150 ease-out hover:scale-110 active:scale-100 ${
               value !== null && n <= value
@@ -114,7 +114,7 @@ function ScoreGroup({
       {/* Fixed height: the line changes on hover, and a jumping form is worse
           than a blank line. */}
       <p className="mt-2 min-h-[1.25rem] text-xs text-text-secondary">
-        {shown === null ? hint : `${shown} — ${descriptions[shown - 1]}`}
+        {shown === null ? hint : `${shown} · ${descriptions[shown - 1]}`}
       </p>
     </div>
   );
@@ -211,6 +211,22 @@ export function ReviewForm({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Compared as one serialised blob rather than field by field: the
+  // per-instructor state is a nested Map, and a rating added to this form
+  // later is covered without anyone remembering to extend the comparison.
+  // Entries are sorted because Map order follows insertion — checking two
+  // instructors in the other order is not an edit.
+  const snapshot = JSON.stringify([
+    liked,
+    useful,
+    difficulty,
+    workloadHours.trim(),
+    text.trim(),
+    [...selected].sort((a, b) => a[0].localeCompare(b[0])),
+  ]);
+  const [baseline] = useState(snapshot);
+  const dirty = snapshot !== baseline;
+
   function toggleInstructor(id: string, checked: boolean) {
     setSelected((prev) => {
       const next = new Map(prev);
@@ -277,7 +293,7 @@ export function ReviewForm({
       // The costliest stuck button in the app — everything the user typed is
       // still in the form, and leaving it disabled means they cannot resubmit
       // it or, on most browsers, get it back after a reload.
-      setError('Could not post your review. It is still here — try again.');
+      setError('Could not post your review. It is still here, so try again.');
       setBusy(false);
     }
   }
@@ -421,10 +437,15 @@ export function ReviewForm({
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
         <div className="flex items-center gap-3">
+          {/* Same rule the schedule header follows: nothing changed means
+              nothing to save, and a live button there is a no-op round trip.
+              Only when editing — a first review has no baseline to differ
+              from, so its Submit stays available. */}
           <button
             type="submit"
-            disabled={busy}
-            className="rounded-pill bg-brand px-5 py-2 text-sm font-medium text-brand-foreground transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100 disabled:opacity-50 disabled:hover:scale-100"
+            disabled={busy || (!!existing && !dirty)}
+            title={existing && !dirty && !busy ? 'No changes to save' : undefined}
+            className="rounded-pill bg-brand px-5 py-2 text-sm font-medium text-brand-foreground transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
           >
             {busy ? 'Saving…' : existing ? 'Update review' : 'Submit review'}
           </button>

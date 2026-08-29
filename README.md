@@ -16,7 +16,7 @@ Postgres is expected on **port 5442**, database `ubcflow`.
 ```bash
 cp .env.example .env      # then fill it in — see below
 npm install               # postinstall runs `prisma generate`
-npx prisma migrate deploy  # 20 migrations
+npx prisma migrate deploy
 npm run dev
 ```
 
@@ -88,9 +88,11 @@ support question maps to a log line.
 
 ## Gotchas
 
-- **`npm run lint` reports 7 errors.** They pre-date this README (6 ×
-  `set-state-in-effect` in the schedule components, 1 × `prefer-const` in
-  `solver.ts`). They are not new — don't assume your change caused them.
+- **`npm run lint` is not clean, and hasn't been for a while.** The standing
+  offenders are `set-state-in-effect` in the schedule components
+  (`ScheduleBuilder`, `FindCoursesPanel`, `WorkdayImportOverlay`,
+  `useCourseDetail`) and one `prefer-const` in `solver.ts`. If those are all
+  you see, your change didn't cause them.
 - **404s return HTTP 200.** Adding `loading.tsx` made those routes stream, and
   a streamed response can't change its status after headers are sent. Next
   marks the page `noindex` automatically, so search is unaffected. This is
@@ -106,7 +108,7 @@ support question maps to a log line.
 ## Testing
 
 ```bash
-npm test          # vitest, 49 files / 499 tests
+npm test          # vitest
 npm run test:watch
 ```
 

@@ -559,6 +559,13 @@ body {
   text-shadow: 0 1px 2px rgba(6, 12, 28, 0.6), 0 0 12px rgba(6, 12, 28, 0.4);
 }
 
+/* The mark is an SVG fill, so it inherits none of the halo above — without a
+   filter of its own it reads as a flat white sticker beside haloed text, and
+   loses its edge entirely against a bright cloud. */
+.sky-root .nav-logo svg {
+  filter: drop-shadow(0 1px 2px rgba(6, 12, 28, 0.6)) drop-shadow(0 0 8px rgba(6, 12, 28, 0.4));
+}
+
 /* Hero text sits straight on the sky with no panel behind it. */
 .sky-hero {
   --foreground: #ffffff;

@@ -4,6 +4,15 @@ import { buildSearchWhere } from '@/lib/search';
 
 export const PAGE_SIZE = 30;
 
+/**
+ * A rating average below this many reviews cannot rank above one at or over
+ * it: with one review, a single 5/5 outranks fifty 4.6s, and a single bitter
+ * 1/5 buries a course. Under the floor a course still sorts - by review
+ * count, the default - it just cannot claim a leaderboard spot on a sample
+ * of one or two.
+ */
+const MIN_RATINGS_FOR_SORT = 3;
+
 export type CourseSort = 'ratings' | 'code' | 'name' | 'useful' | 'difficulty' | 'liked';
 export type ProfessorSort = 'ratings' | 'name' | 'clear' | 'engaging' | 'liked';
 
@@ -126,10 +135,15 @@ export async function listCourses(
     if (sort === 'name') return a.title.localeCompare(b.title);
     if (sort === 'code') return codeCmp(a, b);
     if (sort === 'useful' || sort === 'difficulty' || sort === 'liked') {
-      const field = sort === 'liked' ? 'likedPercent' : sort;
-      const av = stats.get(a.id)?.[field];
-      const bv = stats.get(b.id)?.[field];
-      if (av !== bv) return (bv ?? -1) - (av ?? -1);
+      const aRated = (stats.get(a.id)?.count ?? 0) >= MIN_RATINGS_FOR_SORT;
+      const bRated = (stats.get(b.id)?.count ?? 0) >= MIN_RATINGS_FOR_SORT;
+      if (aRated !== bRated) return aRated ? -1 : 1;
+      if (aRated) {
+        const field = sort === 'liked' ? 'likedPercent' : sort;
+        const av = stats.get(a.id)?.[field];
+        const bv = stats.get(b.id)?.[field];
+        if (av !== bv) return (bv ?? -1) - (av ?? -1);
+      }
     }
     // Default, and the tiebreak for every other sort: most-reviewed first,
     // then alphabetical — the only ranking that means anything while real
@@ -237,10 +251,15 @@ export async function listProfessors(
   const sorted = [...candidates].sort((a, b) => {
     if (sort === 'name') return a.name.localeCompare(b.name);
     if (sort === 'clear' || sort === 'engaging' || sort === 'liked') {
-      const field = sort === 'liked' ? 'likedPercent' : sort;
-      const av = stats.get(a.id)?.[field];
-      const bv = stats.get(b.id)?.[field];
-      if (av !== bv) return (bv ?? -1) - (av ?? -1);
+      const aRated = (stats.get(a.id)?.count ?? 0) >= MIN_RATINGS_FOR_SORT;
+      const bRated = (stats.get(b.id)?.count ?? 0) >= MIN_RATINGS_FOR_SORT;
+      if (aRated !== bRated) return aRated ? -1 : 1;
+      if (aRated) {
+        const field = sort === 'liked' ? 'likedPercent' : sort;
+        const av = stats.get(a.id)?.[field];
+        const bv = stats.get(b.id)?.[field];
+        if (av !== bv) return (bv ?? -1) - (av ?? -1);
+      }
     }
     const countDiff = (stats.get(b.id)?.count ?? 0) - (stats.get(a.id)?.count ?? 0);
     return countDiff !== 0 ? countDiff : a.name.localeCompare(b.name);

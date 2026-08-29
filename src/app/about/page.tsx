@@ -65,7 +65,7 @@ export default function AboutPage() {
             Much larger than the 64px placeholder it replaces — the section is
             about a person, and at avatar size it read as a bullet point.
           */}
-          <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:gap-8">
+          <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-start sm:gap-8">
             <img
               src="/founder.webp"
               alt="Ryan Giang"
@@ -78,6 +78,16 @@ export default function AboutPage() {
             <div className="min-w-0">
               <p className="text-2xl font-semibold text-foreground">Ryan Giang</p>
               <p className="mt-1 text-base text-text-secondary">UBC Computer Science Student</p>
+              <p className="mt-4 text-base leading-relaxed text-text-secondary">
+                Ryan is the developer behind UBC Flow. He likes building products that make tasks
+                easier, and pays close attention to accessibility, convenience, and user
+                experience.
+              </p>
+              <p className="mt-3 text-base leading-relaxed text-text-secondary">
+                He&apos;s especially interested in computer vision and robotics. When he&apos;s not
+                thinking about programming, you&apos;ll find him deep in sports, fitness, and
+                photography.
+              </p>
               <p className="mt-4 flex flex-wrap gap-4 text-base">
                 <a
                   href="https://www.linkedin.com/in/ryanhgiang"

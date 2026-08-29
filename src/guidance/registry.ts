@@ -118,9 +118,12 @@ export function effectiveRules(program: Program, seen: Set<string> = new Set()):
  * 21, so sizing to the even half strands the remainder. All four B.A.Sc.
  * programs fit eight terms at 22 and none of them do at 21.
  *
- * Applied only to oversized degrees. A 120-credit program already fits at 15,
- * and pushing one past 21 breaks it — Statistics returns a three-term plan
- * with half the degree unplaced, which is a solver bug in its own right.
+ * Applied only to oversized degrees, because a 120-credit program already
+ * fits comfortably at 15 and has no reason to be rushed. It used to be capped
+ * for a worse reason as well — above 21 the solver deadlocked and Statistics
+ * returned a three-term plan with half the degree unplaced — but that was a
+ * bug in how the current year was counted and is fixed; the cap is now just
+ * the honest ceiling on what a student takes.
  *
  * Lives here rather than in the page because it is a fact about the program,
  * and the landing page quotes it beside each one.

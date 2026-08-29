@@ -134,14 +134,14 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   const ids = catalogue.map((c) => c.id);
   const [prereqs, offerings] = await Promise.all([loadPrereqs(catalogue), loadOfferings(ids)]);
 
-  const load = Math.min(
-    24,
-    Math.max(
-      3,
-      Number(sp.credits) ||
-        defaultLoad(program.totalCredits),
-    ),
-  );
+  const fullLoad = defaultLoad(program.totalCredits);
+  const load = Math.min(24, Math.max(3, Number(sp.credits) || fullLoad));
+  // The offered loads always include the program's own, so it is selectable
+  // and visibly current. Fixed pills of 12/15/18 left engineering showing
+  // NOTHING highlighted — its default is 22 — which read as an unset control
+  // where 18 looked like the maximum, and there was no way back to 22 once
+  // you had clicked away. Commerce had it too, at 16.
+  const loads = [...new Set([12, 15, 18, fullLoad])].sort((a, b) => a - b);
 
   // No completion data yet — Enrollment records registration, not whether a
   // course was passed, so treating it as completed would be wrong in the
@@ -254,7 +254,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-text-secondary">Credits per term</span>
-                {[12, 15, 18].map((n) => (
+                {loads.map((n) => (
                   <Link
                     key={n}
                     href={href({ credits: n })}
@@ -319,6 +319,21 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                 degree must end on an academic term — but leaves the sequence to each department, so
                 check yours for the exact placement. Work terms earn co-op course credit on your
                 transcript and none of it counts toward the degree, which is why co-op adds a year.
+              </p>
+            )}
+
+            {/*
+              A degree that runs past four years should say why rather than
+              leave the student counting. Engineering is 148 to 158 credits, so
+              choosing 18 a term genuinely cannot fit it into eight — 8 x 18 is
+              144 — and the plan grows a fifth year. That is arithmetic, not a
+              scheduling failure, and it is worth one sentence.
+            */}
+            {!coop && plan.terms.length > 8 && (
+              <p className="mt-3 rounded-card border border-info-border bg-info-surface px-3 py-2 text-xs text-info">
+                {program.totalCredits} credits at {load} a term needs {plan.terms.length} terms, so
+                this route runs past four years. This program&rsquo;s full load is {fullLoad} a term,
+                which fits it into eight.
               </p>
             )}
 
@@ -479,6 +494,20 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
           <p className="text-sm font-semibold text-foreground">Requirements</p>
           <p className="mt-1 text-xs text-text-secondary">
             {totalRules} to complete · {program.totalCredits} credits total
+          </p>
+          {/*
+            Said plainly, because the ticks look like a transcript and are not
+            one. Nothing here is personalised: the checklist is fed the courses
+            the ROUTE schedules, so it answers "does this plan satisfy the
+            degree" — which is why requirements in third and fourth year already
+            read as covered. A rule that stays uncovered is almost always an
+            elective slot, where the plan reserves the credits but cannot pick
+            the course for you.
+          */}
+          <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[11px] leading-relaxed text-info">
+            Checked against the route above, not your record — signing in does not personalise this
+            yet. A requirement shows as covered when the plan schedules something for it; the ones
+            left over are electives you still choose yourself.
           </p>
 
           <ul className="mt-3 space-y-1.5">

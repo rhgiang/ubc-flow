@@ -51,7 +51,7 @@ function evaluate(rule: Rule, held: CourseRef[], claimed: Set<string>): RuleProg
         rule,
         state: hit ? 'satisfied' : 'outstanding',
         satisfiedBy: hit ? [hit] : [],
-        detail: hit ? `Completed ${rule.code}` : `${rule.code} not yet taken`,
+        detail: hit ? rule.code : `${rule.code} — outstanding`,
       };
     }
 
@@ -64,7 +64,7 @@ function evaluate(rule: Rule, held: CourseRef[], claimed: Set<string>): RuleProg
         rule,
         state,
         satisfiedBy: met.flatMap((b) => b.satisfiedBy),
-        detail: `${met.length} of ${rule.n} satisfied`,
+        detail: `${met.length} of ${rule.n} covered`,
       };
     }
 
@@ -106,7 +106,7 @@ function evaluate(rule: Rule, held: CourseRef[], claimed: Set<string>): RuleProg
         rule,
         state,
         satisfiedBy: kids.flatMap((k) => k.satisfiedBy),
-        detail: `${real.filter((k) => k.state === 'satisfied').length} of ${real.length} met`,
+        detail: `${real.filter((k) => k.state === 'satisfied').length} of ${real.length} covered`,
       };
     }
   }

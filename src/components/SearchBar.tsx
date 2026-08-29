@@ -83,7 +83,13 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
       </form>
 
       {open && (
-        <div className="absolute inset-x-0 top-full z-10 mt-2 overflow-hidden rounded-card border border-border bg-surface text-left shadow-lg">
+        <div
+          // Tapping a row must not blur the input: on touch (and Safari) links
+          // never receive focus, so blur would see relatedTarget=null and
+          // unmount the row before its click fires.
+          onMouseDown={(e) => e.preventDefault()}
+          className="absolute inset-x-0 top-full z-10 mt-2 overflow-hidden rounded-card border border-border bg-surface text-left shadow-lg"
+        >
           {shown.courses.map((c) => (
             <Link
               key={c.code}

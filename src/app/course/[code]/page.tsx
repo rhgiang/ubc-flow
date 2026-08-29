@@ -388,7 +388,21 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
                   >
                     {myReview ? 'Edit your review' : 'Write a review'}
                   </Link>
-                ) : null
+                ) : (
+                  /* The gate used to fail silently - the one student who could
+                     fix the empty review list saw nothing at all. One quiet
+                     sentence, not a banner. */
+                  <span className="text-xs text-text-tertiary">
+                    Took this course?{' '}
+                    <Link
+                      href={viewerId ? '/onboarding#upload' : '/login'}
+                      className="text-brand-accent hover:underline"
+                    >
+                      {viewerId ? 'Verify your enrolment' : 'Sign in'}
+                    </Link>{' '}
+                    to review it.
+                  </span>
+                )
               }
               likedPercent={stats.likedPercent}
               ratingCount={stats.count}
@@ -498,8 +512,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
             id: s.id,
             sectionCode: s.sectionCode,
             activity: s.activity,
-            enrolTotal: s.enrolTotal,
-            enrolCap: s.enrolCap,
+            status: s.status,
             meetingTimes: s.meetingTimes,
             instructors: s.instructors,
             term: s.term,

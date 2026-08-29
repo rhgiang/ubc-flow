@@ -40,8 +40,6 @@ export type CourseSectionDetail = {
   /** Carried so the overlay can build a complete SectionHit when a student
    *  adds a section from here, without a second round trip. */
   meetingTimes: SectionMeetingTime[];
-  enrolTotal: number | null;
-  enrolCap: number | null;
   instructors: {
     name: string;
     slug: string;
@@ -238,8 +236,6 @@ export async function loadCourseDetail(
         building: m.building,
         room: m.room,
       })),
-      enrolTotal: s.enrolTotal,
-      enrolCap: s.enrolCap,
       instructors: s.instructors.map((si) => ({
         name: si.instructor.name,
         slug: si.instructor.slug,

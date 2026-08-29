@@ -12,8 +12,12 @@ import ReviewCard from '@/components/ReviewCard';
 import { timeAgo } from '@/lib/relative-time';
 import { voteSummary } from '@/reviews/votes';
 import { rmpSearchHref } from '@/lib/rmp';
+import { reviewableCourses } from '@/lib/gate';
 
 const GRADE_DATA_SOURCE = 'https://github.com/DonneyF/ubc-pair-grade-data';
+
+/** "CPSC 110" -> "/course/cpsc-110", the way /explore links them. */
+const courseHref = (code: string) => `/course/${code.toLowerCase().replace(' ', '-')}`;
 
 /**
  * The whole page is visitor-independent, so all of it caches under the
@@ -141,11 +145,12 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
   // One row per course, newest term first.
   const byCourse = new Map<
     string,
-    { code: string; title: string; terms: Set<string> }
+    { id: string; code: string; title: string; terms: Set<string> }
   >();
   for (const { section } of instructor.sections) {
     const code = `${section.course.subject.code} ${section.course.number}`;
     const entry = byCourse.get(code) ?? {
+      id: section.course.id,
       code,
       title: section.course.title,
       terms: new Set<string>(),
@@ -163,6 +168,18 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
     reviews.map((r) => r.id),
     viewerId,
   );
+
+  /**
+   * The courses you took with this professor.
+   *
+   * There is no such thing as a professor review on its own — InstructorReview
+   * carries a courseId and is unique per (user, instructor, course), because
+   * "explained things well" means something different in one course than
+   * another. So the button cannot open a blank form; it has to send you to the
+   * review for a course the two of you actually shared.
+   */
+  const mine = viewerId ? new Set(await reviewableCourses(viewerId)) : new Set<string>();
+  const reviewable = courses.filter((c) => mine.has(c.id));
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -212,6 +229,57 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
               { label: 'Clear', mean: stats.clear, histogram: stats.histograms.clear },
               { label: 'Engaging', mean: stats.engaging, histogram: stats.histograms.engaging },
             ]}
+            action={
+              reviewable.length === 1 ? (
+                <Link
+                  href={`${courseHref(reviewable[0].code)}/review?instructor=${instructor.id}`}
+                  className="rounded-pill bg-brand px-4 py-1.5 text-xs font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100"
+                >
+                  Write a review
+                </Link>
+              ) : reviewable.length > 1 ? (
+                /*
+                  A review belongs to a course, so with more than one shared
+                  course the button cannot decide for you. Native disclosure
+                  rather than a menu: it is a list of links, and it works
+                  before any JavaScript arrives.
+                */
+                <details className="group">
+                  <summary className="inline-block cursor-pointer list-none rounded-pill bg-brand px-4 py-1.5 text-xs font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100">
+                    Write a review
+                  </summary>
+                  <div className="mt-2">
+                    <p className="text-xs text-text-tertiary">Which course?</p>
+                    <ul className="mt-1 space-y-1">
+                      {reviewable.map((c) => (
+                        <li key={c.id}>
+                          <Link
+                            href={`${courseHref(c.code)}/review?instructor=${instructor.id}`}
+                            className="text-xs text-brand-accent hover:underline"
+                          >
+                            {c.code}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </details>
+              ) : (
+                /* Same quiet sentence the course page uses rather than a dead
+                   button — the one person who could fix an empty review list
+                   should be told how. */
+                <span className="text-xs text-text-tertiary">
+                  Took a course with them?{' '}
+                  <Link
+                    href={viewerId ? '/onboarding#upload' : '/login'}
+                    className="text-brand-accent hover:underline"
+                  >
+                    {viewerId ? 'Upload your courses' : 'Log in'}
+                  </Link>{' '}
+                  to review.
+                </span>
+              )
+            }
           />
         </div>
       </div>

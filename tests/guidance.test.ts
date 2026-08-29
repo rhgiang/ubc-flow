@@ -1011,3 +1011,56 @@ describe('a degree that does not divide evenly into terms', () => {
     expect(plan.terms).toHaveLength(9); // 8 x 15 + 6
   });
 });
+
+describe('the year of the degree comes from the terms', () => {
+  const winters = Array.from({ length: 10 }, (_, i) => ({
+    id: `t${i}`,
+    name: `20${26 + Math.floor(i / 2)}-2${7 + Math.floor(i / 2)} Winter Term ${(i % 2) + 1}`,
+    available: true,
+    projected: true,
+  }));
+
+  it('advances past a term that could place nothing', () => {
+    // The deadlock. The current year used to be counted from the terms that
+    // had RECEIVED courses, which closes a loop: a term with nothing it is
+    // allowed to place leaves the count where it is, so every rule gated on a
+    // later year stays blocked, so the next term places nothing either.
+    //
+    // Here first year is emptied in a single 30-credit term. The term after it
+    // has no first-year work left and is not yet allowed third-year work, so
+    // it places nothing — and under the old rule the plan stopped there for
+    // good. Statistics did exactly this at 21 credits a term: three terms
+    // planned, half the degree reported unplaceable, fifteen terms skipped.
+    const rules: Rule[] = [
+      { id: 'y1', kind: 'credits', label: 'First year', elective: true, n: 30, year: 1,
+        from: { kind: 'codes', codes: [] } },
+      { id: 'y3', kind: 'credits', label: 'Third year', elective: true, n: 30, year: 3,
+        from: { kind: 'codes', codes: [] } },
+    ];
+    const plan = solve({
+      outstanding: outstanding([], rules), completed: [], catalogue: [],
+      prereqs: new Map(), offerings: new Map(), terms: winters,
+      prefs: { creditsPerTerm: 30, useSummer: false, targetTermId: null },
+    });
+    const credits = plan.terms
+      .flatMap((t) => t.placements)
+      .reduce((n, p) => n + (p.kind === 'slot' ? p.credits : p.course.credits), 0);
+    expect(plan.unplaced).toHaveLength(0);
+    expect(credits).toBe(60);
+  });
+
+  it('does not let a third-year rule start in first year', () => {
+    // The gate still has to hold, or the fix would just be its removal.
+    const rules: Rule[] = [
+      { id: 'y3', kind: 'credits', label: 'Third year', elective: true, n: 6, year: 3,
+        from: { kind: 'codes', codes: [] } },
+    ];
+    const plan = solve({
+      outstanding: outstanding([], rules), completed: [], catalogue: [],
+      prereqs: new Map(), offerings: new Map(), terms: winters,
+      prefs: { creditsPerTerm: 15, useSummer: false, targetTermId: null },
+    });
+    // Year 3 begins at the fifth winter term, so nothing lands before it.
+    expect(plan.terms[0].term.name).toContain('2028');
+  });
+});

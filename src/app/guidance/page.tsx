@@ -21,7 +21,6 @@ import {
   workTermIds,
 } from '@/guidance/coop';
 
-export const revalidate = 300;
 
 // `credits`, not `load`. The control used to mean courses per term and the
 // parameter was called load; changing its meaning to credits while keeping the

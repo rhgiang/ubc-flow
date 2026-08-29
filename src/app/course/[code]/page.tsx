@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation';
+import { unstable_cache } from 'next/cache';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { parseCourseCode } from '@/lib/format';
@@ -34,15 +36,24 @@ function activityRank(activity: string | null): number {
   return i === -1 ? ACTIVITY_ORDER.length : i;
 }
 
-export default async function CoursePage({ params }: { params: Promise<{ code: string }> }) {
-  const { code } = await params;
-  const parsed = parseCourseCode(code);
-  if (!parsed) notFound();
-
+/**
+ * Everything on this page that is identical for every visitor, cached for an
+ * hour under the 'catalogue' tag. Review writes call revalidateTag('catalogue')
+ * so a fresh review shows up immediately rather than after the hour.
+ *
+ * On a cache hit none of these queries run, which also sidesteps Neon's
+ * scale-to-zero wake for the whole catalogue half of the page. Only the
+ * per-user queries below (session, votes, my review, my schedules) can ever
+ * touch a cold database, and they go out in one parallel wave.
+ *
+ * createdAt is flattened to epoch ms before returning: the cache round-trips
+ * through JSON, which would otherwise silently turn Dates into strings.
+ */
+async function loadCourseData(subjectCode: string, number: string) {
   const course = await db.course.findFirst({
     where: {
-      number: parsed.number,
-      subject: { code: parsed.subjectCode, campus: 'V' },
+      number,
+      subject: { code: subjectCode, campus: 'V' },
     },
     include: {
       subject: true,
@@ -60,7 +71,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
       },
     },
   });
-  if (!course) notFound();
+  if (!course) return null;
 
   // Group lectures with lectures, labs with labs, etc. within each term.
   // Re-derives the term ordering too (not just activity), since a plain
@@ -73,31 +84,130 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
       a.sectionCode.localeCompare(b.sectionCode),
   );
 
-  const reviews = await db.courseReview.findMany({
-    where: { courseId: course.id },
-    // userId IS selected here, and never leaves this function: it is the only
-    // link between a course review and the instructor reviews the same student
-    // wrote, which is what "taught by" is built from below. Reviews stay
-    // anonymous (spec 5) — nothing rendered carries it.
-    select: {
-      id: true,
-      userId: true,
-      liked: true,
-      useful: true,
-      difficulty: true,
-      workloadHours: true,
-      text: true,
-      createdAt: true,
+  // Independent of one another - one round trip to Neon, not four.
+  const [reviewRows, gradeRows, leadsToEdges, instructorReviewRows] = await Promise.all([
+    db.courseReview.findMany({
+      where: { courseId: course.id },
+      // userId IS selected here, and never leaves the server: it is the only
+      // link between a course review and the instructor reviews the same
+      // student wrote, which is what "taught by" is built from. Reviews stay
+      // anonymous (spec 5) - nothing rendered carries it.
+      select: {
+        id: true,
+        userId: true,
+        liked: true,
+        useful: true,
+        difficulty: true,
+        workloadHours: true,
+        text: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    // One query serves both the headline aggregate and the history timeline -
+    // they were two identical findMany calls over the same rows.
+    db.gradeDistribution.findMany({
+      where: { courseId: course.id },
+      select: { termId: true, average: true, count: true, distribution: true },
+    }),
+    db.coursePrereqEdge.findMany({
+      where: { requiredCourseId: course.id },
+      include: { course: { include: { subject: true } } },
+    }),
+    db.instructorReview.findMany({
+      where: { courseId: course.id },
+      select: {
+        id: true,
+        userId: true,
+        instructorId: true,
+        liked: true,
+        clear: true,
+        engaging: true,
+        text: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
+
+  const [realTerms, reviewedInstructors] = await Promise.all([
+    db.term.findMany({
+      where: { id: { in: [...new Set(gradeRows.map((r) => r.termId))] } },
+      select: { id: true, year: true, session: true },
+    }),
+    // instructorId is a raw FK with no Prisma relation (the same cross-domain
+    // convention as CourseReview.courseId), so the names are a second query.
+    instructorReviewRows.length
+      ? db.instructor.findMany({
+          where: { id: { in: [...new Set(instructorReviewRows.map((r) => r.instructorId))] } },
+          select: { id: true, name: true, slug: true },
+        })
+      : [],
+  ]);
+
+  return {
+    course,
+    reviews: reviewRows.map((r) => ({ ...r, createdAt: r.createdAt.getTime() })),
+    gradeRows,
+    realTerms,
+    leadsToEdges,
+    instructorReviews: instructorReviewRows.map((r) => ({ ...r, createdAt: r.createdAt.getTime() })),
+    reviewedInstructors,
+  };
+}
+
+const getCoursePageData = unstable_cache(loadCourseData, ['course-page'], {
+  revalidate: 3600,
+  tags: ['catalogue'],
+});
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}): Promise<Metadata> {
+  const { code } = await params;
+  const parsed = parseCourseCode(code);
+  if (!parsed) return {};
+  const data = await getCoursePageData(parsed.subjectCode, parsed.number);
+  if (!data) return {};
+  const { course } = data;
+  const codeLabel = `${course.subject.code} ${course.number}`;
+  // The description a student would search for, trimmed to snippet length.
+  const description = course.description
+    ? course.description.length > 160
+      ? `${course.description.slice(0, 157)}...`
+      : course.description
+    : `Grades, reviews, prerequisites and sections for ${codeLabel} at UBC.`;
+  const title = `${codeLabel} · ${course.title}`;
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `/course/${(course.subject.code ?? parsed.subjectCode).toLowerCase()}-${course.number.toLowerCase()}`,
     },
-    orderBy: { createdAt: 'desc' },
-  });
+    openGraph: { title, description },
+  };
+}
+
+export default async function CoursePage({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params;
+  const parsed = parseCourseCode(code);
+  if (!parsed) notFound();
+
+  const data = await getCoursePageData(parsed.subjectCode, parsed.number);
+  if (!data) notFound();
+  const {
+    course,
+    reviews,
+    gradeRows,
+    realTerms,
+    leadsToEdges,
+    instructorReviews,
+    reviewedInstructors,
+  } = data;
 
   const stats = aggregateCourseReviews(reviews);
-
-  const gradeRows = await db.gradeDistribution.findMany({
-    where: { courseId: course.id },
-    select: { average: true, count: true, distribution: true },
-  });
   const grades = aggregateDistributions(
     gradeRows.map((g) => ({
       average: g.average,
@@ -105,27 +215,14 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
       distribution: g.distribution as Record<string, number | null> | null,
     })),
   );
-
   // Grade history from our OWN section rows, so the trend, the section spread
   // and the headline average above all describe the same window and the same
   // underlying numbers.
-  const historyRows = await db.gradeDistribution.findMany({
-    where: { courseId: course.id },
-    select: { termId: true, average: true, count: true },
-  });
-  const realTerms = await db.term.findMany({
-    where: { id: { in: [...new Set(historyRows.map((r) => r.termId))] } },
-    select: { id: true, year: true, session: true },
-  });
   const history = buildCourseGradeHistory(
-    historyRows,
+    gradeRows,
     new Map(realTerms.map((t) => [t.id, { year: t.year, session: t.session }])),
   );
 
-  const leadsToEdges = await db.coursePrereqEdge.findMany({
-    where: { requiredCourseId: course.id },
-    include: { course: { include: { subject: true } } },
-  });
   const leadsTo = leadsToEdges.map((e) => ({
     code: `${e.course.subject.code} ${e.course.number}`,
     courseId: e.courseId,
@@ -133,29 +230,6 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
 
   const antireqs = (course.antireqCodes as { code: string; courseId: string | null }[] | null) ?? [];
 
-  const instructorReviews = await db.instructorReview.findMany({
-    where: { courseId: course.id },
-    select: {
-      id: true,
-      userId: true,
-      instructorId: true,
-      liked: true,
-      clear: true,
-      engaging: true,
-      text: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  // instructorId is a raw FK with no Prisma relation (the same cross-domain
-  // convention as CourseReview.courseId), so the names are a second query.
-  const reviewedInstructors = instructorReviews.length
-    ? await db.instructor.findMany({
-        where: { id: { in: [...new Set(instructorReviews.map((r) => r.instructorId))] } },
-        select: { id: true, name: true, slug: true },
-      })
-    : [];
   const instructorById = new Map(reviewedInstructors.map((i) => [i.id, i]));
 
   // Who each reviewer said taught them, for the "taught by" line. A student may
@@ -169,12 +243,30 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
     taughtByUser.set(r.userId, list);
   }
 
+  // The per-user half - never cached, and one parallel wave instead of four
+  // sequential awaits.
   const session = await auth();
   const viewerId = session?.user?.id ?? null;
-  const { counts: voteCounts, mine: myVotes } = await voteSummary(
-    [...reviews.map((r) => r.id), ...instructorReviews.map((r) => r.id)],
-    viewerId,
-  );
+  const [{ counts: voteCounts, mine: myVotes }, mayReview, myReview, mySchedules] =
+    await Promise.all([
+      voteSummary(
+        [...reviews.map((r) => r.id), ...instructorReviews.map((r) => r.id)],
+        viewerId,
+      ),
+      viewerId ? canReview(viewerId, course.id) : false,
+      viewerId
+        ? db.courseReview.findUnique({
+            where: { userId_courseId: { userId: viewerId, courseId: course.id } },
+            select: { id: true },
+          })
+        : null,
+      viewerId
+        ? db.savedSchedule.findMany({
+            where: { userId: viewerId },
+            select: { id: true, name: true, termId: true },
+          })
+        : [],
+    ]);
 
   const now = new Date();
 
@@ -182,8 +274,8 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
     id: r.id,
     text: r.text,
     liked: r.liked,
-    when: timeAgo(r.createdAt, now),
-    createdAt: r.createdAt.getTime(),
+    when: timeAgo(new Date(r.createdAt), now),
+    createdAt: r.createdAt,
     votes: voteCounts.get(r.id) ?? 0,
     voted: myVotes.has(r.id),
     taughtBy: taughtByUser.get(r.userId) ?? [],
@@ -218,8 +310,8 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
       id: r.id,
       text: r.text,
       liked: r.liked,
-      when: timeAgo(r.createdAt, now),
-      createdAt: r.createdAt.getTime(),
+      when: timeAgo(new Date(r.createdAt), now),
+      createdAt: r.createdAt,
       votes: voteCounts.get(r.id) ?? 0,
       voted: myVotes.has(r.id),
       tags: [
@@ -229,20 +321,6 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
     });
   }
   professorGroups.sort((a, b) => b.reviews.length - a.reviews.length || a.name.localeCompare(b.name));
-
-  const mayReview = viewerId ? await canReview(viewerId, course.id) : false;
-  const myReview = viewerId
-    ? await db.courseReview.findUnique({
-        where: { userId_courseId: { userId: viewerId, courseId: course.id } },
-        select: { id: true },
-      })
-    : null;
-  const mySchedules = session?.user?.id
-    ? await db.savedSchedule.findMany({
-        where: { userId: session.user.id },
-        select: { id: true, name: true, termId: true },
-      })
-    : [];
 
   // One server action per section, closing over its id — same mechanism the
   // old inline sections table used, just built ahead of the client

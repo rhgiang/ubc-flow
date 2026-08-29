@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { listCourses, listProfessors, PAGE_SIZE, type CourseSort, type ProfessorSort } from '@/lib/explore';
+import { unstable_cache } from 'next/cache';
 import { isUpcomingTerm, compareTerms } from '@/schedule/terms';
 import ExploreSubjectSelect from '@/components/ExploreSubjectSelect';
 import ExploreSearchInput from '@/components/ExploreSearchInput';
-
-export const revalidate = 60;
 
 type Tab = 'courses' | 'professors';
 
@@ -59,6 +58,33 @@ const DEGREE_FACULTIES: [string, string][] = [
   ['BCom · Commerce', 'Faculty of Commerce and Business Administration'],
 ];
 
+/**
+ * Nothing on this page is visitor-specific, but `searchParams` makes the
+ * route itself dynamic - so the caching lives at the data layer instead.
+ * Each distinct filter combination is its own cache entry (arguments are part
+ * of unstable_cache's key). Tagged 'catalogue' like the course and professor
+ * pages, so review writes refresh the ratings columns here too.
+ */
+const cachedListCourses = unstable_cache(listCourses, ['explore-courses'], {
+  revalidate: 3600,
+  tags: ['catalogue'],
+});
+const cachedListProfessors = unstable_cache(listProfessors, ['explore-professors'], {
+  revalidate: 3600,
+  tags: ['catalogue'],
+});
+const getExploreHeader = unstable_cache(
+  async () =>
+    Promise.all([
+      db.term.findMany({ where: { campus: 'V' } }),
+      db.subject.findMany({ where: { campus: 'V', code: { not: null } }, orderBy: { code: 'asc' } }),
+      db.course.count({ where: { campus: 'V' } }),
+      db.instructor.count({ where: { campus: 'V' } }),
+    ]),
+  ['explore-header'],
+  { revalidate: 3600, tags: ['catalogue'] },
+);
+
 export default async function ExplorePage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const tab: Tab = sp.tab === 'professors' ? 'professors' : 'courses';
@@ -73,12 +99,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
   // we chose to expose — same treatment termId gets.
   const faculty = DEGREE_FACULTIES.some(([, f]) => f === sp.faculty) ? sp.faculty : undefined;
 
-  const [terms, subjects, courseTotal, professorTotal] = await Promise.all([
-    db.term.findMany({ where: { campus: 'V' } }),
-    db.subject.findMany({ where: { campus: 'V', code: { not: null } }, orderBy: { code: 'asc' } }),
-    db.course.count({ where: { campus: 'V' } }),
-    db.instructor.count({ where: { campus: 'V' } }),
-  ]);
+  const [terms, subjects, courseTotal, professorTotal] = await getExploreHeader();
   // Every term from the current one onward, not just this/next — a student
   // browsing in the summer is usually planning both Winter terms, and the
   // two-chip version could never show Winter Term 2.
@@ -92,7 +113,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
 
   const courseResult =
     tab === 'courses'
-      ? await listCourses({
+      ? await cachedListCourses({
           q,
           subject: subjectList[0],
           faculty,
@@ -105,7 +126,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
       : null;
   const professorResult =
     tab === 'professors'
-      ? await listProfessors({ q, teachesSubjects: subjectList, sort: sp.sort as ProfessorSort | undefined, page })
+      ? await cachedListProfessors({ q, teachesSubjects: subjectList, sort: sp.sort as ProfessorSort | undefined, page })
       : null;
 
   const total = tab === 'courses' ? courseResult!.total : professorResult!.total;

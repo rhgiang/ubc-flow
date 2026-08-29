@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation';
+import { unstable_cache } from 'next/cache';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
@@ -13,9 +15,13 @@ import { rmpSearchHref } from '@/lib/rmp';
 
 const GRADE_DATA_SOURCE = 'https://github.com/DonneyF/ubc-pair-grade-data';
 
-export default async function ProfessorPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-
+/**
+ * The whole page is visitor-independent, so all of it caches under the
+ * 'catalogue' tag (review writes revalidate the tag). createdAt is flattened
+ * to epoch ms: the cache round-trips through JSON, which would otherwise
+ * silently turn Dates into strings.
+ */
+async function loadProfessorData(slug: string) {
   const instructor = await db.instructor.findUnique({
     where: { slug },
     include: {
@@ -28,35 +34,83 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
       },
     },
   });
-  if (!instructor) notFound();
+  if (!instructor) return null;
 
-  const reviews = await db.instructorReview.findMany({
-    where: { instructorId: instructor.id },
-    // userId is deliberately NOT selected — reviews are anonymous (spec 5).
-    select: {
-      id: true,
-      courseId: true,
-      liked: true,
-      clear: true,
-      engaging: true,
-      text: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  // Independent of one another - one round trip, not two.
+  const [reviewRows, gradeRows] = await Promise.all([
+    db.instructorReview.findMany({
+      where: { instructorId: instructor.id },
+      // userId is deliberately NOT selected - reviews are anonymous (spec 5).
+      select: {
+        id: true,
+        courseId: true,
+        liked: true,
+        clear: true,
+        engaging: true,
+        text: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    db.gradeDistribution.findMany({
+      where: { instructors: { some: { instructorId: instructor.id } } },
+      select: { average: true, count: true, distribution: true },
+    }),
+  ]);
+
+  // InstructorReview.courseId has no Prisma relation to Course (raw FK, same
+  // convention as SavedSchedule.termId elsewhere in this app) - resolve each
+  // review's course code/title via a fresh lookup rather than joining
+  // against `instructor.sections` (that list is keyed by course code string,
+  // not courseId, so it can't be joined directly).
+  const reviewCourseIds = [...new Set(reviewRows.map((r) => r.courseId))];
+  const reviewCourses = reviewCourseIds.length
+    ? await db.course.findMany({
+        where: { id: { in: reviewCourseIds } },
+        include: { subject: true },
+      })
+    : [];
+
+  return {
+    instructor,
+    reviews: reviewRows.map((r) => ({ ...r, createdAt: r.createdAt.getTime() })),
+    reviewCourses,
+    gradeRows,
+  };
+}
+
+const getProfessorData = unstable_cache(loadProfessorData, ['professor-page'], {
+  revalidate: 3600,
+  tags: ['catalogue'],
+});
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const data = await getProfessorData(slug);
+  if (!data) return {};
+  const { instructor } = data;
+  const description = `Student ratings, grade distributions and courses taught by ${instructor.name} at UBC.`;
+  return {
+    title: instructor.name,
+    description,
+    alternates: { canonical: `/professor/${slug}` },
+    openGraph: { title: instructor.name, description },
+  };
+}
+
+export default async function ProfessorPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+
+  const data = await getProfessorData(slug);
+  if (!data) notFound();
+  const { instructor, reviews, reviewCourses, gradeRows } = data;
 
   const stats = aggregateInstructorReviews(reviews);
 
-  // InstructorReview.courseId has no Prisma relation to Course (raw FK, same
-  // convention as SavedSchedule.termId elsewhere in this app) — resolve each
-  // review's course code/title via a fresh lookup rather than joining
-  // against `instructor.sections` below (that list is keyed by course code
-  // string, not courseId, so it can't be joined directly).
-  const reviewCourseIds = [...new Set(reviews.map((r) => r.courseId))];
-  const reviewCourses = await db.course.findMany({
-    where: { id: { in: reviewCourseIds } },
-    include: { subject: true },
-  });
   const courseById = new Map(
     reviewCourses.map((c) => [c.id, { code: `${c.subject.code} ${c.number}`, title: c.title }]),
   );
@@ -76,11 +130,6 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
   const courseGroups = [...reviewsByCourse.entries()]
     .map(([courseId, group]) => ({ courseId, ...group }))
     .sort((a, b) => b.reviews.length - a.reviews.length);
-
-  const gradeRows = await db.gradeDistribution.findMany({
-    where: { instructors: { some: { instructorId: instructor.id } } },
-    select: { average: true, count: true, distribution: true },
-  });
   const grades = aggregateDistributions(
     gradeRows.map((g) => ({
       average: g.average,
@@ -259,7 +308,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
                       ...(r.engaging !== null ? [{ label: 'Engaging', value: `${r.engaging + 1}/5` }] : []),
                     ]}
                     attribution="A student"
-                    when={timeAgo(r.createdAt)}
+                    when={timeAgo(new Date(r.createdAt))}
                     vote={{
                       kind: 'instructor',
                       votes: voteCounts.get(r.id) ?? 0,

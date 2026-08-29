@@ -795,6 +795,12 @@ a.capsule-chip:hover {
   text-shadow: none;
 }
 
+/* And the mark's equivalent. Without this the wordmark correctly drops its
+   halo on a plain bar while the mark keeps glowing beside it. */
+:root[data-plain] .nav-logo svg {
+  filter: none;
+}
+
 /* The links' dark sky-backing chips are only there to survive a passing
    cloud; on a plain bar they read as unexplained grey blocks. */
 @layer base {

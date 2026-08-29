@@ -95,7 +95,13 @@ export async function loadOfferings(
  * partway through second year and reports the remaining two-thirds of the
  * program as unplaceable, which is what it did before this existed.
  */
-export async function loadTerms(years = 5): Promise<PlanTerm[]> {
+// Seven years of projection, not five. Five covers a four-year degree at any
+// sensible load, but not a 158-credit B.A.Sc. at 12 credits a term: that needs
+// thirteen WINTER terms and five years of projection only yields twelve, so
+// the plan reported the last of Civil as unplaceable when the real limit was
+// how far ahead we had bothered to look. Projected terms cost nothing — the
+// solver stops as soon as the degree is done.
+export async function loadTerms(years = 7): Promise<PlanTerm[]> {
   const terms = await db.term.findMany({ where: { campus: "V" } });
   const real = terms
     .filter(isUpcomingTerm)

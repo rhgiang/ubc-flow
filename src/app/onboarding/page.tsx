@@ -141,10 +141,26 @@ export default async function OnboardingPage() {
    * that has clearly uploaded something, with no hint that a re-upload is
    * what fixes it.
    */
-  const graded = enrollments.filter((e) => e.status !== "registered").length;
-  const transferCount = await db.transferCredit.count({ where: { userId } });
+  // Judged on FINISHED terms only, and on enrolments alone.
+  //
+  // A course still running has no grade yet, so "registered" is correct for it
+  // and says nothing about the import. A finished one should carry a grade
+  // after any upload made since the grade columns existed; if none of them
+  // does, the record predates that.
+  //
+  // The first version also required the account to have no transfer credit, on
+  // the theory that any meant a recent re-upload. It does not: transfer credit
+  // comes from the academic-record export and courses from the current-term
+  // one, so uploading the record hid the prompt for the courses.
+  const finishedTermIds = new Set(
+    terms.filter((t) => !isUpcomingTerm(t)).map((t) => t.id),
+  );
+  const finishedEnrollments = enrollments.filter((e) =>
+    finishedTermIds.has(e.termId),
+  );
   const staleImport =
-    enrollments.length > 0 && graded === 0 && transferCount === 0;
+    finishedEnrollments.length > 0 &&
+    finishedEnrollments.every((e) => e.status === "registered");
 
   const termById = new Map(terms.map((t) => [t.id, t]));
   const courseIds = [...new Set(enrollments.map((e) => e.courseId))];

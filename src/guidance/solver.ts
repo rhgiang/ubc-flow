@@ -620,6 +620,33 @@ export function solve(input: SolverInput): Plan {
     }
   };
 
+  /**
+   * Which year of the degree each term belongs to.
+   *
+   * Derived from the TERMS, never from how many of them ended up with courses
+   * in them. Counting filled terms made the year a function of the plan's own
+   * output, and that closes a loop: a term that placed nothing left the year
+   * where it was, so every rule gated on a later year stayed blocked, so the
+   * next term placed nothing either, for ever.
+   *
+   * Statistics deadlocked exactly there at 21 credits a term. It filled two
+   * years in three terms, found only third-year rules left, refused them all,
+   * and reported half the degree unplaceable while silently skipping fifteen
+   * remaining terms. Below 21 it never showed, because a term always had an
+   * elective to fall back on and the count kept moving.
+   *
+   * A summer sits inside the year it follows rather than starting a new one,
+   * so the year advances on Winter Term 1 and nothing else.
+   */
+  const yearByTerm = new Map<string, number>();
+  {
+    let year = 0;
+    for (const t of placeable) {
+      if (/winter term 1/i.test(t.name)) year += 1;
+      yearByTerm.set(t.id, Math.max(1, year));
+    }
+  }
+
   for (const term of placeable) {
     if (need.every((n) => n.left <= 0)) break;
     const placements: Placement[] = [];
@@ -652,10 +679,7 @@ export function solve(input: SolverInput): Plan {
     //
     // Recomputed each term, so a term that could not use its share hands the
     // surplus to the next one instead of losing it.
-    // Which year of the degree this term belongs to. Two winter terms a year,
-    // and a summer session sits inside the year it follows rather than
-    // starting a new one.
-    const yearOfTerm = Math.floor(planned.length / 2) + 1;
+    const yearOfTerm = yearByTerm.get(term.id) ?? 1;
     let courseCredits = 0;
     let slotCredits = 0;
     /**

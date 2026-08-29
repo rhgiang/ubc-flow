@@ -693,9 +693,11 @@ a.capsule-chip:hover {
    on paper once the sky is switched off. */
 .sky-footer {
   --foreground: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.78);
+  --text-secondary: rgba(255, 255, 255, 0.92);
   color: var(--text-secondary);
-  text-shadow: 0 1px 3px rgba(8, 16, 36, 0.45);
+  /* The nav mark's double halo (see .nav-logo svg) — the footer sits on the
+     palest band of the sky, and the single soft shadow drowned there. */
+  text-shadow: 0 1px 2px rgba(6, 12, 28, 0.6), 0 0 8px rgba(6, 12, 28, 0.4);
 }
 
 /* ---------------------------------------------------------------------------

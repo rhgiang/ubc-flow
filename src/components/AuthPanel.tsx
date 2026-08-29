@@ -42,26 +42,34 @@ export default function AuthPanel({
     setError(null);
 
     const form = new FormData(e.currentTarget);
-    const result = await signIn('credentials', {
-      email: String(form.get('email')),
-      password: String(form.get('password')),
-      redirect: false,
-    });
+    try {
+      const result = await signIn('credentials', {
+        email: String(form.get('email')),
+        password: String(form.get('password')),
+        redirect: false,
+      });
 
-    if (result?.error) {
-      // Deliberately does not say WHICH was wrong — that would let an attacker
-      // enumerate which emails have accounts.
-      setError('Invalid email or password.');
+      if (result?.error) {
+        // Deliberately does not say WHICH was wrong — that would let an attacker
+        // enumerate which emails have accounts.
+        setError('Invalid email or password.');
+        return;
+      }
+      if (onSuccess) {
+        onSuccess();
+        router.refresh();
+      } else {
+        router.push('/');
+        router.refresh();
+      }
+    } catch {
+      // A REJECTED sign-in, as opposed to a rejected password: the request
+      // never completed. Without this the button kept saying "Logging in…"
+      // for as long as the page stayed open, with nothing said and nothing
+      // to do but reload — the one failure a user cannot work around.
+      setError('Could not reach the server. Check your connection and try again.');
+    } finally {
       setBusy(false);
-      return;
-    }
-    setBusy(false);
-    if (onSuccess) {
-      onSuccess();
-      router.refresh();
-    } else {
-      router.push('/');
-      router.refresh();
     }
   }
 
@@ -74,32 +82,51 @@ export default function AuthPanel({
     const email = String(form.get('email'));
     const password = String(form.get('password'));
 
-    const result = await registerUser(email, password);
-    if (!result.ok) {
-      setError(result.error);
-      setBusy(false);
-      return;
-    }
+    try {
+      const result = await registerUser(email, password);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
 
-    await signIn('credentials', { email, password, redirect: false });
-    setBusy(false);
-    // Unlike login, signup always continues to onboarding (enrolment
-    // verification is the required next step) — onSuccess just closes the
-    // overlay first if this panel is rendered inside one, so it doesn't
-    // stay mounted mid-navigation.
-    onSuccess?.();
-    router.push('/onboarding');
+      // The account now EXISTS, so a failure past this point must not read as
+      // "signup failed" — it sent the user to /onboarding signed out, which
+      // is a page that needs a session, moments after telling them it worked.
+      const signedIn = await signIn('credentials', { email, password, redirect: false });
+      if (signedIn?.error) {
+        setMode('login');
+        setError('Account created — sign in to continue.');
+        return;
+      }
+
+      // Unlike login, signup always continues to onboarding (enrolment
+      // verification is the required next step) — onSuccess just closes the
+      // overlay first if this panel is rendered inside one, so it doesn't
+      // stay mounted mid-navigation.
+      onSuccess?.();
+      router.push('/onboarding');
+    } catch {
+      setError('Could not create your account right now. Try again in a moment.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function onForgotSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
+    setError(null);
     const form = new FormData(e.currentTarget);
-    await requestPasswordReset(String(form.get('email')));
-    setBusy(false);
-    // Always the same acknowledgement. The action deliberately does not tell us
-    // whether that address has an account, so neither can this.
-    setSent(true);
+    try {
+      await requestPasswordReset(String(form.get('email')));
+      // Always the same acknowledgement. The action deliberately does not tell us
+      // whether that address has an account, so neither can this.
+      setSent(true);
+    } catch {
+      setError('Could not send the reset link. Try again in a moment.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   const inputClass =
@@ -139,6 +166,7 @@ export default function AuthPanel({
               Enter your email and we&rsquo;ll send a link to set a new password.
             </p>
             <input name="email" type="email" required placeholder="Email" className={inputClass} />
+            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
             <button
               disabled={busy}
               className="w-full rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50"
@@ -157,7 +185,7 @@ export default function AuthPanel({
             placeholder="Password"
             className={inputClass}
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           <button
             disabled={busy}
             className="w-full rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50"
@@ -183,7 +211,7 @@ export default function AuthPanel({
             placeholder="Password (10+ characters)"
             className={inputClass}
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           <button
             disabled={busy}
             className="w-full rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50"
@@ -199,10 +227,27 @@ export default function AuthPanel({
         <div className="h-px flex-1 bg-border" />
       </div>
 
+      {/*
+        The redirect to Google is not instant, and with nothing changing on
+        the button a slow connection reads as a dead click — so it got clicked
+        again, starting a second OAuth round trip. It stays disabled after
+        success too: the page is on its way out, and re-enabling it would just
+        offer the same trip again.
+      */}
       <button
         type="button"
-        onClick={() => signIn('google', { callbackUrl: '/onboarding' })}
-        className="flex w-full items-center justify-center gap-2 rounded-pill border border-border px-5 py-2.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setError(null);
+          try {
+            await signIn('google', { callbackUrl: '/onboarding' });
+          } catch {
+            setError('Could not reach Google. Try again in a moment.');
+            setBusy(false);
+          }
+        }}
+        className="flex w-full items-center justify-center gap-2 rounded-pill border border-border px-5 py-2.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100 disabled:opacity-50"
       >
         <svg viewBox="0 0 24 24" className="h-4 w-4">
           <path
@@ -222,7 +267,7 @@ export default function AuthPanel({
             d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.26 6.62l4.01 3.1C6.22 6.86 8.87 4.75 12 4.75Z"
           />
         </svg>
-        Continue with Google
+        {busy ? 'Redirecting…' : 'Continue with Google'}
       </button>
 
       <p className="mt-4 text-center text-sm text-text-secondary">

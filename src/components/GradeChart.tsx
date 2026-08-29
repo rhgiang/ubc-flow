@@ -31,7 +31,7 @@ export default function GradeChart({
           column, it stole height from the bar area, so a two-line label made
           its bar overflow. Splitting them fixes the baseline at any width. */}
       <div className="flex items-end gap-1" style={{ height: CHART_HEIGHT }}>
-        {GRADE_BUCKETS.map((bucket) => {
+        {GRADE_BUCKETS.map((bucket, i) => {
           const value = distribution[bucket] ?? null;
           const suppressed = value === null;
           const height = suppressed
@@ -39,11 +39,24 @@ export default function GradeChart({
             : Math.round((value / max) * CHART_HEIGHT * MAX_BAR_FRACTION);
           const percent = !suppressed && total > 0 ? Math.round((value / total) * 100) : null;
 
+          // The tooltip is wider than the bar it belongs to, so on the end
+          // columns it hung past the chart — and an absolutely positioned box
+          // past the right edge widens the DOCUMENT, which made the whole
+          // professor page scroll sideways on a phone. Anchor the outer
+          // columns inward instead of centring them; the middle ones are
+          // nowhere near an edge and stay centred.
+          const anchor =
+            i === 0
+              ? 'left-0'
+              : i === GRADE_BUCKETS.length - 1
+                ? 'right-0'
+                : 'left-1/2 -translate-x-1/2';
+
           return (
             <div key={bucket} className="group relative flex flex-1 items-end justify-center">
               <div
                 role="tooltip"
-                className="pointer-events-none absolute bottom-full mb-1 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
+                className={`pointer-events-none absolute bottom-full ${anchor} mb-1 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background opacity-0 shadow-lg transition-opacity group-hover:opacity-100`}
               >
                 {suppressed
                   ? `${bucket}: withheld by UBC for privacy`

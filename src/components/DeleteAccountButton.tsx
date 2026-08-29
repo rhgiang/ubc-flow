@@ -29,15 +29,24 @@ export default function DeleteAccountButton() {
   async function onConfirm() {
     setBusy(true);
     setError(null);
-    const result = await deleteAccount();
-    if (!result.ok) {
-      setError(result.error);
+    try {
+      const result = await deleteAccount();
+      if (!result.ok) {
+        setError(result.error);
+        setBusy(false);
+        return;
+      }
+      // The account is already gone server-side; this just clears the local
+      // session so the browser stops believing it's still signed in.
+      await signOut({ redirectTo: '/' });
+    } catch {
+      // Deliberately ambiguous about WHETHER it happened, because from here
+      // we genuinely cannot tell: the delete may have succeeded and only the
+      // sign-out failed. Telling them to reload is the one instruction that
+      // is correct either way.
+      setError('We could not confirm whether your account was deleted. Reload the page to check.');
       setBusy(false);
-      return;
     }
-    // The account is already gone server-side; this just clears the local
-    // session so the browser stops believing it's still signed in.
-    await signOut({ redirectTo: '/' });
   }
 
   return (

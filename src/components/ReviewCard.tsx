@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { GLYPHS } from './avatar-glyphs';
 import ReviewHelpfulButton from '@/components/ReviewHelpfulButton';
+import { CONTACT_EMAIL } from '@/lib/version';
 import type { VoteKind } from '@/app/actions/review-votes';
 
 // The two slate tones used to run lighter (#5c6770 / #7a8791). The old avatar
@@ -50,6 +51,8 @@ function Avatar({ id }: { id: string }) {
 }
 
 export type TaughtBy = { name: string; slug: string };
+
+const BODY_PROMPT = 'What is wrong with this review?\n\n';
 
 /**
  * Both thumbs, with the one they picked coloured and the other left grey —
@@ -154,15 +157,26 @@ export default function ReviewCard({
             </>
           )}
         </p>
-        {vote && (
-          <ReviewHelpfulButton
-            reviewId={id}
-            kind={vote.kind}
-            votes={vote.votes}
-            voted={vote.voted}
-            signedIn={vote.signedIn}
-          />
-        )}
+        <span className="flex items-center gap-3">
+          {/* The Terms promise removal of rule-breaking reviews; this is the
+              channel. A mailto carrying the review id is the whole moderation
+              system at this scale - the id is enough to find and judge it. */}
+          <a
+            href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Review report: ${id}`)}&body=${encodeURIComponent(BODY_PROMPT)}`}
+            className="text-xs text-text-tertiary transition-colors hover:text-danger"
+          >
+            Report
+          </a>
+          {vote && (
+            <ReviewHelpfulButton
+              reviewId={id}
+              kind={vote.kind}
+              votes={vote.votes}
+              voted={vote.voted}
+              signedIn={vote.signedIn}
+            />
+          )}
+        </span>
         </div>
       </div>
     </div>

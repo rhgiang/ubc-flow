@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { CONTACT_EMAIL } from '@/lib/version';
 
 export const metadata: Metadata = { title: 'Privacy' };
 
@@ -19,12 +20,18 @@ export default function PrivacyPage() {
           <p className="text-base leading-relaxed text-text-secondary">
             If you upload your Workday export to verify you&apos;re a UBC student, we store a hash
             of your student number, never the number itself, along with the courses, terms, and
-            meeting times you&apos;re enrolled in. This is what powers your Account page and lets
-            you subscribe your real schedule to an outside calendar app.
+            meeting times you&apos;re enrolled in. If the export includes final grades, we store
+            those too, exactly as Workday reported them; they appear on your Account page and are
+            never shown to anyone else. This is what powers your Account page and lets you
+            subscribe your real schedule to an outside calendar app.
           </p>
           <p className="text-base leading-relaxed text-text-secondary">
             We also store what you create on the site: your reviews, your saved schedules, and
             which reviews you&apos;ve marked helpful.
+          </p>
+          <p className="text-base leading-relaxed text-text-secondary">
+            Everything above is kept until you delete your account, which removes all of it. The
+            site runs on servers in the United States.
           </p>
         </section>
 
@@ -79,6 +86,18 @@ export default function PrivacyPage() {
             delete your account entirely from the Account page. That removes your reviews, your
             saved schedules, your enrollment records, and your verification status, all at once,
             immediately, and it can&apos;t be undone.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-foreground">Questions</h2>
+          <p className="text-base leading-relaxed text-text-secondary">
+            For anything about your data, including seeing what we hold about you or asking for a
+            correction, email{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand-accent hover:underline">
+              {CONTACT_EMAIL}
+            </a>
+            .
           </p>
         </section>
       </div>

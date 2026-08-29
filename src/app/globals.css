@@ -470,7 +470,7 @@ body {
   z-index: 50;
   background: transparent;
   border-bottom: 0;
-  padding: 14px 18px 0;
+  padding: 8px 12px 0;
   /* Backstop for the brightest moments; too faint to soften the type. */
   text-shadow: 0 1px 3px rgba(8, 16, 36, 0.4);
 }
@@ -885,4 +885,26 @@ a.capsule-chip:hover {
    causes trouble, so only the motion goes. */
 @media (prefers-reduced-motion: reduce) {
   .skeleton::after { animation: none; }
+}
+
+/*
+ * Clearance for the floating theme control.
+ *
+ * It is fixed to a bottom corner and sits over whatever is beneath it. On a
+ * long page you scroll the content out from under it, so it reads as ordinary
+ * floating chrome — but a page that FITS the viewport has no such escape, and
+ * on the phone it came to rest squarely on top of the "Log In" button.
+ *
+ * An ::after spacer rather than padding, because it has to ADD to whatever
+ * bottom padding a page already sets rather than replace it. On the centred
+ * sign-in page it is also a flex item, so justify-center accounts for it and
+ * lifts the panel clear instead of just extending the scroll.
+ */
+@media (max-width: 640px) {
+  .sky-root main::after {
+    content: '';
+    display: block;
+    flex: none;
+    height: 4.5rem;
+  }
 }

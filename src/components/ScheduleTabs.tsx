@@ -83,7 +83,7 @@ function TermTable({ group, first }: { group: TermGroup; first: boolean }) {
             {group.rows.length} item{group.rows.length === 1 ? '' : 's'}
           </span>
         </div>
-        <table className="w-full text-left">
+        <table className="w-full table-fixed text-left">
           <thead>
             <tr className="border-b border-border text-xs text-text-tertiary">
               <th className="w-1/3 px-4 py-2 font-medium">Saved Schedule</th>

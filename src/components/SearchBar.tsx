@@ -77,7 +77,7 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
           name="q"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search course, subject, or professor — ex: Math 101"
+          placeholder="Search courses and professors"
           className="w-full bg-transparent text-sm text-foreground placeholder:text-text-tertiary focus:outline-none"
         />
       </form>

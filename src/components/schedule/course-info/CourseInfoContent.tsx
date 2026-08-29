@@ -215,7 +215,7 @@ export default function CourseInfoContent({
                                 // first-time offering for that instructor.
                                 <span
                                   className="ml-1.5 text-text-tertiary"
-                                  title="UBC has published no grades for this instructor in this course yet, often a first-time offering. Their record in other courses is on their professor page."
+                                  title="UBC has published no grades for this instructor in this course yet. Often a first-time offering. Their record in other courses is on their professor page."
                                 >
                                   No grades for this course yet
                                 </span>

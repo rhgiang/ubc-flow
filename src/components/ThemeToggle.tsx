@@ -340,7 +340,7 @@ export default function ThemeToggle({ weather }: { weather: WeatherNow | null })
         }}
         aria-label="Choose theme"
         aria-expanded={open}
-        title="Choose theme, or drag to a corner to move"
+        title="Choose theme. Drag to a corner to move."
         className="flex h-11 w-11 touch-none cursor-grab items-center justify-center rounded-full border border-border bg-surface text-foreground shadow-sm transition-colors duration-150 ease-out hover:bg-surface-muted active:cursor-grabbing"
       >
         {OPTIONS.map((o) => (

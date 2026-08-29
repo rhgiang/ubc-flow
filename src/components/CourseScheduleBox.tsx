@@ -9,8 +9,8 @@ type SectionRow = {
   id: string;
   sectionCode: string;
   activity: string | null;
-  enrolTotal: number | null;
-  enrolCap: number | null;
+  /** Workday's registration state: Open, Waitlist, or Closed (i.e. full). */
+  status: string | null;
   meetingTimes: { day: string; startTime: string | null; endTime: string | null; building: string | null; room: string | null }[];
   instructors: { instructorId: string; instructor: { name: string; slug: string } }[];
   term: { id: string; name: string; year: number; session: string; termNumber: number | null };
@@ -20,6 +20,28 @@ type SectionRow = {
 // Undefined (not an empty array) means signed out — that's what hides the
 // column, same gating the old inline sections table used.
 type ScheduleOption = { id: string; name: string; termId: string };
+
+/**
+ * Workday's registration state, in a student's words: "Closed" means the
+ * section is full, so that is the word shown. Refreshed by the nightly
+ * catalogue scrape (plus up to an hour of page cache) - guidance for
+ * registration, not a live seat count, which is what the title says.
+ */
+function SectionStatus({ status }: { status: string | null }) {
+  if (!status) return <span className="text-text-secondary">—</span>;
+  const label = status === 'Closed' ? 'Full' : status;
+  const tone =
+    status === 'Closed'
+      ? 'text-danger'
+      : status === 'Waitlist'
+        ? 'text-info'
+        : 'text-text-secondary';
+  return (
+    <span title="As of the last daily catalogue refresh" className={tone}>
+      {label}
+    </span>
+  );
+}
 
 export default function CourseScheduleBox({
   sections,
@@ -95,7 +117,7 @@ export default function CourseScheduleBox({
                     <tr>
                       <th className="px-4 py-2 font-medium">Section</th>
                       <th className="px-4 py-2 font-medium">Activity</th>
-                      <th className="px-4 py-2 font-medium">Enrolled</th>
+                      <th className="px-4 py-2 font-medium">Status</th>
                       <th className="px-4 py-2 font-medium">Time</th>
                       <th className="px-4 py-2 font-medium">Instructor</th>
                       {mySchedules && <th className="px-4 py-2 font-medium">Schedule</th>}
@@ -109,10 +131,8 @@ export default function CourseScheduleBox({
                         <tr key={s.id} className="border-t border-border">
                           <td className="px-4 py-2 font-medium text-foreground">{s.sectionCode}</td>
                           <td className="px-4 py-2 text-text-secondary">{s.activity ?? '—'}</td>
-                          <td className="px-4 py-2 text-text-secondary">
-                            {s.enrolTotal !== null && s.enrolCap !== null
-                              ? `${s.enrolTotal}/${s.enrolCap}`
-                              : '—'}
+                          <td className="px-4 py-2">
+                            <SectionStatus status={s.status} />
                           </td>
                           <td className="px-4 py-2 text-text-secondary">
                             {s.meetingTimes.length ? s.meetingTimes.map((m) => formatMeeting(m)).join(', ') : '—'}

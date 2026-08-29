@@ -4,6 +4,7 @@ import { APP_NAME } from "@/lib/version";
 import Nav from "@/components/Nav";
 import PageBackground from "@/components/PageBackground";
 import ThemeToggle from "@/components/ThemeToggle";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import WeatherPreview from "@/components/WeatherPreview";
 import { AuthOverlayProvider } from "@/components/AuthOverlayContext";
 import AuthOverlay from "@/components/AuthOverlay";
@@ -92,6 +93,7 @@ function themeInit(seed: Mode | null) {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
   const [weather, savedMode] = await Promise.all([getCampusWeather(), getSavedThemeMode()]);
   return (
     <html
@@ -115,6 +117,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <AuthOverlay />
           </UnsavedChangesProvider>
         </AuthOverlayProvider>
+        {/*
+          Gated on the env var rather than on NODE_ENV: analytics is simply
+          absent anywhere the ID is not set, which keeps local development and
+          preview deployments out of the numbers without a second condition to
+          keep in sync. Rendering nothing also means no Google script and no
+          _ga cookie on those builds, so the privacy page stays true of them.
+        */}
+        {gaId && <GoogleAnalytics gaId={gaId} />}
       </body>
     </html>
   );

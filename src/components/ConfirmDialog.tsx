@@ -84,7 +84,10 @@ export default function ConfirmDialog({
           // autoFocus on the safe choice: <dialog> otherwise focuses the first
           // tabbable element, which would put a delete one Enter away.
           autoFocus
-          className="rounded-pill px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
+          // Bordered like every other secondary button on the site. As bare
+          // text it read as a link next to a real button, which is backwards:
+          // this is the one being recommended.
+          className="rounded-pill border border-border px-4 py-2 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100 disabled:opacity-50 disabled:hover:scale-100"
         >
           {cancelLabel}
         </button>
@@ -94,8 +97,8 @@ export default function ConfirmDialog({
           disabled={busy}
           className={
             destructive
-              ? 'rounded-pill border border-danger-border px-4 py-2 text-sm font-medium text-danger transition-colors hover:bg-danger-surface disabled:opacity-50'
-              : 'rounded-pill bg-brand px-4 py-2 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover disabled:opacity-50'
+              ? 'rounded-pill border border-danger-border px-4 py-2 text-sm font-medium text-danger transition duration-150 ease-out hover:scale-[1.02] hover:bg-danger-surface active:scale-100 disabled:opacity-50 disabled:hover:scale-100'
+              : 'rounded-pill bg-brand px-4 py-2 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50 disabled:hover:scale-100'
           }
         >
           {busy ? 'Working…' : confirmLabel}

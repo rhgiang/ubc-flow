@@ -66,7 +66,7 @@ export default function UnsavedWorkDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-pill px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-foreground"
+            className="rounded-pill border border-border px-4 py-2 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
           >
             Cancel
           </button>

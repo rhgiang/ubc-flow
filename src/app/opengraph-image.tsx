@@ -4,7 +4,7 @@ import { CLOUD, WAVE_UPPER, WAVE_LOWER, MARK_VIEWBOX } from '@/lib/mark';
 
 // Shared to Discord, iMessage, and Reddit far more often than it is linked
 // from a page, so the card is the first thing most people see of the site.
-export const alt = `${APP_NAME} — find courses and professors at UBC`;
+export const alt = `${APP_NAME} · find courses and professors at UBC`;
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 

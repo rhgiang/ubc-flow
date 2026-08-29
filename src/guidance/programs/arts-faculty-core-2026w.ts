@@ -54,7 +54,7 @@ const AREAS: [string, string, string][] = [
 const breadth = (id: string, n: number, rank: string, year: number): Rule => ({
   id,
   kind: 'credits',
-  label: `Ways of Knowing — ${n} credits in a single course code (${rank} area)`,
+  label: `Ways of Knowing: ${n} credits in a single course code (${rank} area)`,
   n,
   from: { kind: 'codes', codes: [] },
   sourceUrl: SOURCE,
@@ -82,7 +82,7 @@ const breadth = (id: string, n: number, rank: string, year: number): Rule => ({
  */
 export const artsFacultyCore2026W: Program = {
   code: 'arts-faculty-core-2026w',
-  name: 'Faculty of Arts — general B.A. requirements',
+  name: 'Faculty of Arts: general B.A. requirements',
   degree: 'BA',
   faculty: 'Arts',
   catalogYear: '2026W',
@@ -93,7 +93,7 @@ export const artsFacultyCore2026W: Program = {
     {
       id: 'arts.writing',
       kind: 'group',
-      label: 'Writing and Research — Writing Component',
+      label: 'Writing and Research: Writing Component',
       year: 1,
       sourceUrl: SOURCE,
       items: [
@@ -151,11 +151,11 @@ export const artsFacultyCore2026W: Program = {
     {
       id: 'arts.research',
       kind: 'note',
-      label: 'Writing and Research — Research Component',
+      label: 'Writing and Research: Research Component',
       detail:
         'A research-intensive course named by your major, normally at the 400 level and ' +
         'often restricted to majors in the discipline. The Calendar gives a different ' +
-        'approved list for each major, so it is carried by the major rather than here — ' +
+        'approved list for each major, so it is carried by the major rather than here. ' +
         'a major that names one places it directly.',
       sourceUrl: SOURCE,
       confidence: 'stated',
@@ -163,7 +163,7 @@ export const artsFacultyCore2026W: Program = {
     {
       id: 'arts.wok',
       kind: 'group',
-      label: 'Ways of Knowing Breadth — 18 credits across three areas',
+      label: 'Ways of Knowing Breadth: 18 credits across three areas',
       sourceUrl: SOURCE,
       items: [
         // "Students will take 9 credits in one discipline (i.e., a single
@@ -188,7 +188,7 @@ export const artsFacultyCore2026W: Program = {
             'The Calendar asks for coursework across four areas, but a major or Honours ' +
             'program is deep engagement in one of them, so no further credits are needed ' +
             'there. The 18 credits above are the three remaining areas. All credits ' +
-            'within one area must come from a single course code — 9 credits of one ' +
+            'within one area must come from a single course code, so 9 credits of one ' +
             'subject, not 3 each of three.',
           sourceUrl: SOURCE,
           confidence: 'stated',
@@ -206,14 +206,14 @@ export const artsFacultyCore2026W: Program = {
     {
       id: 'arts.place-power',
       kind: 'note',
-      label: 'Place and Power — 3 credits',
+      label: 'Place and Power: 3 credits',
       detail:
         'Three credits from the approved Place and Power list, taken at UBC Vancouver ' +
         '(transfer credit in the same subject and number does not count). The Calendar ' +
         'says these credits "do not need to be exclusive of the student’s other degree ' +
         'or program requirements" and may sit inside the breadth credits above or inside ' +
         'the major, so charging them separately would double-count. Shown rather than ' +
-        'planned for that reason — but you do still have to pick one.',
+        'planned for that reason, but you do still have to pick one.',
       sourceUrl: SOURCE,
       constraint: true,
       confidence: 'stated',
@@ -238,7 +238,7 @@ export const artsFacultyCore2026W: Program = {
       kind: 'note',
       label: 'At least 72 credits in Arts',
       detail:
-        'Arts credit is defined by subject area — anything the Calendar lists as offered ' +
+        'Arts credit is defined by subject area: anything the Calendar lists as offered ' +
         'by the Faculty of Arts, including transfer credit in those subjects. Your major ' +
         'supplies roughly 42 of the 72 on its own, so what this really asks is that most ' +
         'of your electives stay inside Arts. Relaxed only if your specialization itself ' +
@@ -250,7 +250,7 @@ export const artsFacultyCore2026W: Program = {
     {
       id: 'arts.outside',
       kind: 'note',
-      label: 'Outside Requirement — 60 credits outside your specialization',
+      label: 'Outside Requirement: 60 credits outside your specialization',
       detail:
         'For a single Major, 60 of the 120 credits must fall outside the field of study ' +
         'of the specialization; 48 for Honours or a Combined Major, 24 for a Double ' +
@@ -279,8 +279,8 @@ export const artsFacultyCore2026W: Program = {
       kind: 'note',
       label: 'At most 48 credits from outside Arts',
       detail:
-        'Relaxed for majors that require more than 48 outside credits — Mathematics and ' +
-        'Computer Science among them — but a student granted the relaxation must then ' +
+        'Relaxed for majors that require more than 48 outside credits, Mathematics and ' +
+        'Computer Science among them, but a student granted the relaxation must then ' +
         'take the maximum Arts credits the degree allows, with no non-Arts elective ' +
         'credit permitted. Also capped: 60 transfer credits, and 9 credits at the 500 level.',
       sourceUrl: CREDIT,

@@ -374,8 +374,8 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
             {coop && (
               <p className="mt-2 rounded-card border border-info-border bg-info-surface px-3 py-2 text-xs text-info">
                 <span className="font-medium">{coop.work.length} work terms.</span> {coop.detail} The
-                Calendar sets the rules — four work terms, at least one in a Winter term, and the
-                degree must end on an academic term — but leaves the sequence to each department, so
+                Calendar sets the rules (four work terms, at least one in a Winter term, and the
+                degree must end on an academic term) but leaves the sequence to each department, so
                 check yours for the exact placement. Work terms earn co-op course credit on your
                 transcript and none of it counts toward the degree, which is why co-op adds a year.
               </p>
@@ -384,8 +384,8 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
             {/*
               A degree that runs past four years should say why rather than
               leave the student counting. Engineering is 148 to 158 credits, so
-              choosing 18 a term genuinely cannot fit it into eight — 8 x 18 is
-              144 — and the plan grows a fifth year. That is arithmetic, not a
+              choosing 18 a term genuinely cannot fit it into eight, since 8 x 18 is
+              144, and the plan grows a fifth year. That is arithmetic, not a
               scheduling failure, and it is worth one sentence.
             */}
             {!coop && plan.terms.length > 8 && (
@@ -398,7 +398,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
 
             {plan.terms.length === 0 ? (
               <p className="mt-4 text-sm text-text-secondary">
-                No terms could be planned — the catalogue has no upcoming sections to place
+                No terms could be planned: the catalogue has no upcoming sections to place
                 against.
               </p>
             ) : (
@@ -416,7 +416,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                         {t.term.name}
                         <span className="ml-auto font-normal normal-case opacity-80">work term</span>
                       </p>
-                      <p className="mt-1.5 text-sm">Co-op placement — no coursework this term.</p>
+                      <p className="mt-1.5 text-sm">Co-op placement, no coursework this term.</p>
                     </li>
                   ) : (
                   <li key={t.term.id} className="rounded-card border border-border p-3">
@@ -532,7 +532,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                 <ul className="mt-1.5 space-y-1 text-xs text-text-secondary">
                   {plan.unplaced.map((u) => (
                     <li key={u.rule.id}>
-                      <span className="font-medium text-foreground">{u.rule.label}</span> — {u.reason}
+                      <span className="font-medium text-foreground">{u.rule.label}</span> · {u.reason}
                     </li>
                   ))}
                 </ul>
@@ -572,14 +572,14 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
               {assumed > 0 && (
                 <>
                   {assumed} course{assumed === 1 ? '' : 's'} counted as passed because the term has
-                  ended — grades are not captured yet, so a course you failed or withdrew from would
+                  ended, because grades are not captured yet, so a course you failed or withdrew from would
                   still show here.
                 </>
               )}
             </p>
           ) : userId ? (
             <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[11px] leading-relaxed text-info">
-              Nothing to track against yet — upload your Workday record from your account page and
+              Nothing to track against yet. Upload your Workday record from your account page and
               this becomes your own progress. Until then the ticks show what the route above covers.
             </p>
           ) : (
@@ -615,7 +615,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                         {parts.map((part) => (
                           <li key={part.label}>
                             <span className="font-medium">{part.label}</span>
-                            {part.detail && <span className="opacity-75"> — {part.detail}</span>}
+                            {part.detail && <span className="opacity-75"> · {part.detail}</span>}
                           </li>
                         ))}
                       </ul>

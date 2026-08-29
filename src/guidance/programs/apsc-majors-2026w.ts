@@ -138,7 +138,7 @@ export const mechMajor2026W = prog('mech-basc-2026w', 'Mechanical Engineering', 
     label: 'The Calendar prints a second ordering for co-op students',
     detail:
       'The same courses, with MECH 466 moved into third year and the technical electives ' +
-      'rebalanced — 36 credits in third year and 35 in fourth instead of 35 and 36. The ' +
+      'rebalanced to 36 credits in third year and 35 in fourth instead of 35 and 36. The ' +
       'Calendar notes that students will not always take courses in the order shown, ' +
       'depending on their co-op schedule, and points at the Department website for ' +
       'recommended sequences.',
@@ -418,7 +418,7 @@ export const cpenMajor2026W = prog('cpen-basc-2026w', 'Computer Engineering', 'e
     label: 'A different second year applies if you entered before 2023W',
     detail:
       'That table has CPEN 221 at 4 credits, adds CPEN 291, and takes MATH 256 instead ' +
-      'of MATH 255 — 39 credits rather than 38, with no second-year electives. Students ' +
+      'of MATH 255, so 39 credits rather than 38, with no second-year electives. Students ' +
       'who entered second year in 2022W or earlier should follow it instead.',
     sourceUrl: ELEC,
     confidence: 'stated',
@@ -638,7 +638,7 @@ export const chbeMajor2026W = prog('chbe-basc-2026w', 'Chemical and Biological E
     detail:
       'Chemical Engineering and Chemical and Biological Engineering share every course ' +
       'above except four: the third-year pair and the fourth-year pair chosen together. ' +
-      'Pick the same stream in both years — the plan will otherwise mix them.',
+      'Pick the same stream in both years, or the plan will otherwise mix them.',
     sourceUrl: CHBE,
     confidence: 'stated',
   },

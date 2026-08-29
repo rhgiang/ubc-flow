@@ -86,7 +86,7 @@ export async function matchWorkdayRows(rows: EnrollmentRow[]): Promise<ScheduleI
 
   for (const { row, term } of resolved) {
     if (!term) {
-      unknownTerm.push(`${label(row)} — term not in our catalogue`);
+      unknownTerm.push(`${label(row)}: term not in our catalogue`);
       continue;
     }
 
@@ -99,7 +99,7 @@ export async function matchWorkdayRows(rows: EnrollmentRow[]): Promise<ScheduleI
     // Refuse to guess: with no section code, findFirst below would return an
     // arbitrary section for the course (e.g. the lecture instead of the lab).
     if (!row.sectionCode) {
-      bucket.unmatched.push(`${label(row)} — no section number in the export`);
+      bucket.unmatched.push(`${label(row)}: no section number in the export`);
       continue;
     }
 
@@ -117,7 +117,7 @@ export async function matchWorkdayRows(rows: EnrollmentRow[]): Promise<ScheduleI
     });
 
     if (!section) {
-      bucket.unmatched.push(`${label(row)} — no matching section`);
+      bucket.unmatched.push(`${label(row)}: no matching section`);
       continue;
     }
     // An export lists a section once per meeting block, so the same section

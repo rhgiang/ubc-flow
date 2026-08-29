@@ -57,7 +57,7 @@ const BREADTH_CATEGORIES: [string, string, string[], string[]][] = [
  */
 export const scienceFacultyCore2026W: Program = {
   code: 'science-faculty-core-2026w',
-  name: 'Faculty of Science — general BSc requirements',
+  name: 'Faculty of Science: general BSc requirements',
   degree: 'BSc',
   faculty: 'Science',
   catalogYear: '2026W',
@@ -92,7 +92,7 @@ export const scienceFacultyCore2026W: Program = {
     {
       id: 'sci.breadth',
       kind: 'chooseN',
-      label: 'Science Breadth — 3 credits from any 6 of 7 categories',
+      label: 'Science Breadth: 3 credits from any 6 of 7 categories',
       // "Students in a major or honours specialization must successfully
       // complete at least 3 credits from any 6 of the 7 categories."
       n: 6,
@@ -113,12 +113,12 @@ export const scienceFacultyCore2026W: Program = {
     {
       id: 'sci.breadth.exceptions',
       kind: 'note',
-      label: 'Science Breadth — four exceptions not enforced above',
+      label: 'Science Breadth: four exceptions not enforced above',
       detail:
         'A category is one course set here, so four pieces of the Calendar’s wording ' +
         'cannot be expressed and are listed instead. Statistics also accepts BIOL 300, ' +
         'DSCI 100 and MATH 302. Life Science also accepts GEOS (formerly GEOB) 207, and ' +
-        'counts only those psychology courses numbered 60 to 89 in the last two digits — ' +
+        'counts only those psychology courses numbered 60 to 89 in the last two digits. ' +
         'PSYC 260 counts, PSYC 305 does not. Science One (SCIE 001) is credited with 3 ' +
         'credits in each of Mathematics, Chemistry, Physics and Life Science on its own. ' +
         'Courses may be at any level.',

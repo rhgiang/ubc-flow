@@ -64,7 +64,7 @@ export const commFinance2026W = opt('comm-finance-bcom-2026w', 'Commerce: Financ
     // credits from upper-level Commerce without naming them.
     id: 'fin.approved',
     kind: 'credits',
-    label: 'Approved finance courses — 6 credits',
+    label: 'Approved finance courses: 6 credits',
     n: 6,
     year: 4,
     from: {
@@ -134,7 +134,7 @@ export const commAccounting2026W = opt('comm-accounting-bcom-2026w', 'Commerce: 
       {
         id: 'acc.upper',
         kind: 'credits',
-        label: 'Upper-level accounting — 3 credits',
+        label: 'Upper-level accounting: 3 credits',
         n: 3,
         year: 4,
         from: {
@@ -185,7 +185,7 @@ export const commMarketing2026W = opt('comm-marketing-bcom-2026w', 'Commerce: Ma
       {
         id: 'mkt.approved',
         kind: 'credits',
-        label: 'Approved marketing courses — 3 credits',
+        label: 'Approved marketing courses: 3 credits',
         n: 3,
         year: 4,
         from: {
@@ -220,7 +220,7 @@ export const commGeneral2026W = opt(
     {
       id: 'gbm.400',
       kind: 'credits',
-      label: 'COMM or COHR at the 400 level — 6 credits',
+      label: 'COMM or COHR at the 400 level: 6 credits',
       n: 6,
       year: 4,
       from: {
@@ -233,7 +233,7 @@ export const commGeneral2026W = opt(
     {
       id: 'gbm.300',
       kind: 'credits',
-      label: 'COMM or COHR at the 300 or 400 level — 9 credits',
+      label: 'COMM or COHR at the 300 or 400 level: 9 credits',
       n: 9,
       year: 3,
       from: {
@@ -248,8 +248,8 @@ export const commGeneral2026W = opt(
       kind: 'note',
       label: 'The eligible course list is on the Faculty website',
       detail:
-        'The Calendar states the shape — 15 credits of 300- and 400-level COMM or COHR, ' +
-        'at least 6 of them at the 400 level — but footnotes the eligible courses to the ' +
+        'The Calendar states the shape (15 credits of 300- and 400-level COMM or COHR, ' +
+        'at least 6 of them at the 400 level) but footnotes the eligible courses to the ' +
         'Faculty website. Any upper-level Commerce course is shown against these credits, ' +
         'so check the list before registering.',
       sourceUrl: GBM,

@@ -141,7 +141,7 @@ export async function scrapeSections() {
     if (previous > 0 && usable.length < previous * MIN_RETAINED_FRACTION) {
       console.error(
         `ABORT ${term.name}: parsed ${usable.length} sections vs ${previous} previously. ` +
-          'UBC API likely changed — refusing to write.',
+          'UBC API likely changed. Refusing to write.',
       );
       continue;
     }
@@ -149,7 +149,7 @@ export async function scrapeSections() {
     const written = await upsertSections(usable, term.id);
     if (written < usable.length * 0.95) {
       console.warn(
-        `${term.name}: parsed ${usable.length} sections but only wrote ${written} — ` +
+        `${term.name}: parsed ${usable.length} sections but only wrote ${written}: ` +
           'check subject/instructor resolution',
       );
     }

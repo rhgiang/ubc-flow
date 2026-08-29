@@ -132,7 +132,7 @@ export const psycMajor2026W: Program = {
     {
       id: 'psyc.research-component',
       kind: 'note',
-      label: 'Research Component — met by PSYC 217',
+      label: 'Research Component: met by PSYC 217',
       detail:
         'The Faculty of Arts Research Component names PSYC 217 for this major, and it is ' +
         'already required above, so it costs no additional credits. Students considering ' +

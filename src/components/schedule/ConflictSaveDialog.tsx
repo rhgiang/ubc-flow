@@ -77,7 +77,7 @@ export default function ConflictSaveDialog({
           ))}
         </ul>
         <p className="mt-3 text-xs text-text-tertiary">
-          You can still save — UBC&apos;s timetable data can&apos;t always tell a real clash from
+          You can still save. UBC&apos;s timetable data cannot always tell a real clash from
           an alternating-week pattern.
         </p>
 

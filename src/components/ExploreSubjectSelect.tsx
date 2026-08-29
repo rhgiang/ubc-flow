@@ -69,7 +69,7 @@ export default function ExploreSubjectSelect({
                 ? selected[0]
                 : `${selected.length} subjects`
             : current
-              ? `${current.code} — ${current.name}`
+              ? `${current.code} · ${current.name}`
               : 'All subjects'}
         </span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5 shrink-0 text-text-tertiary">
@@ -112,7 +112,7 @@ export default function ExploreSubjectSelect({
                     : 'text-foreground'
                 }`}
               >
-                {s.code} — {s.name}
+                {s.code} · {s.name}
               </button>
             ))}
             {filtered.length === 0 && <p className="px-3 py-2 text-sm text-text-tertiary">No subjects found</p>}

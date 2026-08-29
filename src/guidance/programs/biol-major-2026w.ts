@@ -163,7 +163,7 @@ export const biolMajor2026W: Program = {
           label: 'Laboratory and Life Science selection lists',
           detail:
             'The Calendar prints both lists in full, and notes that BIOL 351 and 352 may ' +
-            'be split between the two. Confirm your choices against that page — the Life ' +
+            'be split between the two. Confirm your choices against that page, since the Life ' +
             'Science list here is approximated by subject and level.',
           sourceUrl: SOURCE,
           confidence: 'stated',

@@ -29,7 +29,7 @@ export const poliMajor2026W: Program = {
     {
       id: 'poli.lower',
       kind: 'group',
-      label: 'Lower-level requirements — 12 credits at the 100 and 200 level',
+      label: 'Lower-level requirements: 12 credits at the 100 and 200 level',
       sourceUrl: SOURCE,
       items: [
         course('poli.100', 'POLI 100', 1),
@@ -57,7 +57,7 @@ export const poliMajor2026W: Program = {
     {
       id: 'poli.upper',
       kind: 'group',
-      label: 'Upper-level requirements — 30 credits at 300 or above',
+      label: 'Upper-level requirements: 30 credits at 300 or above',
       year: 3,
       sourceUrl: SOURCE,
       items: [
@@ -106,7 +106,7 @@ export const poliMajor2026W: Program = {
     {
       id: 'poli.research-component',
       kind: 'note',
-      label: 'Research Component — met by any 400-level POLI course',
+      label: 'Research Component: met by any 400-level POLI course',
       detail:
         'The Faculty of Arts Research Component accepts all POLI courses at the 400 level ' +
         'for this major, and the rule above already requires one, so it costs no ' +

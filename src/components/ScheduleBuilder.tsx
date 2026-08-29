@@ -285,7 +285,7 @@ export default function ScheduleBuilder({
       setError(result.error);
       return false;
     } catch {
-      setError('Could not save your schedule. Your changes are still here — try again.');
+      setError('Could not save your schedule. Your changes are still here, so try again.');
       return false;
     } finally {
       setSaving(false);

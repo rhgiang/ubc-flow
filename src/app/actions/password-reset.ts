@@ -41,7 +41,7 @@ export async function requestPasswordReset(email: string): Promise<{ ok: true }>
         'Reset your UBC Flow password',
         `Set a new password by visiting:\n\n${resetLink(token)}\n\n` +
           `This link expires in 1 hour and can only be used once.\n\n` +
-          `If you did not ask for this, you can ignore it — nothing has changed.`,
+          `If you did not ask for this, you can ignore it. Nothing has changed.`,
       );
     }
   }

@@ -442,7 +442,7 @@ function slotSpecs(
     // from the branch, as a hint rather than a prescription.
     return unmet.slice(0, left).map((b) => ({
       credits: b.n,
-      label: rule.label.split(' — ')[0],
+      label: rule.label.split(': ')[0],
       examples: examplesFor(b),
       branchId: b.id,
     }));
@@ -911,7 +911,7 @@ export function solve(input: SolverInput): Plan {
       rule: n.p.rule,
       reason:
         n.p.rule.kind === 'credits'
-          ? `${n.left} credits still unplaced — not enough terms at this credit load`
+          ? `${n.left} credits still unplaced: not enough terms at this credit load`
           : 'no offered term found where its prerequisites are met first',
     }));
 
@@ -919,7 +919,7 @@ export function solve(input: SolverInput): Plan {
   const notes = input.outstanding.filter((p) => p.rule.kind === 'note');
   if (notes.length > 0) {
     warnings.push(
-      `${notes.length} requirement${notes.length === 1 ? '' : 's'} cannot be checked automatically — confirm with an advisor.`,
+      `${notes.length} requirement${notes.length === 1 ? '' : 's'} cannot be checked automatically. Confirm with an advisor.`,
     );
   }
   if (prefs.targetTermId && unplaced.length > 0) {

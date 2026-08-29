@@ -59,7 +59,7 @@ export const philMajor2026W: Program = {
         {
           id: 'phil.history',
           kind: 'credits',
-          label: 'History of Philosophy — 6 credits',
+          label: 'History of Philosophy: 6 credits',
           n: 6,
           year: 3,
           from: { kind: 'codes', codes: HISTORY },
@@ -140,7 +140,7 @@ export const philMajor2026W: Program = {
     {
       id: 'phil.research-component',
       kind: 'note',
-      label: 'Research Component — met by the Research Seminar',
+      label: 'Research Component: met by the Research Seminar',
       detail:
         'The Faculty of Arts Research Component names PHIL 418, 426, 431, 432, 440, 450, ' +
         '452, 455, 469, 490 and 491 for this major, and the Department’s own Research ' +

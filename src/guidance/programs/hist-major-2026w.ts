@@ -44,7 +44,7 @@ export const histMajor2026W: Program = {
     {
       id: 'hist.lower',
       kind: 'group',
-      label: 'Lower-level requirements — 12 credits at the 100 and 200 level',
+      label: 'Lower-level requirements: 12 credits at the 100 and 200 level',
       sourceUrl: SOURCE,
       items: [
         {
@@ -73,14 +73,14 @@ export const histMajor2026W: Program = {
     {
       id: 'hist.upper',
       kind: 'group',
-      label: 'Upper-level requirements — 30 credits at 300 or above',
+      label: 'Upper-level requirements: 30 credits at 300 or above',
       year: 3,
       sourceUrl: SOURCE,
       items: [
         {
           id: 'hist.premodern',
           kind: 'credits',
-          label: 'Substantially pre-modern history — 6 credits',
+          label: 'Substantially pre-modern history: 6 credits',
           n: 6,
           year: 3,
           // The approved list is not in the Calendar; see the note below.
@@ -117,7 +117,7 @@ export const histMajor2026W: Program = {
       label: 'The pre-modern list is held by the Department, not the Calendar',
       detail:
         'Six of the 30 upper-level credits must be in substantially pre-modern history. ' +
-        'The Calendar does not name the courses — the list is available from departmental ' +
+        'The Calendar does not name the courses; the list is available from departmental ' +
         'advisors and the department website. The credits are reserved here, but any ' +
         'upper-level History course is shown against them, so check the list before ' +
         'registering.',
@@ -127,7 +127,7 @@ export const histMajor2026W: Program = {
     {
       id: 'hist.research-component',
       kind: 'note',
-      label: 'Research Component — met by the final-year capstone',
+      label: 'Research Component: met by the final-year capstone',
       detail:
         'The Faculty of Arts Research Component names HIST 403, 449, 466, 467, 468, 479 ' +
         'and 490 for this major. The capstone requirement above already draws from that ' +
@@ -142,7 +142,7 @@ export const histMajor2026W: Program = {
       label: 'Up to 6 upper-level credits may come from other departments',
       detail:
         'Subject to the approval of the Department, a maximum of 6 credits from other ' +
-        'departments may count toward the Major. Not modelled — the plan takes the ' +
+        'departments may count toward the Major. Not modelled, so the plan takes the ' +
         'default route through History.',
       sourceUrl: SOURCE,
       confidence: 'stated',

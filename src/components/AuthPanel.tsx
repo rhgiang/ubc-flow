@@ -95,7 +95,7 @@ export default function AuthPanel({
       const signedIn = await signIn('credentials', { email, password, redirect: false });
       if (signedIn?.error) {
         setMode('login');
-        setError('Account created — sign in to continue.');
+        setError('Account created. Sign in to continue.');
         return;
       }
 

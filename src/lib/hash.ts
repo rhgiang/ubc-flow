@@ -11,7 +11,7 @@ const BCRYPT_ROUNDS = 12;
 export function hashStudentNumber(raw: string): string {
   const secret = process.env.SERVER_SECRET;
   if (!secret) {
-    throw new Error('SERVER_SECRET is not set — refusing to hash unkeyed.');
+    throw new Error('SERVER_SECRET is not set. Refusing to hash unkeyed.');
   }
   return createHmac('sha256', secret).update(raw.trim()).digest('hex');
 }

@@ -154,7 +154,7 @@ export const eoscMajor2026W: Program = {
           detail:
             'Footnote 9 allows a maximum of 6 credits of the 300-level requirement to be ' +
             'replaced from a named list including BIOL 306 and CHEM 301, 302. Not modelled ' +
-            '— the plan takes the default route through EOSC, ENVR and ATSC.',
+            'The plan takes the default route through EOSC, ENVR and ATSC.',
           sourceUrl: SOURCE,
           confidence: 'stated',
         },

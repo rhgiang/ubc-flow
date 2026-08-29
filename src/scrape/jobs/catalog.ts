@@ -24,7 +24,7 @@ export async function scrapeCatalog() {
   ) {
     console.error(
       `ABORT: parsed ${terms.length} terms (had ${previousTerms}), ${subjects.length} subjects ` +
-        `(had ${previousSubjects}). UBC markup likely changed — refusing to write.`,
+        `(had ${previousSubjects}). UBC markup likely changed. Refusing to write.`,
     );
     return;
   }

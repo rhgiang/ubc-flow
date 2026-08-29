@@ -25,7 +25,7 @@ const course = (id: string, code: string): Rule => ({
  */
 export const apscCore2026W: Program = {
   code: 'apsc-core-2026w',
-  name: 'Applied Science — common first year',
+  name: 'Applied Science: common first year',
   degree: 'BASc',
   faculty: 'Applied Science',
   catalogYear: '2026W',
@@ -76,7 +76,7 @@ export const apscCore2026W: Program = {
       label: 'English: WRDS 150 plus an approved technical communication course',
       detail:
         'The first-year table names WRDS 150 and footnotes it "or another first-year ' +
-        'English course" without listing them — Mechanical, for one, accepts ENGL 112 or ' +
+        'English course" without listing them. Mechanical, for one, accepts ENGL 112 or ' +
         'APSC 176 in its place. Both are needed to qualify for the B.A.Sc. Students admitted from secondary ' +
         'school must take English in first year if eligible, and once admitted may not ' +
         'normally satisfy the English requirement at another institution. Anyone planning ' +
@@ -108,7 +108,7 @@ export const apscCore2026W: Program = {
       label: 'The degree is defined by its courses, not by a credit total',
       detail:
         'A B.A.Sc. is granted after credit for every course in the program of study. That ' +
-        'is normally four Winter Sessions at full credit load — five for Engineering ' +
+        'is normally four Winter Sessions at full credit load, five for Engineering ' +
         'Physics, and nine academic terms for Biomedical Engineering. Part-time study ' +
         'needs the Dean’s Office. Programs change year to year to keep engineering ' +
         'accreditation, so confirm against the Calendar for your entry year.',
@@ -122,7 +122,7 @@ export const apscCore2026W: Program = {
       detail:
         'Students coming from a first year of science take APSC 100, 160 and 201, ' +
         'MATH 152, 253 and 255, PHYS 170, STAT 251 and 6 credits of Complementary ' +
-        'Studies — 30 credits rather than 37. More than 26 credits of engineering ' +
+        'Studies, 30 credits rather than 37. More than 26 credits of engineering ' +
         'transfer credit can mean entering second year directly.',
       sourceUrl: SOURCE,
       confidence: 'stated',

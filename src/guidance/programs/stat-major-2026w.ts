@@ -133,7 +133,7 @@ export const statMajor2026W: Program = {
           label: 'A 6-credit pair may substitute for a 4-credit requirement',
           detail:
             'Footnote 2: a 6-credit combination of two courses may substitute for a ' +
-            '4-credit course, decreasing elective credits by 2. Not modelled — the ' +
+            '4-credit course, decreasing elective credits by 2. Not modelled, so the ' +
             'plan shows the 4-credit route.',
           sourceUrl: SOURCE,
           confidence: 'stated',

@@ -135,7 +135,7 @@ export default function ReviewCard({
             wants after "was this course any good under them". */}
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs italic text-text-tertiary">
-          — {attribution}
+          · {attribution}
           {when ? ` ${when}` : ''}
           {taughtBy.length > 0 && (
             <>

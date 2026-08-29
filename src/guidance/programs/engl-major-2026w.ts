@@ -13,9 +13,9 @@ const SOURCE =
  * credits from either range.
  */
 const GROUPS = {
-  a: { label: 'Group A — Medieval and Renaissance', min: 343, max: 350 },
-  b: { label: 'Group B — 18th- and 19th-Century', min: 351, max: 364 },
-  c: { label: 'Group C — Modern, Contemporary, Transnational and Indigenous', min: 365, max: 379 },
+  a: { label: 'Group A: Medieval and Renaissance', min: 343, max: 350 },
+  b: { label: 'Group B: 18th- and 19th-Century', min: 351, max: 364 },
+  c: { label: 'Group C: Modern, Contemporary, Transnational and Indigenous', min: 365, max: 379 },
 };
 const D_RANGES = [
   { min: 332, max: 339 },
@@ -30,7 +30,7 @@ const range = (id: string, label: string, n: number, min: number, max: number, y
 
 /** "3 credits from Group D", which is two ranges rather than one. */
 const groupD = (id: string, year: number): Rule => ({
-  id, kind: 'chooseN', label: 'Group D — Media, Theory, Genre and Special Topic', n: 1, year,
+  id, kind: 'chooseN', label: 'Group D: Media, Theory, Genre and Special Topic', n: 1, year,
   sourceUrl: SOURCE, confidence: 'stated',
   of: D_RANGES.map((r, i) => ({
     id: `${id}.r${i}`,
@@ -69,7 +69,7 @@ export const englMajor2026W: Program = {
     {
       id: 'engl.lower',
       kind: 'group',
-      label: 'Lower-level requirements — 12 credits',
+      label: 'Lower-level requirements: 12 credits',
       sourceUrl: SOURCE,
       items: [
         {
@@ -102,7 +102,7 @@ export const englMajor2026W: Program = {
     {
       id: 'engl.groups',
       kind: 'group',
-      label: '12 credits — 3 from each of Groups A, B, C and D',
+      label: '12 credits: 3 from each of Groups A, B, C and D',
       year: 3,
       sourceUrl: SOURCE,
       items: [
@@ -135,7 +135,7 @@ export const englMajor2026W: Program = {
       confidence: 'stated',
       of: [
         range('engl.cd.c', GROUPS.c.label, 3, GROUPS.c.min, GROUPS.c.max, 3),
-        ...D_RANGES.map((r, i) => range(`engl.cd.d${i}`, `Group D — ENGL ${r.min}–${r.max}`, 3, r.min, r.max, 4)),
+        ...D_RANGES.map((r, i) => range(`engl.cd.d${i}`, `Group D: ENGL ${r.min}–${r.max}`, 3, r.min, r.max, 4)),
       ],
     },
     {
@@ -144,7 +144,7 @@ export const englMajor2026W: Program = {
       // treatment SOCI 370 gets for the same reason.
       id: 'engl.canadian',
       kind: 'chooseN',
-      label: 'Canadian Literature — 3 credits',
+      label: 'Canadian Literature: 3 credits',
       n: 1,
       year: 4,
       sourceUrl: SOURCE,
@@ -198,9 +198,9 @@ export const englMajor2026W: Program = {
       kind: 'note',
       label: 'There are also Language and Language-and-Literature emphases',
       detail:
-        'Both replace the literature groups with five Language Course Groups — Structure ' +
+        'Both replace the literature groups with five Language Course Groups (Structure ' +
         'of English, History of English, Approaches to Contemporary English, Discourse ' +
-        'and Meaning, and Rhetoric — and swap the ENGL 490 seminar for ENGL 489. Not ' +
+        'and Meaning, and Rhetoric) and swap the ENGL 490 seminar for ENGL 489. Not ' +
         'transcribed as separate programs.',
       sourceUrl: SOURCE,
       confidence: 'stated',
@@ -208,7 +208,7 @@ export const englMajor2026W: Program = {
     {
       id: 'engl.research-component',
       kind: 'note',
-      label: 'Research Component — met by ENGL 490',
+      label: 'Research Component: met by ENGL 490',
       detail:
         'The Faculty of Arts Research Component names ENGL 490, 491, 492, 496 and 499 for ' +
         'the Literature emphasis, and ENGL 489 for the Language emphasis. ENGL 490 is ' +

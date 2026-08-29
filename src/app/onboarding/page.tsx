@@ -256,7 +256,7 @@ export default async function OnboardingPage() {
                 />
               </svg>
               <p className="text-sm font-medium text-foreground">
-                UBC Student — Verified
+                UBC Student, verified
               </p>
             </div>
 
@@ -351,7 +351,7 @@ export default async function OnboardingPage() {
                     Re-upload to track your degree.
                   </strong>{" "}
                   Your courses were imported before grades were recorded, so we
-                  know what you registered in but not how it went — and{" "}
+                  know what you registered in but not how it went, and{" "}
                   <Link href="/guidance" className="underline">
                     Guidance
                   </Link>{" "}

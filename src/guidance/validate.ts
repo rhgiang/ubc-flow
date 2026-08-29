@@ -76,7 +76,7 @@ export function validateProgram(program: Program, known: Set<string>): Issue[] {
       issues.push({
         severity: 'warning',
         ruleId: rule.id,
-        message: 'no sourceUrl — cannot be traced back to the Calendar',
+        message: 'no sourceUrl, so it cannot be traced back to the Calendar',
       });
     }
 
@@ -88,7 +88,7 @@ export function validateProgram(program: Program, known: Set<string>): Issue[] {
         issues.push({
           severity: 'error',
           ruleId: rule.id,
-          message: `chooses ${rule.n} of only ${rule.of.length} options — can never be satisfied`,
+          message: `chooses ${rule.n} of only ${rule.of.length} options, so it can never be satisfied`,
         });
       }
     }
@@ -107,7 +107,7 @@ export function validateProgram(program: Program, known: Set<string>): Issue[] {
         issues.push({
           severity: 'warning',
           ruleId: rule.id,
-          message: 'course set is unconstrained — will plan as a slot with no examples',
+          message: 'course set is unconstrained, and will plan as a slot with no examples',
         });
       }
     }

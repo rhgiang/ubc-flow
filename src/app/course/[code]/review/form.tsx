@@ -244,44 +244,59 @@ export function ReviewForm({
     setBusy(true);
     setError(null);
 
-    const result = await submitReview(
-      courseId,
-      courseCode,
-      {
-        liked,
-        useful: toStoredScore(useful),
-        difficulty: toStoredScore(difficulty),
-        workloadHours: workloadHours.trim() === '' ? null : Number(workloadHours),
-        text: text.trim() === '' ? null : text,
-      },
-      [...selected.entries()].map(([instructorId, s]) => ({
-        instructorId,
-        liked: s.liked,
-        clear: toStoredScore(s.clear),
-        engaging: toStoredScore(s.engaging),
-        text: s.text.trim() === '' ? null : s.text,
-      })),
-    );
+    try {
+      const result = await submitReview(
+        courseId,
+        courseCode,
+        {
+          liked,
+          useful: toStoredScore(useful),
+          difficulty: toStoredScore(difficulty),
+          workloadHours: workloadHours.trim() === '' ? null : Number(workloadHours),
+          text: text.trim() === '' ? null : text,
+        },
+        [...selected.entries()].map(([instructorId, s]) => ({
+          instructorId,
+          liked: s.liked,
+          clear: toStoredScore(s.clear),
+          engaging: toStoredScore(s.engaging),
+          text: s.text.trim() === '' ? null : s.text,
+        })),
+      );
 
-    if (!result.ok) {
-      setError(result.error);
+      if (!result.ok) {
+        setError(result.error);
+        setBusy(false);
+        return;
+      }
+
+      // Deliberately still busy: the push is on its way and re-enabling the
+      // button here invites a second submit, which is a second review.
+      router.push(`/course/${courseCode}`);
+    } catch {
+      // The costliest stuck button in the app — everything the user typed is
+      // still in the form, and leaving it disabled means they cannot resubmit
+      // it or, on most browsers, get it back after a reload.
+      setError('Could not post your review. It is still here — try again.');
       setBusy(false);
-      return;
     }
-
-    router.push(`/course/${courseCode}`);
   }
 
   async function onDelete() {
     setBusy(true);
     setError(null);
-    const result = await deleteReview(courseId, courseCode);
-    if (!result.ok) {
-      setError(result.error);
+    try {
+      const result = await deleteReview(courseId, courseCode);
+      if (!result.ok) {
+        setError(result.error);
+        setBusy(false);
+        return;
+      }
+      router.push(`/course/${courseCode}`);
+    } catch {
+      setError('Could not delete your review just now. Try again in a moment.');
       setBusy(false);
-      return;
     }
-    router.push(`/course/${courseCode}`);
   }
 
   return (

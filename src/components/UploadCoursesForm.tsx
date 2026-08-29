@@ -35,16 +35,21 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
     setBusy(true);
     setError(null);
 
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      body: new FormData(e.currentTarget),
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      setError(data.error ?? "Upload failed.");
-    } else {
-      setResult(data);
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: new FormData(e.currentTarget),
+      });
+      // Parsed INSIDE the ok-check, because a failure is exactly when the body
+      // is least likely to be JSON — a proxy timeout or a crashed route hands
+      // back HTML, and parsing that first threw before anything could report
+      // it, leaving the button on "Uploading…" for good.
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.error ?? 'Upload failed. Try again in a moment.');
+        return;
+      }
+      setResult(await res.json());
       // Ready for the next export — these are uploaded one at a time.
       formRef.current?.reset();
       setFileName(null);
@@ -53,8 +58,11 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
       // the pre-upload state until the student reloads by hand — the summary
       // says "Matched 12 courses" while the lists above show none of them.
       router.refresh();
+    } catch {
+      setError('Could not upload that file. Check your connection and try again.');
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   return (

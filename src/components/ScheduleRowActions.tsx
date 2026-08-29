@@ -30,8 +30,16 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
     // first time — creating the CalendarToken row — and most rows never
     // have their menu opened.
     if (next && subscribeUrl === null) {
-      const result = await getSubscribeUrl(scheduleId);
-      if (result.ok) setSubscribeUrl(`${window.location.origin}/api/calendar/${result.token}`);
+      try {
+        const result = await getSubscribeUrl(scheduleId);
+        if (result.ok) setSubscribeUrl(`${window.location.origin}/api/calendar/${result.token}`);
+        else setError(result.error);
+      } catch {
+        // Failing quietly here left the menu open with the subscribe row
+        // simply absent, which reads as "this schedule can't be subscribed
+        // to" rather than "that didn't load".
+        setError('Could not load the subscribe link. Close and reopen this menu.');
+      }
     }
   }
 
@@ -39,28 +47,39 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const result = await renameSchedule(scheduleId, newName);
-    setBusy(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
+    try {
+      const result = await renameSchedule(scheduleId, newName);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setRenaming(false);
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setError('Could not rename it just now. Try again in a moment.');
+    } finally {
+      setBusy(false);
     }
-    setRenaming(false);
-    setOpen(false);
-    router.refresh();
   }
 
   async function onDelete() {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
     setBusy(true);
-    const result = await deleteSchedule(scheduleId);
-    setBusy(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
+    setError(null);
+    try {
+      const result = await deleteSchedule(scheduleId);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setError('Could not delete it just now. Try again in a moment.');
+    } finally {
+      setBusy(false);
     }
-    setOpen(false);
-    router.refresh();
   }
 
   const webcalUrl = subscribeUrl?.replace(/^https?:\/\//, 'webcal://') ?? null;

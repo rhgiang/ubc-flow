@@ -32,13 +32,20 @@ export default function ResetPasswordForm({ token }: { token: string | null }) {
     }
 
     setBusy(true);
-    const result = await resetPassword(token ?? '', password);
-    setBusy(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
+    try {
+      const result = await resetPassword(token ?? '', password);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setDone(true);
+    } catch {
+      // A reset link works once and expires in an hour, so a stuck button
+      // here costs the user the link as well as the attempt.
+      setError('Could not set your password just now. Try again in a moment.');
+    } finally {
+      setBusy(false);
     }
-    setDone(true);
   }
 
   return (

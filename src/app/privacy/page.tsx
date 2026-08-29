@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'Privacy · UBC Flow' };
+export const metadata: Metadata = { title: 'Privacy' };
 
 export default function PrivacyPage() {
   return (

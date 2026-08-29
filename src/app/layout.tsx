@@ -27,9 +27,30 @@ const outfit = Outfit({
   weight: ["700"],
 });
 
+const DESCRIPTION = "Find courses and professors at UBC.";
+
+// Same env var the verification and reset emails are built from (see
+// src/app/actions/auth.ts) — one answer to "where does this site live",
+// rather than a second constant to keep in sync. metadataBase is what lets
+// the generated OG image below be referenced by relative path.
+const SITE_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: APP_NAME,
-  description: "Find courses and professors at UBC.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: APP_NAME,
+    url: SITE_URL,
+    title: APP_NAME,
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: APP_NAME,
+    description: DESCRIPTION,
+  },
 };
 
 // Runs before paint so the stored theme applies immediately — without this,

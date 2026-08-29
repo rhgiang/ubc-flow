@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'About · UBC Flow' };
+export const metadata: Metadata = { title: 'About' };
 
 export default function AboutPage() {
   return (

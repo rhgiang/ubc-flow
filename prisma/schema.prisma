@@ -94,6 +94,10 @@ model MeetingTime {
   room      String?
   startDate DateTime?
   endDate   DateTime?
+
+  /// Course pages include meetingTimes via sectionId IN (...); 36k rows with
+  /// no index made that a sequential scan per view.
+  @@index([sectionId])
 }
 
 model Instructor {
@@ -112,6 +116,10 @@ model SectionInstructor {
   instructor   Instructor @relation(fields: [instructorId], references: [id])
 
   @@id([sectionId, instructorId])
+
+  /// The professor page filters by instructorId; the PK leads on sectionId,
+  /// so without this every professor view walks the whole table.
+  @@index([instructorId])
 }
 
 // ---------- Later phases: created, unpopulated ----------

@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { canReview } from '@/lib/gate';
@@ -102,7 +102,14 @@ export async function submitReview(
   if (!userId) return { ok: false, error: 'Sign in to write a review.' };
 
   const result = await writeReviewForUser(userId, courseId, course, instructors);
-  if (result.ok) revalidatePath(`/course/${courseCode}`);
+  if (result.ok) {
+    // The course, professor and explore pages cache catalogue data under this
+    // tag; without clearing it a new review hides for up to an hour, and the
+    // path revalidation alone misses the professor pages instructor reviews
+    // also render on.
+    revalidateTag('catalogue', { expire: 0 });
+    revalidatePath(`/course/${courseCode}`);
+  }
   return result;
 }
 
@@ -114,7 +121,10 @@ export async function deleteReview(
   if (!userId) return { ok: false, error: 'Sign in to manage your reviews.' };
 
   const result = await deleteReviewForUser(userId, courseId);
-  if (result.ok) revalidatePath(`/course/${courseCode}`);
+  if (result.ok) {
+    revalidateTag('catalogue', { expire: 0 });
+    revalidatePath(`/course/${courseCode}`);
+  }
   return result;
 }
 

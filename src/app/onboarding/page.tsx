@@ -121,13 +121,14 @@ export default async function OnboardingPage() {
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
 
-  const [user, enrollments, meetings, terms, transferCredits] =
+  const [user, enrollments, myReviews, meetings, terms, transferCredits] =
     await Promise.all([
       db.user.findUnique({
         where: { id: userId },
         select: { verifiedAt: true },
       }),
       db.enrollment.findMany({ where: { userId } }),
+      db.courseReview.findMany({ where: { userId }, select: { courseId: true } }),
       db.enrollmentMeeting.findMany({ where: { userId } }),
       db.term.findMany({
         where: { campus: "V" },
@@ -204,6 +205,27 @@ export default async function OnboardingPage() {
     meetingsByKey.set(key, list);
   }
 
+  // The funnel: verified, non-transfer courses this student has not reviewed
+  // yet. Same predicate as the review gate (src/lib/gate.ts), computed from
+  // rows already in hand. The upload form lives on this page and refreshes it,
+  // so finishing an upload makes these chips appear immediately - which is
+  // the moment someone is most willing to write the review.
+  const reviewedIds = new Set(myReviews.map((r) => r.courseId));
+  const reviewable = [
+    ...new Map(
+      enrollments
+        .filter((e) => e.verified && e.status !== 'transfer' && !reviewedIds.has(e.courseId))
+        .map((e) => [e.courseId, e] as const),
+    ).keys(),
+  ]
+    .map((id) => courseById.get(id))
+    .filter((c) => c !== undefined)
+    .map((c) => ({
+      code: `${c.subject.code} ${c.number}`,
+      href: `/course/${(c.subject.code ?? '').toLowerCase()}-${c.number.toLowerCase()}/review`,
+    }))
+    .sort((a, b) => a.code.localeCompare(b.code));
+
   const currentByTerm = new Map<string, TermGroup>();
   const pastByTerm = new Map<string, TermGroup>();
   for (const e of enrollments) {
@@ -259,6 +281,30 @@ export default async function OnboardingPage() {
                 UBC Student, verified
               </p>
             </div>
+
+            {reviewable.length > 0 && (
+              <section className="mt-6 rounded-card border border-border bg-surface-muted p-4">
+                <h2 className="text-base font-semibold text-foreground">
+                  Review your courses
+                </h2>
+                <p className="mt-1 text-sm text-text-secondary">
+                  You can review {reviewable.length === 1 ? 'this course' : `these ${reviewable.length} courses`}{' '}
+                  because your record shows you took {reviewable.length === 1 ? 'it' : 'them'}. Reviews are
+                  anonymous, and each one helps the next student pick.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {reviewable.map((c) => (
+                    <Link
+                      key={c.code}
+                      href={c.href}
+                      className="rounded-pill border border-border bg-background px-3 py-1.5 text-sm font-medium text-brand-accent transition duration-150 ease-out hover:scale-[1.02] hover:border-brand-accent active:scale-100"
+                    >
+                      {c.code}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <section className="mt-6">
               <h2 className="text-xl font-semibold text-foreground">

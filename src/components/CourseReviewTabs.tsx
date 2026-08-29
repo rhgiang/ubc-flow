@@ -150,12 +150,17 @@ export default function CourseReviewTabs({
       <div className="mt-4">
         {tab === 'course' ? (
           courseReviews.length === 0 ? (
-            <p className="text-sm text-text-secondary">No course reviews yet.</p>
+            <p className="text-sm text-text-secondary">
+              No course reviews yet. If you took this course, yours would be the first anyone
+              reads.
+            </p>
           ) : (
             <List reviews={sortReviews(courseReviews, sort)} kind="course" signedIn={signedIn} />
           )
         ) : professorCount === 0 ? (
-          <p className="text-sm text-text-secondary">No professor reviews yet.</p>
+          <p className="text-sm text-text-secondary">
+            No professor reviews yet. Reviewing the course also lets you rate whoever taught it.
+          </p>
         ) : (
           <div className="space-y-8">
             {professorGroups.map((g) => (

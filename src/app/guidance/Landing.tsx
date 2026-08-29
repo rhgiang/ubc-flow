@@ -14,7 +14,7 @@ const badge = (code: string) => code.split('-')[0].toUpperCase();
  * someone who has not.
  */
 const BLURB: Record<string, string> = {
-  BASc: 'Engineering. Four Winter Sessions at full load, with co-op sequences available.',
+  BASc: 'Engineering. Co-op sequences available.',
   BSc: 'Science majors. 120 credits, built on the Faculty of Science core.',
   BCom: 'Sauder. One core, four specialisations to choose between.',
   BA: 'Arts majors. 120 credits, built on the Faculty of Arts core.',

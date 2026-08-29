@@ -193,6 +193,7 @@ export function ReviewForm({
   instructors,
   existing,
   existingInstructors,
+  preselectInstructorId = null,
 }: {
   courseId: string;
   courseCode: string;
@@ -201,6 +202,8 @@ export function ReviewForm({
   instructors: Instructor[];
   existing: ExistingCourse;
   existingInstructors: ExistingInstructor[];
+  /** Set by ?instructor= when arriving from that professor's page. */
+  preselectInstructorId?: string | null;
 }) {
   const router = useRouter();
 
@@ -218,20 +221,26 @@ export function ReviewForm({
   const [existingByInstructor] = useState(
     () => new Map(existingInstructors.map((r) => [r.instructorId, r])),
   );
-  const [selected, setSelected] = useState<Map<string, InstructorState>>(
-    () =>
-      new Map(
-        existingInstructors.map((r) => [
-          r.instructorId,
-          {
-            liked: r.liked,
-            clear: toDisplayScore(r.clear),
-            engaging: toDisplayScore(r.engaging),
-            text: r.text ?? '',
-          },
-        ]),
-      ),
-  );
+  const [selected, setSelected] = useState<Map<string, InstructorState>>(() => {
+    const initial = new Map<string, InstructorState>(
+      existingInstructors.map((r) => [
+        r.instructorId,
+        {
+          liked: r.liked,
+          clear: toDisplayScore(r.clear),
+          engaging: toDisplayScore(r.engaging),
+          text: r.text ?? '',
+        },
+      ]),
+    );
+    // Arriving from a professor's page: tick them, blank, unless a review of
+    // them already exists — in which case that one is already loaded above and
+    // must not be overwritten with empties.
+    if (preselectInstructorId && !initial.has(preselectInstructorId)) {
+      initial.set(preselectInstructorId, { liked: null, clear: null, engaging: null, text: '' });
+    }
+    return initial;
+  });
 
   const [error, setError] = useState<string | null>(null);
   /**

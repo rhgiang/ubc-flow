@@ -3,12 +3,14 @@ import { apscCore2026W } from '@/guidance/programs/apsc-core-2026w';
 import {
   chbeMajor2026W,
   civlMajor2026W,
+  cpenMajor2026W,
   elecMajor2026W,
   mechMajor2026W,
 } from '@/guidance/programs/apsc-majors-2026w';
 import { artsFacultyCore2026W } from '@/guidance/programs/arts-faculty-core-2026w';
 import { biocMajor2026W } from '@/guidance/programs/bioc-major-2026w';
 import { biolMajor2026W } from '@/guidance/programs/biol-major-2026w';
+import { capsMajor2026W } from '@/guidance/programs/caps-major-2026w';
 import { chemMajor2026W } from '@/guidance/programs/chem-major-2026w';
 import {
   commAccounting2026W,
@@ -45,8 +47,10 @@ const PROGRAMS: Program[] = [
   artsFacultyCore2026W,
   commerceCore2026W,
   scienceFacultyCore2026W,
+  capsMajor2026W,
   chbeMajor2026W,
   civlMajor2026W,
+  cpenMajor2026W,
   elecMajor2026W,
   mechMajor2026W,
   biocMajor2026W,
@@ -97,4 +101,55 @@ export function effectiveRules(program: Program, seen: Set<string> = new Set()):
   // Years are declared on the year groups; push them down so every rule
   // carries its own and the solver can read one without its parent.
   return [...inherited, ...withYears(program.rules)];
+}
+
+/**
+ * The credit load a program runs at, used when the student has not picked one.
+ *
+ * Fifteen credits is a standard term for a 120-credit degree — 30 a year, 120
+ * over four years. Engineering is not that degree. A B.A.Sc. runs 148 to 158
+ * credits, and at 15 a term it renders as a five-and-a-half-year plan when the
+ * Calendar itself calls it four Winter Sessions at full credit load.
+ *
+ * Full engineering load is 22. Not the degree average, which is 19 to 20 and
+ * leaves every program spilling into a ninth term: a year's courses cannot
+ * start early, and the two terms inside a year are uneven. Chemical and
+ * Biological's third year is 40 credits, but the Department splits it 19 and
+ * 21, so sizing to the even half strands the remainder. All four B.A.Sc.
+ * programs fit eight terms at 22 and none of them do at 21.
+ *
+ * Applied only to oversized degrees. A 120-credit program already fits at 15,
+ * and pushing one past 21 breaks it — Statistics returns a three-term plan
+ * with half the degree unplaced, which is a solver bug in its own right.
+ *
+ * Lives here rather than in the page because it is a fact about the program,
+ * and the landing page quotes it beside each one.
+ */
+export function fullLoadFor(program: Program): number {
+  const total = program.totalCredits;
+  return total > 130 ? 22 : Math.max(15, Math.ceil(total / 8));
+}
+
+/**
+ * Selectable programs grouped by credential, in the order the landing page
+ * lists them. Degree maps one-to-one onto faculty today, so the faculty rides
+ * along as the group's subtitle rather than being a second axis.
+ */
+export function byDegree(): { degree: string; faculty: string; programs: Program[] }[] {
+  const order = ['BASc', 'BSc', 'BCom', 'BA'];
+  /** An unlisted degree sorts last rather than first, which -1 would do. */
+  const rank = (d: string) => (order.indexOf(d) === -1 ? order.length : order.indexOf(d));
+  const groups = new Map<string, Program[]>();
+  for (const p of selectable) {
+    const list = groups.get(p.degree);
+    if (list) list.push(p);
+    else groups.set(p.degree, [p]);
+  }
+  return [...groups.entries()]
+    .sort((a, b) => rank(a[0]) - rank(b[0]))
+    .map(([degree, programs]) => ({
+      degree,
+      faculty: programs[0].faculty,
+      programs: [...programs].sort((a, b) => a.name.localeCompare(b.name)),
+    }));
 }

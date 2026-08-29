@@ -1,9 +1,25 @@
 import Link from 'next/link';
-import { effectiveRules, getProgram, selectable } from '@/guidance/registry';
-import { loadCatalogue, loadOfferings, loadPrereqs, loadTerms } from '@/guidance/load';
+import { effectiveRules, fullLoadFor, getProgram } from '@/guidance/registry';
+import Landing from './Landing';
+import {
+  loadCatalogue,
+  loadCompletions,
+  loadOfferings,
+  loadPrereqs,
+  loadTerms,
+} from '@/guidance/load';
+import { auth } from '@/lib/auth';
 import { obligations, walk, type CourseSet, type Rule } from '@/guidance/rules';
 import { progress, outstanding, type Completion } from '@/guidance/progress';
 import { solve } from '@/guidance/solver';
+import {
+  COOP_PATTERNS,
+  applyCoop,
+  degreeYears,
+  fromFirstWinter,
+  getCoopPattern,
+  workTermIds,
+} from '@/guidance/coop';
 
 export const revalidate = 300;
 
@@ -12,9 +28,8 @@ export const revalidate = 300;
 // name left every existing link and bookmark reading "4" as four CREDITS —
 // one course a term, a twelve-term plan. A new name lets stale links fall
 // through to the default instead of silently meaning something else.
-type SP = { program?: string; credits?: string; summer?: string };
+type SP = { program?: string; credits?: string; summer?: string; coop?: string };
 
-const DEFAULT_PROGRAM = 'cpsc-major-bsc-2026w';
 
 /** Course pages are keyed the way /explore links them: "cpsc-310". */
 const courseHref = (code: string) => `/course/${code.toLowerCase().replace(' ', '-')}`;
@@ -71,29 +86,6 @@ function breakdown(rule: Rule): { label: string; detail: string }[] {
   return [];
 }
 
-/**
- * The credit load a program runs at, used when the student has not picked one.
- *
- * Fifteen credits is a standard term for a 120-credit degree — 30 a year, 120
- * over four years. Engineering is not that degree. A B.A.Sc. runs 148 to 158
- * credits, and at 15 a term it renders as a five-and-a-half-year plan when the
- * Calendar itself calls it four Winter Sessions at full credit load.
- *
- * Full engineering load is 22. Not the degree average, which is 19 to 20 and
- * leaves every program spilling into a ninth term: a year's courses cannot
- * start early, and the two terms inside a year are uneven. Chemical and
- * Biological's third year is 40 credits, but the Department splits it 19 and
- * 21, so sizing to the even half strands the remainder. All four B.A.Sc.
- * programs fit eight terms at 22 and none of them do at 21.
- *
- * Applied only to oversized degrees. A 120-credit program already fits at 15,
- * and pushing one past 21 breaks it — Statistics returns a three-term plan
- * with half the degree unplaced, which is a solver bug in its own right.
- */
-function defaultLoad(total: number): number {
-  return total > 130 ? 22 : Math.max(15, Math.ceil(total / 8));
-}
-
 const STATE_STYLE: Record<string, string> = {
   satisfied: 'border-brand bg-brand text-brand-foreground',
   partial: 'border-border bg-surface-muted text-foreground',
@@ -109,33 +101,49 @@ const STATE_STYLE: Record<string, string> = {
 
 export default async function GuidancePage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const program = getProgram(sp.program ?? DEFAULT_PROGRAM) ?? getProgram(DEFAULT_PROGRAM)!;
+  // No program named, or one that no longer exists: show the picker rather
+  // than falling back to a default. Quietly planning Computer Science for
+  // someone who asked for a program we dropped is the wrong kind of guess,
+  // and this returns before the catalogue, prereq and offerings queries.
+  const program = sp.program ? getProgram(sp.program) : null;
+  if (!program) return <Landing />;
   const rules = effectiveRules(program);
-  const useSummer = sp.summer === '1';
+  const coop = getCoopPattern(sp.coop);
+  // Co-op runs year-round — three of the four work terms in a standard
+  // sequence are summers — so it opens summer up rather than leaving that
+  // to a separate toggle the student would have to find.
+  const useSummer = sp.summer === '1' || coop !== null;
 
   const subjects = subjectsUsed(rules);
 
-  const [catalogue, terms] = await Promise.all([loadCatalogue(subjects), loadTerms()]);
+  const [catalogue, allTerms] = await Promise.all([loadCatalogue(subjects), loadTerms()]);
+  const terms = applyCoop(fromFirstWinter(allTerms), coop);
+  const work = workTermIds(allTerms, coop);
+  const yearOfTerm = degreeYears(allTerms);
   const ids = catalogue.map((c) => c.id);
   const [prereqs, offerings] = await Promise.all([loadPrereqs(catalogue), loadOfferings(ids)]);
 
-  const load = Math.min(
-    24,
-    Math.max(
-      3,
-      Number(sp.credits) ||
-        defaultLoad(program.totalCredits),
-    ),
-  );
+  const fullLoad = fullLoadFor(program);
+  const load = Math.min(24, Math.max(3, Number(sp.credits) || fullLoad));
+  // The offered loads always include the program's own, so it is selectable
+  // and visibly current. Fixed pills of 12/15/18 left engineering showing
+  // NOTHING highlighted — its default is 22 — which read as an unset control
+  // where 18 looked like the maximum, and there was no way back to 22 once
+  // you had clicked away. Commerce had it too, at 16.
+  const loads = [...new Set([12, 15, 18, fullLoad])].sort((a, b) => a - b);
 
-  // No completion data yet — Enrollment records registration, not whether a
-  // course was passed, so treating it as completed would be wrong in the
-  // dangerous direction. Until grades are captured this plans a fresh start,
-  // which is exactly the public roadmap a signed-out visitor should see.
-  const completions: Completion[] = [];
+  // A signed-out visitor gets the public roadmap: the whole degree from a
+  // standing start, which is what someone asking "what does this degree
+  // require?" wants. A signed-in one gets their own — the completions feed
+  // BOTH the checklist and the solver, so the route is what is left rather
+  // than a fresh four years.
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
+  const completions: Completion[] = userId ? await loadCompletions(userId) : [];
+  const done = completions.filter((c) => c.status === 'passed' || c.status === 'transfer');
   const plan = solve({
     outstanding: outstanding(completions, rules),
-    completed: [],
+    completed: done.map((c) => c.course),
     catalogue,
     prereqs,
     offerings,
@@ -143,31 +151,106 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
     prefs: { creditsPerTerm: load, useSummer, targetTermId: null },
   });
 
-  // The checklist reads against the plan, not just against what is already
-  // done. A required MATH or STAT course counts toward Science Breadth like
-  // any other, so a plan that schedules them has met those categories — and
-  // reporting "0 of 6" beside a plan that covers three of them is simply
-  // wrong about its own output.
+  /**
+   * Whether the panel reports on a PERSON or on the plan.
+   *
+   * True only when there is something real to check against. A signed-in
+   * student with nothing uploaded gets the plan view and an invitation, not a
+   * zeroed-out list that reads as "you have done nothing".
+   */
+  const tracking = done.length > 0;
+  const creditsDone = done.reduce((n, c) => n + c.course.credits, 0);
+  // Counted as passed purely because the term has finished. Grades are not
+  // stored yet, so this over-counts anyone who failed or withdrew, and the
+  // panel says how many rows rest on that assumption rather than hiding it.
+  const assumed = completions.filter((c) => c.status === 'passed').length;
+
   const plannedCourses = plan.terms.flatMap((t) =>
     t.placements.flatMap((pl) => (pl.kind === 'course' ? [pl.course] : [])),
   );
+  /**
+   * What the ticks are checked against — the whole difference between the two
+   * modes.
+   *
+   * Tracking checks the person alone. Folding the plan's own courses in here
+   * too would make every requirement the route covers read as done, and the
+   * panel would say the same thing signed in as signed out.
+   *
+   * Without a record it checks the plan, because otherwise a rule met by a
+   * required course would report "0 of 6" beside a route that schedules three
+   * of them — wrong about its own output.
+   */
   const checklist = progress(
-    [...completions, ...plannedCourses.map((course) => ({ course, status: 'passed' as const }))],
+    tracking
+      ? completions
+      : [...completions, ...plannedCourses.map((course) => ({ course, status: 'passed' as const }))],
     rules,
   );
+
+  /**
+   * Credits the plan reserves as SLOTS, per rule.
+   *
+   * A slot is not a course, so it never reached progress() and every rule that
+   * plans as one reported nothing. "Electives 0 of 18 credits" sat beside a
+   * plan reserving exactly 18 for it, and "12 credits of Arts" read as
+   * untouched while the route carried all twelve. Both are plan-side
+   * requirements the plan genuinely covers.
+   */
+  const slotted = new Map<string, number>();
+  for (const t of plan.terms) {
+    for (const pl of t.placements) {
+      if (pl.kind !== 'slot') continue;
+      for (const id of pl.forRules) slotted.set(id, (slotted.get(id) ?? 0) + pl.credits);
+    }
+  }
+  /** A checklist row with its slot credits folded in. */
+  const withSlots = (p: (typeof checklist)[number]) => {
+    const extra = slotted.get(p.rule.id) ?? 0;
+    if (extra === 0 || p.rule.kind !== 'credits') return p;
+    const needed = p.credits?.needed ?? p.rule.n;
+    const earned = Math.min(needed, (p.credits?.earned ?? 0) + extra);
+    return {
+      ...p,
+      state: earned >= needed ? ('satisfied' as const) : ('partial' as const),
+      detail: `${earned} of ${needed} credits`,
+    };
+  };
 
   const totalRules = obligations(rules).filter((r) => r.kind !== 'note').length;
   // A note carries no completion state, so it belongs in its own list rather
   // than among rules a student can actually finish.
-  const trackable = checklist.filter((p) => p.rule.kind !== 'note');
+  // Slot credits are the PLAN's reservations, so they count only when the
+  // panel is reporting on the plan.
+  const trackable = checklist
+    .filter((p) => p.rule.kind !== 'note')
+    .map((p) => (tracking ? p : withSlots(p)));
+  const metRules = trackable.filter((p) => p.state === 'satisfied').length;
   const degreeRules = checklist.filter((p) => p.rule.kind === 'note');
-  /** Year of the degree a term sits in — two winter terms to a year. */
-  const yearOf = (i: number) => Math.floor(i / 2) + 1;
+  // Work terms hold no coursework, so the solver never returns them. Merge
+  // them back in by calendar order — a plan that silently skipped them would
+  // show co-op finishing in the same four years as everything else, which is
+  // the opposite of what co-op does.
+  const planned = new Map(plan.terms.map((t) => [t.term.id, t.placements]));
+  const lastId = plan.terms.at(-1)?.term.id;
+  // Runs to the last planned term OR the last work term, whichever is later.
+  // Cutting at the coursework alone hid the whole sequence for a student who
+  // finishes their courses before the work terms begin — which is exactly the
+  // case co-op exists to handle, and it reported "no work terms".
+  const end = Math.max(
+    lastId ? allTerms.findIndex((t) => t.id === lastId) : -1,
+    ...[...work].map((id) => allTerms.findIndex((t) => t.id === id)),
+  );
+  const timeline = allTerms
+    .slice(0, end + 1)
+    .filter((t) => planned.has(t.id) || work.has(t.id))
+    .map((t) => ({ term: t, placements: planned.get(t.id) ?? null }));
+
   const href = (over: Record<string, string | number>) => {
     const p = new URLSearchParams({
       program: program.code,
       credits: String(load),
-      ...(useSummer ? { summer: '1' } : {}),
+      ...(useSummer && !coop ? { summer: '1' } : {}),
+      ...(coop ? { coop: coop.id } : {}),
       ...Object.fromEntries(Object.entries(over).map(([k, v]) => [k, String(v)])),
     });
     return `/guidance?${p}`;
@@ -175,36 +258,51 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
-      <h1 className="sky-hero text-3xl font-semibold">Guidance</h1>
+      {/*
+        The picker is a page of its own now. It used to be twenty-six pills
+        wrapped across four lines here, above everything the page is actually
+        for — and switching from one carried the OLD program's credit load
+        with it, so arriving at a 155-credit B.A.Sc. from a 120-credit B.Sc.
+        planned it at 15 a term and drew a ten-term degree. A plain link back
+        cannot carry a load it should not.
+      */}
+      <Link
+        href="/guidance"
+        className="sky-hero inline-flex items-center gap-1.5 text-sm opacity-80 hover:opacity-100"
+      >
+        <span aria-hidden>&larr;</span> All programs
+      </Link>
+      <h1 className="sky-hero mt-2 text-3xl font-semibold">{program.name}</h1>
       <p className="sky-hero mt-2 max-w-2xl text-sm">
-        A term-by-term route through your degree, ordered so prerequisites come first and every
-        course is one UBC actually offers.
+        {program.degree} &middot; Faculty of {program.faculty} &middot; {program.totalCredits}{' '}
+        credits, ordered so prerequisites come first and every course is one UBC actually offers.
       </p>
-
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        {selectable.map((p) => (
-          <Link
-            key={p.code}
-            href={href({ program: p.code })}
-            className={`rounded-pill border px-4 py-2 text-sm font-medium ${
-              p.code === program.code
-                ? 'border-brand bg-brand text-brand-foreground'
-                : 'border-border text-foreground hover:bg-surface-muted'
-            }`}
-          >
-            {p.name}
-          </Link>
-        ))}
-      </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0">
           <div className="sky-panel p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-foreground">Suggested route</h2>
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Suggested route</h2>
+                {/*
+                  Every rule here was transcribed by hand off one Calendar page,
+                  and the Calendar is the authority whenever the two disagree.
+                  Linking it is the honest thing to do rather than a courtesy —
+                  a student checking a requirement should be one click from the
+                  page it came from.
+                */}
+                <a
+                  href={program.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-brand-accent underline decoration-dotted underline-offset-2 hover:decoration-solid"
+                >
+                  Official UBC Calendar requirements ↗
+                </a>
+              </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-text-secondary">Credits per term</span>
-                {[12, 15, 18].map((n) => (
+                {loads.map((n) => (
                   <Link
                     key={n}
                     href={href({ credits: n })}
@@ -218,7 +316,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                   </Link>
                 ))}
                 <Link
-                  href={href({ summer: useSummer ? '' : '1' })}
+                  href={href({ summer: useSummer ? '' : '1', coop: '' })}
                   className={`ml-1 rounded-pill border px-3 py-1 text-xs font-medium ${
                     useSummer
                       ? 'border-brand bg-brand text-brand-foreground'
@@ -230,6 +328,63 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
               </div>
             </div>
 
+            {/*
+              Co-op is a separate row rather than another pill beside the credit
+              load: it changes the shape of the degree, not its pace. Most
+              programs run more than one sequence, so this is a list of them
+              rather than an on/off switch.
+            */}
+            <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
+              <span className="text-xs text-text-secondary">Co-op</span>
+              <Link
+                href={href({ coop: '' })}
+                className={`rounded-pill border px-3 py-1 text-xs font-medium ${
+                  coop === null
+                    ? 'border-brand bg-brand text-brand-foreground'
+                    : 'border-border text-foreground hover:bg-surface-muted'
+                }`}
+              >
+                None
+              </Link>
+              {COOP_PATTERNS.map((p) => (
+                <Link
+                  key={p.id}
+                  href={href({ coop: p.id })}
+                  className={`rounded-pill border px-3 py-1 text-xs font-medium ${
+                    coop?.id === p.id
+                      ? 'border-brand bg-brand text-brand-foreground'
+                      : 'border-border text-foreground hover:bg-surface-muted'
+                  }`}
+                >
+                  {p.label}
+                </Link>
+              ))}
+            </div>
+            {coop && (
+              <p className="mt-2 rounded-card border border-info-border bg-info-surface px-3 py-2 text-xs text-info">
+                <span className="font-medium">{coop.work.length} work terms.</span> {coop.detail} The
+                Calendar sets the rules — four work terms, at least one in a Winter term, and the
+                degree must end on an academic term — but leaves the sequence to each department, so
+                check yours for the exact placement. Work terms earn co-op course credit on your
+                transcript and none of it counts toward the degree, which is why co-op adds a year.
+              </p>
+            )}
+
+            {/*
+              A degree that runs past four years should say why rather than
+              leave the student counting. Engineering is 148 to 158 credits, so
+              choosing 18 a term genuinely cannot fit it into eight — 8 x 18 is
+              144 — and the plan grows a fifth year. That is arithmetic, not a
+              scheduling failure, and it is worth one sentence.
+            */}
+            {!coop && plan.terms.length > 8 && (
+              <p className="mt-3 rounded-card border border-info-border bg-info-surface px-3 py-2 text-xs text-info">
+                {program.totalCredits} credits at {load} a term needs {plan.terms.length} terms, so
+                this route runs past four years. This program&rsquo;s full load is {fullLoad} a term,
+                which fits it into eight.
+              </p>
+            )}
+
             {plan.terms.length === 0 ? (
               <p className="mt-4 text-sm text-text-secondary">
                 No terms could be planned — the catalogue has no upcoming sections to place
@@ -237,11 +392,26 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
               </p>
             ) : (
               <ol className="mt-4 space-y-3">
-                {plan.terms.map((t, i) => (
+                {timeline.map((t) =>
+                  t.placements === null ? (
+                    <li
+                      key={t.term.id}
+                      className="rounded-card border border-dashed border-info-border bg-info-surface p-3"
+                    >
+                      <p className="flex flex-wrap items-baseline gap-2 text-xs font-semibold uppercase tracking-wide text-info">
+                        <span className="rounded-pill border border-info-border px-2 py-0.5">
+                          Year {yearOfTerm.get(t.term.id) ?? 1}
+                        </span>
+                        {t.term.name}
+                        <span className="ml-auto font-normal normal-case opacity-80">work term</span>
+                      </p>
+                      <p className="mt-1.5 text-sm">Co-op placement — no coursework this term.</p>
+                    </li>
+                  ) : (
                   <li key={t.term.id} className="rounded-card border border-border p-3">
                     <p className="flex flex-wrap items-baseline gap-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">
                       <span className="rounded-pill bg-surface-muted px-2 py-0.5 text-foreground">
-                        Year {yearOf(i)}
+                        Year {yearOfTerm.get(t.term.id) ?? 1}
                       </span>
                       {t.term.name}
                       <span className="ml-auto font-normal normal-case opacity-70">
@@ -340,7 +510,8 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                       )}
                     </div>
                   </li>
-                ))}
+                  ),
+                )}
               </ol>
             )}
 
@@ -368,10 +539,44 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
             picking "completes". Mixing them made a B.A. look like it had
             thirty requirements when it has nineteen.
           */}
-          <p className="text-sm font-semibold text-foreground">Requirements</p>
-          <p className="mt-1 text-xs text-text-secondary">
-            {totalRules} to complete · {program.totalCredits} credits total
+          {/*
+            One panel, two modes. A second list of the same requirements — one
+            for "the plan covers this" and one for "you have done this" — would
+            put the ambiguity in two places instead of removing it. What changes
+            between modes is only what the ticks are checked AGAINST.
+          */}
+          <p className="text-sm font-semibold text-foreground">
+            {tracking ? 'Your progress' : 'What this degree requires'}
           </p>
+          <p className="mt-1 text-xs text-text-secondary">
+            {tracking
+              ? `${creditsDone} of ${program.totalCredits} credits · ${totalRules - metRules} requirements left`
+              : `${totalRules} to complete · ${program.totalCredits} credits total`}
+          </p>
+
+          {tracking ? (
+            <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[11px] leading-relaxed text-info">
+              Checked against your record. The route above starts from what you have left rather
+              than from first year.{' '}
+              {assumed > 0 && (
+                <>
+                  {assumed} course{assumed === 1 ? '' : 's'} counted as passed because the term has
+                  ended — grades are not captured yet, so a course you failed or withdrew from would
+                  still show here.
+                </>
+              )}
+            </p>
+          ) : userId ? (
+            <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[11px] leading-relaxed text-info">
+              Nothing to track against yet — upload your Workday record from your account page and
+              this becomes your own progress. Until then the ticks show what the route above covers.
+            </p>
+          ) : (
+            <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[11px] leading-relaxed text-info">
+              Ticks show what the route above covers, not a personal record. Sign in and upload your
+              courses to track your own progress.
+            </p>
+          )}
 
           <ul className="mt-3 space-y-1.5">
             {trackable.map((p) => {

@@ -35,6 +35,8 @@ beforeAll(async () => {
 
 function row(over: Partial<EnrollmentRow> = {}): EnrollmentRow {
   return {
+    grade: null,
+    status: 'registered',
     subjectCode: fixture.subjectCode,
     campus: fixture.campus,
     courseNumber: fixture.courseNumber,

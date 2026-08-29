@@ -193,7 +193,7 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
         </button>
       </form>
 
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="mt-4 text-sm text-danger">{error}</p>}
 
       {result && (
         <section className="mt-6 rounded-card border border-border p-5">

@@ -1,0 +1,42 @@
+# Nightly dump of the production database to a workflow artifact.
+#
+# The catalogue is rebuildable by the scrapers; accounts, reviews, and
+# enrollments are not, and Neon's free-tier restore window is measured in
+# hours. GitHub keeps artifacts 90 days at no cost, which is 90 restore
+# points more than zero.
+#
+# Uses the same DATABASE_URL secret as scrape.yml; the -pooler strip makes it
+# work whether that secret holds the pooled or the direct endpoint (pg_dump
+# needs a real session, which PgBouncer's transaction mode does not provide).
+name: Back up the database
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      # ubuntu-latest ships a postgresql-client older than Neon's server
+      # major; pg_dump refuses to dump a server newer than itself, so install
+      # the current client from PGDG.
+      - name: Install current pg_dump
+        run: |
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-client-18
+      - name: Dump
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          DIRECT_URL="${DATABASE_URL/-pooler/}"
+          /usr/lib/postgresql/18/bin/pg_dump "$DIRECT_URL" \
+            --no-owner --no-privileges \
+            | gzip > "ubcflow-$(date -u +%Y%m%d).sql.gz"
+          ls -lh ubcflow-*.sql.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: ubcflow-*.sql.gz
+          retention-days: 90

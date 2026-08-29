@@ -300,8 +300,16 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                   Official UBC Calendar requirements ↗
                 </a>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-text-secondary">Credits per term</span>
+              {/*
+                The label sits ABOVE the pills on a phone rather than beside
+                them. Inline, four credit pills at touch size plus "Use summer"
+                could not fit one line, and the row wrapped wherever it ran out
+                — orphaning the selected value onto a line of its own, away
+                from the three it belongs with.
+              */}
+              <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:items-center">
+                <span className="whitespace-nowrap text-xs text-text-secondary">Credits per term</span>
+                <div className="flex flex-wrap items-center gap-1.5">
                 {loads.map((n) => (
                   <Link
                     key={n}
@@ -325,6 +333,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                 >
                   Use summer
                 </Link>
+                </div>
               </div>
             </div>
 
@@ -334,8 +343,9 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
               programs run more than one sequence, so this is a list of them
               rather than an on/off switch.
             */}
-            <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
-              <span className="text-xs text-text-secondary">Co-op</span>
+            <div className="mt-3 flex flex-col items-start gap-1.5 border-t border-border pt-3 sm:flex-row sm:items-center">
+              <span className="whitespace-nowrap text-xs text-text-secondary">Co-op</span>
+              <div className="flex flex-wrap items-center gap-1.5">
               <Link
                 href={href({ coop: '' })}
                 className={`rounded-pill border px-3 py-1 text-xs font-medium max-sm:inline-flex max-sm:min-h-11 max-sm:items-center max-sm:px-4 ${
@@ -359,6 +369,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                   {p.label}
                 </Link>
               ))}
+              </div>
             </div>
             {coop && (
               <p className="mt-2 rounded-card border border-info-border bg-info-surface px-3 py-2 text-xs text-info">

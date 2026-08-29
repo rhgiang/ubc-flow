@@ -6,6 +6,8 @@ export type ImportResult = {
   matched: number;
   unmatched: string[];
   excluded: number;
+  /** Credits earned elsewhere, stored but never an enrollment. */
+  transfers: number;
   /** Enrollments dropped because they are no longer in the re-uploaded term. */
   removed: number;
   boundStudent: boolean;
@@ -92,9 +94,11 @@ export async function importExport(
         courseId: course.id,
         termId: term.id,
         source: 'workday',
+        grade: row.grade,
+        status: row.status,
         verified: true,
       },
-      update: { verified: true },
+      update: { grade: row.grade, status: row.status, verified: true },
     });
     matched += 1;
     const kept = keptByTerm.get(term.id) ?? new Set<string>();
@@ -136,10 +140,40 @@ export async function importExport(
     await db.enrollmentMeeting.deleteMany({ where: stale });
   }
 
+  /**
+   * Transfer credit, stored rather than discarded.
+   *
+   * Deliberately NOT an Enrollment: it has no UBC term, often no UBC course,
+   * and keeping it out of that table is what stops it reaching the review
+   * gate. A degree plan still counts it, because UBC granted the credit.
+   *
+   * Replaced wholesale per import, the same way meetings are — a record that
+   * no longer lists a transfer should not leave a stale row behind.
+   */
+  await db.transferCredit.deleteMany({ where: { userId } });
+  for (const t of parsed.transfers) {
+    const course =
+      t.subjectCode && t.courseNumber
+        ? await db.course.findFirst({
+            where: {
+              number: t.courseNumber,
+              subject: { code: t.subjectCode, campus: t.campus ?? 'V' },
+            },
+            select: { id: true },
+          })
+        : null;
+    await db.transferCredit.upsert({
+      where: { userId_raw: { userId, raw: t.raw } },
+      create: { userId, raw: t.raw, courseId: course?.id ?? null, credits: t.credits },
+      update: { courseId: course?.id ?? null, credits: t.credits },
+    });
+  }
+
   return {
     matched,
     unmatched,
     excluded: parsed.excluded.length,
+    transfers: parsed.transfers.length,
     removed,
     boundStudent,
   };

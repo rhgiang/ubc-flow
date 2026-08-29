@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
 import { useUnsavedChanges } from '@/components/UnsavedChangesContext';
@@ -21,7 +21,8 @@ type NavItem = { href: string; label: string } | { href?: undefined; label: stri
 export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
   const pathname = usePathname();
   const { open } = useAuthOverlay();
-  const { confirmLeave } = useUnsavedChanges();
+  const router = useRouter();
+  const { isDirty, askToLeave } = useUnsavedChanges();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const items: NavItem[] = [
@@ -61,7 +62,13 @@ export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
         className={className}
         aria-current={active ? 'page' : undefined}
         onNavigate={(e) => {
-          if (!confirmLeave()) e.preventDefault();
+          // The dialog cannot answer in time to let this navigation through,
+          // so it is always cancelled and re-issued on confirm. onNavigate
+          // fires only for client-side navigations, so a cmd-click opening a
+          // new tab never reaches here and is left alone.
+          if (!isDirty()) return;
+          e.preventDefault();
+          askToLeave(() => router.push(item.href));
         }}
         // Client-side navigation keeps this component mounted, so the menu
         // would still be hanging open over the page it just moved to.

@@ -11,6 +11,7 @@ import SwapOverlay from '@/components/schedule/SwapOverlay';
 import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
 import UnsavedWorkDialog from '@/components/schedule/UnsavedWorkDialog';
 import ConflictSaveDialog from '@/components/schedule/ConflictSaveDialog';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
 import { findConflicts, conflictKey } from '@/schedule/conflicts';
 import { diffSections, swapSection } from '@/schedule/buffer';
@@ -72,6 +73,7 @@ export default function ScheduleBuilder({
   const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
   const [infoDocked, setInfoDocked] = useState(false);
   const [swapping, setSwapping] = useState<SectionHit | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [dismissedConflicts, setDismissedConflicts] = useState<string | null>(null);
   // Non-null while the conflict gate is open, holding the options `trySave`
   // was originally called with — replayed verbatim (plus conflictsConfirmed)
@@ -294,10 +296,7 @@ export default function ScheduleBuilder({
 
   async function onDelete() {
     if (!scheduleId) return;
-    const confirmed = window.confirm(
-      `Delete "${name}"? This cannot be undone.`,
-    );
-    if (!confirmed) return;
+    setConfirmingDelete(false);
     const result = await deleteSchedule(scheduleId);
     if (!result.ok) {
       setError(result.error);
@@ -423,7 +422,7 @@ export default function ScheduleBuilder({
             dirty={dirty}
             saved={savedBaseline !== null && !dirty}
             onSave={() => void trySave()}
-            onDelete={onDelete}
+            onDelete={() => setConfirmingDelete(true)}
             onImport={() => setImportOpen(true)}
           />
 
@@ -536,6 +535,17 @@ export default function ScheduleBuilder({
         plannableTermIds={terms.map((t) => t.id)}
         onImport={applyImport}
       />
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        title={`Delete "${name}"?`}
+        confirmLabel="Delete schedule"
+        destructive
+        onConfirm={onDelete}
+        onCancel={() => setConfirmingDelete(false)}
+      >
+        This cannot be undone.
+      </ConfirmDialog>
 
       {pendingNav && (
         <UnsavedWorkDialog

@@ -418,7 +418,7 @@ export function ReviewForm({
           })}
         </section>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
         <div className="flex items-center gap-3">
           <button

@@ -241,7 +241,7 @@ export default function WorkdayImportOverlay({
 
         {error && (
           <>
-            <p className="mt-4 text-sm text-danger">{error}</p>
+            <p role="alert" className="mt-4 text-sm text-danger">{error}</p>
             <SkippedRowsList items={errorSkipped} />
           </>
         )}

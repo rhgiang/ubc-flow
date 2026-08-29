@@ -135,7 +135,7 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
           >
             Delete Schedule
           </button>
-          {error && <p className="px-4 pb-2 text-xs text-danger">{error}</p>}
+          {error && <p role="alert" className="px-4 pb-2 text-xs text-danger">{error}</p>}
         </div>
       )}
 
@@ -152,7 +152,7 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
             autoFocus
             className="w-full rounded-input border border-border bg-background px-2 py-1.5 text-sm text-foreground focus:border-foreground focus:outline-none"
           />
-          {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+          {error && <p role="alert" className="mt-1 text-xs text-danger">{error}</p>}
           <div className="mt-2 flex justify-end gap-2">
             <button
               type="button"

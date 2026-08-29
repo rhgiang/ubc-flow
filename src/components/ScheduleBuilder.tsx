@@ -342,7 +342,7 @@ export default function ScheduleBuilder({
   return (
     <main className="flex min-h-0 w-full flex-1 flex-col">
       {error && (
-        <p className="border-b border-border px-6 py-2 text-sm text-danger">{error}</p>
+        <p role="alert" className="border-b border-border px-6 py-2 text-sm text-danger">{error}</p>
       )}
 
       {offeredTerm && (

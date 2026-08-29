@@ -86,7 +86,7 @@ export default function ResetPasswordForm({ token }: { token: string | null }) {
             autoComplete="new-password"
             className={inputClass}
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           <button
             disabled={busy}
             className="w-full rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50"

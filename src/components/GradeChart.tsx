@@ -25,8 +25,16 @@ export default function GradeChart({
   const max = Math.max(1, ...GRADE_BUCKETS.map((b) => distribution[b] ?? 0));
   const total = GRADE_BUCKETS.reduce((sum, b) => sum + (distribution[b] ?? 0), 0);
 
+  // The visual bars carry their values only in hover tooltips, which have no
+  // keyboard or screen-reader path. One plain sentence carries the same data.
+  const summary = GRADE_BUCKETS.map((b) => {
+    const v = distribution[b] ?? null;
+    return v === null ? `${b}: withheld` : `${b}: ${v}`;
+  }).join(', ');
+
   return (
     <div>
+      <p className="sr-only">Grade distribution. {summary}.</p>
       {/* Bars and labels are separate rows: when a label wrapped inside the
           column, it stole height from the bar area, so a two-line label made
           its bar overflow. Splitting them fixes the baseline at any width. */}

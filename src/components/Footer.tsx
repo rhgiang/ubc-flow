@@ -41,8 +41,13 @@ export default function Footer() {
   const scrolled = useSyncExternalStore(subscribe, shown, () => false);
 
   return (
+    // inert alongside aria-hidden: hidden-from-screen-readers content whose
+    // links stay in the tab order is a WCAG failure - a keyboard user tabs
+    // into buttons a screen reader insists are not there. inert removes them
+    // from the tab order for exactly as long as they are invisible.
     <footer
       aria-hidden={!scrolled}
+      inert={!scrolled}
       className={`sky-footer relative z-10 pb-24 pt-12 text-center transition-all duration-300 ease-out motion-reduce:transition-none sm:pb-10 ${
         scrolled ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'
       }`}

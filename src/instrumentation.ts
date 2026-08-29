@@ -13,7 +13,22 @@ import { type Instrumentation } from 'next';
  * covers a failed render; this is the half that was missing, which is anyone
  * being able to find out afterwards that it happened.
  */
-export const onRequestError: Instrumentation.onRequestError = (err, request, context) => {
+/**
+ * Vercel's free tier keeps console logs for about an hour and log drains are
+ * a paid feature, so the JSON line below evaporates before anyone reads it.
+ * The durable sink is the Resend account the site already sends mail with:
+ * each error also lands in ALERT_EMAIL's inbox, at most one email per
+ * fifteen minutes per server instance so an error loop cannot burn the
+ * 100-a-day quota. Unset ALERT_EMAIL and only the console line happens.
+ *
+ * ponytail: per-instance cooldown, not a shared one - several warm lambdas
+ * can each send once per window. Acceptable noise at this traffic; a
+ * DB-backed cooldown is the upgrade if it ever isn't.
+ */
+const ALERT_COOLDOWN_MS = 15 * 60 * 1000;
+let lastAlertAt = 0;
+
+export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
   const message = err instanceof Error ? err.message : String(err);
   // The same digest app/error.tsx prints to the user as "Reference". It is the
   // only thing tying the screen they saw to the line below, so a support
@@ -33,4 +48,33 @@ export const onRequestError: Instrumentation.onRequestError = (err, request, con
       stack: err instanceof Error ? err.stack : undefined,
     }),
   );
+
+  const alertTo = process.env.ALERT_EMAIL;
+  if (!alertTo || process.env.NEXT_RUNTIME !== 'nodejs') return;
+  if (Date.now() - lastAlertAt < ALERT_COOLDOWN_MS) return;
+  lastAlertAt = Date.now();
+
+  try {
+    // Imported lazily: this file also loads in the edge runtime, where the
+    // Prisma client behind sendMail's module graph cannot exist.
+    const { sendMail } = await import('@/lib/mail');
+    await sendMail(
+      alertTo,
+      `ubcflow error: ${message.slice(0, 80)}`,
+      [
+        `Route: ${context.routeType} ${context.routePath}`,
+        `Path:  ${request.method} ${request.path}`,
+        digest ? `Reference shown to the user: ${digest}` : null,
+        '',
+        message,
+        '',
+        err instanceof Error ? err.stack : '',
+      ]
+        .filter((line) => line !== null)
+        .join('\n'),
+    );
+  } catch (mailErr) {
+    // The alert failing must never make the original error worse.
+    console.error('error alert failed:', mailErr);
+  }
 };

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
+import { CONTACT_EMAIL } from '@/lib/version';
 
 /**
  * Site footer: a frosted capsule of links floating on the sky — the nav bar's
@@ -56,6 +57,12 @@ export default function Footer() {
         <Link href="/terms" className="capsule-chip max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-4 py-2">
           Terms
         </Link>
+        <a
+          href={`mailto:${CONTACT_EMAIL}`}
+          className="capsule-chip max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-4 py-2"
+        >
+          Contact
+        </a>
         <a
           href="https://ubcgrades.com"
           target="_blank"

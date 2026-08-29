@@ -36,7 +36,7 @@ export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
   ];
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-2">
       {items.map((item) => {
         const active =
           item.href !== undefined &&

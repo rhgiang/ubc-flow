@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { effectiveRules, getProgram, selectable } from '@/guidance/registry';
+import { effectiveRules, fullLoadFor, getProgram } from '@/guidance/registry';
+import Landing from './Landing';
 import { loadCatalogue, loadOfferings, loadPrereqs, loadTerms } from '@/guidance/load';
 import { obligations, walk, type CourseSet, type Rule } from '@/guidance/rules';
 import { progress, outstanding, type Completion } from '@/guidance/progress';
@@ -22,7 +23,6 @@ export const revalidate = 300;
 // through to the default instead of silently meaning something else.
 type SP = { program?: string; credits?: string; summer?: string; coop?: string };
 
-const DEFAULT_PROGRAM = 'cpsc-major-bsc-2026w';
 
 /** Course pages are keyed the way /explore links them: "cpsc-310". */
 const courseHref = (code: string) => `/course/${code.toLowerCase().replace(' ', '-')}`;
@@ -79,29 +79,6 @@ function breakdown(rule: Rule): { label: string; detail: string }[] {
   return [];
 }
 
-/**
- * The credit load a program runs at, used when the student has not picked one.
- *
- * Fifteen credits is a standard term for a 120-credit degree — 30 a year, 120
- * over four years. Engineering is not that degree. A B.A.Sc. runs 148 to 158
- * credits, and at 15 a term it renders as a five-and-a-half-year plan when the
- * Calendar itself calls it four Winter Sessions at full credit load.
- *
- * Full engineering load is 22. Not the degree average, which is 19 to 20 and
- * leaves every program spilling into a ninth term: a year's courses cannot
- * start early, and the two terms inside a year are uneven. Chemical and
- * Biological's third year is 40 credits, but the Department splits it 19 and
- * 21, so sizing to the even half strands the remainder. All four B.A.Sc.
- * programs fit eight terms at 22 and none of them do at 21.
- *
- * Applied only to oversized degrees. A 120-credit program already fits at 15,
- * and pushing one past 21 breaks it — Statistics returns a three-term plan
- * with half the degree unplaced, which is a solver bug in its own right.
- */
-function defaultLoad(total: number): number {
-  return total > 130 ? 22 : Math.max(15, Math.ceil(total / 8));
-}
-
 const STATE_STYLE: Record<string, string> = {
   satisfied: 'border-brand bg-brand text-brand-foreground',
   partial: 'border-border bg-surface-muted text-foreground',
@@ -117,7 +94,12 @@ const STATE_STYLE: Record<string, string> = {
 
 export default async function GuidancePage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const program = getProgram(sp.program ?? DEFAULT_PROGRAM) ?? getProgram(DEFAULT_PROGRAM)!;
+  // No program named, or one that no longer exists: show the picker rather
+  // than falling back to a default. Quietly planning Computer Science for
+  // someone who asked for a program we dropped is the wrong kind of guess,
+  // and this returns before the catalogue, prereq and offerings queries.
+  const program = sp.program ? getProgram(sp.program) : null;
+  if (!program) return <Landing />;
   const rules = effectiveRules(program);
   const coop = getCoopPattern(sp.coop);
   // Co-op runs year-round — three of the four work terms in a standard
@@ -134,7 +116,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   const ids = catalogue.map((c) => c.id);
   const [prereqs, offerings] = await Promise.all([loadPrereqs(catalogue), loadOfferings(ids)]);
 
-  const fullLoad = defaultLoad(program.totalCredits);
+  const fullLoad = fullLoadFor(program);
   const load = Math.min(24, Math.max(3, Number(sp.credits) || fullLoad));
   // The offered loads always include the program's own, so it is selectable
   // and visibly current. Fixed pills of 12/15/18 left engineering showing
@@ -237,34 +219,32 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
-      <h1 className="sky-hero text-3xl font-semibold">Guidance</h1>
+      {/*
+        The picker is a page of its own now. It used to be twenty-six pills
+        wrapped across four lines here, above everything the page is actually
+        for — and switching from one carried the OLD program's credit load
+        with it, so arriving at a 155-credit B.A.Sc. from a 120-credit B.Sc.
+        planned it at 15 a term and drew a ten-term degree. A plain link back
+        cannot carry a load it should not.
+      */}
+      <Link
+        href="/guidance"
+        className="sky-hero inline-flex items-center gap-1.5 text-sm opacity-80 hover:opacity-100"
+      >
+        <span aria-hidden>&larr;</span> All programs
+      </Link>
+      <h1 className="sky-hero mt-2 text-3xl font-semibold">{program.name}</h1>
       <p className="sky-hero mt-2 max-w-2xl text-sm">
-        A term-by-term route through your degree, ordered so prerequisites come first and every
-        course is one UBC actually offers.
+        {program.degree} &middot; Faculty of {program.faculty} &middot; {program.totalCredits}{' '}
+        credits, ordered so prerequisites come first and every course is one UBC actually offers.
       </p>
-
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        {selectable.map((p) => (
-          <Link
-            key={p.code}
-            href={href({ program: p.code })}
-            className={`rounded-pill border px-4 py-2 text-sm font-medium ${
-              p.code === program.code
-                ? 'border-brand bg-brand text-brand-foreground'
-                : 'border-border text-foreground hover:bg-surface-muted'
-            }`}
-          >
-            {p.name}
-          </Link>
-        ))}
-      </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0">
           <div className="sky-panel p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold text-foreground">{program.name}</h2>
+                <h2 className="text-sm font-semibold text-foreground">Suggested route</h2>
                 {/*
                   Every rule here was transcribed by hand off one Calendar page,
                   and the Calendar is the authority whenever the two disagree.
@@ -278,7 +258,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                   rel="noreferrer"
                   className="text-xs text-brand-accent underline decoration-dotted underline-offset-2 hover:decoration-solid"
                 >
-                  {program.degree} · official UBC Calendar requirements ↗
+                  Official UBC Calendar requirements ↗
                 </a>
               </div>
               <div className="flex items-center gap-1.5">

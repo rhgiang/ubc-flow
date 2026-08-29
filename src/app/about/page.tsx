@@ -79,14 +79,12 @@ export default function AboutPage() {
               <p className="text-2xl font-semibold text-foreground">Ryan Giang</p>
               <p className="mt-1 text-base text-text-secondary">UBC Computer Science Student</p>
               <p className="mt-4 text-base leading-relaxed text-text-secondary">
-                Ryan is the developer behind UBC Flow. He likes building products that make tasks
-                easier, and pays close attention to accessibility, convenience, and user
-                experience.
+                Ryan is the developer behind UBC Flow. He enjoys building products that make
+                tasks easier, and values UX design.
               </p>
               <p className="mt-3 text-base leading-relaxed text-text-secondary">
-                He&apos;s especially interested in computer vision and robotics. When he&apos;s not
-                thinking about programming, you&apos;ll find him deep in sports, fitness, and
-                photography.
+                He&apos;s especially interested in computer vision and robotics. Outside of
+                programming, you&apos;ll find him deep in sports, fitness, and photography.
               </p>
               <p className="mt-4 flex flex-wrap gap-4 text-base">
                 <a

@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { parseCourseCode } from '@/lib/format';
+import { presentableDescription } from '@/scrape/parse-body';
 import { auth } from '@/lib/auth';
 import { canReview } from '@/lib/gate';
 import { aggregateCourseReviews } from '@/reviews/aggregate';
@@ -72,6 +73,10 @@ async function loadCourseData(subjectCode: string, number: string) {
     },
   });
   if (!course) return null;
+
+  // Tolerate the staged state (raw HTML with prereqs glued on) the enrichment
+  // pass normally removes - see presentableDescription.
+  course.description = presentableDescription(course.description);
 
   // Group lectures with lectures, labs with labs, etc. within each term.
   // Re-derives the term ordering too (not just activity), since a plain

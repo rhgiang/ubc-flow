@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { presentableDescription } from '@/scrape/parse-body';
 import { aggregateDistributions, type GradeSummary } from '@/grades/aggregate';
 import { aggregateInstructorReviews } from '@/reviews/aggregate';
 import type { SectionMeetingTime } from '@/lib/search';
@@ -216,7 +217,7 @@ export async function loadCourseDetail(
     courseId: course.id,
     code,
     title: course.title,
-    description: course.description,
+    description: presentableDescription(course.description),
     credits: course.credits,
     href: `/course/${code.toLowerCase().replace(/\s+/g, '-')}`,
     sections: sectionRows.map((s) => ({

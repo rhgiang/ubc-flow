@@ -348,7 +348,7 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
 
   if (seenStudents.size > 1) {
     throw new Error(
-      'Export contains more than one student — a legitimate export covers one student.',
+      'Export contains more than one student. A legitimate export covers one student.',
     );
   }
 

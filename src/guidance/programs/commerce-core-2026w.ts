@@ -26,7 +26,7 @@ const course = (id: string, code: string, year: number): Rule => ({
  */
 export const commerceCore2026W: Program = {
   code: 'commerce-core-2026w',
-  name: 'Bachelor of Commerce — core',
+  name: 'Bachelor of Commerce: core',
   degree: 'BCom',
   faculty: 'Commerce',
   catalogYear: '2026W',
@@ -129,7 +129,7 @@ export const commerceCore2026W: Program = {
       // Calendar, so these reserve the credits without naming courses.
       id: 'comm.humanities',
       kind: 'credits',
-      label: 'Humanities — 3 credits of the non-Commerce electives',
+      label: 'Humanities: 3 credits of the non-Commerce electives',
       n: 3,
       year: 1,
       from: { kind: 'codes', codes: [] },
@@ -140,7 +140,7 @@ export const commerceCore2026W: Program = {
     {
       id: 'comm.science',
       kind: 'credits',
-      label: 'Science or social science — 3 credits of the non-Commerce electives',
+      label: 'Science or social science: 3 credits of the non-Commerce electives',
       n: 3,
       year: 2,
       from: { kind: 'codes', codes: [] },
@@ -164,7 +164,7 @@ export const commerceCore2026W: Program = {
       label: 'How the 42 elective credits must be spent',
       detail:
         'At least 27 of the 42 must be non-Commerce, and 12 or more of those must be at ' +
-        'the 300 or 400 level. At least 15 of the 42 overall — Commerce or not — must be ' +
+        'the 300 or 400 level. At least 15 of the 42 overall, Commerce or not, must be ' +
         'at the 300 level or higher. Those figures shift with the option: Global Supply ' +
         'Chain and Logistics Management takes 39 elective credits with 12 upper-level, ' +
         'and Operations and Logistics takes 45 with 18.',

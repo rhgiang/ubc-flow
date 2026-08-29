@@ -41,7 +41,7 @@ export async function scrapeFaculties() {
   if (known > 0 && matched < known * MIN_RETAINED_FRACTION) {
     console.error(
       `ABORT: mapped ${matched} subject codes but the database holds ${known}. ` +
-        'Calendar markup likely changed — refusing to write.',
+        'Calendar markup likely changed. Refusing to write.',
     );
     return;
   }

@@ -51,7 +51,7 @@ function evaluate(rule: Rule, held: CourseRef[], claimed: Set<string>): RuleProg
         rule,
         state: hit ? 'satisfied' : 'outstanding',
         satisfiedBy: hit ? [hit] : [],
-        detail: hit ? rule.code : `${rule.code} — outstanding`,
+        detail: hit ? rule.code : `${rule.code}: outstanding`,
       };
     }
 

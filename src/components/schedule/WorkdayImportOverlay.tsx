@@ -32,7 +32,7 @@ function SkippedRowsList({ items }: { items: SkippedRow[] }) {
       <ul className="mt-1 space-y-0.5">
         {items.map((s) => (
           <li key={s.raw} className="text-xs text-text-secondary">
-            {s.raw} — {s.reason}
+            {s.raw} · {s.reason}
           </li>
         ))}
       </ul>
@@ -251,7 +251,7 @@ export default function WorkdayImportOverlay({
             {result.terms.length > 1 ? (
               <p className="mt-4 text-sm text-foreground">
                 That export covers <span className="font-medium">{result.terms.length} terms</span>.
-                A schedule holds one term — pick which to build now, and you can create the
+                A schedule holds one term. Pick which to build now, and you can create the
                 other right after you save.
               </p>
             ) : (

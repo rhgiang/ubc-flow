@@ -38,7 +38,7 @@ export const sociMajor2026W: Program = {
     {
       id: 'soci.lower',
       kind: 'group',
-      label: 'Lower-level requirements — 12 credits of SOCI at 100 and 200 level',
+      label: 'Lower-level requirements: 12 credits of SOCI at 100 and 200 level',
       sourceUrl: SOURCE,
       items: [
         // "At least 3 credits from SOCI_V 100, 101, or 102". SOCI 100 is a
@@ -119,7 +119,7 @@ export const sociMajor2026W: Program = {
     {
       id: 'soci.research-component',
       kind: 'note',
-      label: 'Research Component — met by the advanced research methods course',
+      label: 'Research Component: met by the advanced research methods course',
       detail:
         'The Faculty of Arts Research Component names SOCI 380, 381, 382, 383 and 449 for ' +
         'this major. The advanced research methods requirement above already draws from ' +

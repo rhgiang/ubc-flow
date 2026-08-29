@@ -256,7 +256,7 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
               href="/"
               className="mt-5 inline-block rounded-pill bg-brand px-5 py-2 text-sm font-medium text-brand-foreground"
             >
-              Done — start browsing →
+              Done. Start browsing →
             </Link>
           )}
         </section>

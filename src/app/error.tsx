@@ -21,7 +21,7 @@ export default function Error({
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-24 text-center">
       <h1 className="sky-hero text-3xl font-semibold tracking-tight">Something went wrong</h1>
       <p className="sky-hero mx-auto mt-3 max-w-md text-sm opacity-80">
-        This page didn&rsquo;t load. It&rsquo;s usually temporary — trying again often works.
+        This page didn&rsquo;t load. It&rsquo;s usually temporary, and trying again often works.
       </p>
 
       <div className="mt-8 flex flex-wrap justify-center gap-2">
@@ -50,7 +50,7 @@ export default function Error({
       {/*
         The digest, not the message. Production error messages are stripped by
         Next anyway, and the digest is the value that matches this failure to
-        a server log line — the only part that helps anyone.
+        a server log line, the only part that helps anyone.
       */}
       {error.digest && (
         <p className="sky-hero mt-6 font-mono text-xs opacity-50">Reference: {error.digest}</p>

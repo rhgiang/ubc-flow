@@ -17,7 +17,7 @@ export type ImportResult =
   | { ok: false; error: string; skipped?: SkippedRow[] };
 
 const REASON_TEXT: Record<string, string> = {
-  transfer_credit: 'Transfer credit — earned at another institution',
+  transfer_credit: 'Transfer credit, earned at another institution',
   unparseable_course: "Course code couldn't be read",
   no_term: 'No meeting dates, so the term is unknown',
 };
@@ -49,7 +49,7 @@ export async function parseWorkdayForSchedule(formData: FormData): Promise<Impor
       return {
         ok: false,
         error:
-          "That file has far more rows than a timetable export — it doesn't look like a View My Courses export.",
+          "That file has far more rows than a timetable export. It doesn't look like a View My Courses export.",
       };
     }
 

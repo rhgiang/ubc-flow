@@ -227,7 +227,7 @@ export default function ScheduleTabs({
             {groups.length === 0 ? (
               <p className="text-text-secondary">
                 {tab === 'upcoming'
-                  ? 'No upcoming saved schedules yet — create one above.'
+                  ? 'No upcoming saved schedules yet. Create one above.'
                   : 'No past saved schedules.'}
               </p>
             ) : (

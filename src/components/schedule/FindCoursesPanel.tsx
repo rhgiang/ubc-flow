@@ -74,7 +74,7 @@ export default function FindCoursesPanel({
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search by code or title — ex: CPSC 110"
+        placeholder="Search by code or title, ex: CPSC 110"
         aria-label="Search courses"
         className="w-full rounded-input border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-text-tertiary focus:border-foreground focus:outline-none"
       />

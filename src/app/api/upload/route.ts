@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     if (!parsed.studentNumber) {
       return NextResponse.json(
-        { error: "That file doesn't look like a Workday export — no student found." },
+        { error: "That file doesn't look like a Workday export: no student found." },
         { status: 400 },
       );
     }

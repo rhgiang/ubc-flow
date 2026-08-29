@@ -137,7 +137,7 @@ export default async function SchedulePage() {
       <div className="sky-panel mt-6 p-6 sm:p-8">
         {!userId && (
           <p className="mb-4 text-sm text-text-secondary">
-            Sign in to build or import a schedule — you can look around this page first.
+            Sign in to build or import a schedule. You can look around this page first.
           </p>
         )}
 

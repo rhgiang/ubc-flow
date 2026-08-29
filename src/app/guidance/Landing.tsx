@@ -32,7 +32,6 @@ const BLURB: Record<string, string> = {
  */
 export default function Landing() {
   const groups = byDegree();
-  const total = groups.reduce((n, g) => n + g.programs.length, 0);
 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-14">
@@ -43,7 +42,7 @@ export default function Landing() {
           course is one UBC actually offers.
         </p>
         <p className="sky-hero mt-2 text-sm opacity-75">
-          Pick a program to see its roadmap — {total} programs, 2026W requirements.
+          Pick a program to see its roadmap, on 2026W requirements.
         </p>
       </header>
 

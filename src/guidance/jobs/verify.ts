@@ -153,7 +153,7 @@ export async function verifyPrograms(): Promise<number> {
     if (sum !== program.totalCredits) {
       errors++;
       console.log(
-        `  ERROR   rules total ${sum} credits but the degree is ${program.totalCredits} — ` +
+        `  ERROR   rules total ${sum} credits but the degree is ${program.totalCredits}: ` +
           `${sum > program.totalCredits ? `${sum - program.totalCredits} over, likely double-counted` : `${program.totalCredits - sum} short`}`,
       );
     } else {
@@ -182,7 +182,7 @@ export async function verifyPrograms(): Promise<number> {
   }
 
   console.log(
-    `\n${errors === 0 ? 'PASS' : `FAIL — ${errors} error(s)`}. ` +
+    `\n${errors === 0 ? 'PASS' : `FAIL: ${errors} error(s)`}. ` +
       'Credit counts, choose-N numbers and rule grouping still need a human against the Calendar.',
   );
   return errors;

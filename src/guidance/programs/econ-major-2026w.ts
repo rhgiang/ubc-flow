@@ -136,7 +136,7 @@ export const econMajor2026W: Program = {
         'Economics course numbers reflect analytical sophistication rather than year ' +
         'level. Unassigned first-year transfer credit (ECON 1st) and anything taken ' +
         'Credit/D/Fail may not count toward the 42. A number of approved substitutes ' +
-        'exist for the statistics requirements — STAT 200 for ECON 325 among them — but ' +
+        'exist for the statistics requirements, STAT 200 for ECON 325 among them, but ' +
         'substituting outside ECON means taking a further ECON course to keep the total.',
       sourceUrl: SOURCE,
       confidence: 'stated',
@@ -156,7 +156,7 @@ export const econMajor2026W: Program = {
     {
       id: 'econ.research-component',
       kind: 'note',
-      label: 'Research Component — met by ECON 490',
+      label: 'Research Component: met by ECON 490',
       detail:
         'The Faculty of Arts Research Component names ECON 390, 490, 495 and 499 for this ' +
         'major. ECON 490 is already required above as the senior research seminar, so it ' +

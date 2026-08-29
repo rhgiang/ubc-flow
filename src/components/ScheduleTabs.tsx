@@ -83,26 +83,41 @@ function TermTable({ group, first }: { group: TermGroup; first: boolean }) {
             {group.rows.length} item{group.rows.length === 1 ? '' : 's'}
           </span>
         </div>
-        <table className="w-full table-fixed text-left">
-          <thead>
+        {/*
+          A phone is too narrow for three columns. At a third of ~340px the
+          name column ran "2026-27 Winter Term 2 (UBC-V)" down four lines while
+          the sections beside it were squeezed to ellipses — every cell losing
+          at once. Below sm: the table stops being a table and each row becomes
+          a card: name across the top, sections full width beneath it, actions
+          pinned to the corner. The headers go with it, since a stacked row has
+          nothing to head.
+        */}
+        <table className="w-full table-fixed text-left max-sm:block">
+          <thead className="max-sm:hidden">
             <tr className="border-b border-border text-xs text-text-tertiary">
               <th className="w-1/3 px-4 py-2 font-medium">Saved Schedule</th>
               <th className="px-4 py-2 font-medium">Course Sections</th>
-              <th className="w-10 px-4 py-2" />
+              {/* Sized for the actions button plus a gutter. The table is
+                  fixed-layout, so a column narrower than its contents does
+                  not grow to fit them, it lets them overflow. */}
+              <th className="w-16 px-2 py-2" />
             </tr>
           </thead>
-          <tbody>
+          <tbody className="max-sm:block">
             {group.rows.map((s) => (
-              <tr key={s.id} className="border-b border-border last:border-b-0">
-                <td className="px-4 py-3 align-top">
+              <tr
+                key={s.id}
+                className="border-b border-border last:border-b-0 max-sm:relative max-sm:block max-sm:px-4 max-sm:py-3"
+              >
+                <td className="px-4 py-3 align-top max-sm:block max-sm:px-0 max-sm:py-0 max-sm:pr-12">
                   <Link href={`/schedule/${s.id}`} className="font-medium text-brand-accent hover:underline">
                     {s.name}
                   </Link>
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className="px-4 py-3 align-top max-sm:block max-sm:px-0 max-sm:pb-0 max-sm:pt-2">
                   <SectionList sections={s.sections} />
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className="px-2 py-3 text-right align-middle max-sm:absolute max-sm:right-2 max-sm:top-2 max-sm:px-0 max-sm:py-0">
                   <ScheduleRowActions scheduleId={s.id} name={s.name} />
                 </td>
               </tr>

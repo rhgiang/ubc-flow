@@ -30,8 +30,16 @@ export default function PrivacyPage() {
             which reviews you&apos;ve marked helpful.
           </p>
           <p className="text-base leading-relaxed text-text-secondary">
-            Everything above is kept until you delete your account, which removes all of it. The
-            site runs on servers in the United States.
+            Separately from any account, every visit is counted by Google Analytics: the page you
+            landed on, the site that sent you, your browser and device, and roughly where you are.
+            The location is worked out from your IP address, which Google discards rather than
+            storing. This happens whether or not you are signed in, and it is not connected to your
+            account.
+
+            Everything above is kept until you delete your account, which removes all of it.
+            Deleting your account does not reach the analytics counts, since nothing there
+            identifies you in the first place. The site runs on servers in the United States, and
+            Google processes analytics data on its own.
           </p>
         </section>
 
@@ -40,15 +48,18 @@ export default function PrivacyPage() {
           <p className="text-base leading-relaxed text-text-secondary">
             Running the site: signing you in, confirming you&apos;re a UBC student, showing you
             your schedules and enrolled courses, letting you manage your own reviews, and syncing a
-            schedule to your calendar app if you ask for one. That&apos;s it.
+            schedule to your calendar app if you ask for one. Beyond that, only counting how the
+            site is used, so we know which parts are worth building on.
           </p>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-foreground">What we don&apos;t do</h2>
           <p className="text-base leading-relaxed text-text-secondary">
-            We don&apos;t sell your data, we don&apos;t run ads, and we don&apos;t use third-party
-            analytics or tracking scripts.
+            We don&apos;t sell your data and we don&apos;t run ads. We use Google Analytics to
+            see how many people use the site and which pages they reach. It doesn&apos;t know who
+            you are — it never receives your name, email or student number — and we don&apos;t use
+            it for advertising or share anything with it about your account.
           </p>
         </section>
 
@@ -73,7 +84,9 @@ export default function PrivacyPage() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-foreground">Cookies and local storage</h2>
           <p className="text-base leading-relaxed text-text-secondary">
-            The only cookie we set keeps you signed in. If you&apos;re signed in, your theme choice
+            One cookie keeps you signed in. Google Analytics sets its own, which hold a random
+            ID so it can tell a repeat visit from a new one; they carry nothing about you or your
+            account. If you&apos;re signed in, your theme choice
             is saved to your account too, so it follows you between devices. If you&apos;re signed
             out, it&apos;s kept in your browser&apos;s local storage and stays on that device.
           </p>

@@ -50,3 +50,15 @@ export function parseBody(html: string | null): {
 
   return { description, prereqText, coreqText };
 }
+
+/**
+ * A description safe to put in front of a student even when the scraper died
+ * between staging and enrichment (sections stages raw body HTML into
+ * Course.description; scrape:descriptions normally converts it - see the
+ * 2026-08-29 outage, where the quota killed the chain in between and every
+ * course page rendered literal <p> tags with prereq clauses glued on).
+ * A staged value is parsed on the fly; a clean one passes through untouched.
+ */
+export function presentableDescription(raw: string | null): string | null {
+  return raw !== null && raw.startsWith('<') ? parseBody(raw).description : raw;
+}

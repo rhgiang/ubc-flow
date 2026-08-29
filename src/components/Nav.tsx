@@ -9,11 +9,12 @@ export default async function Nav() {
 
   return (
     <NavShell>
-      {/* The bar spans the viewport; only its contents are held to the
-          content width, so the strip reads as part of the page frame rather
-          than a card floating on top of it. */}
+      {/* Bar and contents both span the viewport: the wordmark sits against
+          the left gutter and the links against the right, rather than being
+          pulled inward to the content column the pages below use. Only the
+          gutter keeps them off the glass. */}
       <nav className="nav-bar">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-2.5 sm:px-7 sm:py-3">
+        <div className="flex items-center justify-between px-5 py-2.5 sm:px-7 sm:py-3">
           <Link
             href="/"
             className="nav-logo flex items-center gap-2 text-lg text-foreground"

@@ -99,7 +99,7 @@ export default function DeleteAccountButton() {
                 type="button"
                 onClick={() => setOpen(false)}
                 disabled={busy}
-                className="rounded-pill px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
+                className="rounded-pill border border-border px-4 py-2 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100 disabled:opacity-50 disabled:hover:scale-100"
               >
                 Cancel
               </button>

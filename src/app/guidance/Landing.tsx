@@ -87,7 +87,7 @@ export default function Landing() {
         ))}
       </div>
 
-      <p className="sky-hero mt-8 text-xs opacity-70">
+      <p className="sky-hero mt-8 text-center text-xs opacity-70">
         Requirements are transcribed from the UBC Academic Calendar. A roadmap here is a planning
         aid, not an official degree audit.
       </p>

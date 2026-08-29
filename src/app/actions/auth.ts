@@ -5,6 +5,15 @@ import { hashPassword } from '@/lib/hash';
 import { createVerificationToken, sendMail } from '@/lib/mail';
 
 const MIN_PASSWORD = 10;
+
+/**
+ * A per-email cooldown would not help here: the quota-burning attack varies
+ * the email on every request, and each new account fires a real Resend send
+ * against a 100-a-day free tier. A global ceiling is blunt, but a day-old
+ * student site does not legitimately sign up faster than this, and the error
+ * says when to come back rather than pretending the address is bad.
+ */
+const MAX_SIGNUPS_PER_HOUR = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function registerUser(
@@ -22,6 +31,13 @@ export async function registerUser(
 
   const existing = await db.user.findUnique({ where: { email: normalized } });
   if (existing) return { ok: false, error: 'An account with that email already exists.' };
+
+  const recentSignups = await db.user.count({
+    where: { createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) } },
+  });
+  if (recentSignups >= MAX_SIGNUPS_PER_HOUR) {
+    return { ok: false, error: 'Too many new accounts right now. Try again in an hour.' };
+  }
 
   const user = await db.user.create({
     data: { email: normalized, passwordHash: await hashPassword(password) },

@@ -135,6 +135,11 @@ model User {
   createdAt     DateTime @default(now())
   studentIdHash String?   @unique
   verifiedAt    DateTime?
+  /// Consecutive failed password attempts since the last success. At the
+  /// threshold in authorize-credentials.ts the account locks briefly -
+  /// credential stuffing pays bcrypt cost 12 per guess otherwise unbounded.
+  failedLogins  Int      @default(0)
+  lockedUntil   DateTime?
   /// Chosen sky/theme mode, so it follows the account across devices.
   /// Null means never chosen — the app falls back to campus weather.
   themeMode     String?

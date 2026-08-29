@@ -840,3 +840,49 @@ a.capsule-chip:hover {
 :root[data-plain] a.capsule-chip:hover {
   background: var(--surface-muted);
 }
+
+/* ---------------------------------------------------------------------------
+ * Skeletons — the shape of the content, before the content.
+ *
+ * Route-level loading.tsx files use these. The App Router otherwise holds the
+ * PREVIOUS page on screen, fully painted and looking interactive, until the
+ * next one is ready; on a phone that reads as a tap the site ignored. A block
+ * in roughly the right place says "it's coming" without pretending to know
+ * what the answer is.
+ * ------------------------------------------------------------------------ */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-input, 8px);
+  background: var(--surface-muted);
+  /* Stops a screen reader announcing a wall of empty boxes. */
+  color: transparent;
+}
+
+/* The sweep is a moving highlight over the base, not a colour cycle — it
+   reads as "working" rather than "blinking". 1.6s is slow enough not to
+   nag on a page that shows several at once. */
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--foreground) 9%, transparent) 50%,
+    transparent 100%
+  );
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  100% { transform: translateX(100%); }
+}
+
+/* A still block still communicates "pending"; the motion is the part that
+   causes trouble, so only the motion goes. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+}

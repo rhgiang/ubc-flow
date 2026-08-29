@@ -232,9 +232,18 @@ export default function CourseInfoContent({
                         ))}
                       </ul>
                     )}
-                    {s.enrolCap !== null && (
-                      <p className="text-xs text-text-tertiary">
-                        {s.enrolTotal ?? 0} / {s.enrolCap} enrolled
+                    {s.status && (
+                      <p
+                        title="As of the last daily catalogue refresh"
+                        className={`text-xs ${
+                          s.status === 'Closed'
+                            ? 'text-danger'
+                            : s.status === 'Waitlist'
+                              ? 'text-info'
+                              : 'text-text-tertiary'
+                        }`}
+                      >
+                        {s.status === 'Closed' ? 'Full' : s.status}
                       </p>
                     )}
                   </div>

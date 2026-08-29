@@ -27,8 +27,8 @@ export default function AboutPage() {
             We want to know everything about your student experience, how brutal the course
             material actually is, whether a professor&apos;s lectures match the textbook, or that
             one professor you absolutely adored. All of the feedback you don&apos;t get in a course
-            description. Every review you leave makes course selection easier for the nearly 75,000
-            other UBC students.
+            description. Every review you leave makes course selection easier for the 60,000 other
+            UBC students.
           </p>
         </section>
 
@@ -53,23 +53,32 @@ export default function AboutPage() {
           </p>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-6">
           <h2 className="text-2xl font-semibold text-foreground">Founder</h2>
-          <div className="flex items-center gap-4">
-            {/* Placeholder until a real photo is uploaded. */}
-            <div
-              aria-hidden
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-surface-muted text-text-tertiary"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-8 w-8">
-                <circle cx="12" cy="8" r="3.5" />
-                <path d="M4.5 20c1.5-4 5-6 7.5-6s6 2 7.5 6" strokeLinecap="round" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-base font-medium text-foreground">Ryan Giang</p>
-              <p className="text-base text-text-secondary">UBC Computer Science Student</p>
-              <p className="mt-1.5 flex gap-3 text-sm">
+          {/*
+            Framed to match his GitHub avatar, which is this same photo: the
+            whole seated figure rather than a face crop. Cut from the original
+            at full width, so it carries 540px where the avatar endpoint serves
+            460. The round shape is CSS, so the file stays reusable if it ever
+            changes.
+
+            Much larger than the 64px placeholder it replaces — the section is
+            about a person, and at avatar size it read as a bullet point.
+          */}
+          <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:gap-8">
+            <img
+              src="/founder.webp"
+              alt="Ryan Giang"
+              width={540}
+              height={540}
+              loading="lazy"
+              decoding="async"
+              className="h-36 w-36 shrink-0 rounded-full object-cover sm:h-44 sm:w-44"
+            />
+            <div className="min-w-0">
+              <p className="text-2xl font-semibold text-foreground">Ryan Giang</p>
+              <p className="mt-1 text-base text-text-secondary">UBC Computer Science Student</p>
+              <p className="mt-4 flex flex-wrap gap-4 text-base">
                 <a
                   href="https://www.linkedin.com/in/ryanhgiang"
                   target="_blank"

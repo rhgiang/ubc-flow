@@ -302,6 +302,16 @@ model SavedSchedule {
   name     String
   sections ScheduleSection[]
   token    CalendarToken?
+  /**
+   * Read-only web sharing. Null means not shared, which is the default —
+   * sharing is something you turn on, never a side effect of saving.
+   *
+   * Deliberately NOT the CalendarToken: that one is subscribed inside someone
+   * else's calendar app, so revoking web sharing would silently break their
+   * feed. Separate tokens mean "stop showing this page" and "stop updating
+   * that subscription" are separate decisions.
+   */
+  shareToken String?          @unique
 
   @@index([userId])
 }

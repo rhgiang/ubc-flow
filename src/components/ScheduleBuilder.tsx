@@ -43,6 +43,7 @@ export default function ScheduleBuilder({
   initialName,
   initialTermId,
   initialSections,
+  shareToken = null,
   terms,
   schedules = [],
   openImport = false,
@@ -52,6 +53,8 @@ export default function ScheduleBuilder({
   initialName: string;
   initialTermId: string;
   initialSections: SectionHit[];
+  /** Existing share token for a saved schedule; null when not shared. */
+  shareToken?: string | null;
   terms: { id: string; name: string; year: number; session: string; termNumber: number | null }[];
   /** The student's other saved schedules, for the switcher beside the name. */
   schedules?: ScheduleOption[];
@@ -417,6 +420,7 @@ export default function ScheduleBuilder({
             scheduleId={scheduleId}
             schedules={schedules}
             onSwitchSchedule={(id) => requestNav(() => router.push(`/schedule/${id}`))}
+            shareToken={shareToken}
             canSave={contentSaveable}
             saving={saving}
             dirty={dirty}

@@ -94,3 +94,18 @@ describe('parseBody', () => {
     expect(r.prereqText).toContain('UFOR 316');
   });
 });
+
+import { presentableDescription } from '../src/scrape/parse-body';
+
+describe('presentableDescription', () => {
+  it('parses a staged raw-HTML body down to the description alone', () => {
+    const staged = '<p>Intro to things. Prerequisite: MATH 100. Corequisite: PHYS 101.</p>';
+    expect(presentableDescription(staged)).toBe('Intro to things.');
+  });
+  it('passes an already-clean description through untouched', () => {
+    expect(presentableDescription('Plain text stays.')).toBe('Plain text stays.');
+  });
+  it('handles null', () => {
+    expect(presentableDescription(null)).toBeNull();
+  });
+});

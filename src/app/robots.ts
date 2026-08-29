@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       // Per-user or transactional pages: nothing for a search engine here,
       // and /verify and /reset are token-bearing URLs that should never be
       // crawled from a leaked link.
-      disallow: ['/schedule', '/onboarding', '/api/', '/verify', '/reset', '/login', '/signup'],
+      disallow: ['/schedule', '/onboarding', '/api/', '/verify', '/reset', '/login', '/signup', '/explore?*'],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

@@ -75,12 +75,15 @@ function ScoreGroup({
   descriptions,
   value,
   onChange,
+  missing = false,
 }: {
   label: string;
   hint: string;
   descriptions: readonly string[];
   value: number | null;
   onChange: (v: number) => void;
+  /** Submitted without an answer — only ever true after a failed submit. */
+  missing?: boolean;
 }) {
   // Hovering describes a number before you commit to it; the chosen one takes
   // over the moment the pointer leaves.
@@ -89,7 +92,9 @@ function ScoreGroup({
 
   return (
     <div>
-      <p className="text-sm font-medium text-foreground">{label}</p>
+      <p className={`text-sm font-medium ${missing ? 'text-danger' : 'text-foreground'}`}>
+        {label}
+      </p>
       <div className="mt-2 flex gap-2" onMouseLeave={() => setHovered(null)}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button
@@ -104,7 +109,9 @@ function ScoreGroup({
             className={`h-9 w-9 rounded-lg border text-sm transition-transform duration-150 ease-out hover:scale-110 active:scale-100 ${
               value !== null && n <= value
                 ? 'border-brand bg-brand text-brand-foreground'
-                : 'border-border text-foreground'
+                : missing
+                  ? 'border-danger-border text-foreground'
+                  : 'border-border text-foreground'
             }`}
           >
             {n}
@@ -113,8 +120,14 @@ function ScoreGroup({
       </div>
       {/* Fixed height: the line changes on hover, and a jumping form is worse
           than a blank line. */}
-      <p className="mt-2 min-h-[1.25rem] text-xs text-text-secondary">
-        {shown === null ? hint : `${shown} · ${descriptions[shown - 1]}`}
+      <p
+        className={`mt-2 min-h-[1.25rem] text-xs ${missing ? 'text-danger' : 'text-text-secondary'}`}
+      >
+        {missing && shown === null
+          ? 'Pick a number to submit your review.'
+          : shown === null
+            ? hint
+            : `${shown} · ${descriptions[shown - 1]}`}
       </p>
     </div>
   );
@@ -124,14 +137,19 @@ function LikedToggle({
   label,
   value,
   onChange,
+  missing = false,
 }: {
   label: string;
   value: boolean | null;
   onChange: (v: boolean) => void;
+  /** Submitted without an answer — only ever true after a failed submit. */
+  missing?: boolean;
 }) {
   return (
     <div>
-      <p className="text-sm font-medium text-foreground">{label}</p>
+      <p className={`text-sm font-medium ${missing ? 'text-danger' : 'text-foreground'}`}>
+        {label}
+      </p>
       <div className="mt-2 flex gap-2">
         <button
           type="button"
@@ -139,7 +157,9 @@ function LikedToggle({
           className={`rounded-lg border px-4 py-1.5 text-sm transition-transform duration-150 ease-out hover:scale-[1.03] active:scale-100 ${
             value === true
               ? 'border-brand bg-brand text-brand-foreground'
-              : 'border-border text-foreground'
+              : missing
+                ? 'border-danger-border text-foreground'
+                : 'border-border text-foreground'
           }`}
         >
           Yes
@@ -150,12 +170,17 @@ function LikedToggle({
           className={`rounded-lg border px-4 py-1.5 text-sm transition-transform duration-150 ease-out hover:scale-[1.03] active:scale-100 ${
             value === false
               ? 'border-brand bg-brand text-brand-foreground'
-              : 'border-border text-foreground'
+              : missing
+                ? 'border-danger-border text-foreground'
+                : 'border-border text-foreground'
           }`}
         >
           No
         </button>
       </div>
+      {missing && (
+        <p className="mt-2 text-xs text-danger">Answer this to submit your review.</p>
+      )}
     </div>
   );
 }
@@ -209,6 +234,14 @@ export function ReviewForm({
   );
 
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Which of the three course answers were left blank on a submit attempt.
+   *
+   * Empty until someone actually tries to submit — the fields are not marked
+   * required up front, so warning about them before they have been asked for
+   * would be scolding a form nobody has filled in yet.
+   */
+  const [missing, setMissing] = useState<Set<'liked' | 'useful' | 'difficulty'>>(new Set());
   const [busy, setBusy] = useState(false);
 
   // Compared as one serialised blob rather than field by field: the
@@ -257,6 +290,24 @@ export function ReviewForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    // The three that carry the course's rating. Comments, workload and the
+    // whole instructor section are genuinely optional; these are what a
+    // review IS, and a review missing them cannot be aggregated.
+    const blank = new Set<'liked' | 'useful' | 'difficulty'>();
+    if (liked === null) blank.add('liked');
+    if (useful === null) blank.add('useful');
+    if (difficulty === null) blank.add('difficulty');
+    if (blank.size > 0) {
+      setMissing(blank);
+      setError(null); // a server error from a previous try no longer applies
+      // Take them to the first one rather than leaving them to hunt for the
+      // red text, which may be off screen on a phone.
+      document.getElementById('course-answers')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    setMissing(new Set());
     setBusy(true);
     setError(null);
 
@@ -298,6 +349,16 @@ export function ReviewForm({
     }
   }
 
+  /** Drop a field's warning as soon as it is answered. */
+  function clearMissing(field: 'liked' | 'useful' | 'difficulty') {
+    setMissing((prev) => {
+      if (!prev.has(field)) return prev;
+      const next = new Set(prev);
+      next.delete(field);
+      return next;
+    });
+  }
+
   async function onDelete() {
     setBusy(true);
     setError(null);
@@ -326,29 +387,46 @@ export function ReviewForm({
       </div>
 
       <form onSubmit={onSubmit} className="sky-panel mt-6 space-y-8 p-6 sm:p-8">
-        <section className="space-y-7">
+        <section id="course-answers" className="space-y-7">
           <h2 className="text-lg font-semibold">Course</h2>
-          <LikedToggle label="Did you enjoy the course?" value={liked} onChange={setLiked} />
+          <LikedToggle
+            label="Did you enjoy the course?"
+            value={liked}
+            onChange={(v) => {
+              setLiked(v);
+              clearMissing('liked');
+            }}
+            missing={missing.has('liked')}
+          />
           <ScoreGroup
             label="Usefulness"
             hint="How much did you actually get out of it?"
             descriptions={SCALE_DESCRIPTIONS.useful}
             value={useful}
-            onChange={setUseful}
+            onChange={(v) => {
+              setUseful(v);
+              clearMissing('useful');
+            }}
+            missing={missing.has('useful')}
           />
           <ScoreGroup
             label="Difficulty"
             hint="How hard was it to do well?"
             descriptions={SCALE_DESCRIPTIONS.difficulty}
             value={difficulty}
-            onChange={setDifficulty}
+            onChange={(v) => {
+              setDifficulty(v);
+              clearMissing('difficulty');
+            }}
+            missing={missing.has('difficulty')}
           />
           <div>
             <label
               className="block text-sm font-medium text-foreground"
               htmlFor="workloadHours"
             >
-              Workload (hours/week)
+              Workload (hours/week){' '}
+              <span className="font-normal text-text-tertiary">· optional</span>
             </label>
             <p className="text-xs text-text-secondary">
               Roughly how long the readings, assignments and studying took each week.
@@ -365,7 +443,7 @@ export function ReviewForm({
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground" htmlFor="courseText">
-              Comments
+              Comments <span className="font-normal text-text-tertiary">· optional</span>
             </label>
             <p className="text-xs text-text-secondary">
               What would you tell someone deciding whether to take it?
@@ -381,7 +459,12 @@ export function ReviewForm({
         </section>
 
         <section className="space-y-4 border-t border-border pt-8">
-          <h2 className="text-lg font-semibold">Instructors</h2>
+          <h2 className="text-lg font-semibold">
+            Instructors <span className="text-sm font-normal text-text-tertiary">· optional</span>
+          </h2>
+          <p className="text-sm text-text-secondary">
+            Rate anyone who taught you. Skip the ones who didn&rsquo;t.
+          </p>
           {instructors.length === 0 && (
             <p className="text-sm text-text-tertiary">No instructors on record for this course.</p>
           )}
@@ -420,13 +503,22 @@ export function ReviewForm({
                       value={state.engaging}
                       onChange={(v) => updateInstructor(i.id, { engaging: v })}
                     />
-                    <textarea
-                      value={state.text}
-                      onChange={(e) => updateInstructor(i.id, { text: e.target.value })}
-                      rows={3}
-                      placeholder="Comments about this instructor"
-                      className="w-full rounded-input border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-foreground focus:outline-none"
-                    />
+                    <div>
+                      <label
+                        className="block text-sm font-medium text-foreground"
+                        htmlFor={`instructor-text-${i.id}`}
+                      >
+                        Comments <span className="font-normal text-text-tertiary">· optional</span>
+                      </label>
+                      <textarea
+                        id={`instructor-text-${i.id}`}
+                        value={state.text}
+                        onChange={(e) => updateInstructor(i.id, { text: e.target.value })}
+                        rows={3}
+                        placeholder="What were they like to learn from?"
+                        className="mt-2 w-full rounded-input border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-foreground focus:outline-none"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -434,6 +526,13 @@ export function ReviewForm({
           })}
         </section>
 
+        {missing.size > 0 && (
+          <p role="alert" className="text-sm text-danger">
+            {missing.size === 1
+              ? 'One answer is still blank — it is highlighted above.'
+              : `${missing.size} answers are still blank — they are highlighted above.`}
+          </p>
+        )}
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
         <div className="flex items-center gap-3">

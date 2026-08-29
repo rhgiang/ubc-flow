@@ -450,7 +450,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                 href={hrefWith(sp, { page: String(page - 1) })}
                 aria-disabled={page <= 1}
                 className={`rounded-pill border border-border px-5 py-2.5 ${
-                  page <= 1 ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
+                  page <= 1 ? 'pointer-events-none opacity-60' : 'hover:bg-surface-muted'
                 }`}
               >
                 Previous
@@ -462,7 +462,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                 href={hrefWith(sp, { page: String(page + 1) })}
                 aria-disabled={page >= totalPages}
                 className={`rounded-pill border border-border px-5 py-2.5 ${
-                  page >= totalPages ? 'pointer-events-none opacity-40' : 'hover:bg-surface-muted'
+                  page >= totalPages ? 'pointer-events-none opacity-60' : 'hover:bg-surface-muted'
                 }`}
               >
                 Next

@@ -17,9 +17,18 @@ export default async function Home() {
           fits its column on a phone. */}
       <div
         className={`mx-auto w-full max-w-2xl text-center [zoom:1.1] ${
-          // With no login panel below it, the block reads as sitting too low
-          // dead-centered in the viewport — nudge it up well above center.
-          session?.user ? 'mb-48' : ''
+          // Signed in, the search field IS the page, so it should sit dead
+          // centre — but centring the BLOCK does not centre the field, because
+          // the four-line heading above it carries the block's midpoint well
+          // above the field's. Left alone the field lands at 61% down the
+          // viewport; a bottom margin lifts the block until the FIELD is
+          // centred, measured at 424px against a 422px midline. The previous
+          // mb-48 overshot the other way, to 39%.
+          //
+          // Signed out, the sign-in panel hangs below and the stack is taller
+          // than a phone screen, so nothing can be centred; without a nudge
+          // the heading starts hard against the nav bar. Push it down instead.
+          session?.user ? 'mb-40' : 'mt-12 sm:mt-6'
         }`}
       >
         <h1 className="sky-hero text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">

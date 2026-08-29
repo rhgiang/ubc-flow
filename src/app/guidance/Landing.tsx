@@ -52,7 +52,12 @@ export default function Landing() {
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <h2 className="text-lg font-semibold text-foreground">{group.degree}</h2>
               <span className="text-sm text-text-secondary">Faculty of {group.faculty}</span>
-              <span className="ml-auto text-xs text-text-secondary">
+              {/* Right-aligned only where the row fits on one line. On a
+                  phone "BASc · Faculty of Applied Science" already fills it,
+                  so ml-auto stranded the count alone on the right of a second
+                  line, reading as though it belonged to nothing. Inline, it
+                  wraps as part of the same sentence. */}
+              <span className="text-xs text-text-secondary sm:ml-auto">
                 {group.programs.length} program{group.programs.length === 1 ? '' : 's'}
               </span>
             </div>

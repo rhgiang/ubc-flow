@@ -122,13 +122,15 @@ export async function loadTerms(years = 5): Promise<PlanTerm[]> {
  * What a student has actually done, for checking a degree against a person
  * rather than against a plan.
  *
- * This is the seam real grades will plug into. Right now `Enrollment` carries
- * no grade and no status — it is `{userId, courseId, termId, source,
- * verified}`, a record of REGISTRATION — so completion has to be inferred from
- * whether the term has finished, and that inference is wrong for anyone who
- * failed or withdrew. The page says so rather than hiding it; when
- * `Enrollment.grade` and `.status` land, this function changes and nothing
- * above it does.
+ * Read from `Enrollment.status`, which the Workday import now derives from the
+ * grade Workday reports. A row whose grade we could not read stays
+ * "registered" and counts as in progress rather than done — guessing in the
+ * permissive direction is how a student gets told they finished a course they
+ * have to retake.
+ *
+ * Rows written before the grade column existed default to "registered" too,
+ * so an old import understates progress until it is uploaded again. That is
+ * the safe direction, and the page says which rows are which.
  *
  * Transfer credit is reported as `transfer` rather than `passed`. UBC grants
  * the credit, so a roadmap that ignored it would overstate what a student
@@ -140,11 +142,11 @@ export async function loadCompletions(userId: string): Promise<Completion[]> {
   const [rows, terms] = await Promise.all([
     db.enrollment.findMany({
       where: { userId },
-      select: { courseId: true, termId: true, source: true },
+      select: { courseId: true, termId: true, source: true, status: true },
     }),
-    // year/session/termNumber, not the dates: Term.startDate and endDate are
-    // null for every row the scraper writes, so a date comparison here would
-    // silently mark every course as still in progress and count nothing.
+    // Kept for the in-progress distinction only. Term.startDate and endDate
+    // are null on every row the scraper writes, so this uses the ordinal
+    // comparison isUpcomingTerm already does rather than a date.
     db.term.findMany({ select: { id: true, year: true, session: true, termNumber: true } }),
   ]);
   if (rows.length === 0) return [];
@@ -171,12 +173,19 @@ export async function loadCompletions(userId: string): Promise<Completion[]> {
     if (seen.has(c.id)) continue;
     seen.add(c.id);
 
+    // The import's own verdict, not a guess. "registered" means the grade was
+    // blank or unreadable, which is in progress if the term is still running
+    // and unknown if it is not — either way not something to count as done.
     const status: Completion['status'] =
-      row.source === 'transfer'
+      row.status === 'transfer'
         ? 'transfer'
-        : finished.get(row.termId)
+        : row.status === 'passed'
           ? 'passed'
-          : 'in_progress';
+          : row.status === 'failed'
+            ? 'failed'
+            : finished.get(row.termId)
+              ? 'in_progress'
+              : 'in_progress';
 
     out.push({
       status,
@@ -186,6 +195,41 @@ export async function loadCompletions(userId: string): Promise<Completion[]> {
         number: c.number,
         code: `${c.subject.code} ${c.number}`,
         credits: c.credits ?? 3,
+        faculty: c.subject.faculty,
+      },
+    });
+  }
+
+  // Credit earned elsewhere counts toward the degree. Only the rows that
+  // resolved to a real UBC course can satisfy a NAMED requirement; unassigned
+  // credit like "PHYS_V 1ST" is real credit against the total but matches no
+  // rule, so it is left out here rather than attached to a course it is not.
+  const transfers = await db.transferCredit.findMany({
+    where: { userId, courseId: { not: null } },
+    select: {
+      credits: true,
+      course: {
+        select: {
+          id: true,
+          number: true,
+          credits: true,
+          subject: { select: { code: true, faculty: true } },
+        },
+      },
+    },
+  });
+  for (const t of transfers) {
+    const c = t.course;
+    if (!c || !c.subject.code || seen.has(c.id)) continue;
+    seen.add(c.id);
+    out.push({
+      status: 'transfer',
+      course: {
+        id: c.id,
+        subject: c.subject.code,
+        number: c.number,
+        code: `${c.subject.code} ${c.number}`,
+        credits: t.credits ?? c.credits ?? 3,
         faculty: c.subject.faculty,
       },
     });

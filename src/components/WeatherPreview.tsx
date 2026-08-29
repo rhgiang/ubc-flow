@@ -70,7 +70,10 @@ export default function WeatherPreview() {
   // highlighted buttons, so there is no second copy of the state to drift.
   function show(cond: Condition, isNight: boolean) {
     const r = document.documentElement;
-    r.setAttribute('data-mode', 'weather');
+    // No data-mode write: that attribute is the theme menu's record of what
+    // the user picked, and stamping 'weather' here made the menu highlight
+    // "Campus weather" after any preview click. The sky only reads
+    // data-weather/data-theme.
     r.setAttribute('data-theme', isNight ? 'dark' : 'light');
     r.setAttribute('data-weather', cond);
   }

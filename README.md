@@ -1,10 +1,123 @@
-# ubc-flow
+# UBC Flow
 
-## Scraping
+Course planning for UBC students — course and professor reviews, real grade
+distributions, a schedule builder that syncs to your calendar, and term-by-term
+degree guidance.
 
-Course data comes from three jobs that must run in order: `scrape:catalog` (terms and
-subjects) → `scrape:sections` (courses, sections, meeting times, instructors) →
-`scrape:descriptions` (cleans up raw HTML descriptions left by `scrape:sections` into
-plain text plus prerequisite/corequisite text). Run `npm run scrape:all` to run all
-three in the correct order; it's also what the scheduled GitHub Actions workflow
-(`.github/workflows/scrape.yml`) runs daily to keep data fresh.
+Live at **[www.ubcflow.com](https://www.ubcflow.com)**. Next.js 16 (App Router)
+on Postgres via Prisma, deployed on Vercel.
+
+---
+
+## Running it locally
+
+Postgres is expected on **port 5442**, database `ubcflow`.
+
+```bash
+cp .env.example .env      # then fill it in — see below
+npm install               # postinstall runs `prisma generate`
+npx prisma migrate deploy  # 20 migrations
+npm run dev
+```
+
+### Environment
+
+| Key | What it's for |
+| --- | --- |
+| `DATABASE_URL` | Postgres connection string |
+| `AUTH_SECRET` | NextAuth session signing — `openssl rand -hex 32` |
+| `SERVER_SECRET` | Server-side token signing |
+| `NEXTAUTH_URL` | **Public origin.** Verification and password-reset emails are built from it; leave it unset in production and every link points at the recipient's own machine |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth. Redirect URI is `<origin>/api/auth/callback/google` |
+| `RESEND_API_KEY` / `MAIL_FROM` | Transactional email |
+
+### After pulling schema changes
+
+`npx prisma generate`. This is not optional and the failure is confusing: a
+dev server started *before* the client was regenerated keeps the old one in
+memory, and every signed-in page 500s with `Unknown field 'status'` or
+similar. Turbopack hot-reloads your source, not a binary in `node_modules` —
+**restart the dev server too.**
+
+---
+
+## Data pipeline
+
+Three scrapers that must run **in order**, because each depends on rows the
+previous one wrote:
+
+```
+scrape:catalog        terms and subjects
+  └─ scrape:sections  courses, sections, meeting times, instructors
+       └─ scrape:descriptions   raw HTML → plain text + prereq/coreq text
+            └─ enrich:prereqs   parses that text into the prereq graph
+```
+
+`npm run scrape:all` runs the chain correctly. It is also what
+`.github/workflows/scrape.yml` runs daily. Running them out of order does not
+error — it silently writes against missing foreign rows.
+
+Separate, run manually:
+
+- `ingest:grades` / `ingest:historical-grades` — UBC PAIR distributions
+- `scrape:faculties` — populates `Subject.faculty`, which breadth rules depend on
+- `guidance:verify` — checks every guidance rule resolves to a real course
+
+---
+
+## Architecture notes
+
+**`src/guidance/`** is the degree-requirements engine. Program requirements are
+**checked-in TypeScript files** (`src/guidance/programs/*.ts`), not database
+rows — a requirement change should arrive as a reviewable diff, not a silent
+update, and this data is hand-transcribed from the UBC Calendar. Programs
+compose via `extends`, so faculty-wide rules (Science core, Arts core) are
+written once and inherited. `progress.ts` and `solver.ts` are pure functions,
+which is where the tests concentrate.
+
+**`src/scrape/`, `src/grades/`, `src/prereqs/`** are batch jobs, each with a
+`jobs/*.run.ts` entry point. They talk to the DB directly and are not part of
+the request path.
+
+**`src/instrumentation.ts`** reports every server error — actions, route
+handlers, RSC renders — from one place via `onRequestError`. The logged
+`digest` is the same value `app/error.tsx` shows the user as "Reference", so a
+support question maps to a log line.
+
+---
+
+## Gotchas
+
+- **`npm run lint` reports 7 errors.** They pre-date this README (6 ×
+  `set-state-in-effect` in the schedule components, 1 × `prefer-const` in
+  `solver.ts`). They are not new — don't assume your change caused them.
+- **404s return HTTP 200.** Adding `loading.tsx` made those routes stream, and
+  a streamed response can't change its status after headers are sent. Next
+  marks the page `noindex` automatically, so search is unaffected. This is
+  documented Next behaviour, not a bug — but 404s won't show in analytics.
+- **`ubcflow.com` 308-redirects to `www.ubcflow.com`.** Check the `www` host,
+  or curl with `-L`.
+- **Vercel's deployment list is newest-first, not yours-first.** When verifying
+  a deploy, match on the commit SHA — otherwise you can watch someone else's
+  build succeed and think you shipped.
+
+---
+
+## Testing
+
+```bash
+npm test          # vitest, 49 files / 499 tests
+npm run test:watch
+```
+
+The engine tests need no database — `progress.ts` and `solver.ts` are pure.
+The solver's invariant is the one that matters: **a plan never violates a
+prerequisite and never places a course in a term it isn't offered.**
+
+---
+
+## Licence
+
+None. All rights reserved — this repository is private and the guidance data in
+`src/guidance/programs/` is hand-transcribed original work. See the discussion
+before making it public.

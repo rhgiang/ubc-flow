@@ -27,7 +27,55 @@ export type EnrollmentRow = {
   /** The section's own Start/End Date columns, which span every meeting block. */
   sectionStartDate: string | null;
   sectionEndDate: string | null;
+  /**
+   * Workday's Grade cell, verbatim — a percentage, a letter, "CR", "TR".
+   * Read here since the parser was written, but only to detect transfer
+   * credit; the value itself was thrown away, so nothing downstream could
+   * tell a pass from a fail.
+   */
+  grade: string | null;
+  /** What this row means for a degree, rather than for a timetable. */
+  status: 'registered' | 'passed' | 'failed';
 };
+
+/**
+ * Credit earned elsewhere, reported separately because it is not an
+ * enrollment.
+ *
+ * A transfer row has no UBC term and often no UBC course — "PHYS_V 1ST" is
+ * unassigned first-year credit in a subject. It used to be discarded, which
+ * overstated what a student still owed; it is now returned for the importer
+ * to store, and deliberately kept out of EnrollmentRow so it can never reach
+ * the review gate.
+ */
+export type TransferRow = {
+  raw: string;
+  subjectCode: string | null;
+  courseNumber: string | null;
+  campus: string | null;
+  credits: number | null;
+};
+
+/**
+ * What a Workday grade says about completion.
+ *
+ * Kept deliberately narrow. A percentage below 50 is a fail at UBC and a
+ * letter F is a fail; "CR" is credit granted. Anything else — a blank cell, a
+ * standing like "IP" or "W", a grading basis we do not know — stays
+ * "registered", because guessing in the permissive direction is how a student
+ * gets told they finished a course they have to retake.
+ */
+export function statusFromGrade(grade: string | null): 'registered' | 'passed' | 'failed' {
+  const g = (grade ?? '').trim().toUpperCase();
+  if (!g) return 'registered';
+  if (g === 'CR' || g === 'P' || g === 'PASS') return 'passed';
+  if (g === 'F' || g === 'FAIL' || g === 'D/F') return 'failed';
+  const pct = Number(g.replace('%', ''));
+  if (Number.isFinite(pct)) return pct >= 50 ? 'passed' : 'failed';
+  // A letter grade: anything from A+ to D is a pass at UBC.
+  if (/^[ABCD][+-]?$/.test(g)) return 'passed';
+  return 'registered';
+}
 
 export type ExcludedRow = {
   raw: string;
@@ -37,6 +85,7 @@ export type ExcludedRow = {
 export type ParsedExport = {
   studentNumber: string | null;
   rows: EnrollmentRow[];
+  transfers: TransferRow[];
   excluded: ExcludedRow[];
   /** Header rows found after the table we parsed — structures we don't handle yet. */
   unparsedTables: string[];
@@ -174,11 +223,12 @@ function isTableHeaderRow(row: string[]): boolean {
 
 export function parseWorkdayExport(grid: string[][]): ParsedExport {
   const rows: EnrollmentRow[] = [];
+  const transfers: TransferRow[] = [];
   const excluded: ExcludedRow[] = [];
   const seenStudents = new Set<string>();
 
   const hIdx = headerIndex(grid);
-  if (hIdx === -1) return { studentNumber: null, rows, excluded, unparsedTables: [] };
+  if (hIdx === -1) return { studentNumber: null, rows, transfers, excluded, unparsedTables: [] };
 
   // The current table's data ends at the next row that looks like a header for
   // a further table (spec §8) — a senior student's export can hold more than
@@ -222,12 +272,29 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
     const listing = courseCol === undefined ? '' : (row[courseCol] ?? '');
     if (!listing) continue;
 
-    // Transfer credit was earned at another institution — it must never grant
-    // review rights for UBC's version of the course (spec 7B).
+    // Transfer credit was earned at another institution. It is now KEPT — a
+    // degree plan that ignores it overstates what a student still owes — and
+    // carried as status 'transfer' so the review gate can refuse it while
+    // guidance counts it. It must never grant review rights for UBC's version
+    // of the course (spec 7B), which import enforces by leaving these rows
+    // unverified.
     const grade = gradeCol === undefined ? '' : (row[gradeCol] ?? '');
     const origin = originCol === undefined ? '' : (row[originCol] ?? '');
     if (grade.trim().toUpperCase() === 'TR' || origin.trim()) {
-      excluded.push({ raw: listing, reason: 'transfer_credit' });
+      // Captured BEFORE the course-code and term checks, both of which a
+      // transfer row fails by nature: "PHYS_V 1ST" is not a course code and
+      // no UBC term granted the credit. Excluding it here was the old
+      // behaviour and it understated a transfer student's progress.
+      const parsed = parseUbcCourseCode(listing.split(' - ')[0]?.trim() ?? '');
+      const rawCredits = cell(row, creditsCol);
+      const n = rawCredits === null ? null : Number(rawCredits);
+      transfers.push({
+        raw: listing.trim(),
+        subjectCode: parsed?.subjectCode ?? null,
+        courseNumber: parsed?.number ?? null,
+        campus: parsed?.campus ?? null,
+        credits: Number.isFinite(n) ? n : null,
+      });
       continue;
     }
 
@@ -271,6 +338,8 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
       instructor: cell(row, instructorCol),
       sectionStartDate,
       sectionEndDate: cell(row, endDateCol),
+      grade: grade.trim() || null,
+      status: statusFromGrade(grade),
       termYear: term.year,
       termSession: term.session,
       termNumber: term.termNumber,
@@ -292,5 +361,5 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
     .filter((r) => isTableHeaderRow(r))
     .map((r) => r.filter(Boolean).join(' | '));
 
-  return { studentNumber: [...seenStudents][0] ?? null, rows, excluded, unparsedTables };
+  return { studentNumber: [...seenStudents][0] ?? null, rows, transfers, excluded, unparsedTables };
 }

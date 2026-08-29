@@ -200,19 +200,38 @@ describe('parseWorkdayExport — current courses fixture', () => {
 });
 
 describe('parseWorkdayExport — academic record fixture', () => {
-  it('excludes every transfer-credit row from enrollment', async () => {
+  it('never turns transfer credit into an enrollment', async () => {
     const grid = await readWorkbookGrid(readFileSync('tests/fixtures/workday-record.xlsx'));
     const r = parseWorkdayExport(grid);
 
     // The sample record is entirely transfer credit from another institution.
-    expect(r.excluded.length).toBeGreaterThan(5);
+    // Keeping it out of `rows` is the safety property: the review gate reads
+    // enrollments, so a course taken elsewhere can never earn review rights
+    // for UBC's version of it.
     expect(r.rows).toHaveLength(0);
   });
 
-  it('reports why each row was excluded', async () => {
+  it('keeps transfer credit instead of discarding it', async () => {
     const grid = await readWorkbookGrid(readFileSync('tests/fixtures/workday-record.xlsx'));
     const r = parseWorkdayExport(grid);
-    for (const e of r.excluded) expect(e.reason).toBe('transfer_credit');
+
+    // It used to be dropped, which understated a transfer student's progress
+    // — UBC granted the credit, so a degree plan that ignores it overstates
+    // what they still owe.
+    expect(r.transfers.length).toBeGreaterThan(5);
+    for (const t of r.transfers) expect(t.raw).toBeTruthy();
+  });
+
+  it('carries unassigned transfer credit, which is not a course at all', async () => {
+    const grid = await readWorkbookGrid(readFileSync('tests/fixtures/workday-record.xlsx'));
+    const r = parseWorkdayExport(grid);
+
+    // "PHYS_V 1ST" is first-year credit in a subject rather than a specific
+    // course. It counts toward a degree total but resolves to no course, which
+    // is why TransferCredit.courseId is nullable.
+    const unassigned = r.transfers.filter((t) => t.courseNumber === null);
+    expect(unassigned.length).toBeGreaterThan(0);
+    expect(unassigned.every((t) => t.raw.includes('1ST'))).toBe(true);
   });
 
   it('still reads the student number from a record export', async () => {

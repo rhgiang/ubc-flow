@@ -43,6 +43,7 @@ model Course {
   updatedAt   DateTime @updatedAt
   sections    Section[]
   gradeDistributions GradeDistribution[]
+  transferCredits    TransferCredit[]
   historicalGrades       CourseHistoricalGrades?
   historicalGradesByTerm CourseHistoricalGradesByTerm[]
   prereqEdgesFrom        CoursePrereqEdge[] @relation("PrereqEdgeFrom")
@@ -136,6 +137,7 @@ model User {
   schedules SavedSchedule[]
   enrollmentCalendarTokens EnrollmentCalendarToken[]
   reviewVotes ReviewVote[]
+  transferCredits TransferCredit[]
 }
 
 model Enrollment {
@@ -146,6 +148,23 @@ model Enrollment {
   termId   String
   source   String
   verified Boolean @default(false)
+  /**
+   * The grade as Workday reported it — a percentage, a letter, "CR", "TR".
+   * Kept verbatim rather than normalised, because the meanings differ by
+   * grading basis and the raw value is what a student recognises.
+   */
+  grade    String?
+  /**
+   * What this row means for a degree: "registered" (in progress or unknown),
+   * "passed", "failed", or "transfer".
+   *
+   * Registration alone never implied completion, but with no grade column
+   * there was nothing better to go on, so guidance inferred "passed" from the
+   * term having finished — and told anyone who failed or withdrew that they
+   * were done. Defaults to "registered" so existing rows keep their old,
+   * honest meaning instead of being silently promoted.
+   */
+  status   String  @default("registered")
 
   @@unique([userId, courseId, termId])
 }
@@ -158,6 +177,34 @@ model Enrollment {
  * term)'s rows wholesale rather than merging, since a dropped/changed
  * section should not leave a stale meeting behind.
  */
+/**
+ * Credit earned at another institution.
+ *
+ * It cannot live in Enrollment, which is keyed on a UBC term: transfer credit
+ * has no term, and often no course either — a Workday record lists rows like
+ * "PHYS_V 1ST", unassigned first-year credit in a subject rather than a
+ * specific course. Those still count toward a degree's credit total, so
+ * `courseId` is optional and `raw` always holds what Workday actually said.
+ *
+ * Stored, counted toward degree progress, and never a basis for reviewing
+ * UBC's version of the course — the review gate reads Enrollment, which these
+ * rows are deliberately not part of.
+ */
+model TransferCredit {
+  id       String  @id @default(cuid())
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /** Set when the listing resolves to a real UBC course; null for unassigned credit. */
+  courseId String?
+  course   Course? @relation(fields: [courseId], references: [id])
+  /** The Course Listing cell verbatim, e.g. "PHYS_V 1ST - PHYS_V1ST". */
+  raw      String
+  credits  Float?
+
+  @@unique([userId, raw])
+  @@index([userId])
+}
+
 model EnrollmentMeeting {
   id          String   @id @default(cuid())
   userId      String
@@ -363,12 +410,22 @@ model CoursePrereqEdge {
   @@index([requiredCourseId])
 }
 
+/// One table for every emailed single-use link, discriminated by `purpose`.
+///
+/// The discriminator is a security control, not bookkeeping. Without it a
+/// signup verification link — 24 hours long, and printed to the server console
+/// by the current mail transport — could be pasted into /reset and used to set
+/// a new password on that account. Every consumer must pass the purpose it
+/// expects; see consumeToken in src/lib/mail.ts.
 model VerificationToken {
   id        String   @id @default(cuid())
   token     String   @unique
   userId    String
+  /// "verify" (email confirmation) or "reset" (password reset).
+  purpose   String   @default("verify")
   expiresAt DateTime
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([userId, purpose])
 }

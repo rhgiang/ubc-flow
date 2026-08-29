@@ -47,20 +47,20 @@ export default function Footer() {
       }`}
     >
       <nav className="sky-capsule mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-1 p-1.5 text-[14px] font-medium">
-        <Link href="/about" className="capsule-chip px-4 py-2">
+        <Link href="/about" className="capsule-chip max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-4 py-2">
           About
         </Link>
-        <Link href="/privacy" className="capsule-chip px-4 py-2">
+        <Link href="/privacy" className="capsule-chip max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-4 py-2">
           Privacy
         </Link>
-        <Link href="/terms" className="capsule-chip px-4 py-2">
+        <Link href="/terms" className="capsule-chip max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-4 py-2">
           Terms
         </Link>
         <a
           href="https://ubcgrades.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="capsule-chip whitespace-nowrap px-4 py-2"
+          className="capsule-chip max-sm:inline-flex max-sm:min-h-11 max-sm:items-center whitespace-nowrap px-4 py-2"
         >
           Grade data: UBC PAIR
         </a>

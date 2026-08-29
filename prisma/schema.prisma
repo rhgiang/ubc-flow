@@ -363,12 +363,22 @@ model CoursePrereqEdge {
   @@index([requiredCourseId])
 }
 
+/// One table for every emailed single-use link, discriminated by `purpose`.
+///
+/// The discriminator is a security control, not bookkeeping. Without it a
+/// signup verification link — 24 hours long, and printed to the server console
+/// by the current mail transport — could be pasted into /reset and used to set
+/// a new password on that account. Every consumer must pass the purpose it
+/// expects; see consumeToken in src/lib/mail.ts.
 model VerificationToken {
   id        String   @id @default(cuid())
   token     String   @unique
   userId    String
+  /// "verify" (email confirmation) or "reset" (password reset).
+  purpose   String   @default("verify")
   expiresAt DateTime
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([userId, purpose])
 }

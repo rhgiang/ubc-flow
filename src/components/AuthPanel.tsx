@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { registerUser } from '@/app/actions/auth';
+import { requestPasswordReset } from '@/app/actions/password-reset';
 
-type Mode = 'login' | 'signup';
+type Mode = 'login' | 'signup' | 'forgot';
 
 // One panel, two modes, switched entirely with local state — never a
 // navigation. Used inline on the homepage, inside the global overlay
@@ -25,8 +26,15 @@ export default function AuthPanel({
 }) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const router = useRouter();
+
+  function go(next: Mode) {
+    setError(null);
+    setSent(false);
+    setMode(next);
+  }
 
   async function onLoginSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -83,6 +91,17 @@ export default function AuthPanel({
     router.push('/onboarding');
   }
 
+  async function onForgotSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    const form = new FormData(e.currentTarget);
+    await requestPasswordReset(String(form.get('email')));
+    setBusy(false);
+    // Always the same acknowledgement. The action deliberately does not tell us
+    // whether that address has an account, so neither can this.
+    setSent(true);
+  }
+
   const inputClass =
     'w-full rounded-input border border-border bg-background/60 px-4 py-2.5 text-sm text-foreground placeholder:text-text-tertiary focus:border-foreground focus:outline-none';
 
@@ -92,7 +111,7 @@ export default function AuthPanel({
     >
       <div className="flex items-center justify-between">
         <p className="text-lg font-semibold text-foreground">
-          {mode === 'login' ? 'Log In' : 'Sign Up'}
+          {mode === 'login' ? 'Log In' : mode === 'signup' ? 'Sign Up' : 'Reset Password'}
         </p>
         {onClose && (
           <button
@@ -108,7 +127,27 @@ export default function AuthPanel({
         )}
       </div>
 
-      {mode === 'login' ? (
+      {mode === 'forgot' ? (
+        sent ? (
+          <p className="mt-4 text-sm text-text-secondary">
+            If an account exists for that address, a reset link is on its way. It works once and
+            expires in an hour.
+          </p>
+        ) : (
+          <form key="forgot" onSubmit={onForgotSubmit} className="mt-4 space-y-3">
+            <p className="text-sm text-text-secondary">
+              Enter your email and we&rsquo;ll send a link to set a new password.
+            </p>
+            <input name="email" type="email" required placeholder="Email" className={inputClass} />
+            <button
+              disabled={busy}
+              className="w-full rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50"
+            >
+              {busy ? 'Sending…' : 'Send reset link'}
+            </button>
+          </form>
+        )
+      ) : mode === 'login' ? (
         <form key="login" onSubmit={onLoginSubmit} className="mt-4 space-y-3">
           <input name="email" type="email" required placeholder="Email" className={inputClass} />
           <input
@@ -124,6 +163,13 @@ export default function AuthPanel({
             className="w-full rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50"
           >
             {busy ? 'Logging in…' : 'Log In'}
+          </button>
+          <button
+            type="button"
+            onClick={() => go('forgot')}
+            className="block w-full text-center text-sm text-text-secondary hover:text-foreground hover:underline"
+          >
+            Forgot password?
           </button>
         </form>
       ) : (
@@ -180,15 +226,20 @@ export default function AuthPanel({
       </button>
 
       <p className="mt-4 text-center text-sm text-text-secondary">
-        {mode === 'login' ? (
+        {mode === 'forgot' ? (
+          <button
+            type="button"
+            onClick={() => go('login')}
+            className="inline-block font-medium text-brand-accent transition-transform duration-150 ease-out hover:scale-105 hover:underline active:scale-100"
+          >
+            Back to log in
+          </button>
+        ) : mode === 'login' ? (
           <>
             New to UBC Flow?{' '}
             <button
               type="button"
-              onClick={() => {
-                setError(null);
-                setMode('signup');
-              }}
+              onClick={() => go('signup')}
               className="inline-block font-medium text-brand-accent transition-transform duration-150 ease-out hover:scale-105 hover:underline active:scale-100"
             >
               Sign up
@@ -199,10 +250,7 @@ export default function AuthPanel({
             Already have an account?{' '}
             <button
               type="button"
-              onClick={() => {
-                setError(null);
-                setMode('login');
-              }}
+              onClick={() => go('login')}
               className="inline-block font-medium text-brand-accent transition-transform duration-150 ease-out hover:scale-105 hover:underline active:scale-100"
             >
               Log in

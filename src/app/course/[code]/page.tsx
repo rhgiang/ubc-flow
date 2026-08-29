@@ -157,7 +157,7 @@ async function loadCourseData(subjectCode: string, number: string) {
 }
 
 const getCoursePageData = unstable_cache(loadCourseData, ['course-page'], {
-  revalidate: 3600,
+  revalidate: 86400,
   tags: ['catalogue'],
 });
 

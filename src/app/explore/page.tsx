@@ -66,11 +66,11 @@ const DEGREE_FACULTIES: [string, string][] = [
  * pages, so review writes refresh the ratings columns here too.
  */
 const cachedListCourses = unstable_cache(listCourses, ['explore-courses'], {
-  revalidate: 3600,
+  revalidate: 86400,
   tags: ['catalogue'],
 });
 const cachedListProfessors = unstable_cache(listProfessors, ['explore-professors'], {
-  revalidate: 3600,
+  revalidate: 86400,
   tags: ['catalogue'],
 });
 const getExploreHeader = unstable_cache(
@@ -82,7 +82,7 @@ const getExploreHeader = unstable_cache(
       db.instructor.count({ where: { campus: 'V' } }),
     ]),
   ['explore-header'],
-  { revalidate: 3600, tags: ['catalogue'] },
+  { revalidate: 86400, tags: ['catalogue'] },
 );
 
 export default async function ExplorePage({ searchParams }: { searchParams: Promise<SP> }) {

@@ -80,7 +80,7 @@ async function loadProfessorData(slug: string) {
 }
 
 const getProfessorData = unstable_cache(loadProfessorData, ['professor-page'], {
-  revalidate: 3600,
+  revalidate: 86400,
   tags: ['catalogue'],
 });
 

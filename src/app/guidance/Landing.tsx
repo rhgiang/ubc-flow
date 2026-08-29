@@ -42,7 +42,7 @@ export default function Landing() {
           course is one UBC actually offers.
         </p>
         <p className="sky-hero mt-2 text-sm opacity-75">
-          Pick a program to see its roadmap, on 2026W requirements.
+          Pick a program to see its roadmap, built from 2026W requirements.
         </p>
       </header>
 

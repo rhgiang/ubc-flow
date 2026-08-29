@@ -171,10 +171,39 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
     rules,
   );
 
+  /**
+   * Credits the plan reserves as SLOTS, per rule.
+   *
+   * A slot is not a course, so it never reached progress() and every rule that
+   * plans as one reported nothing. "Electives 0 of 18 credits" sat beside a
+   * plan reserving exactly 18 for it, and "12 credits of Arts" read as
+   * untouched while the route carried all twelve. Both are plan-side
+   * requirements the plan genuinely covers.
+   */
+  const slotted = new Map<string, number>();
+  for (const t of plan.terms) {
+    for (const pl of t.placements) {
+      if (pl.kind !== 'slot') continue;
+      for (const id of pl.forRules) slotted.set(id, (slotted.get(id) ?? 0) + pl.credits);
+    }
+  }
+  /** A checklist row with its slot credits folded in. */
+  const withSlots = (p: (typeof checklist)[number]) => {
+    const extra = slotted.get(p.rule.id) ?? 0;
+    if (extra === 0 || p.rule.kind !== 'credits') return p;
+    const needed = p.credits?.needed ?? p.rule.n;
+    const earned = Math.min(needed, (p.credits?.earned ?? 0) + extra);
+    return {
+      ...p,
+      state: earned >= needed ? ('satisfied' as const) : ('partial' as const),
+      detail: `${earned} of ${needed} credits`,
+    };
+  };
+
   const totalRules = obligations(rules).filter((r) => r.kind !== 'note').length;
   // A note carries no completion state, so it belongs in its own list rather
   // than among rules a student can actually finish.
-  const trackable = checklist.filter((p) => p.rule.kind !== 'note');
+  const trackable = checklist.filter((p) => p.rule.kind !== 'note').map(withSlots);
   const degreeRules = checklist.filter((p) => p.rule.kind === 'note');
   // Work terms hold no coursework, so the solver never returns them. Merge
   // them back in by calendar order — a plan that silently skipped them would

@@ -121,15 +121,39 @@ export default async function OnboardingPage() {
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
 
-  const [user, enrollments, meetings, terms] = await Promise.all([
-    db.user.findUnique({ where: { id: userId }, select: { verifiedAt: true } }),
-    db.enrollment.findMany({ where: { userId } }),
-    db.enrollmentMeeting.findMany({ where: { userId } }),
-    db.term.findMany({
-      where: { campus: "V" },
-      orderBy: [{ year: "desc" }, { termNumber: "desc" }],
-    }),
-  ]);
+  const [user, enrollments, meetings, terms, transferCredits] =
+    await Promise.all([
+      db.user.findUnique({
+        where: { id: userId },
+        select: { verifiedAt: true },
+      }),
+      db.enrollment.findMany({ where: { userId } }),
+      db.enrollmentMeeting.findMany({ where: { userId } }),
+      db.term.findMany({
+        where: { campus: "V" },
+        orderBy: [{ year: "desc" }, { termNumber: "desc" }],
+      }),
+      // Transfer credit is not an enrolment — it has no UBC term and often no
+      // UBC course — so it appears in neither of the lists above. Uploading an
+      // academic record stored ten rows and showed the student nothing.
+      db.transferCredit.findMany({
+        where: { userId },
+        orderBy: { raw: "asc" },
+        select: {
+          id: true,
+          raw: true,
+          credits: true,
+          course: {
+            select: {
+              number: true,
+              title: true,
+              credits: true,
+              subject: { select: { code: true } },
+            },
+          },
+        },
+      }),
+    ]);
 
   /**
    * Whether this account's courses predate the grade columns.
@@ -265,6 +289,60 @@ export default async function OnboardingPage() {
                 ))
               )}
             </section>
+
+            {transferCredits.length > 0 && (
+              <section className="mt-6">
+                <h2 className="text-xl font-semibold text-foreground">
+                  Transfer credit
+                </h2>
+                <p className="mt-1 text-sm text-text-secondary">
+                  Earned at another institution. It counts toward your degree in{" "}
+                  <Link href="/guidance" className="underline">
+                    Guidance
+                  </Link>
+                  , but doesn&apos;t unlock UBC reviews for these courses.
+                </p>
+                <ul className="mt-3 space-y-1.5">
+                  {transferCredits.map((t) => (
+                    <li
+                      key={t.id}
+                      className="flex flex-wrap items-baseline gap-x-2 rounded-card border border-border px-3 py-2 text-sm"
+                    >
+                      {t.course ? (
+                        <>
+                          <span className="font-medium text-foreground">
+                            {t.course.subject.code} {t.course.number}
+                          </span>
+                          <span className="text-text-secondary">
+                            {t.course.title}
+                          </span>
+                        </>
+                      ) : (
+                        // Unassigned credit — "PHYS_V 1ST" is first-year credit
+                        // in a subject rather than a course, so there is no
+                        // title to show and nothing to link to.
+                        <span className="font-medium text-foreground">
+                          {t.raw}
+                        </span>
+                      )}
+                      {/*
+                        Falls back on zero as well as null. Workday left
+                        APSC 160's Credits cell empty and it rendered as
+                        "0 credits" — but a transfer row exists because credit
+                        was granted, so an empty cell is missing data rather
+                        than a grant of nothing. Same reasoning as the guidance
+                        total, which would otherwise disagree with this list.
+                      */}
+                      {t.credits || t.course?.credits ? (
+                        <span className="ml-auto text-xs text-text-tertiary">
+                          {t.credits || t.course?.credits} credits
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             <div className="mt-8 border-t border-border pt-6">
               {staleImport && (

@@ -1,6 +1,7 @@
 import 'server-only';
 import { db } from '@/lib/db';
 import type { CourseRef } from '@/guidance/rules';
+import type { Completion } from '@/guidance/progress';
 import { type PlanTerm, tightenNotes } from '@/guidance/solver';
 import type { Requirement } from '@/prereqs/parse';
 import { isUpcomingTerm, compareTerms } from '@/schedule/terms';
@@ -115,4 +116,79 @@ export async function loadTerms(years = 5): Promise<PlanTerm[]> {
     );
   }
   return [...real, ...projected];
+}
+
+/**
+ * What a student has actually done, for checking a degree against a person
+ * rather than against a plan.
+ *
+ * This is the seam real grades will plug into. Right now `Enrollment` carries
+ * no grade and no status — it is `{userId, courseId, termId, source,
+ * verified}`, a record of REGISTRATION — so completion has to be inferred from
+ * whether the term has finished, and that inference is wrong for anyone who
+ * failed or withdrew. The page says so rather than hiding it; when
+ * `Enrollment.grade` and `.status` land, this function changes and nothing
+ * above it does.
+ *
+ * Transfer credit is reported as `transfer` rather than `passed`. UBC grants
+ * the credit, so a roadmap that ignored it would overstate what a student
+ * still owes — but it is earned elsewhere and must never confer review rights
+ * for UBC's version of the course, which `canReview` enforces separately on
+ * `verified`.
+ */
+export async function loadCompletions(userId: string): Promise<Completion[]> {
+  const [rows, terms] = await Promise.all([
+    db.enrollment.findMany({
+      where: { userId },
+      select: { courseId: true, termId: true, source: true },
+    }),
+    // year/session/termNumber, not the dates: Term.startDate and endDate are
+    // null for every row the scraper writes, so a date comparison here would
+    // silently mark every course as still in progress and count nothing.
+    db.term.findMany({ select: { id: true, year: true, session: true, termNumber: true } }),
+  ]);
+  if (rows.length === 0) return [];
+
+  const finished = new Map(terms.map((t) => [t.id, !isUpcomingTerm(t)]));
+  const courses = await db.course.findMany({
+    where: { id: { in: [...new Set(rows.map((r) => r.courseId))] } },
+    select: {
+      id: true,
+      number: true,
+      credits: true,
+      subject: { select: { code: true, faculty: true } },
+    },
+  });
+  const byId = new Map(courses.map((c) => [c.id, c]));
+
+  const out: Completion[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    const c = byId.get(row.courseId);
+    if (!c || !c.subject.code) continue;
+    // One row per course: a repeated course should not count twice toward a
+    // credit requirement.
+    if (seen.has(c.id)) continue;
+    seen.add(c.id);
+
+    const status: Completion['status'] =
+      row.source === 'transfer'
+        ? 'transfer'
+        : finished.get(row.termId)
+          ? 'passed'
+          : 'in_progress';
+
+    out.push({
+      status,
+      course: {
+        id: c.id,
+        subject: c.subject.code,
+        number: c.number,
+        code: `${c.subject.code} ${c.number}`,
+        credits: c.credits ?? 3,
+        faculty: c.subject.faculty,
+      },
+    });
+  }
+  return out;
 }

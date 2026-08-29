@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import { effectiveRules, getProgram, selectable } from '@/guidance/registry';
-import { loadCatalogue, loadOfferings, loadPrereqs, loadTerms } from '@/guidance/load';
+import {
+  loadCatalogue,
+  loadCompletions,
+  loadOfferings,
+  loadPrereqs,
+  loadTerms,
+} from '@/guidance/load';
+import { auth } from '@/lib/auth';
 import { obligations, walk, type CourseSet, type Rule } from '@/guidance/rules';
 import { progress, outstanding, type Completion } from '@/guidance/progress';
 import { solve } from '@/guidance/solver';
@@ -143,14 +150,18 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   // you had clicked away. Commerce had it too, at 16.
   const loads = [...new Set([12, 15, 18, fullLoad])].sort((a, b) => a - b);
 
-  // No completion data yet — Enrollment records registration, not whether a
-  // course was passed, so treating it as completed would be wrong in the
-  // dangerous direction. Until grades are captured this plans a fresh start,
-  // which is exactly the public roadmap a signed-out visitor should see.
-  const completions: Completion[] = [];
+  // A signed-out visitor gets the public roadmap: the whole degree from a
+  // standing start, which is what someone asking "what does this degree
+  // require?" wants. A signed-in one gets their own — the completions feed
+  // BOTH the checklist and the solver, so the route is what is left rather
+  // than a fresh four years.
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
+  const completions: Completion[] = userId ? await loadCompletions(userId) : [];
+  const done = completions.filter((c) => c.status === 'passed' || c.status === 'transfer');
   const plan = solve({
     outstanding: outstanding(completions, rules),
-    completed: [],
+    completed: done.map((c) => c.course),
     catalogue,
     prereqs,
     offerings,
@@ -158,16 +169,39 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
     prefs: { creditsPerTerm: load, useSummer, targetTermId: null },
   });
 
-  // The checklist reads against the plan, not just against what is already
-  // done. A required MATH or STAT course counts toward Science Breadth like
-  // any other, so a plan that schedules them has met those categories — and
-  // reporting "0 of 6" beside a plan that covers three of them is simply
-  // wrong about its own output.
+  /**
+   * Whether the panel reports on a PERSON or on the plan.
+   *
+   * True only when there is something real to check against. A signed-in
+   * student with nothing uploaded gets the plan view and an invitation, not a
+   * zeroed-out list that reads as "you have done nothing".
+   */
+  const tracking = done.length > 0;
+  const creditsDone = done.reduce((n, c) => n + c.course.credits, 0);
+  // Counted as passed purely because the term has finished. Grades are not
+  // stored yet, so this over-counts anyone who failed or withdrew, and the
+  // panel says how many rows rest on that assumption rather than hiding it.
+  const assumed = completions.filter((c) => c.status === 'passed').length;
+
   const plannedCourses = plan.terms.flatMap((t) =>
     t.placements.flatMap((pl) => (pl.kind === 'course' ? [pl.course] : [])),
   );
+  /**
+   * What the ticks are checked against — the whole difference between the two
+   * modes.
+   *
+   * Tracking checks the person alone. Folding the plan's own courses in here
+   * too would make every requirement the route covers read as done, and the
+   * panel would say the same thing signed in as signed out.
+   *
+   * Without a record it checks the plan, because otherwise a rule met by a
+   * required course would report "0 of 6" beside a route that schedules three
+   * of them — wrong about its own output.
+   */
   const checklist = progress(
-    [...completions, ...plannedCourses.map((course) => ({ course, status: 'passed' as const }))],
+    tracking
+      ? completions
+      : [...completions, ...plannedCourses.map((course) => ({ course, status: 'passed' as const }))],
     rules,
   );
 
@@ -203,7 +237,12 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   const totalRules = obligations(rules).filter((r) => r.kind !== 'note').length;
   // A note carries no completion state, so it belongs in its own list rather
   // than among rules a student can actually finish.
-  const trackable = checklist.filter((p) => p.rule.kind !== 'note').map(withSlots);
+  // Slot credits are the PLAN's reservations, so they count only when the
+  // panel is reporting on the plan.
+  const trackable = checklist
+    .filter((p) => p.rule.kind !== 'note')
+    .map((p) => (tracking ? p : withSlots(p)));
+  const metRules = trackable.filter((p) => p.state === 'satisfied').length;
   const degreeRules = checklist.filter((p) => p.rule.kind === 'note');
   // Work terms hold no coursework, so the solver never returns them. Merge
   // them back in by calendar order — a plan that silently skipped them would
@@ -520,24 +559,44 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
             picking "completes". Mixing them made a B.A. look like it had
             thirty requirements when it has nineteen.
           */}
-          <p className="text-sm font-semibold text-foreground">Requirements</p>
-          <p className="mt-1 text-xs text-text-secondary">
-            {totalRules} to complete · {program.totalCredits} credits total
-          </p>
           {/*
-            Said plainly, because the ticks look like a transcript and are not
-            one. Nothing here is personalised: the checklist is fed the courses
-            the ROUTE schedules, so it answers "does this plan satisfy the
-            degree" — which is why requirements in third and fourth year already
-            read as covered. A rule that stays uncovered is almost always an
-            elective slot, where the plan reserves the credits but cannot pick
-            the course for you.
+            One panel, two modes. A second list of the same requirements — one
+            for "the plan covers this" and one for "you have done this" — would
+            put the ambiguity in two places instead of removing it. What changes
+            between modes is only what the ticks are checked AGAINST.
           */}
-          <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[11px] leading-relaxed text-info">
-            Checked against the route above, not your record — signing in does not personalise this
-            yet. A requirement shows as covered when the plan schedules something for it; the ones
-            left over are electives you still choose yourself.
+          <p className="text-sm font-semibold text-foreground">
+            {tracking ? 'Your progress' : 'What this degree requires'}
           </p>
+          <p className="mt-1 text-xs text-text-secondary">
+            {tracking
+              ? `${creditsDone} of ${program.totalCredits} credits · ${totalRules - metRules} requirements left`
+              : `${totalRules} to complete · ${program.totalCredits} credits total`}
+          </p>
+
+          {tracking ? (
+            <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[11px] leading-relaxed text-info">
+              Checked against your record. The route above starts from what you have left rather
+              than from first year.{' '}
+              {assumed > 0 && (
+                <>
+                  {assumed} course{assumed === 1 ? '' : 's'} counted as passed because the term has
+                  ended — grades are not captured yet, so a course you failed or withdrew from would
+                  still show here.
+                </>
+              )}
+            </p>
+          ) : userId ? (
+            <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[11px] leading-relaxed text-info">
+              Nothing to track against yet — upload your Workday record from your account page and
+              this becomes your own progress. Until then the ticks show what the route above covers.
+            </p>
+          ) : (
+            <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[11px] leading-relaxed text-info">
+              Ticks show what the route above covers, not a personal record. Sign in and upload your
+              courses to track your own progress.
+            </p>
+          )}
 
           <ul className="mt-3 space-y-1.5">
             {trackable.map((p) => {

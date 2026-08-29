@@ -72,13 +72,13 @@ export default function WeatherPreview() {
   // highlighted buttons, so there is no second copy of the state to drift.
   function show(cond: Condition, isNight: boolean) {
     const r = document.documentElement;
-    // In campus weather mode the 15-minute poll and the focus/visibility
-    // refresh repaint the campus sky over anything previewed here, so a click
-    // is treated as leaving weather mode for the day/night it asked for.
-    // Outside weather mode, data-mode stays the theme menu's record of what
-    // the user picked — the sky only reads data-weather/data-theme.
-    if ((localStorage.getItem('theme') ?? DEFAULT_MODE) === 'weather') {
-      const mode = isNight ? 'night' : 'day';
+    // A click that changes the sky's day/night is a real mode switch, not just
+    // a preview: in campus weather the refresh poll would otherwise repaint
+    // over it, and in day/night the theme menu would otherwise contradict the
+    // sky on screen. Plain light/dark draw no sky, so those stay untouched.
+    const stored = localStorage.getItem('theme') ?? DEFAULT_MODE;
+    const mode = isNight ? 'night' : 'day';
+    if (['weather', 'day', 'night'].includes(stored) && stored !== mode) {
       r.setAttribute('data-mode', mode);
       localStorage.setItem('theme', mode);
       void saveThemeMode(mode);

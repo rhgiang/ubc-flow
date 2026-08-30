@@ -17,7 +17,7 @@ export default async function SchedulePage() {
   const session = await auth();
   const userId = session?.user?.id;
 
-  const [user, schedules, terms, meetings] = await Promise.all([
+  const [user, schedules, terms, meetings, enrollmentShares] = await Promise.all([
     userId ? db.user.findUnique({ where: { id: userId }, select: { program: true } }) : null,
     userId
       ? db.savedSchedule.findMany({ where: { userId }, include: { sections: true } })
@@ -33,7 +33,10 @@ export default async function SchedulePage() {
     // (see src/upload/import.ts) — the real day/time data behind "View
     // Calendar", independent of anything saved in the schedule builder.
     userId ? db.enrollmentMeeting.findMany({ where: { userId } }) : Promise.resolve([]),
+    // Existing share links per term, so the Share menu opens knowing its state.
+    userId ? db.enrollmentShareToken.findMany({ where: { userId } }) : Promise.resolve([]),
   ]);
+  const shareByTerm = new Map(enrollmentShares.map((s) => [s.termId, s.token]));
 
   const termById = new Map(terms.map((t) => [t.id, t]));
   const plannableTerms = terms.filter(isPlannableTerm);
@@ -98,7 +101,13 @@ export default async function SchedulePage() {
       .sort((a, b) => a.year - b.year || (a.termNumber ?? 0) - (b.termNumber ?? 0))
       .map((t) => [
         t.id,
-        { termId: t.id, termName: t.name, entries: [], isCurrentTerm: t.id === currentTermId },
+        {
+          termId: t.id,
+          termName: t.name,
+          entries: [],
+          isCurrentTerm: t.id === currentTermId,
+          shareToken: shareByTerm.get(t.id) ?? null,
+        },
       ]),
   );
   for (const m of meetings) {

@@ -212,6 +212,81 @@ export async function getSubscribeUrl(scheduleId: string): Promise<TokenResult> 
 }
 
 /**
+ * Turn read-only web sharing on for a schedule, returning the token.
+ *
+ * Minted on demand and kept once minted, so re-opening the share control hands
+ * back the same link rather than quietly invalidating one already sent to
+ * someone. Ownership is enforced by the updateMany filter: a schedule that is
+ * not yours matches nothing and reports the same "not found" as one that does
+ * not exist, which keeps the two indistinguishable to a prober.
+ */
+export async function enableScheduleSharing(scheduleId: string): Promise<TokenResult> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Sign in to share a schedule.' };
+
+  const existing = await db.savedSchedule.findFirst({
+    where: { id: scheduleId, userId },
+    select: { shareToken: true },
+  });
+  if (!existing) return { ok: false, error: 'That schedule no longer exists.' };
+  if (existing.shareToken) return { ok: true, token: existing.shareToken };
+
+  const token = randomBytes(32).toString('hex');
+  await db.savedSchedule.updateMany({ where: { id: scheduleId, userId }, data: { shareToken: token } });
+  return { ok: true, token };
+}
+
+/**
+ * Stop sharing. The link dies immediately and a new one is minted next time —
+ * the old URL is not recoverable, which is the point of revoking it.
+ *
+ * Deliberately does not touch CalendarToken: someone may have this schedule
+ * subscribed in their calendar app, and "stop showing the web page" should not
+ * silently break that.
+ */
+export async function disableScheduleSharing(scheduleId: string): Promise<Result> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Sign in to manage sharing.' };
+
+  const done = await db.savedSchedule.updateMany({
+    where: { id: scheduleId, userId },
+    data: { shareToken: null },
+  });
+  if (done.count === 0) return { ok: false, error: 'That schedule no longer exists.' };
+  return { ok: true };
+}
+
+/** The enrollment counterpart to enableScheduleSharing — one link per term. */
+export async function enableEnrollmentSharing(termId: string): Promise<TokenResult> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Sign in to share your calendar.' };
+
+  const existing = await db.enrollmentShareToken.findUnique({
+    where: { userId_termId: { userId, termId } },
+  });
+  if (existing) return { ok: true, token: existing.token };
+
+  const created = await db.enrollmentShareToken.create({
+    data: { userId, termId, token: randomBytes(32).toString('hex') },
+  });
+  return { ok: true, token: created.token };
+}
+
+/**
+ * Stop sharing a term's calendar. Deleting the row kills the URL for good —
+ * enabling again mints a fresh token — and, as with schedules, deliberately
+ * leaves the subscribed ICS feed untouched. Idempotent: revoking a link that
+ * is already gone is still "gone".
+ */
+export async function disableEnrollmentSharing(termId: string): Promise<Result> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Sign in to manage sharing.' };
+
+  await db.enrollmentShareToken.deleteMany({ where: { userId, termId } });
+  return { ok: true };
+}
+
+/**
  * Subscription capability for the Workday-imported courses in one term — the
  * enrollment counterpart to getSubscribeUrl. Minted on first use, then stable,
  * so a re-upload updates what the same subscribed URL serves.

@@ -72,12 +72,18 @@ export default function PrivacyPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-2xl font-semibold text-foreground">Calendar links</h2>
+          <h2 className="text-2xl font-semibold text-foreground">Calendar and share links</h2>
           <p className="text-base leading-relaxed text-text-secondary">
             Subscribing a schedule to an outside calendar app generates a private link for it.
             Anyone with that link can see the schedule it points to without signing in, the same
             way any calendar subscription link works. Don&apos;t share it if you don&apos;t want
             someone else seeing your schedule.
+
+            Sharing a schedule — or a term&apos;s imported calendar — creates a second, separate link that shows it as a page anyone can
+            open without signing in. It shows the courses, times and rooms, and nothing about you
+            — not your name, not your email. You can stop sharing at any time, which kills that
+            link for good; it doesn&apos;t affect a calendar subscription, and a subscription
+            doesn&apos;t create a share link. Neither exists until you ask for it.
           </p>
         </section>
 

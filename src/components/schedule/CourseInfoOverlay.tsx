@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useUnsavedChanges } from '@/components/UnsavedChangesContext';
 import { useCourseDetail } from '@/components/schedule/course-info/useCourseDetail';
 import CourseInfoContent from '@/components/schedule/course-info/CourseInfoContent';
 import type { SectionHit } from '@/lib/search';
@@ -33,6 +36,8 @@ export default function CourseInfoOverlay({
 }) {
   const { detail, loading } = useCourseDetail(courseId, termId);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const { isDirty, askToLeave } = useUnsavedChanges();
 
   // Escape closes, matching the auth overlay.
   useEffect(() => {
@@ -74,7 +79,23 @@ export default function CourseInfoOverlay({
           <>
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <h2 className="text-xl font-semibold text-foreground">{detail.code}</h2>
+                {/* The heading IS the way to the course page — burying that
+                    link at the bottom of a long overlay hid it. Guarded the
+                    same way as nav links, so unsaved builder work still gets
+                    its leave prompt. */}
+                <h2 className="text-xl font-semibold text-foreground">
+                  <Link
+                    href={detail.href}
+                    className="hover:text-brand-accent hover:underline"
+                    onNavigate={(e) => {
+                      if (!isDirty()) return;
+                      e.preventDefault();
+                      askToLeave(() => router.push(detail.href));
+                    }}
+                  >
+                    {detail.code}
+                  </Link>
+                </h2>
                 <p className="text-sm text-text-secondary">{detail.title}</p>
                 {detail.credits !== null && (
                   <p className="mt-0.5 text-xs text-text-tertiary">{detail.credits} credits</p>

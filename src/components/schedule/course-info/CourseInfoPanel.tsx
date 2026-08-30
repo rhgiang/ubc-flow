@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useUnsavedChanges } from '@/components/UnsavedChangesContext';
 import CourseInfoContent from '@/components/schedule/course-info/CourseInfoContent';
 import { useCourseDetail } from '@/components/schedule/course-info/useCourseDetail';
 import type { SectionHit } from '@/lib/search';
@@ -31,6 +34,8 @@ export default function CourseInfoPanel({
 }) {
   const { detail, loading } = useCourseDetail(courseId, termId);
   const panelRef = useRef<HTMLElement>(null);
+  const router = useRouter();
+  const { isDirty, askToLeave } = useUnsavedChanges();
   useEffect(() => {
     panelRef.current?.focus();
   }, [courseId]);
@@ -46,7 +51,21 @@ export default function CourseInfoPanel({
         <div className="min-w-0">
           {detail ? (
             <>
-              <p className="truncate text-sm font-semibold text-foreground">{detail.code}</p>
+              <p className="truncate text-sm font-semibold text-foreground">
+                <Link
+                  href={detail.href}
+                  className="hover:text-brand-accent hover:underline"
+                  onNavigate={(e) => {
+                    // Same leave-guard as the nav links — this panel only
+                    // exists inside the builder, where work can be unsaved.
+                    if (!isDirty()) return;
+                    e.preventDefault();
+                    askToLeave(() => router.push(detail.href));
+                  }}
+                >
+                  {detail.code}
+                </Link>
+              </p>
               <p className="truncate text-xs text-text-secondary">{detail.title}</p>
             </>
           ) : (

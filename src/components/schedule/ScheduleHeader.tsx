@@ -1,8 +1,12 @@
 'use client';
 
 import CalendarSubscribeMenu from '@/components/schedule/CalendarSubscribeMenu';
-import ShareScheduleMenu from '@/components/schedule/ShareScheduleMenu';
-import { getSubscribeUrl } from '@/app/actions/schedule';
+import ShareLinkMenu from '@/components/schedule/ShareLinkMenu';
+import {
+  getSubscribeUrl,
+  enableScheduleSharing,
+  disableScheduleSharing,
+} from '@/app/actions/schedule';
 import ScheduleSwitcher, { type ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
 
 export default function ScheduleHeader({
@@ -126,7 +130,15 @@ export default function ScheduleHeader({
 
           {/* Sharing before subscribing: "send this to someone" is the more
               common intent, and the two are different enough to sit apart. */}
-          {scheduleId && <ShareScheduleMenu scheduleId={scheduleId} initialToken={shareToken} />}
+          {scheduleId && (
+            <ShareLinkMenu
+              initialToken={shareToken}
+              pathFor={(t) => `/shared/${t}`}
+              enable={() => enableScheduleSharing(scheduleId)}
+              disable={() => disableScheduleSharing(scheduleId)}
+              description="Creates a link that shows this schedule to anyone who opens it, without signing in. It doesn't show your name or email."
+            />
+          )}
 
           {scheduleId && (
             <CalendarSubscribeMenu

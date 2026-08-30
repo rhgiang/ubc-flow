@@ -149,6 +149,7 @@ model User {
   instructorReviews InstructorReview[]
   schedules SavedSchedule[]
   enrollmentCalendarTokens EnrollmentCalendarToken[]
+  enrollmentShareTokens EnrollmentShareToken[]
   reviewVotes ReviewVote[]
   transferCredits TransferCredit[]
 }
@@ -339,6 +340,24 @@ model CalendarToken {
  * term separately and the URL stays stable across re-uploads.
  */
 model EnrollmentCalendarToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  termId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+
+  @@unique([userId, termId])
+}
+
+/**
+ * Read-only web sharing for one term's Workday-imported calendar — the
+ * enrollment counterpart to SavedSchedule.shareToken. A separate token from
+ * EnrollmentCalendarToken for the same reason that one is separate from
+ * CalendarToken: the web page and the subscribed feed revoke independently.
+ * Revoking deletes the row; enabling again mints a fresh token.
+ */
+model EnrollmentShareToken {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -256,6 +256,36 @@ export async function disableScheduleSharing(scheduleId: string): Promise<Result
   return { ok: true };
 }
 
+/** The enrollment counterpart to enableScheduleSharing — one link per term. */
+export async function enableEnrollmentSharing(termId: string): Promise<TokenResult> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Sign in to share your calendar.' };
+
+  const existing = await db.enrollmentShareToken.findUnique({
+    where: { userId_termId: { userId, termId } },
+  });
+  if (existing) return { ok: true, token: existing.token };
+
+  const created = await db.enrollmentShareToken.create({
+    data: { userId, termId, token: randomBytes(32).toString('hex') },
+  });
+  return { ok: true, token: created.token };
+}
+
+/**
+ * Stop sharing a term's calendar. Deleting the row kills the URL for good —
+ * enabling again mints a fresh token — and, as with schedules, deliberately
+ * leaves the subscribed ICS feed untouched. Idempotent: revoking a link that
+ * is already gone is still "gone".
+ */
+export async function disableEnrollmentSharing(termId: string): Promise<Result> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Sign in to manage sharing.' };
+
+  await db.enrollmentShareToken.deleteMany({ where: { userId, termId } });
+  return { ok: true };
+}
+
 /**
  * Subscription capability for the Workday-imported courses in one term — the
  * enrollment counterpart to getSubscribeUrl. Minted on first use, then stable,

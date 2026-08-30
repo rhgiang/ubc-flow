@@ -1,25 +1,42 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { disableScheduleSharing, enableScheduleSharing } from '@/app/actions/schedule';
+import ConfirmDialog from '@/components/ConfirmDialog';
+
+type TokenResult = { ok: true; token: string } | { ok: false; error: string };
+type PlainResult = { ok: true } | { ok: false; error: string };
 
 /**
- * Turn a saved schedule into a link anyone can open.
+ * Turn something into a link anyone can open — a saved schedule or a term's
+ * imported calendar; the caller supplies the enable/revoke actions and the
+ * public path, so this stays one component for both.
  *
  * Separate from the subscribe menu because the two do different things: that
  * one puts the schedule INSIDE someone's calendar app and keeps updating it,
  * this one is a page you send someone so they can look. They also revoke
  * independently — turning sharing off here leaves a subscribed feed working.
  */
-export default function ShareScheduleMenu({
-  scheduleId,
+export default function ShareLinkMenu({
   initialToken,
+  pathFor,
+  enable,
+  disable,
+  description,
+  align = 'right',
 }: {
-  scheduleId: string;
-  /** The existing share token, or null when the schedule isn't shared. */
+  /** The existing share token, or null when not shared yet. */
   initialToken: string | null;
+  /** Public path for a token, e.g. (t) => `/shared/${t}`. */
+  pathFor: (token: string) => string;
+  enable: () => Promise<TokenResult>;
+  disable: () => Promise<PlainResult>;
+  /** What the created link shows, in the words of this call site. */
+  description: string;
+  /** Which edge of the button the popover hangs from. */
+  align?: 'left' | 'right';
 }) {
   const [open, setOpen] = useState(false);
+  const [confirmingStop, setConfirmingStop] = useState(false);
   const [token, setToken] = useState<string | null>(initialToken);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -35,13 +52,13 @@ export default function ShareScheduleMenu({
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [open]);
 
-  const url = token ? `${typeof window === 'undefined' ? '' : window.location.origin}/shared/${token}` : null;
+  const url = token ? `${typeof window === 'undefined' ? '' : window.location.origin}${pathFor(token)}` : null;
 
   async function turnOn() {
     setBusy(true);
     setError(null);
     try {
-      const r = await enableScheduleSharing(scheduleId);
+      const r = await enable();
       if (!r.ok) setError(r.error);
       else setToken(r.token);
     } catch {
@@ -52,19 +69,17 @@ export default function ShareScheduleMenu({
   }
 
   async function turnOff() {
-    // Destructive and not undoable — the old URL cannot be brought back, so
-    // anyone holding it loses access for good. Worth one question.
-    if (!window.confirm('Stop sharing? The existing link will stop working and cannot be restored.')) return;
     setBusy(true);
     setError(null);
     try {
-      const r = await disableScheduleSharing(scheduleId);
+      const r = await disable();
       if (!r.ok) setError(r.error);
       else setToken(null);
     } catch {
       setError('Could not stop sharing just now. Try again in a moment.');
     } finally {
       setBusy(false);
+      setConfirmingStop(false);
     }
   }
 
@@ -91,13 +106,14 @@ export default function ShareScheduleMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-2 w-72 rounded-card border border-border bg-surface p-3 shadow-lg">
+        <div
+          className={`absolute top-full z-30 mt-2 w-72 rounded-card border border-border bg-surface p-3 shadow-lg ${
+            align === 'right' ? 'right-0' : 'left-0'
+          }`}
+        >
           {token === null ? (
             <>
-              <p className="text-xs text-text-secondary">
-                Creates a link that shows this schedule to anyone who opens it, without signing in.
-                It doesn&rsquo;t show your name or email.
-              </p>
+              <p className="text-xs text-text-secondary">{description}</p>
               <button
                 type="button"
                 onClick={turnOn}
@@ -109,7 +125,7 @@ export default function ShareScheduleMenu({
             </>
           ) : (
             <>
-              <p className="text-xs text-text-secondary">Anyone with this link can see this schedule.</p>
+              <p className="text-xs text-text-secondary">Anyone with this link can see it.</p>
               <input
                 readOnly
                 value={url ?? ''}
@@ -126,7 +142,7 @@ export default function ShareScheduleMenu({
                 </button>
                 <button
                   type="button"
-                  onClick={turnOff}
+                  onClick={() => setConfirmingStop(true)}
                   disabled={busy}
                   className="rounded-pill border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-danger-border hover:bg-danger-surface hover:text-danger disabled:opacity-50"
                 >
@@ -142,6 +158,22 @@ export default function ShareScheduleMenu({
           )}
         </div>
       )}
+
+      {/* Destructive and not undoable — the old URL cannot be brought back,
+          so anyone holding it loses access for good. Worth one question,
+          asked in the site's own dialog rather than window.confirm's
+          browser-stamped one. */}
+      <ConfirmDialog
+        open={confirmingStop}
+        title="Stop sharing?"
+        confirmLabel="Stop sharing"
+        destructive
+        busy={busy}
+        onConfirm={() => void turnOff()}
+        onCancel={() => setConfirmingStop(false)}
+      >
+        The existing link will stop working and cannot be restored.
+      </ConfirmDialog>
     </div>
   );
 }

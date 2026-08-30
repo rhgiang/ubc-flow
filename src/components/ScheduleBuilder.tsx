@@ -389,7 +389,9 @@ export default function ScheduleBuilder({
         {/* Below lg the panel is capped so the calendar keeps the larger
             share — shrink-0 with unbounded content height was eating the
             whole column and rendering the calendar at ~0px on phones. */}
-        <aside className="order-2 w-full shrink-0 overflow-y-auto border-b border-border max-lg:max-h-[40dvh] lg:order-1 lg:w-[340px] lg:border-b-0 lg:border-r">
+        {/* max-lg:pb-20: the floating theme button parks over this panel's
+            bottom-left on phones; the padding lets the last row scroll clear. */}
+        <aside className="order-2 w-full shrink-0 overflow-y-auto border-b border-border max-lg:max-h-[40dvh] max-lg:pb-20 lg:order-1 lg:w-[340px] lg:border-b-0 lg:border-r">
           <SchedulePanelTabs
             termId={termId}
             chosen={chosen}

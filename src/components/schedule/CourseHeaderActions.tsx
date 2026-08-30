@@ -45,8 +45,10 @@ export default function CourseHeaderActions({
   // text flow, and an inline-flex box takes its baseline from its own text —
   // which the `i` button has and the icon button does not, so on the default
   // `baseline` they sit at visibly different heights.
+  // ponytail: 36px on touch — 20px was under half the tap-target floor and
+  // near-misses collapsed the <details> instead; go 44px if misses persist.
   const button =
-    'h-5 w-5 shrink-0 items-center justify-center rounded-full border align-middle transition-colors hover:bg-surface-muted';
+    'h-5 w-5 pointer-coarse:h-9 pointer-coarse:w-9 shrink-0 items-center justify-center rounded-full border align-middle transition-colors hover:bg-surface-muted';
 
   return (
     <>

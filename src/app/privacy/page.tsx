@@ -58,7 +58,7 @@ export default function PrivacyPage() {
           <p className="text-base leading-relaxed text-text-secondary">
             We don&apos;t sell your data and we don&apos;t run ads. We use Google Analytics to
             see how many people use the site and which pages they reach. It doesn&apos;t know who
-            you are — it never receives your name, email or student number — and we don&apos;t use
+            you are (it never receives your name, email or student number), and we don&apos;t use
             it for advertising or share anything with it about your account.
           </p>
         </section>

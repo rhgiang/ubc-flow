@@ -60,7 +60,7 @@ export default function CalendarSubscribeMenu({
       <button
         type="button"
         onClick={toggle}
-        className="rounded-pill border border-border px-3 py-1.5 text-xs font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
+        className="rounded-pill border border-border px-4 py-1.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
       >
         Add to calendar ▾
       </button>

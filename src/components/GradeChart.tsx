@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { GRADE_BUCKETS } from '@/grades/parse-csv';
 
 const CHART_HEIGHT = 96; // px
@@ -14,14 +17,17 @@ const SUPPRESSED_STUB_HEIGHT = 10; // px — enough to read as "withheld", not "
  * a short hatched grey stub, never as an empty/zero-height bar: the two must
  * stay visibly distinct or the suppression is silently lost.
  *
- * Each bar has a hover tooltip (pure CSS group-hover, no client JS needed)
- * showing the exact count and percentage of the offering's total students.
+ * Each bar has a tooltip showing the exact count and percentage of the
+ * offering's total students — on hover, or pinned by a tap, since hover
+ * doesn't exist on touch. (That tap support is the only reason this is a
+ * client component.)
  */
 export default function GradeChart({
   distribution,
 }: {
   distribution: Record<string, number | null>;
 }) {
+  const [pinned, setPinned] = useState<string | null>(null);
   const max = Math.max(1, ...GRADE_BUCKETS.map((b) => distribution[b] ?? 0));
   const total = GRADE_BUCKETS.reduce((sum, b) => sum + (distribution[b] ?? 0), 0);
 
@@ -61,10 +67,20 @@ export default function GradeChart({
                 : 'left-1/2 -translate-x-1/2';
 
           return (
-            <div key={bucket} className="group relative flex flex-1 items-end justify-center">
+            <button
+              key={bucket}
+              type="button"
+              onClick={() => setPinned(pinned === bucket ? null : bucket)}
+              aria-label={
+                suppressed ? `${bucket}: withheld` : `${bucket}: ${value} students`
+              }
+              className="group relative flex flex-1 items-end justify-center"
+            >
               <div
                 role="tooltip"
-                className={`pointer-events-none absolute bottom-full ${anchor} mb-1 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background opacity-0 shadow-lg transition-opacity group-hover:opacity-100`}
+                className={`pointer-events-none absolute bottom-full ${anchor} mb-1 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background shadow-lg transition-opacity ${
+                  pinned === bucket ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                }`}
               >
                 {suppressed
                   ? `${bucket}: withheld by UBC for privacy`
@@ -86,7 +102,7 @@ export default function GradeChart({
                     : {}),
                 }}
               />
-            </div>
+            </button>
           );
         })}
       </div>

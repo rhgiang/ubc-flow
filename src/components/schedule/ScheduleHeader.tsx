@@ -102,7 +102,9 @@ export default function ScheduleHeader({
                   ? 'Name the schedule and add a section before saving'
                   : 'No changes to save'
             }
-            className="rounded-pill bg-brand px-5 py-1.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+            // border-transparent matches the bordered pills beside it, so the
+            // three read as one set at exactly the same height.
+            className="rounded-pill border border-transparent bg-brand px-4 py-1.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>
@@ -129,7 +131,14 @@ export default function ScheduleHeader({
         </div>
       </div>
 
-      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+      {/* On phones a saved schedule hides this whole row: the term is fixed,
+          already visible in the schedule name area, and the label + disabled
+          select + caption cost a full row of header the calendar needs. */}
+      <div
+        className={`mt-1.5 flex flex-wrap items-center gap-2 ${
+          scheduleId !== null ? 'max-sm:hidden' : ''
+        }`}
+      >
         <label htmlFor="builderTerm" className="text-xs text-text-tertiary">
           Academic Period
         </label>

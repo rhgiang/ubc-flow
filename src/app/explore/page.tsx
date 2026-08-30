@@ -332,7 +332,10 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
               <Link
                 key={h.key}
                 href={hrefWith(sp, { sort: h.key })}
-                className="whitespace-nowrap rounded-pill border border-border max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-3.5 py-2 text-sm font-medium text-foreground hover:bg-surface-muted"
+                // capsule-chip: dark backing so the chips survive pale
+                // gray-weather skies the way the nav and footer links do;
+                // plain themes strip it back to ordinary text via CSS.
+                className="capsule-chip whitespace-nowrap rounded-pill border border-border max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-3.5 py-2 text-sm font-medium"
               >
                 {h.label}
               </Link>

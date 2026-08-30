@@ -482,11 +482,12 @@ export function ReviewForm({
             const checked = state !== undefined;
             return (
               <div key={i.id} className="border-t border-border pt-4 first:border-t-0 first:pt-0">
-                <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <label className="flex items-center gap-2 py-1 text-sm font-medium text-foreground">
                   <input
                     type="checkbox"
                     checked={checked}
                     onChange={(e) => toggleInstructor(i.id, e.target.checked)}
+                    className="h-5 w-5"
                   />
                   {i.name}
                 </label>

@@ -48,7 +48,7 @@ export default function UnsavedWorkDialog({
       aria-modal="true"
       aria-label="Unsaved changes"
       className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 px-6 backdrop-blur-sm"
-      onMouseDown={(e) => {
+      onPointerDown={(e) => {
         if (e.target === e.currentTarget) onCancel();
       }}
     >

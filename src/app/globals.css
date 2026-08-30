@@ -199,6 +199,17 @@ html {
   }
 }
 
+/* iOS Safari auto-zooms the page on focusing any form control under 16px and
+   never zooms back out. Every field in the app is text-sm (15px) or smaller,
+   so on phones they all get floored to 16px here instead of per-callsite. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

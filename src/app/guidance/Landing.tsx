@@ -91,7 +91,9 @@ export default function Landing() {
         ))}
       </div>
 
-      <p className="sky-hero mt-8 text-center text-xs opacity-70">
+      {/* opacity-90, not 70: this line sits on the palest band of the sky
+          gradient, where 70% white was barely legible on gray-weather days. */}
+      <p className="sky-hero mt-8 text-center text-xs opacity-90">
         Requirements are transcribed from the UBC Academic Calendar. A roadmap here is a planning
         aid, not an official degree audit.
       </p>

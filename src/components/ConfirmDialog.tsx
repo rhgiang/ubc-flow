@@ -66,7 +66,7 @@ export default function ConfirmDialog({
       aria-labelledby="confirm-dialog-title"
       // ::backdrop is not an element, so a click on it lands on the <dialog>
       // itself; anything inside targets a child instead.
-      onMouseDown={(e) => {
+      onPointerDown={(e) => {
         if (e.target === ref.current) onCancel();
       }}
       className="m-auto w-full max-w-md rounded-card border border-border-hairline bg-surface p-6 text-foreground shadow-lg backdrop:bg-black/50 backdrop:backdrop-blur-sm"

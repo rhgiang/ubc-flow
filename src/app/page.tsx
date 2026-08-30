@@ -28,7 +28,10 @@ export default async function Home() {
           // Signed out, the sign-in panel hangs below and the stack is taller
           // than a phone screen, so nothing can be centred; without a nudge
           // the heading starts hard against the nav bar. Push it down instead.
-          session?.user ? 'mb-40' : 'mt-12 sm:mt-6'
+          //
+          // Both nudges shrink on phones (smaller lift signed in, bigger push
+          // signed out): dead-centre reads as too high on a phone screen.
+          session?.user ? 'mb-16 sm:mb-40' : 'mt-24 sm:mt-6'
         }`}
       >
         <h1 className="sky-hero text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">

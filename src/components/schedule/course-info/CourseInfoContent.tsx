@@ -348,13 +348,6 @@ export default function CourseInfoContent({
         </section>
       )}
 
-      <Link
-        href={detail.href}
-        className="mt-6 inline-block text-sm font-medium text-brand-accent hover:underline"
-      >
-        View full course page →
-      </Link>
-
       {compare && (
         <GradeComparisonOverlay
           detail={detail}

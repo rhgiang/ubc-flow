@@ -1,7 +1,12 @@
 'use client';
 
 import CalendarSubscribeMenu from '@/components/schedule/CalendarSubscribeMenu';
-import { getSubscribeUrl } from '@/app/actions/schedule';
+import ShareLinkMenu from '@/components/schedule/ShareLinkMenu';
+import {
+  getSubscribeUrl,
+  enableScheduleSharing,
+  disableScheduleSharing,
+} from '@/app/actions/schedule';
 import ScheduleSwitcher, { type ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
 
 export default function ScheduleHeader({
@@ -11,6 +16,7 @@ export default function ScheduleHeader({
   onTermChange,
   terms,
   scheduleId,
+  shareToken = null,
   schedules,
   onSwitchSchedule,
   canSave,
@@ -27,6 +33,8 @@ export default function ScheduleHeader({
   onTermChange: (termId: string) => void;
   terms: { id: string; name: string }[];
   scheduleId: string | null;
+  /** Existing share token for this schedule, or null when it isn't shared. */
+  shareToken?: string | null;
   schedules: ScheduleOption[];
   onSwitchSchedule: (scheduleId: string) => void;
   canSave: boolean;
@@ -118,6 +126,18 @@ export default function ScheduleHeader({
             >
               Delete Schedule
             </button>
+          )}
+
+          {/* Sharing before subscribing: "send this to someone" is the more
+              common intent, and the two are different enough to sit apart. */}
+          {scheduleId && (
+            <ShareLinkMenu
+              initialToken={shareToken}
+              pathFor={(t) => `/shared/${t}`}
+              enable={() => enableScheduleSharing(scheduleId)}
+              disable={() => disableScheduleSharing(scheduleId)}
+              description="Creates a link that shows this schedule to anyone who opens it, without signing in. It doesn't show your name or email."
+            />
           )}
 
           {scheduleId && (

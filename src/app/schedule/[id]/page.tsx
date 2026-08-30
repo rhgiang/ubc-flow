@@ -54,6 +54,7 @@ export default async function SchedulePlannerPage({
       initialName={schedule.name}
       initialTermId={schedule.termId}
       initialSections={initialSections}
+      shareToken={schedule.shareToken}
       terms={termOptions}
       schedules={await listSwitchableSchedules(session.user.id, terms)}
     />

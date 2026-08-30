@@ -93,7 +93,15 @@ export default function ExploreSubjectSelect({
             placeholder="Search subjects"
             className="w-full border-b border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-text-tertiary focus:outline-none"
           />
-          <div className="max-h-64 overflow-y-auto">
+          <div
+            // Tapping an option must not blur the filter input first: on touch
+            // (and Safari) buttons never receive focus, so blur would see
+            // relatedTarget=null and unmount the option before its click
+            // fires. Same guard as SearchBar; on the list only, so taps in
+            // the filter input above still place the caret.
+            onMouseDown={(e) => e.preventDefault()}
+            className="max-h-64 overflow-y-auto"
+          >
             <button
               type="button"
               onClick={() => navigate(null)}

@@ -388,8 +388,14 @@ export default function ScheduleBuilder({
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <aside className="order-2 w-full shrink-0 overflow-y-auto border-b border-border lg:order-1 lg:w-[340px] lg:border-b-0 lg:border-r">
+      {/* Below lg the pinned split-pane gave the calendar only the leftovers
+          of a tall wrapped header — a ~150px sliver. Un-pin instead: this
+          column scrolls as one page, the calendar renders at its natural
+          height, and the course panel stacks under it at full length. */}
+      <div className="flex min-h-0 flex-1 flex-col max-lg:overflow-y-auto lg:flex-row">
+        {/* max-lg:pb-20: the floating theme button parks over this panel's
+            bottom-left on phones; the padding lets the last row scroll clear. */}
+        <aside className="order-2 w-full shrink-0 border-b border-border max-lg:pb-20 lg:order-1 lg:w-[340px] lg:overflow-y-auto lg:border-b-0 lg:border-r">
           <SchedulePanelTabs
             termId={termId}
             chosen={chosen}
@@ -410,7 +416,7 @@ export default function ScheduleBuilder({
           />
         </aside>
 
-        <div className="order-1 flex min-w-0 flex-1 flex-col lg:order-2">
+        <div className="order-1 flex min-h-0 min-w-0 flex-1 flex-col max-lg:flex-none lg:order-2">
           <ScheduleHeader
             name={name}
             onNameChange={setName}

@@ -29,7 +29,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      className={`border-b-2 pb-2 text-sm font-medium ${
+      className={`shrink-0 whitespace-nowrap border-b-2 pb-2 text-sm font-medium ${
         active
           ? 'border-brand-accent text-brand-accent'
           : 'border-transparent text-text-secondary hover:border-border hover:text-foreground'
@@ -214,7 +214,9 @@ export default function ScheduleTabs({
 
   return (
     <div className="mt-8">
-      <div className="flex gap-6 border-b border-border">
+      {/* overflow-x-auto: three long labels in a phone column otherwise wrap
+          into a ragged 3-line block — same treatment as explore's sort chips. */}
+      <div className="flex gap-6 overflow-x-auto border-b border-border">
         <TabButton active={tab === 'upcoming'} onClick={() => setTab('upcoming')}>
           Upcoming Saved Schedules
         </TabButton>

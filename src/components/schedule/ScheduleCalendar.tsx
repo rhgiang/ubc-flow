@@ -170,8 +170,11 @@ export default function ScheduleCalendar({
         className="overflow-auto rounded-card border border-border"
         style={{ maxHeight: VIEWPORT_MAX_PX }}
       >
-        <div className="flex min-w-[680px]">
-          <div className="w-16 shrink-0">
+        {/* ponytail: narrower floor + slimmer gutter below sm shows ~3.5 days
+            per screenful instead of ~2; a real single-day view with a day
+            switcher is the upgrade path if phone usage warrants it. */}
+        <div className="flex min-w-[520px] sm:min-w-[680px]">
+          <div className="w-10 shrink-0 sm:w-16">
             <div className="sticky top-0 z-20 h-9 border-b border-border bg-background" />
             {HOURS.map((h) => (
               <div
@@ -295,7 +298,7 @@ export default function ScheduleCalendar({
                             }}
                             aria-label={`Swap ${e.label}`}
                             title="Swap section"
-                            className="pointer-events-none absolute right-6 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100"
+                            className="pointer-events-none absolute right-6 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100 pointer-coarse:pointer-events-auto pointer-coarse:opacity-100"
                           >
                             ⇄
                           </button>
@@ -308,7 +311,7 @@ export default function ScheduleCalendar({
                               onRemove(e.sectionId);
                             }}
                             aria-label={`Remove ${e.label}`}
-                            className="pointer-events-none absolute right-0.5 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100"
+                            className="pointer-events-none absolute right-0.5 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100 pointer-coarse:pointer-events-auto pointer-coarse:opacity-100"
                           >
                             ×
                           </button>
@@ -321,7 +324,7 @@ export default function ScheduleCalendar({
                           <p className="truncate text-text-tertiary">{e.location}</p>
                         )}
                         {e.instructor && (
-                          <p className="truncate text-text-tertiary">{e.instructor}</p>
+                          <p className="truncate text-text-tertiary max-sm:hidden">{e.instructor}</p>
                         )}
                       </div>
                     );

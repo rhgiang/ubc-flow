@@ -7,7 +7,7 @@ export default function TermsPage() {
     <main className="mx-auto w-full max-w-3xl px-6 py-14">
       <h1 className="sky-hero text-4xl font-semibold">Terms</h1>
 
-      <div className="sky-panel mt-12 space-y-16 p-12 sm:p-16">
+      <div className="sky-panel mt-12 space-y-16 p-6 sm:p-12 lg:p-16">
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-foreground">Reviews</h2>
           <p className="text-base leading-relaxed text-text-secondary">

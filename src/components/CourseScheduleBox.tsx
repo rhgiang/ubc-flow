@@ -119,7 +119,10 @@ export default function CourseScheduleBox({
                       <th className="px-4 py-2 font-medium">Activity</th>
                       <th className="px-4 py-2 font-medium">Status</th>
                       <th className="px-4 py-2 font-medium">Time</th>
-                      <th className="px-4 py-2 font-medium">Instructor</th>
+                      {/* ponytail: dropped on phones — the widest, least
+                          decision-critical column; a card-per-row layout like
+                          explore's is the upgrade if phones need instructors. */}
+                      <th className="px-4 py-2 font-medium max-sm:hidden">Instructor</th>
                       {mySchedules && <th className="px-4 py-2 font-medium">Schedule</th>}
                     </tr>
                   </thead>
@@ -137,7 +140,7 @@ export default function CourseScheduleBox({
                           <td className="px-4 py-2 text-text-secondary">
                             {s.meetingTimes.length ? s.meetingTimes.map((m) => formatMeeting(m)).join(', ') : '—'}
                           </td>
-                          <td className="px-4 py-2">
+                          <td className="px-4 py-2 max-sm:hidden">
                             {s.instructors.length
                               ? s.instructors.map((si) => (
                                   <Link
@@ -168,7 +171,10 @@ export default function CourseScheduleBox({
                                   ) : (
                                     <input type="hidden" name="scheduleId" value={matchingSchedules[0].id} />
                                   )}
-                                  <button type="submit" className="text-xs text-brand-accent hover:underline">
+                                  <button
+                                    type="submit"
+                                    className="inline-flex items-center text-xs text-brand-accent hover:underline pointer-coarse:min-h-11 pointer-coarse:px-2"
+                                  >
                                     + Add
                                   </button>
                                 </form>

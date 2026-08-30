@@ -98,7 +98,7 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
         type="button"
         onClick={toggleOpen}
         aria-label="Schedule actions"
-        className="rounded-full px-2 py-1 text-text-secondary transition-colors hover:bg-surface-muted hover:text-foreground"
+        className="inline-flex items-center justify-center rounded-full px-2 py-1 text-text-secondary transition-colors hover:bg-surface-muted hover:text-foreground pointer-coarse:h-11 pointer-coarse:w-11"
       >
         •••
       </button>

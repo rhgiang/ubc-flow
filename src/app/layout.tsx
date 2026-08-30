@@ -108,7 +108,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit(savedMode) }} />
       </head>
-      <body className="flex h-screen flex-col">
+      {/* dvh, not vh: mobile browsers measure 100vh with the URL bar
+          retracted, which pinned the builder's bottom row under the toolbar. */}
+      <body className="flex h-dvh flex-col">
         <AuthOverlayProvider>
           <UnsavedChangesProvider>
             <PageBackground nav={<Nav />}>{children}</PageBackground>

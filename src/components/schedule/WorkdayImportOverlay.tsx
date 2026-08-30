@@ -145,7 +145,7 @@ export default function WorkdayImportOverlay({
       aria-modal="true"
       aria-label="Import from Workday"
       className="fixed inset-0 z-[60] flex items-start justify-center overlay-below-nav overflow-y-auto bg-black/50 px-6 pb-10 backdrop-blur-sm"
-      onMouseDown={(e) => {
+      onPointerDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >

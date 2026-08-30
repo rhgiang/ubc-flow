@@ -65,7 +65,7 @@ export default function DeleteAccountButton() {
           aria-modal="true"
           aria-label="Delete account"
           className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-6 backdrop-blur-sm"
-          onMouseDown={(e) => {
+          onPointerDown={(e) => {
             if (e.target === e.currentTarget && !busy) setOpen(false);
           }}
         >

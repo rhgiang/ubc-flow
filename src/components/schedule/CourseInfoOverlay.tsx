@@ -56,7 +56,7 @@ export default function CourseInfoOverlay({
       aria-modal="true"
       aria-label={detail ? `${detail.code} course information` : 'Course information'}
       className="fixed inset-0 z-[60] flex items-start justify-center overlay-below-nav overflow-y-auto bg-black/50 px-6 pb-10 backdrop-blur-sm"
-      onMouseDown={(e) => {
+      onPointerDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >

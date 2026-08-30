@@ -88,7 +88,9 @@ export default function WeatherPreview() {
   }
 
   return (
-    <div ref={containerRef} className="fixed bottom-6 left-20 z-50">
+    // max-sm:hidden — on phones this dev control parked on top of the login
+    // panel's Google button; preview skies from a desktop instead.
+    <div ref={containerRef} className="fixed bottom-6 left-20 z-50 max-sm:hidden">
       {open && (
         <div className="absolute bottom-14 left-0 w-56 rounded-card border border-border bg-surface p-3 shadow-lg">
           <p className="text-xs font-medium text-text-secondary">Preview sky</p>

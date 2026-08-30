@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 
 export type HistoricalGradeTerm = { year: number; session: string; average: number | null };
 
@@ -9,6 +9,14 @@ const AXIS = { left: 34, right: 8, top: 12, bottom: 62 };
 const PLOT_H = CHART_H - AXIS.top - AXIS.bottom;
 const GRID = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 const MAX_X_LABELS = 16; // beyond this the rotated labels start colliding
+const MAX_X_LABELS_NARROW = 6; // the same collision point on a ~320px plot
+
+const NARROW = '(max-width: 640px)';
+function subscribeNarrow(onChange: () => void) {
+  const m = window.matchMedia(NARROW);
+  m.addEventListener('change', onChange);
+  return () => m.removeEventListener('change', onChange);
+}
 
 /** "2009W" — year first, matching ubcgrades.com's own axis labels. */
 function termLabel(t: HistoricalGradeTerm): string {
@@ -33,6 +41,13 @@ function termFullLabel(t: HistoricalGradeTerm): string {
  */
 export default function HistoricalGradesTimeline({ terms }: { terms: HistoricalGradeTerm[] }) {
   const [showAll, setShowAll] = useState(false);
+  // Tap-pinned tooltip, because hover doesn't exist on touch.
+  const [pinned, setPinned] = useState<number | null>(null);
+  const narrow = useSyncExternalStore(
+    subscribeNarrow,
+    () => window.matchMedia(NARROW).matches,
+    () => false,
+  );
 
   const sorted = [...terms].sort(
     (a, b) => a.year - b.year || a.session.localeCompare(b.session),
@@ -64,7 +79,7 @@ export default function HistoricalGradesTimeline({ terms }: { terms: HistoricalG
   });
   if (run.length) segments.push(run);
 
-  const labelStep = Math.ceil(shown.length / MAX_X_LABELS);
+  const labelStep = Math.ceil(shown.length / (narrow ? MAX_X_LABELS_NARROW : MAX_X_LABELS));
 
   return (
     <div>
@@ -76,7 +91,10 @@ export default function HistoricalGradesTimeline({ terms }: { terms: HistoricalG
           <button
             key={label}
             type="button"
-            onClick={() => setShowAll(value)}
+            onClick={() => {
+              setShowAll(value);
+              setPinned(null); // indices mean different terms per range
+            }}
             className={`rounded-input px-3 py-1 text-xs font-medium transition-colors ${
               showAll === value
                 ? 'bg-brand text-brand-foreground'
@@ -143,19 +161,27 @@ export default function HistoricalGradesTimeline({ terms }: { terms: HistoricalG
 
           {shown.map((t, i) =>
             t.average === null ? null : (
-              <div
+              // A button, not a div: taps pin the tooltip open (hover still
+              // previews it). The 24px hit box is transparent; only the 8px
+              // dot inside it is drawn.
+              <button
                 key={`${t.year}-${t.session}`}
-                className="group absolute -translate-x-1/2 -translate-y-1/2"
+                type="button"
+                onClick={() => setPinned(pinned === i ? null : i)}
+                aria-label={`${termFullLabel(t)}: ${t.average.toFixed(1)}%`}
+                className="group absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
                 style={{ left: `${xPct(i)}%`, top: `${yPct(t.average)}%` }}
               >
                 <div className="h-2 w-2 rounded-full bg-brand-accent transition-transform group-hover:scale-150" />
                 <div
                   role="tooltip"
-                  className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
+                  className={`pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background shadow-lg transition-opacity ${
+                    pinned === i ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  }`}
                 >
                   {termFullLabel(t)}: {t.average.toFixed(1)}%
                 </div>
-              </div>
+              </button>
             ),
           )}
         </div>

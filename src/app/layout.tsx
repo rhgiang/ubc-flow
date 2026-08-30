@@ -11,7 +11,6 @@ import AuthOverlay from "@/components/AuthOverlay";
 import { UnsavedChangesProvider } from "@/components/UnsavedChangesContext";
 import { getCampusWeather } from "@/lib/weather";
 import { getSavedThemeMode } from "@/lib/saved-theme";
-import { Analytics } from "@vercel/analytics/next";
 import { MODES, DEFAULT_MODE, type Mode } from "@/lib/theme";
 import "./globals.css";
 
@@ -118,11 +117,6 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <ThemeToggle weather={weather} />
             <WeatherPreview />
             <AuthOverlay />
-            {/* Privacy-conscious by design: no cookies, no cross-site
-                tracking, aggregate counts only - consistent with the privacy
-                page's "no third-party tracking scripts" promise, but worth a
-                sentence there if analytics ever goes beyond page counts. */}
-            <Analytics />
           </UnsavedChangesProvider>
         </AuthOverlayProvider>
         {/*

@@ -386,7 +386,10 @@ export default function ScheduleBuilder({
       )}
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <aside className="order-2 w-full shrink-0 overflow-y-auto border-b border-border lg:order-1 lg:w-[340px] lg:border-b-0 lg:border-r">
+        {/* Below lg the panel is capped so the calendar keeps the larger
+            share — shrink-0 with unbounded content height was eating the
+            whole column and rendering the calendar at ~0px on phones. */}
+        <aside className="order-2 w-full shrink-0 overflow-y-auto border-b border-border max-lg:max-h-[40dvh] lg:order-1 lg:w-[340px] lg:border-b-0 lg:border-r">
           <SchedulePanelTabs
             termId={termId}
             chosen={chosen}
@@ -407,7 +410,7 @@ export default function ScheduleBuilder({
           />
         </aside>
 
-        <div className="order-1 flex min-w-0 flex-1 flex-col lg:order-2">
+        <div className="order-1 flex min-h-0 min-w-0 flex-1 flex-col lg:order-2">
           <ScheduleHeader
             name={name}
             onNameChange={setName}

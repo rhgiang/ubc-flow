@@ -79,7 +79,7 @@ export default function PrivacyPage() {
             way any calendar subscription link works. Don&apos;t share it if you don&apos;t want
             someone else seeing your schedule.
 
-            Sharing a schedule creates a second, separate link that shows it as a page anyone can
+            Sharing a schedule — or a term&apos;s imported calendar — creates a second, separate link that shows it as a page anyone can
             open without signing in. It shows the courses, times and rooms, and nothing about you
             — not your name, not your email. You can stop sharing at any time, which kills that
             link for good; it doesn&apos;t affect a calendar subscription, and a subscription

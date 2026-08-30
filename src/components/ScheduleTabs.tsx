@@ -6,7 +6,12 @@ import ScheduleRowActions from '@/components/ScheduleRowActions';
 import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 import CourseInfoOverlay from '@/components/schedule/CourseInfoOverlay';
 import CalendarSubscribeMenu from '@/components/schedule/CalendarSubscribeMenu';
-import { getEnrolledSubscribeUrl } from '@/app/actions/schedule';
+import ShareLinkMenu from '@/components/schedule/ShareLinkMenu';
+import {
+  getEnrolledSubscribeUrl,
+  enableEnrollmentSharing,
+  disableEnrollmentSharing,
+} from '@/app/actions/schedule';
 
 export type SectionLite = { id: string; label: string; href: string };
 export type ScheduleRow = { id: string; name: string; sections: SectionLite[] };
@@ -17,6 +22,8 @@ export type CalendarTermGroup = {
   entries: CalendarEntry[];
   /** True for at most one group: the term containing today (spec's current-time indicator). */
   isCurrentTerm: boolean;
+  /** Existing enrollment share token for this term, or null when not shared. */
+  shareToken: string | null;
 };
 
 const VISIBLE_SECTIONS = 3;
@@ -162,15 +169,25 @@ function CalendarTerm({
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-medium text-foreground">{group.termName}</h3>
           {group.entries.length > 0 && (
-            <CalendarSubscribeMenu
-              align="left"
-              getUrl={async () => {
-                const result = await getEnrolledSubscribeUrl(group.termId);
-                return result.ok
-                  ? `${window.location.origin}/api/calendar/enrolled/${result.token}`
-                  : null;
-              }}
-            />
+            <>
+              <ShareLinkMenu
+                align="left"
+                initialToken={group.shareToken}
+                pathFor={(t) => `/shared/enrolled/${t}`}
+                enable={() => enableEnrollmentSharing(group.termId)}
+                disable={() => disableEnrollmentSharing(group.termId)}
+                description="Creates a link that shows this term's calendar to anyone who opens it, without signing in. It doesn't show your name or email."
+              />
+              <CalendarSubscribeMenu
+                align="left"
+                getUrl={async () => {
+                  const result = await getEnrolledSubscribeUrl(group.termId);
+                  return result.ok
+                    ? `${window.location.origin}/api/calendar/enrolled/${result.token}`
+                    : null;
+                }}
+              />
+            </>
           )}
         </div>
         {group.entries.length > 0 && <UploadLink>Update courses →</UploadLink>}

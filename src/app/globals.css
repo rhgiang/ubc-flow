@@ -565,13 +565,16 @@ body {
   filter: drop-shadow(0 1px 2px rgba(6, 12, 28, 0.6)) drop-shadow(0 0 8px rgba(6, 12, 28, 0.4));
 }
 
-/* Hero text sits straight on the sky with no panel behind it. */
+/* Hero text sits straight on the sky with no panel behind it. The tight
+   shadow under the soft glow is what keeps it legible on the near-white
+   gray-weather skies (overcast/rain/snow bottom out at #d3d9e0) — the glow
+   alone was tuned for the blue day sky and drowned there. */
 .sky-hero {
   --foreground: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.78);
-  --text-tertiary: rgba(255, 255, 255, 0.6);
+  --text-secondary: rgba(255, 255, 255, 0.88);
+  --text-tertiary: rgba(255, 255, 255, 0.72);
   color: #ffffff;
-  text-shadow: 0 1px 24px rgba(12, 18, 40, 0.35);
+  text-shadow: 0 1px 2px rgba(6, 12, 28, 0.45), 0 1px 24px rgba(12, 18, 40, 0.5);
 }
 
 /*

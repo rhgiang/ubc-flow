@@ -26,19 +26,24 @@ export default function AuthOverlay() {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-6 backdrop-blur-sm"
-      onMouseDown={(e) => {
+      // overflow-y-auto + m-auto on the panel: centred while it fits, and
+      // scrollable once the phone keyboard leaves less height than the
+      // sign-up form needs — items-center alone clips both ends unreachably.
+      className="fixed inset-0 z-[60] flex overflow-y-auto bg-black/50 px-6 py-10 backdrop-blur-sm"
+      onPointerDown={(e) => {
         if (e.target === e.currentTarget) close();
       }}
     >
-      <AuthPanel
-        initialMode={mode}
-        onSuccess={() => {
-          onSuccess?.();
-          close();
-        }}
-        onClose={close}
-      />
+      <div className="m-auto w-full max-w-sm">
+        <AuthPanel
+          initialMode={mode}
+          onSuccess={() => {
+            onSuccess?.();
+            close();
+          }}
+          onClose={close}
+        />
+      </div>
     </div>
   );
 }

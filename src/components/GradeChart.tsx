@@ -78,7 +78,7 @@ export default function GradeChart({
             >
               <div
                 role="tooltip"
-                className={`pointer-events-none absolute bottom-full ${anchor} mb-1 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background shadow-lg transition-opacity ${
+                className={`pointer-events-none absolute bottom-full ${anchor} z-10 mb-1 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background shadow-lg transition-opacity ${
                   pinned === bucket ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                 }`}
               >

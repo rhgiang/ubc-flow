@@ -142,14 +142,16 @@ export default function CourseScheduleBox({
                           </td>
                           <td className="px-4 py-2 max-sm:hidden">
                             {s.instructors.length
-                              ? s.instructors.map((si) => (
-                                  <Link
-                                    key={si.instructorId}
-                                    href={`/professor/${si.instructor.slug}`}
-                                    className="text-brand-accent hover:underline"
-                                  >
-                                    {si.instructor.name}
-                                  </Link>
+                              ? s.instructors.map((si, i) => (
+                                  <span key={si.instructorId}>
+                                    {i > 0 && <span className="text-text-tertiary">, </span>}
+                                    <Link
+                                      href={`/professor/${si.instructor.slug}`}
+                                      className="text-brand-accent hover:underline"
+                                    >
+                                      {si.instructor.name}
+                                    </Link>
+                                  </span>
                                 ))
                               : '—'}
                           </td>

@@ -228,7 +228,16 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
   const seenStudents = new Set<string>();
 
   const hIdx = headerIndex(grid);
-  if (hIdx === -1) return { studentNumber: null, rows, transfers, excluded, unparsedTables: [] };
+  if (hIdx === -1) {
+    // No table we recognise anywhere in the file. Report every header-shaped
+    // row we DID see (column labels only, never data), so the rejection can
+    // say which table format a real export used that we have not met yet -
+    // the first non-transfer student's academic record did exactly this.
+    const unparsedTables = grid
+      .filter((r) => isTableHeaderRow(r))
+      .map((r) => r.filter(Boolean).join(' | '));
+    return { studentNumber: null, rows, transfers, excluded, unparsedTables };
+  }
 
   // The current table's data ends at the next row that looks like a header for
   // a further table (spec §8) — a senior student's export can hold more than

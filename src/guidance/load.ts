@@ -183,7 +183,6 @@ export async function loadCompletions(userId: string): Promise<Completion[]> {
   // No early return on an empty enrollment list. A student who transferred in
   // has no enrollments at all, and returning here skipped the transfer credits
   // below — which is precisely the person this is meant to help.
-  const finished = new Map(terms.map((t) => [t.id, !isUpcomingTerm(t)]));
   const courses = rows.length
     ? await db.course.findMany({
         where: { id: { in: [...new Set(rows.map((r) => r.courseId))] } },
@@ -217,9 +216,10 @@ export async function loadCompletions(userId: string): Promise<Completion[]> {
           ? "passed"
           : row.status === "failed"
             ? "failed"
-            : finished.get(row.termId)
-              ? "in_progress"
-              : "in_progress";
+            : // Both arms of the old term-based branch here returned
+              // "in_progress", so the lookup decided nothing; it only became
+              // visible when termId went nullable for academic-record rows.
+              "in_progress";
 
     out.push({
       status,

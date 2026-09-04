@@ -307,3 +307,37 @@ describe('unrecognised exports', () => {
     expect(parsed.unparsedTables[0]).toContain('Completed Coursework');
   });
 });
+
+describe('academic record export (Enrollments table)', () => {
+  it('parses courses and grades with no term, and finds the student', async () => {
+    const { parseWorkdayExport } = await import('../src/upload/parse-workday');
+    const grid = [
+      ['Enrollments', '', '', '', ''],
+      ['', 'Course', 'Grade', 'Percentage Grades', 'Credits'],
+      ['A Student (12345678) - Faculty of Science', 'BIOL_V 112 - Biology of the Cell', 'A', '85', '3'],
+      ['A Student (12345678) - Faculty of Science', 'MATH_V 101 - Integral Calculus', 'F', '42', '3'],
+    ];
+    const parsed = parseWorkdayExport(grid);
+    expect(parsed.studentNumber).toBe('12345678');
+    expect(parsed.rows).toHaveLength(2);
+    expect(parsed.excluded).toHaveLength(0);
+    // No dates anywhere in this export, so no term can be claimed.
+    expect(parsed.rows[0].termYear).toBeNull();
+    expect(parsed.rows[0].termSession).toBeNull();
+    expect(parsed.rows[0].subjectCode).toBe('BIOL');
+    expect(parsed.rows[0].status).toBe('passed');
+    expect(parsed.rows[1].status).toBe('failed');
+  });
+
+  it('still excludes an undated row from a table that does carry dates', async () => {
+    const { parseWorkdayExport } = await import('../src/upload/parse-workday');
+    const grid = [
+      ['My Enrolled Courses', '', '', ''],
+      ['', 'Course Listing', 'Meeting Patterns', 'Start Date'],
+      ['A Student (12345678)', 'CPSC_V 110 - Computation', '', ''],
+    ];
+    const parsed = parseWorkdayExport(grid);
+    expect(parsed.rows).toHaveLength(0);
+    expect(parsed.excluded[0]?.reason).toBe('no_term');
+  });
+});

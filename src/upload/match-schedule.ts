@@ -63,15 +63,19 @@ export async function matchWorkdayRows(rows: EnrollmentRow[]): Promise<ScheduleI
     if (!termCache.has(key)) {
       termCache.set(
         key,
-        await db.term.findFirst({
-          where: {
-            year: row.termYear,
-            session: row.termSession,
-            termNumber: row.termNumber,
-            campus: row.campus,
-          },
-          select: { id: true, name: true },
-        }),
+        // An academic-record row has no term to resolve; it is not a schedule
+        // and never appears in the term picker.
+        row.termYear === null || row.termSession === null
+          ? null
+          : await db.term.findFirst({
+              where: {
+                year: row.termYear,
+                session: row.termSession,
+                termNumber: row.termNumber,
+                campus: row.campus,
+              },
+              select: { id: true, name: true },
+            }),
       );
     }
     resolved.push({ row, term: termCache.get(key)! });

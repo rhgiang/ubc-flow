@@ -159,7 +159,12 @@ model Enrollment {
   userId   String
   user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   courseId String
-  termId   String
+  /// Null for a course imported from the academic record: that export lists
+  /// what you took and what you got, with no dates and no sections, so there
+  /// is no term to record. Nothing that matters for past coursework - the
+  /// review gate, degree progress - needs one; only the calendar does, and a
+  /// finished course has nothing to draw.
+  termId   String?
   source   String
   verified Boolean @default(false)
   /**

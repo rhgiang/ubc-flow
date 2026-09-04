@@ -292,3 +292,18 @@ describe('parseWorkdayExport — unknown tables', () => {
     expect(r.rows.some((x) => x.subjectCode === 'MATH' && x.courseNumber === '101')).toBe(false);
   });
 });
+
+describe('unrecognised exports', () => {
+  it('reports header-shaped rows when no known table exists', async () => {
+    const { parseWorkdayExport } = await import('../src/upload/parse-workday');
+    const grid = [
+      ['View My Academic Record', '', '', ''],
+      ['', 'Completed Coursework', 'Grade', 'Credits'],
+      ['Test Student (99999999)', 'CPSC_V 110', 'A', '4'],
+    ];
+    const parsed = parseWorkdayExport(grid);
+    expect(parsed.studentNumber).toBeNull();
+    expect(parsed.unparsedTables.length).toBeGreaterThan(0);
+    expect(parsed.unparsedTables[0]).toContain('Completed Coursework');
+  });
+});

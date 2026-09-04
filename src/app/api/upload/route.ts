@@ -32,10 +32,22 @@ export async function POST(req: Request) {
     const parsed = parseWorkdayExport(grid);
 
     if (!parsed.studentNumber) {
-      return NextResponse.json(
-        { error: "That file doesn't look like a Workday export: no student found." },
-        { status: 400 },
+      // Column labels only - a header row never contains personal data. This
+      // is the one line that lets an unsupported export variant be diagnosed
+      // from the logs instead of asking a student to hand over their grades.
+      console.error(
+        'upload rejected: no student found. banner:',
+        JSON.stringify((grid[0] ?? []).filter(Boolean).join(' | ').slice(0, 120)),
+        'header-like rows:',
+        JSON.stringify(parsed.unparsedTables.slice(0, 4)),
       );
+      const error =
+        parsed.unparsedTables.length > 0
+          ? `Your export uses a table layout we can't read yet (${parsed.unparsedTables[0]
+              .slice(0, 90)}). This is our gap, not your file - email hello@ubcflow.com with a ` +
+            'screenshot of just the top two rows and we will add support.'
+          : "That file doesn't look like a Workday export: no student found.";
+      return NextResponse.json({ error }, { status: 400 });
     }
 
     const result = await importExport(session.user.id, parsed);

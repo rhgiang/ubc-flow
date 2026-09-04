@@ -180,8 +180,8 @@ export default async function OnboardingPage() {
   const finishedTermIds = new Set(
     terms.filter((t) => !isUpcomingTerm(t)).map((t) => t.id),
   );
-  const finishedEnrollments = enrollments.filter((e) =>
-    finishedTermIds.has(e.termId),
+  const finishedEnrollments = enrollments.filter(
+    (e) => e.termId !== null && finishedTermIds.has(e.termId),
   );
   const staleImport =
     finishedEnrollments.length > 0 &&
@@ -228,25 +228,41 @@ export default async function OnboardingPage() {
 
   const currentByTerm = new Map<string, TermGroup>();
   const pastByTerm = new Map<string, TermGroup>();
+  // The academic record dates nothing, so its courses cannot join a term
+  // group. They get one of their own rather than being dropped - the whole
+  // point of importing them is that they are courses you took.
+  const undated: TermGroup = { termId: "undated", termName: "Completed courses", rows: [] };
   for (const e of enrollments) {
-    const term = termById.get(e.termId);
     const course = courseById.get(e.courseId);
-    if (!term || !course) continue;
+    if (!course) continue;
+    const row = {
+      id: e.id,
+      code: `${course.subject.code} ${course.number}`,
+      title: course.title,
+      href: courseHref(course.subject.code ?? "", course.number),
+      meetings:
+        e.termId === null ? [] : (meetingsByKey.get(`${e.courseId}:${e.termId}`) ?? []),
+    };
+
+    if (e.termId === null) {
+      undated.rows.push(row);
+      continue;
+    }
+
+    const term = termById.get(e.termId);
+    if (!term) continue;
     const bucket = isUpcomingTerm(term) ? currentByTerm : pastByTerm;
     const group = bucket.get(e.termId) ?? {
       termId: e.termId,
       termName: term.name,
       rows: [],
     };
-    group.rows.push({
-      id: e.id,
-      code: `${course.subject.code} ${course.number}`,
-      title: course.title,
-      href: courseHref(course.subject.code ?? "", course.number),
-      meetings: meetingsByKey.get(`${e.courseId}:${e.termId}`) ?? [],
-    });
+    group.rows.push(row);
     bucket.set(e.termId, group);
   }
+  // Alphabetical: with no dates there is no other meaningful order.
+  undated.rows.sort((a, b) => a.code.localeCompare(b.code));
+  if (undated.rows.length > 0) pastByTerm.set("undated", undated);
 
   const verified = Boolean(user?.verifiedAt);
 

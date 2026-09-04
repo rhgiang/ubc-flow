@@ -8,8 +8,9 @@ export type EnrollmentRow = {
   activity: string | null;
   /** Start of the FIRST meeting block — what the term is inferred from. */
   startDate: string | null;
-  termYear: number;
-  termSession: string;
+  /** Null for academic-record rows: that export carries no dates at all. */
+  termYear: number | null;
+  termSession: string | null;
   termNumber: number | null;
   days: string[];
   meetingStartTime: string | null;
@@ -196,7 +197,9 @@ export function inferTerm(
 // "Transfer Credit". Column A also holds the per-row student identity, never a
 // column label, so a genuine header's matching cell is never at index 0.
 function headerIndex(grid: string[][]): number {
-  return grid.findIndex((r) => r.some((c, i) => i > 0 && /Course Listing|Transfer Credit/i.test(c)));
+  return grid.findIndex((r) =>
+    r.some((c, i) => i > 0 && /Course Listing|Transfer Credit|^Course$/i.test(c.trim())),
+  );
 }
 
 function columnMap(header: string[]): Record<string, number> {
@@ -216,7 +219,7 @@ function columnMap(header: string[]): Record<string, number> {
 // Matching is restricted to whole words: real data cells routinely contain
 // near-hits ("Graded" in the Grading Basis column) that must not be mistaken
 // for a new table header.
-const HEADER_HINT = /\b(Course Listing|Transfer Credit|Completed Coursework|Grade)\b/i;
+const HEADER_HINT = /\b(Course Listing|Transfer Credit|Completed Coursework|Grade|Percentage Grades)\b/i;
 function isTableHeaderRow(row: string[]): boolean {
   return !row[0] && row.some((c) => HEADER_HINT.test(c));
 }
@@ -254,7 +257,7 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
   }
 
   const cols = columnMap(grid[hIdx]);
-  const courseCol = cols['course listing'] ?? cols['transfer credit'];
+  const courseCol = cols['course listing'] ?? cols['transfer credit'] ?? cols['course'];
   const sectionCol = cols['section'];
   const statusCol = cols['registration status'];
   const activityCol = cols['instructional format'];
@@ -319,7 +322,12 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
     // The Start Date column is the fallback: a section with no meeting pattern
     // at all (fully async) still belongs to a term, and used to be dropped.
     const term = inferTerm(meeting.startDate ?? sectionStartDate ?? '');
-    if (!term) {
+    // A table with neither column cannot date ANY of its rows - that is the
+    // academic record, which lists what you took and what you got and nothing
+    // about when. Those rows are kept without a term. A row missing a date in
+    // a table that HAS the columns is a different thing, and still excluded.
+    const tableCanDateRows = meetingCol !== undefined || startDateCol !== undefined;
+    if (!term && tableCanDateRows) {
       excluded.push({ raw: listing, reason: 'no_term' });
       continue;
     }
@@ -349,9 +357,9 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
       sectionEndDate: cell(row, endDateCol),
       grade: grade.trim() || null,
       status: statusFromGrade(grade),
-      termYear: term.year,
-      termSession: term.session,
-      termNumber: term.termNumber,
+      termYear: term?.year ?? null,
+      termSession: term?.session ?? null,
+      termNumber: term?.termNumber ?? null,
     });
   }
 

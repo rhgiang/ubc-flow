@@ -68,44 +68,80 @@ export async function importExport(
       select: { id: true },
     });
 
-    const term = await db.term.findFirst({
-      where: {
-        year: row.termYear,
-        session: row.termSession,
-        termNumber: row.termNumber,
-        campus: row.campus,
-      },
-      select: { id: true },
-    });
+    // Academic-record rows carry no term at all (see EnrollmentRow.termYear),
+    // so there is nothing to look up and nothing to fail on.
+    const term =
+      row.termYear === null || row.termSession === null
+        ? null
+        : await db.term.findFirst({
+            where: {
+              year: row.termYear,
+              session: row.termSession,
+              termNumber: row.termNumber,
+              campus: row.campus,
+            },
+            select: { id: true },
+          });
 
     // Reported, never silently dropped — a silent drop hides a catalogue gap
     // and leaves the user unable to review with no visible cause (spec 4.2).
-    if (!course || !term) {
+    // A dated row whose term we cannot find is a gap; an undated row is not.
+    if (!course || (!term && row.termYear !== null)) {
       unmatched.push(`${row.subjectCode} ${row.courseNumber}`);
       continue;
     }
 
-    await db.enrollment.upsert({
-      where: {
-        userId_courseId_termId: { userId, courseId: course.id, termId: term.id },
-      },
-      create: {
-        userId,
-        courseId: course.id,
-        termId: term.id,
-        source: 'workday',
-        grade: row.grade,
-        status: row.status,
-        verified: true,
-      },
-      update: { grade: row.grade, status: row.status, verified: true },
-    });
+    if (term) {
+      await db.enrollment.upsert({
+        where: {
+          userId_courseId_termId: { userId, courseId: course.id, termId: term.id },
+        },
+        create: {
+          userId,
+          courseId: course.id,
+          termId: term.id,
+          source: 'workday',
+          grade: row.grade,
+          status: row.status,
+          verified: true,
+        },
+        update: { grade: row.grade, status: row.status, verified: true },
+      });
+    } else {
+      // upsert cannot address a null termId: Postgres treats every NULL as
+      // distinct, so the compound unique never matches one and a re-upload
+      // would stack duplicates. Find-then-write is the explicit version.
+      const existing = await db.enrollment.findFirst({
+        where: { userId, courseId: course.id, termId: null },
+        select: { id: true },
+      });
+      if (existing) {
+        await db.enrollment.update({
+          where: { id: existing.id },
+          data: { grade: row.grade, status: row.status, verified: true },
+        });
+      } else {
+        await db.enrollment.create({
+          data: {
+            userId,
+            courseId: course.id,
+            termId: null,
+            source: 'workday',
+            grade: row.grade,
+            status: row.status,
+            verified: true,
+          },
+        });
+      }
+    }
     matched += 1;
-    const kept = keptByTerm.get(term.id) ?? new Set<string>();
-    kept.add(course.id);
-    keptByTerm.set(term.id, kept);
+    if (term) {
+      const kept = keptByTerm.get(term.id) ?? new Set<string>();
+      kept.add(course.id);
+      keptByTerm.set(term.id, kept);
+    }
 
-    if (row.days.length > 0) {
+    if (term && row.days.length > 0) {
       const key = `${course.id}:${term.id}`;
       if (!clearedMeetings.has(key)) {
         await db.enrollmentMeeting.deleteMany({

@@ -393,7 +393,12 @@ export default function ScheduleCalendar({
                                 e.instructor ? ` · ${e.instructor}` : ''
                               }`
                         }
-                        className={`group absolute overflow-hidden rounded-md py-1.5 leading-tight ${
+                        // Tighter padding and leading on phones buy the third
+                        // line. Three lines at leading-tight in py-1.5 need
+                        // 47px, which does not fit the 44px of a one-hour
+                        // class — the most common block on the grid, and the
+                        // one whose room was therefore never shown.
+                        className={`group absolute overflow-hidden rounded-md py-1 leading-[1.15] sm:py-1.5 sm:leading-tight ${
                           expanded ? 'pl-2 pr-1 text-[11px]' : 'pl-1 pr-0 text-[9px] sm:pl-2 sm:pr-1 sm:text-[11px]'
                         } ${
                           conflictLabels ? 'ring-1 ring-danger-border' : ''
@@ -486,12 +491,13 @@ export default function ScheduleCalendar({
                                 {e.startTime}
                               </p>
                             )}
-                            {/* Where to actually go, on the blocks with the
-                                room for it. A long class is the one that looked
-                                most stretched, because height scales with the
-                                hour while two lines of text do not, so it is
-                                also the one with space to say more. */}
-                            {colCount === 1 && durationMin >= 75 && e.location && (
+                            {/* Where to actually go. From one hour up, which
+                                is where the third line fits once the padding
+                                and leading are tightened above — and a full
+                                hour is the commonest block on the grid, so
+                                gating any higher hid the room on most of a
+                                week's classes. */}
+                            {colCount === 1 && durationMin >= 60 && e.location && (
                               <p className="truncate text-[9px] text-text-tertiary sm:hidden">
                                 {e.location}
                               </p>

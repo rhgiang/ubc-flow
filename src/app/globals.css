@@ -36,18 +36,21 @@
 
   /* Course-block palette for the schedule calendar — muted pastels with a
      saturated accent bar, assigned per course by src/schedule/colors.ts.
+     Slots 3 and 5 used to be two warm browns a hue apart; as 8px legend dots
+     on a phone they were the same colour. 3 is now a red-orange and 5 a
+     yellow-gold, so no two accents read alike at that size.
      Applied via inline style (var(--course-N-bg)), never generated classes:
      the slot is computed at runtime and Tailwind cannot emit dynamic classes. */
   --course-1-bg: #e8f0fe;
   --course-1-accent: #3b6fd4;
   --course-2-bg: #e9f2ec;
   --course-2-accent: #4a8265;
-  --course-3-bg: #fbeee7;
-  --course-3-accent: #b56a42;
+  --course-3-bg: #fdeae4;
+  --course-3-accent: #c2542d;
   --course-4-bg: #f0ecfa;
   --course-4-accent: #7256b8;
-  --course-5-bg: #fdf3e0;
-  --course-5-accent: #b3812a;
+  --course-5-bg: #fbf4d9;
+  --course-5-accent: #94781a;
   --course-6-bg: #e5f3f4;
   --course-6-accent: #3a8a90;
   --course-7-bg: #fceef1;
@@ -98,12 +101,12 @@
   --course-1-accent: #6f9ae8;
   --course-2-bg: #1e2b25;
   --course-2-accent: #79b393;
-  --course-3-bg: #33241c;
-  --course-3-accent: #d9976a;
+  --course-3-bg: #3a2119;
+  --course-3-accent: #ee8f60;
   --course-4-bg: #272040;
   --course-4-accent: #a48fe0;
-  --course-5-bg: #332a19;
-  --course-5-accent: #e0b158;
+  --course-5-bg: #302d15;
+  --course-5-accent: #cfc051;
   --course-6-bg: #172b2d;
   --course-6-accent: #6fb9bf;
   --course-7-bg: #331f26;
@@ -935,4 +938,21 @@ a.capsule-chip:hover {
     flex: none;
     height: 4.5rem;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Campus map pins — Leaflet divIcon content (see CampusMap). The negative
+ * translate centres the chip on the building's point.
+ * ------------------------------------------------------------------------ */
+.campus-pin {
+  display: inline-block;
+  transform: translate(-50%, -50%);
+  border-radius: 100px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(12, 20, 44, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.9);
 }

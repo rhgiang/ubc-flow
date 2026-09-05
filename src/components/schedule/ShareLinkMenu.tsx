@@ -100,9 +100,17 @@ export default function ShareLinkMenu({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="rounded-pill border border-border px-4 py-1.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
+        title="Share this calendar"
+        aria-label="Share this calendar"
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground transition duration-150 ease-out hover:scale-[1.05] hover:bg-surface-muted active:scale-100"
       >
-        Share
+        {/* Two nodes joined to a third: the share glyph every platform uses. */}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden className="h-4 w-4">
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" strokeLinecap="round" />
+        </svg>
       </button>
 
       {open && (

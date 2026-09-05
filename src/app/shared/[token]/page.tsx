@@ -56,15 +56,18 @@ export default async function SharedSchedulePage({
   if (!data) notFound();
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-10">
+    <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
       <div className="sky-hero">
         <p className="text-sm text-text-tertiary">
           Shared schedule{data.termName ? ` · ${data.termName}` : ''}
         </p>
-        <h1 className="text-3xl font-semibold">{data.name}</h1>
+        {/* The term already appears in the line above, so on a phone this
+            heading was two lines of 30px type repeating it, directly above the
+            calendar it was pushing down. */}
+        <h1 className="text-xl font-semibold sm:text-3xl">{data.name}</h1>
       </div>
 
-      <div className="sky-panel mt-6 p-4 sm:p-6">
+      <div className="sky-panel mt-6 p-3 sm:p-6">
         {data.sections.length === 0 ? (
           <p className="text-sm text-text-secondary">This schedule has no courses in it yet.</p>
         ) : (

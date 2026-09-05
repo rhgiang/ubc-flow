@@ -173,8 +173,19 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
           route.legs.forEach((leg, i) => {
             const [aLat, aLng] = points[i];
             const [bLat, bLng] = points[i + 1];
-            const gap = leg.gapMin < 0 ? 'overlaps' : `${leg.gapMin} min gap`;
-            const label = `${gap} · ~${leg.walkMin} min walk`;
+            // Plain words, not scheduling jargon: "0 min gap" read as a
+            // mystery, "back-to-back" reads as a Thursday.
+            const between =
+              leg.gapMin < 0
+                ? 'classes overlap'
+                : leg.gapMin === 0
+                  ? 'back-to-back'
+                  : leg.gapMin >= 60
+                    ? `${Math.floor(leg.gapMin / 60)} h${
+                        leg.gapMin % 60 ? ` ${leg.gapMin % 60} min` : ''
+                      } between classes`
+                    : `${leg.gapMin} min between classes`;
+            const label = `${between} · ~${leg.walkMin} min walk`;
             L.marker([(aLat + bLat) / 2, (aLng + bLng) / 2], {
               interactive: false,
               icon: L.divIcon({
@@ -255,7 +266,7 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
 
   return (
     <div>
-      {(courses.length > 1 || routeDays.length > 0) && (
+      {courses.length > 1 && (
         <div className="mb-2 flex gap-1.5 overflow-x-auto" role="group" aria-label="Show classes">
           <button
             type="button"
@@ -271,27 +282,36 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
           >
             All classes
           </button>
-          {courses.length > 1 &&
-            courses.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => {
-                  setDay(null);
-                  setSelected(selected === c ? null : c);
-                }}
-                className={`shrink-0 rounded-pill border px-3 py-1.5 text-xs font-medium ${
-                  selected === c
-                    ? 'border-brand bg-brand text-brand-foreground'
-                    : 'border-border text-foreground hover:bg-surface-muted'
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          {routeDays.length > 0 && (
-            <span aria-hidden className="my-1 w-px shrink-0 self-stretch bg-border" />
-          )}
+          {courses.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => {
+                setDay(null);
+                setSelected(selected === c ? null : c);
+              }}
+              className={`shrink-0 rounded-pill border px-3 py-1.5 text-xs font-medium ${
+                selected === c
+                  ? 'border-brand bg-brand text-brand-foreground'
+                  : 'border-border text-foreground hover:bg-surface-muted'
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Its own row, with a label saying what these do: on one line with the
+          course chips they read as five more filters, and "0 min gap" on the
+          map had no caption anywhere explaining that a day is a walked route. */}
+      {routeDays.length > 0 && (
+        <div
+          className="mb-2 flex items-center gap-1.5 overflow-x-auto"
+          role="group"
+          aria-label="Walk a day's route"
+        >
+          <span className="shrink-0 pr-1 text-xs text-text-secondary">Day&apos;s route:</span>
           {routeDays.map((d) => (
             <button
               key={d}

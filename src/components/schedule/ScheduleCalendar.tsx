@@ -102,6 +102,12 @@ export default function ScheduleCalendar({
     }
   }, [earliestStart]);
 
+  // Fit-the-week by default: a phone showing three and a half days makes the
+  // student swipe to answer "am I free Thursday", which is the question the
+  // calendar exists for. Expanded restores the readable-detail width and
+  // scrolls, for when they want the room and the section code.
+  const [expanded, setExpanded] = useState(false);
+
   const [now, setNow] = useState<{ minutes: number | null; dayIndex: number } | null>(null);
   useEffect(() => {
     if (!showNowIndicator) return;
@@ -128,6 +134,16 @@ export default function ScheduleCalendar({
     conflictsByEntry.set(a, [...(conflictsByEntry.get(a) ?? []), b.label]);
     conflictsByEntry.set(b, [...(conflictsByEntry.get(b) ?? []), a.label]);
   }
+
+  // One entry per course, in the order they first appear in the week.
+  const legend = [
+    ...new Map(
+      timed.map((e) => {
+        const label = e.courseCode ?? e.label;
+        return [label, { label, slot: courseColorIndex(label) }] as const;
+      }),
+    ).values(),
+  ];
 
   const totalHeight = HOURS.length * HOUR_PX;
   // The grid starts at midnight, so a time's offset is just its own minutes.
@@ -165,16 +181,53 @@ export default function ScheduleCalendar({
         </div>
       )}
 
+      {/* Phones only: the desktop grid is already wide enough to read. The
+          legend shares this row so the key sits above the calendar rather than
+          below 680px of it. */}
+      <div className="mb-2 flex items-start justify-between gap-3 sm:hidden">
+        {!expanded && legend.length > 0 ? (
+          <ul className="flex flex-1 flex-wrap gap-x-3 gap-y-1">
+            {legend.map((c) => (
+              <li
+                key={c.label}
+                className="flex items-center gap-1.5 text-[11px] text-text-secondary"
+              >
+                <span
+                  aria-hidden
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: `var(--course-${c.slot}-accent)` }}
+                />
+                {c.label}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span className="flex-1" />
+        )}
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-pressed={expanded}
+          className="flex items-center gap-1.5 rounded-pill border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-muted active:bg-surface-muted"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden className="h-3.5 w-3.5">
+            {expanded ? (
+              <path d="M9 4v5H4M15 20v-5h5M4 15h5v5M20 9h-5V4" strokeLinecap="round" strokeLinejoin="round" />
+            ) : (
+              <path d="M4 9V4h5M20 15v5h-5M15 4h5v5M9 20H4v-5" strokeLinecap="round" strokeLinejoin="round" />
+            )}
+          </svg>
+          {expanded ? 'Fit week' : 'Zoom in'}
+        </button>
+      </div>
+
       <div
         ref={scrollRef}
         className="overflow-auto rounded-card border border-border"
         style={{ maxHeight: VIEWPORT_MAX_PX }}
       >
-        {/* ponytail: narrower floor + slimmer gutter below sm shows ~3.5 days
-            per screenful instead of ~2; a real single-day view with a day
-            switcher is the upgrade path if phone usage warrants it. */}
-        <div className="flex min-w-[520px] sm:min-w-[680px]">
-          <div className="w-10 shrink-0 sm:w-16">
+        <div className={`flex sm:min-w-[680px] ${expanded ? 'min-w-[560px]' : 'min-w-0'}`}>
+          <div className={`shrink-0 sm:w-16 ${expanded ? 'w-10' : 'w-7'}`}>
             <div className="sticky top-0 z-20 h-9 border-b border-border bg-background" />
             {HOURS.map((h) => (
               <div
@@ -185,8 +238,17 @@ export default function ScheduleCalendar({
                 {/* The topmost label would straddle the container edge and clip,
                     so it is omitted — the same thing Google Calendar does. */}
                 {h !== 0 && (
-                  <span className="absolute -top-2 right-2 text-[11px] text-text-tertiary">
-                    {formatHour(h)}
+                  <span
+                    className={`absolute -top-2 text-text-tertiary ${
+                      expanded ? 'right-2 text-[11px]' : 'right-1 text-[10px] sm:right-2 sm:text-[11px]'
+                    }`}
+                  >
+                    {/* A 28px gutter has no room for "9 AM"; the bare hour is
+                        unambiguous next to a grid of them. */}
+                    <span className={expanded ? '' : 'sm:hidden'}>
+                      {expanded ? formatHour(h) : h % 12 === 0 ? 12 : h % 12}
+                    </span>
+                    {!expanded && <span className="hidden sm:inline">{formatHour(h)}</span>}
                   </span>
                 )}
               </div>
@@ -200,7 +262,10 @@ export default function ScheduleCalendar({
                   dayIndex === todayIndex ? 'text-brand-accent' : 'text-text-secondary'
                 }`}
               >
-                {day}
+                <span className={expanded ? '' : 'sm:hidden'}>
+                  {expanded ? day : day.charAt(0)}
+                </span>
+                {!expanded && <span className="hidden sm:inline">{day}</span>}
               </div>
 
               <div className="relative" style={{ height: totalHeight }}>
@@ -254,7 +319,9 @@ export default function ScheduleCalendar({
                                 e.instructor ? ` · ${e.instructor}` : ''
                               }`
                         }
-                        className={`group absolute overflow-hidden rounded-md pl-2 pr-1 py-1.5 text-[11px] leading-tight ${
+                        className={`group absolute overflow-hidden rounded-md py-1.5 leading-tight ${
+                          expanded ? 'pl-2 pr-1 text-[11px]' : 'pl-1 pr-0 text-[9px] sm:pl-2 sm:pr-1 sm:text-[11px]'
+                        } ${
                           conflictLabels ? 'ring-1 ring-danger-border' : ''
                         } ${onSelectCourse && e.courseId ? 'cursor-pointer' : ''}`}
                         style={{
@@ -316,12 +383,40 @@ export default function ScheduleCalendar({
                             ×
                           </button>
                         )}
-                        <p className="truncate font-medium text-foreground">{e.label}</p>
-                        <p className="truncate text-text-secondary">
+                        {/* Fitted columns are ~60px wide: the full
+                            "CPSC_V 110-101" wraps to three broken lines, while
+                            the course code alone reads at a glance. Tapping the
+                            block still opens everything. */}
+                        {/* Nothing readable fits a fitted column once two
+                            courses share an hour, so the fitted view drops the
+                            text and lets colour carry it - decoded by the
+                            legend under the grid, or by tapping the block. */}
+                        <p
+                          className={`truncate font-medium text-foreground ${
+                            expanded ? '' : 'max-sm:hidden'
+                          }`}
+                        >
+                          {e.label}
+                        </p>
+                        {/* Two courses at the same hour split a fitted column
+                            in half, leaving ~25px - not enough for a time as
+                            well as a name. The block's position already says
+                            when; the label says what. */}
+                        <p
+                          className={`truncate text-text-secondary ${
+                            expanded ? '' : 'max-sm:hidden'
+                          }`}
+                        >
                           {e.startTime}–{e.endTime}
                         </p>
                         {e.location && (
-                          <p className="truncate text-text-tertiary">{e.location}</p>
+                          <p
+                            className={`truncate text-text-tertiary ${
+                              expanded ? '' : 'max-sm:hidden'
+                            }`}
+                          >
+                            {e.location}
+                          </p>
                         )}
                         {e.instructor && (
                           <p className="truncate text-text-tertiary max-sm:hidden">{e.instructor}</p>
@@ -335,6 +430,7 @@ export default function ScheduleCalendar({
           ))}
         </div>
       </div>
+
     </div>
   );
 }

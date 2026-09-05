@@ -60,9 +60,15 @@ export default function CalendarSubscribeMenu({
       <button
         type="button"
         onClick={toggle}
-        className="rounded-pill border border-border px-4 py-1.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
+        title="Add to calendar"
+        aria-label="Add to calendar"
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground transition duration-150 ease-out hover:scale-[1.05] hover:bg-surface-muted active:scale-100"
       >
-        Add to calendar ▾
+        {/* A calendar with a plus: what the button does, not where it sends you. */}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden className="h-4 w-4">
+          <rect x="3" y="5" width="18" height="16" rx="2" />
+          <path d="M3 10h18M8 3v4M16 3v4M12 14v4M10 16h4" strokeLinecap="round" />
+        </svg>
       </button>
 
       {open && (

@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { formatRoom } from '@/lib/format';
 import { db } from '@/lib/db';
 import CreateScheduleModal from '@/components/CreateScheduleModal';
 import ScheduleTabs, {
@@ -11,6 +12,11 @@ import { isPlannableTerm, isUpcomingTerm, getCurrentAndNextTerm } from '@/schedu
 
 function courseHref(subjectCode: string, number: string): string {
   return `/course/${`${subjectCode} ${number}`.toLowerCase().replace(/\s+/g, '-')}`;
+}
+
+/** Identity of the section a meeting belongs to, for the catalogue lookup. */
+function sectionKey(m: { courseId: string; termId: string; sectionCode: string | null }): string {
+  return `${m.courseId}:${m.termId}:${m.sectionCode ?? ''}`;
 }
 
 export default async function SchedulePage() {
@@ -85,6 +91,31 @@ export default async function SchedulePage() {
   // "View Calendar" — real weekly grids for the upcoming plannable terms,
   // built from the Workday-parsed meeting patterns rather than anything
   // saved in the schedule builder.
+  // Our catalogue's own view of these sections, for the instructor Workday
+  // left blank. Keyed on the same (course, term, section) the meeting names.
+  const catalogueSections = meetings.length
+    ? await db.section.findMany({
+        where: {
+          courseId: { in: [...new Set(meetings.map((m) => m.courseId))] },
+          termId: { in: [...new Set(meetings.map((m) => m.termId))] },
+        },
+        select: {
+          courseId: true,
+          termId: true,
+          sectionCode: true,
+          instructors: { select: { instructor: { select: { name: true } } } },
+        },
+      })
+    : [];
+  const catalogueInstructor = new Map(
+    catalogueSections
+      .filter((sec) => sec.instructors.length > 0)
+      .map((sec) => [
+        sectionKey(sec),
+        sec.instructors.map((si) => si.instructor.name).join(', '),
+      ]),
+  );
+
   const meetingCourseIds = [...new Set(meetings.map((m) => m.courseId))];
   const meetingCourses = meetingCourseIds.length
     ? await db.course.findMany({
@@ -130,6 +161,8 @@ export default async function SchedulePage() {
         endTime: m.endTime,
         location: m.building ? `${m.building}${m.room ? ` ${m.room}` : ''}` : null,
         instructor: m.instructor,
+        building: m.building,
+        room: m.room,
       } satisfies CalendarEntry);
     });
   }

@@ -1000,6 +1000,15 @@ a.capsule-chip:hover {
   box-shadow: 0 1px 3px rgba(12, 20, 44, 0.3);
 }
 
+/* Every other leg takes a lower lane, so two legs whose midpoints land on
+   nearly the same pixel (short consecutive legs, a retraced street) stack
+   their labels instead of overlapping.
+   ponytail: two fixed lanes, real collision detection only if routes ever
+   grow enough stops for lane 1 and lane 3 to collide. */
+.campus-leg-alt {
+  transform: translate(-50%, calc(-50% + 38px));
+}
+
 /* The walk does not fit the gap: the one label that must interrupt. */
 .campus-leg-tight {
   color: #ffffff;

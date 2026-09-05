@@ -21,10 +21,15 @@ export type CalendarEntry = ScheduleEntry & {
 };
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;
-// The row height itself lives in CSS as --hour (see .cal-rows in globals.css),
-// so phones can shorten it without this component knowing the viewport. Every
-// position below is a multiple of it, written as calc().
-const hours = (n: number) => `calc(var(--hour) * ${n})`;
+// The row height lives in CSS as --hour (see .cal-rows in globals.css) so
+// phones can shorten it without this component knowing the viewport.
+//
+// The fallback is not decoration. Every row height and block position below is
+// a multiple of --hour, so if the variable is ever missing — a stale cached
+// stylesheet against fresh JS is how that happens — calc() turns invalid, the
+// heights resolve to auto, and the grid collapses to a strip showing no classes
+// at all. Missing has to degrade to the desktop hour, never to zero.
+const hours = (n: number) => `calc(var(--hour, 76px) * ${n})`;
 // The desktop value, duplicated here only for the opening scroll offset, which
 // has to be a number. Read back off the DOM so a phone scrolls to the right
 // place too.
@@ -286,7 +291,14 @@ export default function ScheduleCalendar({
           // Phones keep the cap even in fill mode: the un-pinned mobile
           // builder scrolls as a page, so an uncapped grid would be 1800px
           // of calendar between the header and the course list.
-          fill ? 'max-h-[680px] lg:max-h-none lg:min-h-0 lg:flex-1' : 'max-h-[680px]'
+          //
+          // 460px on a phone, not 680: at the shorter mobile hour that is
+          // still about 8 hours, a whole class day, and /schedule stacks a
+          // calendar per term — two 680px grids is most of a phone screen
+          // spent scrolling past one term to reach the next.
+          fill
+            ? 'max-h-[460px] sm:max-h-[680px] lg:max-h-none lg:min-h-0 lg:flex-1'
+            : 'max-h-[460px] sm:max-h-[680px]'
         }`}
       >
         <div className={`flex sm:min-w-[680px] ${expanded ? 'min-w-[560px]' : 'min-w-0'}`}>
@@ -296,7 +308,7 @@ export default function ScheduleCalendar({
               <div
                 key={h}
                 className="relative pr-2 text-right"
-                style={{ height: 'var(--hour)' }}
+                style={{ height: 'var(--hour, 76px)' }}
               >
                 {/* The topmost label would straddle the container edge and clip,
                     so it is omitted — the same thing Google Calendar does. */}
@@ -336,7 +348,7 @@ export default function ScheduleCalendar({
                   <div
                     key={h}
                     className="border-b border-border-hairline"
-                    style={{ height: 'var(--hour)' }}
+                    style={{ height: 'var(--hour, 76px)' }}
                   />
                 ))}
 

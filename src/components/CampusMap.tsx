@@ -190,7 +190,10 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
               interactive: false,
               icon: L.divIcon({
                 className: '',
-                html: `<span class="campus-leg${leg.tight ? ' campus-leg-tight' : ''}">${label}</span>`,
+                // Odd legs drop to a second lane: consecutive short legs (or a
+                // route retracing a street) put two midpoints almost on the
+                // same pixel, and one shared lane stacks their labels.
+                html: `<span class="campus-leg${i % 2 ? ' campus-leg-alt' : ''}${leg.tight ? ' campus-leg-tight' : ''}">${label}</span>`,
                 iconSize: [0, 0],
               }),
             }).addTo(pins);

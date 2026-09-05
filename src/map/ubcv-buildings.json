@@ -1,0 +1,2247 @@
+{
+ "CRSW": {
+  "name": "Crescent West",
+  "lat": 49.253131,
+  "lng": -123.232799
+ },
+ "BINH": {
+  "name": "Binning Tower - Highrise",
+  "lat": 49.255441,
+  "lng": -123.231374
+ },
+ "SCWH": {
+  "name": "South Campus Warehouse",
+  "lat": 49.246256,
+  "lng": -123.231863
+ },
+ "LMRS": {
+  "name": "Lower Mall Research Station",
+  "lat": 49.260553,
+  "lng": -123.255524
+ },
+ "IONA": {
+  "name": "Iona Building",
+  "lat": 49.270988,
+  "lng": -123.250309
+ },
+ "MSUB": {
+  "name": "Main Substation",
+  "lat": 49.261347,
+  "lng": -123.24437
+ },
+ "BON2": {
+  "name": "UBC Botanical Garden Nursery - Workshop",
+  "lat": 49.249533,
+  "lng": -123.234449
+ },
+ "BON1": {
+  "name": "UBC Botanical Garden Nursery - Greenhouses",
+  "lat": 49.249451,
+  "lng": -123.234972
+ },
+ "MARF": {
+  "name": "Materials Recovery Facility",
+  "lat": 49.245784,
+  "lng": -123.228539
+ },
+ "TELS": {
+  "name": "Telus Hub",
+  "lat": 49.255225,
+  "lng": -123.235473
+ },
+ "CHPH": {
+  "name": "Chemistry Physics Building A",
+  "lat": 49.265736,
+  "lng": -123.251513
+ },
+ "ACD1": {
+  "name": "Academy - Highrise",
+  "lat": 49.255577,
+  "lng": -123.233051
+ },
+ "SAL1": {
+  "name": "Sail - Building 1",
+  "lat": 49.252238,
+  "lng": -123.235232
+ },
+ "PACC": {
+  "name": "Pacific",
+  "lat": 49.253278,
+  "lng": -123.234987
+ },
+ "BARN": {
+  "name": "The Barn - Owl Child Care",
+  "lat": 49.261931,
+  "lng": -123.251115
+ },
+ "MAR6": {
+  "name": "Marine Drive Residence - 6",
+  "lat": 49.261079,
+  "lng": -123.256063
+ },
+ "LGCY": {
+  "name": "Legacy",
+  "lat": 49.257463,
+  "lng": -123.248008
+ },
+ "PROM": {
+  "name": "Promontory",
+  "lat": 49.25595,
+  "lng": -123.247569
+ },
+ "NINE": {
+  "name": "Nine on the Park",
+  "lat": 49.259327,
+  "lng": -123.247034
+ },
+ "REFL": {
+  "name": "Reflections",
+  "lat": 49.258252,
+  "lng": -123.246886
+ },
+ "PARW": {
+  "name": "West Parkade",
+  "lat": 49.262596,
+  "lng": -123.255018
+ },
+ "SHRM": {
+  "name": "Gordon B. Shrum Building",
+  "lat": 49.265643,
+  "lng": -123.247325
+ },
+ "SOMS": {
+  "name": "Somerset",
+  "lat": 49.256504,
+  "lng": -123.24813
+ },
+ "CCSA": {
+  "name": "Child Care Services Administration Building",
+  "lat": 49.26093,
+  "lng": -123.234257
+ },
+ "HAWT": {
+  "name": "Hawthorn Green",
+  "lat": 49.258174,
+  "lng": -123.248586
+ },
+ "CLEM": {
+  "name": "Clement's Green",
+  "lat": 49.25822,
+  "lng": -123.245831
+ },
+ "FRAS": {
+  "name": "Fraser Hall",
+  "lat": 49.261506,
+  "lng": -123.240766
+ },
+ "STJA": {
+  "name": "St. James House",
+  "lat": 49.25822,
+  "lng": -123.237199
+ },
+ "SITK": {
+  "name": "Sitka",
+  "lat": 49.262882,
+  "lng": -123.241911
+ },
+ "CGPH": {
+  "name": "Cecil Green Park House",
+  "lat": 49.271387,
+  "lng": -123.25769
+ },
+ "SAG2": {
+  "name": "Sage - Townhouses",
+  "lat": 49.254987,
+  "lng": -123.233501
+ },
+ "SAG1": {
+  "name": "Sage - Highrise",
+  "lat": 49.255264,
+  "lng": -123.233708
+ },
+ "INTL": {
+  "name": "International House",
+  "lat": 49.2678,
+  "lng": -123.25896
+ },
+ "THRY": {
+  "name": "Theory",
+  "lat": 49.251054,
+  "lng": -123.231135
+ },
+ "CHHT": {
+  "name": "Chancellor Hall - Townhouses",
+  "lat": 49.272187,
+  "lng": -123.250355
+ },
+ "SPRT": {
+  "name": "Spirit",
+  "lat": 49.252986,
+  "lng": -123.233615
+ },
+ "KLIB": {
+  "name": "Walter C. Koerner Library",
+  "lat": 49.26665,
+  "lng": -123.255125
+ },
+ "LOGN": {
+  "name": "Logan Lane",
+  "lat": 49.258901,
+  "lng": -123.245728
+ },
+ "GATN": {
+  "name": "Gateway North",
+  "lat": 49.267204,
+  "lng": -123.246884
+ },
+ "STRG": {
+  "name": "David Strangway Building",
+  "lat": 49.265839,
+  "lng": -123.246173
+ },
+ "VERV": {
+  "name": "Verve",
+  "lat": 49.250869,
+  "lng": -123.231851
+ },
+ "JOUR": {
+  "name": "Journey",
+  "lat": 49.258036,
+  "lng": -123.247481
+ },
+ "OSB1": {
+  "name": "Robert F. Osborne Centre - Unit 1",
+  "lat": 49.260296,
+  "lng": -123.24372
+ },
+ "OSB2": {
+  "name": "Robert F. Osborne Centre - Unit 2",
+  "lat": 49.259976,
+  "lng": -123.244315
+ },
+ "APRP": {
+  "name": "Acadia Park Residence - President's Row",
+  "lat": 49.265326,
+  "lng": -123.238984
+ },
+ "SPPH": {
+  "name": "School of Population & Public Health",
+  "lat": 49.26424,
+  "lng": -123.248416
+ },
+ "SERC": {
+  "name": "Staging Environmental Research Centre",
+  "lat": 49.245383,
+  "lng": -123.228053
+ },
+ "SRC": {
+  "name": "Student Recreation Centre",
+  "lat": 49.268304,
+  "lng": -123.248976
+ },
+ "TMHL": {
+  "name": "Timothy Hall",
+  "lat": 49.271035,
+  "lng": -123.248723
+ },
+ "EXCH": {
+  "name": "Exchange Residence",
+  "lat": 49.268567,
+  "lng": -123.247692
+ },
+ "GRN3": {
+  "name": "Green College - A South",
+  "lat": 49.270941,
+  "lng": -123.255231
+ },
+ "GRN5": {
+  "name": "Green College - B East",
+  "lat": 49.270843,
+  "lng": -123.25601
+ },
+ "TRAN": {
+  "name": "UBC Exchange",
+  "lat": 49.267759,
+  "lng": -123.247429
+ },
+ "GRN2": {
+  "name": "Green College - Kitchen/Laundry",
+  "lat": 49.270989,
+  "lng": -123.255578
+ },
+ "GRN1": {
+  "name": "Green College - A North",
+  "lat": 49.271155,
+  "lng": -123.255667
+ },
+ "GRN6": {
+  "name": "Green College - D Coach House",
+  "lat": 49.271144,
+  "lng": -123.256534
+ },
+ "GRN8": {
+  "name": "Green College - D Commons",
+  "lat": 49.271298,
+  "lng": -123.256687
+ },
+ "GRN7": {
+  "name": "Green College - D Graham House",
+  "lat": 49.27128,
+  "lng": -123.256266
+ },
+ "GRN9": {
+  "name": "Green College - Guest House",
+  "lat": 49.27086,
+  "lng": -123.256515
+ },
+ "APR1": {
+  "name": "Acadia Park Residence - Melfa Lane",
+  "lat": 49.264247,
+  "lng": -123.2371
+ },
+ "APR2": {
+  "name": "Acadia Park Residence - Montgomery Place",
+  "lat": 49.264815,
+  "lng": -123.238725
+ },
+ "GRN10": {
+  "name": "Green College - Principal's Residence",
+  "lat": 49.270911,
+  "lng": -123.256949
+ },
+ "APR4": {
+  "name": "Acadia Park Residence - Pearkes Lane",
+  "lat": 49.264274,
+  "lng": -123.239427
+ },
+ "FAR1": {
+  "name": "Fairview Crescent Residence - Building 1",
+  "lat": 49.26332,
+  "lng": -123.239653
+ },
+ "APR5": {
+  "name": "Acadia Park Residence - Tennis Crescent",
+  "lat": 49.263483,
+  "lng": -123.237716
+ },
+ "FAR2": {
+  "name": "Fairview Crescent Residence - Building 2",
+  "lat": 49.263001,
+  "lng": -123.239796
+ },
+ "PAPC": {
+  "name": "Pulp and Paper Centre",
+  "lat": 49.261416,
+  "lng": -123.247568
+ },
+ "BRCE": {
+  "name": "Brock Commons East - Tallwood House",
+  "lat": 49.269507,
+  "lng": -123.251313
+ },
+ "BRCN": {
+  "name": "Brock Commons North",
+  "lat": 49.269586,
+  "lng": -123.25262
+ },
+ "PCE": {
+  "name": "Ponderosa Commons East - Audain Art Centre/Spruce House",
+  "lat": 49.263781,
+  "lng": -123.25441
+ },
+ "PCN": {
+  "name": "Ponderosa Commons North - Oak/Cedar House",
+  "lat": 49.264092,
+  "lng": -123.256151
+ },
+ "PCW": {
+  "name": "Ponderosa Commons West - Arbutus/Maple House",
+  "lat": 49.263441,
+  "lng": -123.25562
+ },
+ "APR6": {
+  "name": "Acadia Park Residence - Yalta Place",
+  "lat": 49.26414,
+  "lng": -123.238234
+ },
+ "BIOL": {
+  "name": "Biological Sciences Building",
+  "lat": 49.264469,
+  "lng": -123.251339
+ },
+ "BOOK": {
+  "name": "UBC Bookstore / NCE",
+  "lat": 49.264988,
+  "lng": -123.250592
+ },
+ "TPR6": {
+  "name": "Totem Park Residence - Haida/Salish House",
+  "lat": 49.257476,
+  "lng": -123.252622
+ },
+ "TPR2": {
+  "name": "Totem Park Residence - Dene/Nootka House",
+  "lat": 49.258715,
+  "lng": -123.253225
+ },
+ "TPR3": {
+  "name": "Totem Park Residence - Kwakiutl/Shuswap House",
+  "lat": 49.259362,
+  "lng": -123.252324
+ },
+ "THUN": {
+  "name": "Doug Mitchell Thunderbird Sports Centre",
+  "lat": 49.260341,
+  "lng": -123.241931
+ },
+ "LMP2": {
+  "name": "Lower Mall Precinct - Tower 2",
+  "lat": 49.262616,
+  "lng": -123.256056
+ },
+ "LMPP": {
+  "name": "Lower Mall Precinct - Podium Amenity",
+  "lat": 49.262709,
+  "lng": -123.256318
+ },
+ "LMP1": {
+  "name": "Lower Mall Precinct - Tower 1",
+  "lat": 49.26294,
+  "lng": -123.256687
+ },
+ "LMP6": {
+  "name": "Lower Mall Precinct - Tower 6",
+  "lat": 49.262752,
+  "lng": -123.257685
+ },
+ "LMPF": {
+  "name": "Lower Mall Precinct - Old Fire Hall",
+  "lat": 49.262567,
+  "lng": -123.257376
+ },
+ "LMP5": {
+  "name": "Lower Mall Precinct - Tower 5",
+  "lat": 49.262376,
+  "lng": -123.25809
+ },
+ "LMP4": {
+  "name": "Lower Mall Precinct - Tower 4",
+  "lat": 49.262147,
+  "lng": -123.257569
+ },
+ "LMP3": {
+  "name": "Lower Mall Precinct - Tower 3",
+  "lat": 49.262304,
+  "lng": -123.256659
+ },
+ "TEF3": {
+  "name": "TEF (Technology Enterprise Facility) 3",
+  "lat": 49.261156,
+  "lng": -123.246299
+ },
+ "BRDF": {
+  "name": "Bioenergy Research and Demonstration Facility",
+  "lat": 49.260266,
+  "lng": -123.254619
+ },
+ "USB": {
+  "name": "University Services Building",
+  "lat": 49.2613,
+  "lng": -123.253785
+ },
+ "VST": {
+  "name": "Vancouver School of Theology",
+  "lat": 49.270391,
+  "lng": -123.251044
+ },
+ "PUMP": {
+  "name": "UBC Water Pump Station",
+  "lat": 49.264621,
+  "lng": -123.254161
+ },
+ "CEME": {
+  "name": "Civil and Mechanical Engineering Building",
+  "lat": 49.262545,
+  "lng": -123.248881
+ },
+ "WGR5": {
+  "name": "Walter H. Gage Residence - North Tower",
+  "lat": 49.269841,
+  "lng": -123.250029
+ },
+ "WGR6": {
+  "name": "Walter H. Gage Residence - South Tower",
+  "lat": 49.2692,
+  "lng": -123.24972
+ },
+ "APR3": {
+  "name": "Acadia Park Residence - Fairview Place",
+  "lat": 49.263269,
+  "lng": -123.236838
+ },
+ "APRH": {
+  "name": "Acadia Park Residence - Highrise",
+  "lat": 49.26237,
+  "lng": -123.236813
+ },
+ "AERL": {
+  "name": "AERL (Aquatic Ecosystems Research Laboratory)",
+  "lat": 49.26376,
+  "lng": -123.250977
+ },
+ "CEC": {
+  "name": "Campus Energy Centre",
+  "lat": 49.261648,
+  "lng": -123.245083
+ },
+ "CIRS": {
+  "name": "CIRS (Centre for Interactive Research on Sustainability)",
+  "lat": 49.262051,
+  "lng": -123.25308
+ },
+ "CHPL": {
+  "name": "Chapel of the Epiphany",
+  "lat": 49.271559,
+  "lng": -123.252272
+ },
+ "CBH": {
+  "name": "Djavad Mowafaghian Centre for Brain Health",
+  "lat": 49.264275,
+  "lng": -123.244569
+ },
+ "EOS": {
+  "name": "Earth and Ocean Sciences",
+  "lat": 49.26251,
+  "lng": -123.25249
+ },
+ "ESB": {
+  "name": "Earth Sciences Building",
+  "lat": 49.263067,
+  "lng": -123.252188
+ },
+ "ESC": {
+  "name": "Engineering Student Centre",
+  "lat": 49.262188,
+  "lng": -123.249278
+ },
+ "ICCS": {
+  "name": "Institute for Computing Information and Cognitive Systems / Computer Science Building",
+  "lat": 49.261174,
+  "lng": -123.248832
+ },
+ "WMAX": {
+  "name": "West Mall Annex",
+  "lat": 49.26625,
+  "lng": -123.257156
+ },
+ "KEEN": {
+  "name": "Keenleyside",
+  "lat": 49.253967,
+  "lng": -123.233169
+ },
+ "BUTO": {
+  "name": "Buchanan Tower",
+  "lat": 49.268579,
+  "lng": -123.253487
+ },
+ "SOWK": {
+  "name": "Jack Bell Building for the School of Social Work",
+  "lat": 49.264462,
+  "lng": -123.255094
+ },
+ "BERW": {
+  "name": "Berwick Child Development Centre",
+  "lat": 49.260588,
+  "lng": -123.238932
+ },
+ "ECHO": {
+  "name": "Echo",
+  "lat": 49.2525,
+  "lng": -123.232318
+ },
+ "HORT": {
+  "name": "Horticulture Building",
+  "lat": 49.261402,
+  "lng": -123.252773
+ },
+ "PARC": {
+  "name": "Library PARC@UBC",
+  "lat": 49.245082,
+  "lng": -123.229708
+ },
+ "MCDN": {
+  "name": "JB Macdonald Building",
+  "lat": 49.265345,
+  "lng": -123.24533
+ },
+ "EVLV": {
+  "name": "Evolve",
+  "lat": 49.252346,
+  "lng": -123.233236
+ },
+ "BOT2": {
+  "name": "UBC Botanical Garden - Admin/Campbell Building",
+  "lat": 49.253896,
+  "lng": -123.251116
+ },
+ "BOT8": {
+  "name": "UBC Botanical Garden - Alpine Garden Greenhouse",
+  "lat": 49.253645,
+  "lng": -123.245842
+ },
+ "BOT4": {
+  "name": "UBC Botanical Garden - Garden Pavilion",
+  "lat": 49.25326,
+  "lng": -123.247116
+ },
+ "BOT3": {
+  "name": "UBC Botanical Garden - Reception Centre",
+  "lat": 49.254155,
+  "lng": -123.251275
+ },
+ "CYPR": {
+  "name": "Cypress House",
+  "lat": 49.25194,
+  "lng": -123.23469
+ },
+ "PINE": {
+  "name": "Pine House",
+  "lat": 49.251443,
+  "lng": -123.234274
+ },
+ "BOT5": {
+  "name": "UBC Botanical Garden - Scholar's Retreat",
+  "lat": 49.254985,
+  "lng": -123.24692
+ },
+ "BOT1": {
+  "name": "UBC Botanical Garden - Shop/Gatehouse Entrance",
+  "lat": 49.254038,
+  "lng": -123.250549
+ },
+ "BOT7": {
+  "name": "UBC Botanical Garden - Ting Lookout",
+  "lat": 49.254091,
+  "lng": -123.25166
+ },
+ "CSCA": {
+  "name": "Cascara House",
+  "lat": 49.258468,
+  "lng": -123.249667
+ },
+ "GARD": {
+  "name": "Gardenia House",
+  "lat": 49.25873,
+  "lng": -123.248967
+ },
+ "BOT6": {
+  "name": "UBC Botanical Garden - Workshop (Trailer)",
+  "lat": 49.254769,
+  "lng": -123.24764
+ },
+ "FRM3": {
+  "name": "UBC Farm - Children's Greenhouse",
+  "lat": 49.251477,
+  "lng": -123.239793
+ },
+ "MAGN": {
+  "name": "Magnolia House",
+  "lat": 49.251541,
+  "lng": -123.233539
+ },
+ "FRM4": {
+  "name": "UBC Farm - Greenhouse 1",
+  "lat": 49.251148,
+  "lng": -123.238931
+ },
+ "BRCS": {
+  "name": "Brock Commons South",
+  "lat": 49.26907,
+  "lng": -123.252352
+ },
+ "FRM5": {
+  "name": "UBC Farm - Greenhouse 2",
+  "lat": 49.251043,
+  "lng": -123.239002
+ },
+ "VNR07": {
+  "name": "Place Vanier Residence - Margaret Mackenzie House",
+  "lat": 49.265692,
+  "lng": -123.259143
+ },
+ "VNR09": {
+  "name": "Place Vanier Residence - Phyllis Ross House",
+  "lat": 49.265329,
+  "lng": -123.259614
+ },
+ "VNR01": {
+  "name": "Place Vanier Residence - Aldyen Hamber House",
+  "lat": 49.265266,
+  "lng": -123.258795
+ },
+ "VNR04": {
+  "name": "Place Vanier Residence - Dorothy Mawdsley House",
+  "lat": 49.264868,
+  "lng": -123.259505
+ },
+ "UHIL": {
+  "name": "University Hill Secondary School",
+  "lat": 49.254268,
+  "lng": -123.238731
+ },
+ "VNR06": {
+  "name": "Place Vanier Residence - Korea House",
+  "lat": 49.264613,
+  "lng": -123.26001
+ },
+ "VNR12": {
+  "name": "Place Vanier Residence - Tec De Monterrey House",
+  "lat": 49.264041,
+  "lng": -123.259538
+ },
+ "VNR02": {
+  "name": "Place Vanier Residence - Cariboo House",
+  "lat": 49.263743,
+  "lng": -123.258968
+ },
+ "LAX": {
+  "name": "Landscape Architecture Annex",
+  "lat": 49.260657,
+  "lng": -123.250061
+ },
+ "VNR05": {
+  "name": "Place Vanier Residence - Kootenay House",
+  "lat": 49.263879,
+  "lng": -123.257632
+ },
+ "VNR10": {
+  "name": "Place Vanier Residence - Robson House",
+  "lat": 49.263907,
+  "lng": -123.258426
+ },
+ "DPAV": {
+  "name": "UBC Hospital - Detwiller Pavilion",
+  "lat": 49.26356,
+  "lng": -123.244471
+ },
+ "KPAV": {
+  "name": "UBC Hospital - Koerner Pavilion",
+  "lat": 49.264151,
+  "lng": -123.245991
+ },
+ "TRF26": {
+  "name": "TRIUMF - Trailer RR",
+  "lat": 49.247137,
+  "lng": -123.230834
+ },
+ "WGR4": {
+  "name": "Walter H. Gage Residence - East Tower",
+  "lat": 49.269645,
+  "lng": -123.249158
+ },
+ "TRFH": {
+  "name": "TRIUMF House",
+  "lat": 49.262025,
+  "lng": -123.241171
+ },
+ "TRF25": {
+  "name": "TRIUMF - Trailer Q",
+  "lat": 49.24682,
+  "lng": -123.23062
+ },
+ "TRF24": {
+  "name": "TRIUMF - Trailer PP",
+  "lat": 49.246359,
+  "lng": -123.229145
+ },
+ "YURT": {
+  "name": "UBC Farm - Yurt",
+  "lat": 49.25126,
+  "lng": -123.239913
+ },
+ "TRF22": {
+  "name": "TRIUMF - Trailer LL",
+  "lat": 49.246893,
+  "lng": -123.230972
+ },
+ "TRF21": {
+  "name": "TRIUMF - Trailer HH & FF",
+  "lat": 49.248316,
+  "lng": -123.230643
+ },
+ "VNR08": {
+  "name": "Place Vanier Residence - Okanagan House",
+  "lat": 49.264345,
+  "lng": -123.257764
+ },
+ "LMHH": {
+  "name": "Lower Mall Header House",
+  "lat": 49.260535,
+  "lng": -123.254838
+ },
+ "TRF20": {
+  "name": "TRIUMF - Trailer GG",
+  "lat": 49.246197,
+  "lng": -123.229348
+ },
+ "CUNN": {
+  "name": "George Cunningham Building",
+  "lat": 49.264787,
+  "lng": -123.248732
+ },
+ "TRF18": {
+  "name": "TRIUMF - Trailer A",
+  "lat": 49.246586,
+  "lng": -123.230325
+ },
+ "HEBB": {
+  "name": "Hebb Building",
+  "lat": 49.266129,
+  "lng": -123.251663
+ },
+ "MCML": {
+  "name": "HR MacMillan Building",
+  "lat": 49.261066,
+  "lng": -123.250746
+ },
+ "TRF28": {
+  "name": "TRIUMF - Shipping/Workshop",
+  "lat": 49.246246,
+  "lng": -123.230068
+ },
+ "TRF15": {
+  "name": "TRIUMF - Plant Storage",
+  "lat": 49.246011,
+  "lng": -123.22963
+ },
+ "TRF14": {
+  "name": "TRIUMF - Offices, Laboratory & Workshops",
+  "lat": 49.247655,
+  "lng": -123.230598
+ },
+ "TRF13": {
+  "name": "TRIUMF - Nina Storage Shelter",
+  "lat": 49.246,
+  "lng": -123.230435
+ },
+ "TRF12": {
+  "name": "TRIUMF - Machine Shop Materials",
+  "lat": 49.246383,
+  "lng": -123.22983
+ },
+ "TRF11": {
+  "name": "TRIUMF - Liquid Helium Storage",
+  "lat": 49.246923,
+  "lng": -123.230786
+ },
+ "MINL": {
+  "name": "Coal and Mineral Processing Laboratory",
+  "lat": 49.261169,
+  "lng": -123.252039
+ },
+ "TRF10": {
+  "name": "TRIUMF - ISAC 2",
+  "lat": 49.248293,
+  "lng": -123.2294
+ },
+ "TRF09": {
+  "name": "TRIUMF - ISAC 1",
+  "lat": 49.247869,
+  "lng": -123.229483
+ },
+ "TRF29": {
+  "name": "TRIUMF - Institute of Advanced Medical Isotopes (IAMI)",
+  "lat": 49.246796,
+  "lng": -123.228275
+ },
+ "TRF08": {
+  "name": "TRIUMF - Hazardous Storage",
+  "lat": 49.246732,
+  "lng": -123.229328
+ },
+ "FNH": {
+  "name": "Food, Nutrition and Health Building",
+  "lat": 49.264014,
+  "lng": -123.249744
+ },
+ "CSB": {
+  "name": "Continuing Studies Building",
+  "lat": 49.263338,
+  "lng": -123.255014
+ },
+ "BRC": {
+  "name": "Biomedical Research Centre",
+  "lat": 49.264116,
+  "lng": -123.247194
+ },
+ "TRF06": {
+  "name": "TRIUMF - Equipment Marque",
+  "lat": 49.246738,
+  "lng": -123.230714
+ },
+ "GUNN": {
+  "name": "Chan Gunn Pavilion",
+  "lat": 49.260939,
+  "lng": -123.241655
+ },
+ "TRF04": {
+  "name": "TRIUMF - Badge Room",
+  "lat": 49.247498,
+  "lng": -123.230295
+ },
+ "TRF01": {
+  "name": "TRIUMF - ARIEL",
+  "lat": 49.247701,
+  "lng": -123.229976
+ },
+ "IRSC": {
+  "name": "Indian Residential School History and Dialogue Centre (IRSHDC)",
+  "lat": 49.266994,
+  "lng": -123.253741
+ },
+ "PHRM": {
+  "name": "Pharmaceutical Sciences Building",
+  "lat": 49.262279,
+  "lng": -123.243346
+ },
+ "TRF02": {
+  "name": "TRIUMF - Accelerator",
+  "lat": 49.247272,
+  "lng": -123.229286
+ },
+ "MEDC": {
+  "name": "Medical Sciences Block C",
+  "lat": 49.264969,
+  "lng": -123.247871
+ },
+ "PPAV": {
+  "name": "UBC Hospital - Purdy Pavilion",
+  "lat": 49.263267,
+  "lng": -123.245953
+ },
+ "GMCG": {
+  "name": "Gerald McGavin Building",
+  "lat": 49.261791,
+  "lng": -123.246762
+ },
+ "FRDM": {
+  "name": "Friedman Building",
+  "lat": 49.265368,
+  "lng": -123.246237
+ },
+ "KENN": {
+  "name": "Douglas T. Kenny Building",
+  "lat": 49.263332,
+  "lng": -123.253859
+ },
+ "FOCL": {
+  "name": "Focal",
+  "lat": 49.266181,
+  "lng": -123.248432
+ },
+ "RIX": {
+  "name": "Donald Rix Building",
+  "lat": 49.261972,
+  "lng": -123.2463
+ },
+ "LIU": {
+  "name": "Liu Institute for Global Issues",
+  "lat": 49.267549,
+  "lng": -123.259267
+ },
+ "ANSO": {
+  "name": "Anthropology and Sociology Building",
+  "lat": 49.270316,
+  "lng": -123.257691
+ },
+ "ACEN": {
+  "name": "Asian Centre",
+  "lat": 49.266752,
+  "lng": -123.25871
+ },
+ "RCN": {
+  "name": "Recreation Centre North",
+  "lat": 49.267999,
+  "lng": -123.250396
+ },
+ "SBUS": {
+  "name": "Sauder Expansion",
+  "lat": 49.265093,
+  "lng": -123.254889
+ },
+ "ORCC": {
+  "name": "Orchard Commons - Childcare",
+  "lat": 49.260376,
+  "lng": -123.252031
+ },
+ "SYMY": {
+  "name": "Symphony",
+  "lat": 49.251114,
+  "lng": -123.232337
+ },
+ "WESB": {
+  "name": "Wesbrook Building",
+  "lat": 49.265251,
+  "lng": -123.249156
+ },
+ "CCS3": {
+  "name": "Child Care Services - Little Goslings/Coho",
+  "lat": 49.25992,
+  "lng": -123.234048
+ },
+ "CCS4": {
+  "name": "Child Care Services - Little Raven/Pacific Spirit",
+  "lat": 49.260216,
+  "lng": -123.233802
+ },
+ "CCS5": {
+  "name": "Child Care Services - Sandpiper/Auklet",
+  "lat": 49.26026,
+  "lng": -123.234743
+ },
+ "CCS7": {
+  "name": "Child Care Services - Summer of 73/Lilliput",
+  "lat": 49.25945,
+  "lng": -123.23547
+ },
+ "ENV6": {
+  "name": "Environmental Services Facility - Solvent Storage Area",
+  "lat": 49.243731,
+  "lng": -123.228605
+ },
+ "ENV3": {
+  "name": "Environmental Services Facility - Natural Gas Station",
+  "lat": 49.24362,
+  "lng": -123.228203
+ },
+ "ENV5": {
+  "name": "Environmental Services Facility - PCB Equipment Storage",
+  "lat": 49.243362,
+  "lng": -123.228049
+ },
+ "ENV1": {
+  "name": "Environmental Services Facility - Lab",
+  "lat": 49.243333,
+  "lng": -123.228656
+ },
+ "ENV4": {
+  "name": "Environmental Services Facility - Office",
+  "lat": 49.243471,
+  "lng": -123.228986
+ },
+ "COSE": {
+  "name": "Coast - Apartment East",
+  "lat": 49.271045,
+  "lng": -123.252555
+ },
+ "THAC2": {
+  "name": "Thames Court - Townhouses",
+  "lat": 49.257073,
+  "lng": -123.236162
+ },
+ "AUDI": {
+  "name": "Old Auditorium",
+  "lat": 49.266903,
+  "lng": -123.256099
+ },
+ "MBOL": {
+  "name": "Mary Bollert Hall",
+  "lat": 49.270579,
+  "lng": -123.256017
+ },
+ "BINN": {
+  "name": "B.C. Binning Studios",
+  "lat": 49.264604,
+  "lng": -123.254879
+ },
+ "LIFE": {
+  "name": "UBC Life Building",
+  "lat": 49.267434,
+  "lng": -123.250062
+ },
+ "CCM": {
+  "name": "Centre for Comparative Medicine",
+  "lat": 49.246819,
+  "lng": -123.233554
+ },
+ "TRF03": {
+  "name": "TRIUMF - Accelerator Trailer",
+  "lat": 49.246851,
+  "lng": -123.230129
+ },
+ "TRF05": {
+  "name": "TRIUMF - Compressor Building",
+  "lat": 49.246664,
+  "lng": -123.229909
+ },
+ "TRF17": {
+  "name": "TRIUMF - Stores Building",
+  "lat": 49.246544,
+  "lng": -123.230587
+ },
+ "BETY": {
+  "name": "Beaty Biodiversity Centre",
+  "lat": 49.263372,
+  "lng": -123.250353
+ },
+ "SAND": {
+  "name": "Sandringham",
+  "lat": 49.257847,
+  "lng": -123.233544
+ },
+ "PART": {
+  "name": "Thunderbird Parkade",
+  "lat": 49.261655,
+  "lng": -123.243068
+ },
+ "ANGU": {
+  "name": "Henry Angus Building",
+  "lat": 49.26511,
+  "lng": -123.253877
+ },
+ "ACD2": {
+  "name": "Academy - Townhouses",
+  "lat": 49.255183,
+  "lng": -123.232786
+ },
+ "SCRF": {
+  "name": "Neville Scarfe Building",
+  "lat": 49.263965,
+  "lng": -123.253095
+ },
+ "CGSQ": {
+  "name": "Cecil Green Squash Court",
+  "lat": 49.271421,
+  "lng": -123.257059
+ },
+ "NSDC": {
+  "name": "National Soccer Development Centre",
+  "lat": 49.257149,
+  "lng": -123.239979
+ },
+ "VIST": {
+  "name": "Vista Point",
+  "lat": 49.261694,
+  "lng": -123.240272
+ },
+ "MUNH": {
+  "name": "Mundell House",
+  "lat": 49.252946,
+  "lng": -123.236053
+ },
+ "GRT1": {
+  "name": "Granite Terrace",
+  "lat": 49.254831,
+  "lng": -123.236997
+ },
+ "PLS2": {
+  "name": "Plant Science Garage",
+  "lat": 49.25644,
+  "lng": -123.249256
+ },
+ "GRWC": {
+  "name": "Greenwood Commons",
+  "lat": 49.260948,
+  "lng": -123.240072
+ },
+ "MAR4": {
+  "name": "Marine Drive Residence - 4",
+  "lat": 49.261563,
+  "lng": -123.255361
+ },
+ "MAR5": {
+  "name": "Marine Drive Residence - 5",
+  "lat": 49.261115,
+  "lng": -123.254905
+ },
+ "ETN2": {
+  "name": "Eton - Apartment",
+  "lat": 49.253202,
+  "lng": -123.231376
+ },
+ "MBAH": {
+  "name": "MBA House",
+  "lat": 49.253876,
+  "lng": -123.235169
+ },
+ "IBLC": {
+  "name": "Irving K. Barber Learning Centre",
+  "lat": 49.267595,
+  "lng": -123.252738
+ },
+ "GASG": {
+  "name": "Gas Gun Facility",
+  "lat": 49.256017,
+  "lng": -123.246052
+ },
+ "COSW": {
+  "name": "Coast - Apartment West",
+  "lat": 49.270742,
+  "lng": -123.253207
+ },
+ "MGYM": {
+  "name": "War Memorial Gymnasium",
+  "lat": 49.266772,
+  "lng": -123.247656
+ },
+ "TENN": {
+  "name": "UBC Tennis Centre",
+  "lat": 49.259487,
+  "lng": -123.243836
+ },
+ "ENV7": {
+  "name": "Environmental Services Facility - Waste Processing & Storage",
+  "lat": 49.243446,
+  "lng": -123.22872
+ },
+ "RSCU": {
+  "name": "Rodney Graham Millennial Time Machine",
+  "lat": 49.267524,
+  "lng": -123.2545
+ },
+ "MCC3": {
+  "name": "Child Care Services - Willow",
+  "lat": 49.260828,
+  "lng": -123.235327
+ },
+ "MCC2": {
+  "name": "Child Care Services - Barish",
+  "lat": 49.260465,
+  "lng": -123.23552
+ },
+ "MCC1": {
+  "name": "Child Care Services - Saw-Whet",
+  "lat": 49.260393,
+  "lng": -123.236502
+ },
+ "CCS1": {
+  "name": "Child Care Services - Acadia",
+  "lat": 49.260896,
+  "lng": -123.234734
+ },
+ "AZAL": {
+  "name": "Azalea House",
+  "lat": 49.257895,
+  "lng": -123.249486
+ },
+ "WEBH": {
+  "name": "Webber House",
+  "lat": 49.253308,
+  "lng": -123.236779
+ },
+ "TAMK": {
+  "name": "Tamarack House",
+  "lat": 49.259596,
+  "lng": -123.246328
+ },
+ "MEWS": {
+  "name": "The Mews",
+  "lat": 49.254534,
+  "lng": -123.235709
+ },
+ "VSQU": {
+  "name": "Village Square",
+  "lat": 49.25396,
+  "lng": -123.236379
+ },
+ "STAO": {
+  "name": "Sing Tao Building",
+  "lat": 49.267832,
+  "lng": -123.25776
+ },
+ "LARK": {
+  "name": "Larkspur House",
+  "lat": 49.25356,
+  "lng": -123.234055
+ },
+ "RUGC": {
+  "name": "Gerald McGavin UBC Rugby Centre",
+  "lat": 49.259582,
+  "lng": -123.241314
+ },
+ "SUMA": {
+  "name": "Sumac House",
+  "lat": 49.258279,
+  "lng": -123.250057
+ },
+ "QLCN": {
+  "name": "tə šxʷhəleləm̓s tə k̓ʷaƛ̓kʷəʔaʔɬ (Saltwater) - q̓əlɬaləməcən leləm̓ (Orca)",
+  "lat": 49.268822,
+  "lng": -123.249653
+ },
+ "SLWT": {
+  "name": "tə šxʷhəleləm̓s tə k̓ʷaƛ̓kʷəʔaʔɬ (Saltwater) - sɬewət̕ leləm̓ (Herring)",
+  "lat": 49.269589,
+  "lng": -123.247923
+ },
+ "GEOG": {
+  "name": "Geography Building",
+  "lat": 49.265984,
+  "lng": -123.256128
+ },
+ "PLS1": {
+  "name": "Plant Science Field Station",
+  "lat": 49.256307,
+  "lng": -123.249481
+ },
+ "IVYM": {
+  "name": "Ivy on the Park - Midrise",
+  "lat": 49.254882,
+  "lng": -123.231847
+ },
+ "CCS6": {
+  "name": "Child Care Services - Sitka/Discovery",
+  "lat": 49.259762,
+  "lng": -123.234519
+ },
+ "DAHL": {
+  "name": "Dahlia House",
+  "lat": 49.252149,
+  "lng": -123.233927
+ },
+ "VIRT": {
+  "name": "Virtuoso",
+  "lat": 49.250732,
+  "lng": -123.233967
+ },
+ "IVYT": {
+  "name": "Ivy on the Park - Townhouses",
+  "lat": 49.254625,
+  "lng": -123.231816
+ },
+ "OBCC": {
+  "name": "Old Barn Community Centre",
+  "lat": 49.258911,
+  "lng": -123.248269
+ },
+ "WCOM": {
+  "name": "Wesbrook Community Centre",
+  "lat": 49.254008,
+  "lng": -123.237712
+ },
+ "CCS8": {
+  "name": "Child Care Services - Tillicum/Canada Goose",
+  "lat": 49.259596,
+  "lng": -123.234985
+ },
+ "CCS2": {
+  "name": "Child Care Services - Kittiwake/Salal",
+  "lat": 49.259997,
+  "lng": -123.235278
+ },
+ "WSB1": {
+  "name": "The Wesbrook - Highrise",
+  "lat": 49.255096,
+  "lng": -123.234509
+ },
+ "WSB2": {
+  "name": "The Wesbrook - Townhouses",
+  "lat": 49.254725,
+  "lng": -123.234205
+ },
+ "CRYC": {
+  "name": "Carey Centre",
+  "lat": 49.27152,
+  "lng": -123.248908
+ },
+ "ULTM": {
+  "name": "Ultima",
+  "lat": 49.25274,
+  "lng": -123.234399
+ },
+ "CRYH": {
+  "name": "Carey Hall",
+  "lat": 49.271737,
+  "lng": -123.248532
+ },
+ "WGR1": {
+  "name": "Walter H. Gage Residence - Commonsblock",
+  "lat": 49.269529,
+  "lng": -123.249831
+ },
+ "CCP": {
+  "name": "Campus & Community Planning",
+  "lat": 49.262441,
+  "lng": -123.253282
+ },
+ "TPR1": {
+  "name": "Totem Park Residence - Commonsblock",
+  "lat": 49.25804,
+  "lng": -123.252981
+ },
+ "WHM1": {
+  "name": "West Hampstead - Building 1",
+  "lat": 49.257587,
+  "lng": -123.235241
+ },
+ "REN1": {
+  "name": "The Residences at Nobel Park - Apartment",
+  "lat": 49.250613,
+  "lng": -123.235007
+ },
+ "WHM2": {
+  "name": "West Hampstead - Townhouses",
+  "lat": 49.257507,
+  "lng": -123.234582
+ },
+ "MOA": {
+  "name": "Museum of Anthropology",
+  "lat": 49.269499,
+  "lng": -123.259423
+ },
+ "SQMK": {
+  "name": "tə šxʷhəleləm̓s tə k̓ʷaƛ̓kʷəʔaʔɬ (Saltwater) - sqimək̓ʷ leləm̓ (Octopus)",
+  "lat": 49.270523,
+  "lng": -123.248315
+ },
+ "AUDX": {
+  "name": "Auditorium Annex Offices - A, B",
+  "lat": 49.266585,
+  "lng": -123.256621
+ },
+ "OAB": {
+  "name": "Old Administration Building",
+  "lat": 49.267105,
+  "lng": -123.255511
+ },
+ "TMES": {
+  "name": "tə šxʷhəleləm̓s tə k̓ʷaƛ̓kʷəʔaʔɬ (Saltwater) - təməs leləm̓ (Sea Otter)",
+  "lat": 49.270168,
+  "lng": -123.248031
+ },
+ "QTYN": {
+  "name": "tə šxʷhəleləm̓s tə k̓ʷaƛ̓kʷəʔaʔɬ (Saltwater) - qʷta:yθən leləm̓ (Sturgeon)",
+  "lat": 49.269217,
+  "lng": -123.248518
+ },
+ "NEST": {
+  "name": "AMS Student Nest",
+  "lat": 49.266573,
+  "lng": -123.249801
+ },
+ "ETN1": {
+  "name": "Eton - Highrise",
+  "lat": 49.25345,
+  "lng": -123.230561
+ },
+ "WSTR": {
+  "name": "Westchester",
+  "lat": 49.257373,
+  "lng": -123.249109
+ },
+ "WSPT": {
+  "name": "Westpoint",
+  "lat": 49.270242,
+  "lng": -123.250471
+ },
+ "WYND": {
+  "name": "Wyndham Hall",
+  "lat": 49.259327,
+  "lng": -123.234172
+ },
+ "YU": {
+  "name": "Yu",
+  "lat": 49.25356,
+  "lng": -123.23605
+ },
+ "LAR1": {
+  "name": "The Laureates - Highrise",
+  "lat": 49.254108,
+  "lng": -123.230797
+ },
+ "ETN3": {
+  "name": "Eton - Townhouses",
+  "lat": 49.253536,
+  "lng": -123.231519
+ },
+ "KIDS": {
+  "name": "Kids Club",
+  "lat": 49.261725,
+  "lng": -123.234805
+ },
+ "LAR2": {
+  "name": "The Laureates - Apartment",
+  "lat": 49.254211,
+  "lng": -123.231755
+ },
+ "GRT2": {
+  "name": "Granite Terrace - Commercial",
+  "lat": 49.255066,
+  "lng": -123.236109
+ },
+ "IVYH": {
+  "name": "Ivy on the Park - Highrise",
+  "lat": 49.254718,
+  "lng": -123.230999
+ },
+ "CGPC": {
+  "name": "Cecil Green Park Coach House",
+  "lat": 49.271001,
+  "lng": -123.25847
+ },
+ "ARTC": {
+  "name": "Arts Student Centre",
+  "lat": 49.269292,
+  "lng": -123.253051
+ },
+ "COST": {
+  "name": "Coast - Townhouses",
+  "lat": 49.271069,
+  "lng": -123.253054
+ },
+ "FBIC": {
+  "name": "Dan On Food and Beverage Innovation Centre",
+  "lat": 49.263897,
+  "lng": -123.248195
+ },
+ "HILL": {
+  "name": "Hillel House - Diamond Foundation Centre for Jewish Campus Life",
+  "lat": 49.268604,
+  "lng": -123.251324
+ },
+ "THSP": {
+  "name": "Third Space",
+  "lat": 49.263008,
+  "lng": -123.253241
+ },
+ "GWHB": {
+  "name": "Gateway Health Building",
+  "lat": 49.266745,
+  "lng": -123.246505
+ },
+ "PTHE": {
+  "name": "Pathways - East Building",
+  "lat": 49.254669,
+  "lng": -123.23283
+ },
+ "PTHW": {
+  "name": "Pathways - West Building",
+  "lat": 49.254401,
+  "lng": -123.23382
+ },
+ "FERC": {
+  "name": "FERIC",
+  "lat": 49.257752,
+  "lng": -123.244537
+ },
+ "FPIN": {
+  "name": "FPInnovations",
+  "lat": 49.256786,
+  "lng": -123.244468
+ },
+ "RUGB": {
+  "name": "Rugby Pavilion",
+  "lat": 49.258676,
+  "lng": -123.244014
+ },
+ "MAR3": {
+  "name": "Marine Drive Residence - 3 Commonsblock",
+  "lat": 49.26141,
+  "lng": -123.256859
+ },
+ "VNR03": {
+  "name": "Place Vanier Residence - Commonsblock",
+  "lat": 49.26465,
+  "lng": -123.258583
+ },
+ "STMK": {
+  "name": "St. Mark's College",
+  "lat": 49.272277,
+  "lng": -123.249169
+ },
+ "STJN": {
+  "name": "St. John Hospice",
+  "lat": 49.25551,
+  "lng": -123.247358
+ },
+ "ALSC": {
+  "name": "Abdul Ladha Science Student Centre",
+  "lat": 49.266083,
+  "lng": -123.251356
+ },
+ "WPRO": {
+  "name": "Wesbrook Professional Centre",
+  "lat": 49.254484,
+  "lng": -123.236356
+ },
+ "ACOM": {
+  "name": "Acadia Commonsblock",
+  "lat": 49.262634,
+  "lng": -123.237352
+ },
+ "THR4": {
+  "name": "Thunderbird Residence - Coast",
+  "lat": 49.25897,
+  "lng": -123.250361
+ },
+ "THR5": {
+  "name": "Thunderbird Residence - Hazelton",
+  "lat": 49.259569,
+  "lng": -123.250846
+ },
+ "THR2": {
+  "name": "Thunderbird Residence - Monashee",
+  "lat": 49.259933,
+  "lng": -123.247557
+ },
+ "GEOP": {
+  "name": "Georgia Point",
+  "lat": 49.251948,
+  "lng": -123.239235
+ },
+ "SWNG": {
+  "name": "West Mall Swing Space Building",
+  "lat": 49.262795,
+  "lng": -123.254384
+ },
+ "EXH1": {
+  "name": "Exeter Hall - Highrise",
+  "lat": 49.251332,
+  "lng": -123.235297
+ },
+ "EXH2": {
+  "name": "Exeter Hall - Townhouses",
+  "lat": 49.25146,
+  "lng": -123.234964
+ },
+ "SPPA": {
+  "name": "Spirit Park Apartments",
+  "lat": 49.261491,
+  "lng": -123.239374
+ },
+ "SOPR": {
+  "name": "Sopron House",
+  "lat": 49.262179,
+  "lng": -123.23534
+ },
+ "ACAH": {
+  "name": "Acadia House",
+  "lat": 49.26288,
+  "lng": -123.235908
+ },
+ "GRN4": {
+  "name": "Green College - Admin",
+  "lat": 49.270987,
+  "lng": -123.256308
+ },
+ "STAD": {
+  "name": "Thunderbird Stadium",
+  "lat": 49.254767,
+  "lng": -123.244579
+ },
+ "CNTL": {
+  "name": "Central",
+  "lat": 49.266333,
+  "lng": -123.24722
+ },
+ "BRCK": {
+  "name": "Brock Hall",
+  "lat": 49.268639,
+  "lng": -123.252062
+ },
+ "FNLH": {
+  "name": "First Nations Longhouse",
+  "lat": 49.265561,
+  "lng": -123.257188
+ },
+ "PGRA": {
+  "name": "Point Grey Apartments",
+  "lat": 49.259968,
+  "lng": -123.237998
+ },
+ "WGR2": {
+  "name": "Walter H. Gage Residence - Gage Apartments",
+  "lat": 49.270145,
+  "lng": -123.249022
+ },
+ "VNR13": {
+  "name": "Place Vanier Residence - Tweedsmuir House",
+  "lat": 49.263472,
+  "lng": -123.258301
+ },
+ "PARF": {
+  "name": "Fraser River Parkade",
+  "lat": 49.266067,
+  "lng": -123.258042
+ },
+ "MCKH": {
+  "name": "Norman MacKenzie House",
+  "lat": 49.267676,
+  "lng": -123.261175
+ },
+ "FOOT": {
+  "name": "UBC Football Academic Centre",
+  "lat": 49.255246,
+  "lng": -123.24502
+ },
+ "WSW2": {
+  "name": "Wordsworth - Townhouses",
+  "lat": 49.251943,
+  "lng": -123.237199
+ },
+ "WDL": {
+  "name": "Wood Fluid and Thermal Treatments Laboratory",
+  "lat": 49.261475,
+  "lng": -123.252249
+ },
+ "VNRP": {
+  "name": "Vanier Pump Station",
+  "lat": 49.264821,
+  "lng": -123.260251
+ },
+ "WSW1": {
+  "name": "Wordsworth - Highrise",
+  "lat": 49.252441,
+  "lng": -123.236845
+ },
+ "VNR11": {
+  "name": "Place Vanier Residence - Sherwood Lett House",
+  "lat": 49.26339,
+  "lng": -123.257513
+ },
+ "AXIS": {
+  "name": "Axis",
+  "lat": 49.270001,
+  "lng": -123.252233
+ },
+ "PRD1": {
+  "name": "Prodigy - Building 1",
+  "lat": 49.251667,
+  "lng": -123.235957
+ },
+ "PRD2": {
+  "name": "Prodigy - Building 2",
+  "lat": 49.251632,
+  "lng": -123.236605
+ },
+ "CLCK": {
+  "name": "Ladner Clock Tower",
+  "lat": 49.267351,
+  "lng": -123.253656
+ },
+ "FOL2": {
+  "name": "Folio - Townhouses",
+  "lat": 49.272249,
+  "lng": -123.250191
+ },
+ "FOL1": {
+  "name": "Folio - Apartment",
+  "lat": 49.272098,
+  "lng": -123.24975
+ },
+ "CORS": {
+  "name": "Corus",
+  "lat": 49.270653,
+  "lng": -123.249347
+ },
+ "UCEN": {
+  "name": "Leon and Thea Koerner University Centre",
+  "lat": 49.268901,
+  "lng": -123.257225
+ },
+ "FRM2": {
+  "name": "UBC Farm - Harvest Hut/Market",
+  "lat": 49.250758,
+  "lng": -123.237933
+ },
+ "NITO": {
+  "name": "Nitobe Memorial Garden",
+  "lat": 49.266168,
+  "lng": -123.259189
+ },
+ "FOL3": {
+  "name": "Folio - Duplexes",
+  "lat": 49.272415,
+  "lng": -123.250604
+ },
+ "ARGW": {
+  "name": "Argyll House West",
+  "lat": 49.270788,
+  "lng": -123.251327
+ },
+ "CHHA": {
+  "name": "Chancellor Hall - Apartment",
+  "lat": 49.271895,
+  "lng": -123.250461
+ },
+ "STIR": {
+  "name": "Stirling House",
+  "lat": 49.270476,
+  "lng": -123.252469
+ },
+ "ARGE": {
+  "name": "Argyll House East",
+  "lat": 49.271406,
+  "lng": -123.249551
+ },
+ "ESSE": {
+  "name": "Esse",
+  "lat": 49.271197,
+  "lng": -123.24831
+ },
+ "STMD": {
+  "name": "St. Mark's Duplexes",
+  "lat": 49.272739,
+  "lng": -123.249405
+ },
+ "FSC": {
+  "name": "Forest Sciences Centre",
+  "lat": 49.260597,
+  "lng": -123.247827
+ },
+ "FORW": {
+  "name": "Frank Forward Building",
+  "lat": 49.26169,
+  "lng": -123.251692
+ },
+ "KAIS": {
+  "name": "Fred Kaiser Building",
+  "lat": 49.262371,
+  "lng": -123.250082
+ },
+ "MSL": {
+  "name": "Michael Smith Laboratories",
+  "lat": 49.264575,
+  "lng": -123.250174
+ },
+ "OAKR": {
+  "name": "Oakwood Residences",
+  "lat": 49.251653,
+  "lng": -123.238526
+ },
+ "LASR": {
+  "name": "Frederic Lasserre Building",
+  "lat": 49.267591,
+  "lng": -123.255979
+ },
+ "MATX": {
+  "name": "Mathematics Annex",
+  "lat": 49.266103,
+  "lng": -123.254848
+ },
+ "MATH": {
+  "name": "Mathematics Building",
+  "lat": 49.26645,
+  "lng": -123.255556
+ },
+ "BONR": {
+  "name": "Building Operations Nursery",
+  "lat": 49.244432,
+  "lng": -123.229225
+ },
+ "BCR7C": {
+  "name": "BCR7 - Building C",
+  "lat": 49.251849,
+  "lng": -123.232203
+ },
+ "COMP": {
+  "name": "In-Vessel Composting Facility",
+  "lat": 49.244905,
+  "lng": -123.228014
+ },
+ "TFPB": {
+  "name": "Theatre-Film Production Building",
+  "lat": 49.263869,
+  "lng": -123.253928
+ },
+ "BCR7B": {
+  "name": "BCR7 - Building B",
+  "lat": 49.251901,
+  "lng": -123.232902
+ },
+ "ENV2": {
+  "name": "Environmental Services Facility - Incinerator",
+  "lat": 49.243679,
+  "lng": -123.229006
+ },
+ "BCR7A": {
+  "name": "BCR7 - Building A",
+  "lat": 49.251598,
+  "lng": -123.232759
+ },
+ "CHEM": {
+  "name": "Chemistry Building - B, C, D, E",
+  "lat": 49.265817,
+  "lng": -123.252665
+ },
+ "FRWO": {
+  "name": "Frederic Wood Theatre",
+  "lat": 49.268053,
+  "lng": -123.256958
+ },
+ "BOSS": {
+  "name": "Building Operations Storage Shed",
+  "lat": 49.262185,
+  "lng": -123.254414
+ },
+ "CHOI": {
+  "name": "C.K. Choi Building for the Institute of Asian Research",
+  "lat": 49.267267,
+  "lng": -123.257949
+ },
+ "SAL2": {
+  "name": "Sail - Building 2",
+  "lat": 49.252624,
+  "lng": -123.235208
+ },
+ "CHOA": {
+  "name": "Chancellor House - Apartment",
+  "lat": 49.27156,
+  "lng": -123.251437
+ },
+ "CHOD": {
+  "name": "Chancellor House - Duplexes",
+  "lat": 49.27198,
+  "lng": -123.251856
+ },
+ "REN2": {
+  "name": "The Residences at Nobel Park - Townhouses",
+  "lat": 49.250915,
+  "lng": -123.236394
+ },
+ "ULOT": {
+  "name": "University Boulevard Lot",
+  "lat": 49.266722,
+  "lng": -123.248943
+ },
+ "AYOH": {
+  "name": "AYO Smart Home",
+  "lat": 49.263038,
+  "lng": -123.243407
+ },
+ "PARH": {
+  "name": "Health Sciences Parkade",
+  "lat": 49.263405,
+  "lng": -123.247842
+ },
+ "THR3": {
+  "name": "Thunderbird Residence - Selkirk",
+  "lat": 49.259278,
+  "lng": -123.249493
+ },
+ "TPR7": {
+  "name": "Totem Park Residence - c̓əsnaʔəm leləm̓",
+  "lat": 49.256811,
+  "lng": -123.251637
+ },
+ "TPR5": {
+  "name": "Totem Park Residence - həm̓ləsəm̓ House",
+  "lat": 49.258604,
+  "lng": -123.251195
+ },
+ "TPR4": {
+  "name": "Totem Park Residence - q̓ələχən House",
+  "lat": 49.259167,
+  "lng": -123.251545
+ },
+ "PARR": {
+  "name": "Rose Garden Parkade",
+  "lat": 49.269116,
+  "lng": -123.2563
+ },
+ "DLAM": {
+  "name": "David Lam Management Research Centre",
+  "lat": 49.265711,
+  "lng": -123.254319
+ },
+ "PARN": {
+  "name": "North Parkade",
+  "lat": 49.269028,
+  "lng": -123.250913
+ },
+ "BUCH": {
+  "name": "Buchanan Building",
+  "lat": 49.268701,
+  "lng": -123.254441
+ },
+ "BALM": {
+  "name": "The Balmoral",
+  "lat": 49.258489,
+  "lng": -123.232724
+ },
+ "BRIS": {
+  "name": "The Bristol",
+  "lat": 49.258841,
+  "lng": -123.235006
+ },
+ "CHAT": {
+  "name": "The Chatham",
+  "lat": 49.258692,
+  "lng": -123.236175
+ },
+ "REGE": {
+  "name": "The Regency",
+  "lat": 49.259107,
+  "lng": -123.232862
+ },
+ "PEMB": {
+  "name": "The Pemberley",
+  "lat": 49.258013,
+  "lng": -123.232193
+ },
+ "STRA": {
+  "name": "The Stratford",
+  "lat": 49.259635,
+  "lng": -123.233455
+ },
+ "THR1": {
+  "name": "Thunderbird Residence - Cassiar",
+  "lat": 49.260243,
+  "lng": -123.246685
+ },
+ "COSD": {
+  "name": "Coast - Duplexes",
+  "lat": 49.271317,
+  "lng": -123.25321
+ },
+ "AMBS": {
+  "name": "Ambulance Station",
+  "lat": 49.263243,
+  "lng": -123.243597
+ },
+ "CHAN": {
+  "name": "Chan Centre for the Performing Arts",
+  "lat": 49.269771,
+  "lng": -123.25511
+ },
+ "MAR1": {
+  "name": "Marine Drive Residence - 1 Simon Lee",
+  "lat": 49.261998,
+  "lng": -123.255881
+ },
+ "MUSC": {
+  "name": "Music Building",
+  "lat": 49.26744,
+  "lng": -123.256778
+ },
+ "FRAT": {
+  "name": "Fraternity Village",
+  "lat": 49.259653,
+  "lng": -123.238849
+ },
+ "CHBE": {
+  "name": "Chemical and Biological Engineering Building",
+  "lat": 49.262481,
+  "lng": -123.247066
+ },
+ "NRC": {
+  "name": "NRC Institute for Fuel Cell Innovation",
+  "lat": 49.245182,
+  "lng": -123.232287
+ },
+ "PSAB": {
+  "name": "Public Safety Building - RCMP + Fire",
+  "lat": 49.258943,
+  "lng": -123.238113
+ },
+ "STH": {
+  "name": "St. Andrew's Hall",
+  "lat": 49.270143,
+  "lng": -123.251748
+ },
+ "BRIM": {
+  "name": "The Brimacombe Building",
+  "lat": 49.26186,
+  "lng": -123.248073
+ },
+ "ALUM": {
+  "name": "Robert H. Lee Alumni Centre",
+  "lat": 49.265946,
+  "lng": -123.249909
+ },
+ "RESP": {
+  "name": "UBC Research Ponds",
+  "lat": 49.247161,
+  "lng": -123.232721
+ },
+ "EDC": {
+  "name": "Wayne and William White Engineering Design Centre",
+  "lat": 49.262333,
+  "lng": -123.248164
+ },
+ "AQUA": {
+  "name": "UBC Aquatic Centre",
+  "lat": 49.267789,
+  "lng": -123.248595
+ },
+ "BTC": {
+  "name": "UBC Baseball Rose Indoor Training Centre",
+  "lat": 49.256214,
+  "lng": -123.239512
+ },
+ "FRM1": {
+  "name": "UBC Farm - Farm Centre",
+  "lat": 49.251583,
+  "lng": -123.240127
+ },
+ "STRX": {
+  "name": "Stores Road Annex",
+  "lat": 49.261667,
+  "lng": -123.252359
+ },
+ "PANH": {
+  "name": "Panhellenic House",
+  "lat": 49.260104,
+  "lng": -123.239567
+ },
+ "THEA": {
+  "name": "Thea Koerner House",
+  "lat": 49.268436,
+  "lng": -123.257867
+ },
+ "TAP1": {
+  "name": "Tapestry at Wesbrook Village - Building 1",
+  "lat": 49.254739,
+  "lng": -123.235012
+ },
+ "TAP2": {
+  "name": "Tapestry at Wesbrook Village - Building 2",
+  "lat": 49.254147,
+  "lng": -123.234518
+ },
+ "THAC1": {
+  "name": "Thames Court - Building 1",
+  "lat": 49.257255,
+  "lng": -123.235775
+ },
+ "LSK": {
+  "name": "The Leonard S. Klinck Building",
+  "lat": 49.265433,
+  "lng": -123.255339
+ },
+ "DMP": {
+  "name": "Hugh Dempster Pavilion",
+  "lat": 49.261242,
+  "lng": -123.248057
+ },
+ "TFS": {
+  "name": "Totem Field Studios",
+  "lat": 49.256128,
+  "lng": -123.249001
+ },
+ "BART": {
+  "name": "Morris and Helen Belkin Art Gallery",
+  "lat": 49.26817,
+  "lng": -123.25619
+ },
+ "DSOM": {
+  "name": "Dorothy Somerset Studios",
+  "lat": 49.264692,
+  "lng": -123.254593
+ },
+ "ORCH": {
+  "name": "Orchard Commons - Vantage College, Bartlett/Braeburn House",
+  "lat": 49.260461,
+  "lng": -123.251332
+ },
+ "RITS": {
+  "name": "Ritsumeikan-UBC House",
+  "lat": 49.260102,
+  "lng": -123.252997
+ },
+ "WGR3": {
+  "name": "Walter H. Gage Residence - West Coast Suites (Gage Court)",
+  "lat": 49.269593,
+  "lng": -123.248586
+ },
+ "MCLD": {
+  "name": "Hector J. MacLeod Building",
+  "lat": 49.261716,
+  "lng": -123.249401
+ },
+ "LSC": {
+  "name": "Life Sciences Centre",
+  "lat": 49.262548,
+  "lng": -123.245112
+ },
+ "IRC": {
+  "name": "P. A. Woodward Instructional Resources Centre",
+  "lat": 49.264822,
+  "lng": -123.246848
+ },
+ "PONC": {
+  "name": "Ponderosa Annex C",
+  "lat": 49.264854,
+  "lng": -123.256275
+ },
+ "PONF": {
+  "name": "Ponderosa Annex F",
+  "lat": 49.264919,
+  "lng": -123.257153
+ },
+ "PONG": {
+  "name": "Ponderosa Annex G",
+  "lat": 49.264507,
+  "lng": -123.256434
+ },
+ "MAR2": {
+  "name": "Marine Drive Residence - 2",
+  "lat": 49.261877,
+  "lng": -123.256765
+ },
+ "CNSL": {
+  "name": "UBC Counselling Services Annex",
+  "lat": 49.268227,
+  "lng": -123.25199
+ },
+ "PONA": {
+  "name": "Ponderosa Annex A",
+  "lat": 49.265167,
+  "lng": -123.256382
+ },
+ "PONB": {
+  "name": "Ponderosa Annex B",
+  "lat": 49.264844,
+  "lng": -123.255962
+ },
+ "PONE": {
+  "name": "Ponderosa Annex E",
+  "lat": 49.264675,
+  "lng": -123.256694
+ },
+ "NOBL": {
+  "name": "Nobel House",
+  "lat": 49.25084,
+  "lng": -123.233206
+ },
+ "CSY2": {
+  "name": "Conservatory - Highrise",
+  "lat": 49.256042,
+  "lng": -123.231532
+ },
+ "CSY1": {
+  "name": "Conservatory - Townhouses",
+  "lat": 49.25585,
+  "lng": -123.232106
+ },
+ "WLIB": {
+  "name": "Woodward Library",
+  "lat": 49.264563,
+  "lng": -123.24757
+ },
+ "ALRD": {
+  "name": "Allard Hall",
+  "lat": 49.270044,
+  "lng": -123.253297
+ },
+ "HENN": {
+  "name": "Hennings Building",
+  "lat": 49.266445,
+  "lng": -123.252196
+ },
+ "CEML": {
+  "name": "Civil and Mechanical Engineering Laboratories",
+  "lat": 49.263129,
+  "lng": -123.249337
+ },
+ "CRYC1": {
+  "name": "Carey College Lot 40",
+  "lat": 49.271747,
+  "lng": -123.24857
+ },
+ "BINT": {
+  "name": "Binning Tower - Townhouses",
+  "lat": 49.255275,
+  "lng": -123.231641
+ }
+}

@@ -14,6 +14,10 @@ export type CalendarEntry = ScheduleEntry & {
   courseCode?: string | null;
   /** Set when the block should be clickable to open the course overlay. */
   courseId?: string | null;
+  /** Raw building code and room, for the campus map — `location` above is the
+   *  same data pre-joined for display, which a map can't take apart again. */
+  building?: string | null;
+  room?: string | null;
 };
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;

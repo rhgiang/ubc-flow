@@ -32,7 +32,24 @@ const VISIBLE_SECTIONS = 3;
 const EMPTY_SECTION_IDS: Set<string> = new Set();
 type Tab = 'upcoming' | 'past' | 'calendar' | 'map';
 
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
+/**
+ * `short` is what a phone gets. The full set of labels needs 568px of strip in
+ * a 334px viewport, which put View Calendar 46px past the right edge of the
+ * screen and Map further still — reachable only by discovering that a hairline
+ * strip scrolls sideways, which nobody does. "Saved Schedules" is also the
+ * heading directly above, so the phone loses only a word it already read.
+ */
+function TabButton({
+  active,
+  onClick,
+  short,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  short?: string;
+  children: string;
+}) {
   return (
     <button
       type="button"
@@ -43,7 +60,14 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
           : 'border-transparent text-text-secondary hover:border-border hover:text-foreground'
       }`}
     >
-      {children}
+      {short ? (
+        <>
+          <span className="sm:hidden">{short}</span>
+          <span className="hidden sm:inline">{children}</span>
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }
@@ -237,16 +261,17 @@ export default function ScheduleTabs({
 
   return (
     <div className="mt-8">
-      {/* overflow-x-auto: three long labels in a phone column otherwise wrap
-          into a ragged 3-line block — same treatment as explore's sort chips. */}
-      <div className="flex gap-6 overflow-x-auto border-b border-border">
-        <TabButton active={tab === 'upcoming'} onClick={() => setTab('upcoming')}>
+      {/* overflow-x-auto is the fallback for a narrow phone in a large font,
+          not the plan: the short labels below are what make all four tabs
+          reachable without sideways scrolling. */}
+      <div className="flex gap-5 overflow-x-auto border-b border-border sm:gap-6">
+        <TabButton active={tab === 'upcoming'} onClick={() => setTab('upcoming')} short="Upcoming">
           Upcoming Saved Schedules
         </TabButton>
-        <TabButton active={tab === 'past'} onClick={() => setTab('past')}>
+        <TabButton active={tab === 'past'} onClick={() => setTab('past')} short="Past">
           Past Saved Schedules
         </TabButton>
-        <TabButton active={tab === 'calendar'} onClick={() => setTab('calendar')}>
+        <TabButton active={tab === 'calendar'} onClick={() => setTab('calendar')} short="Calendar">
           View Calendar
         </TabButton>
         <TabButton active={tab === 'map'} onClick={() => setTab('map')}>

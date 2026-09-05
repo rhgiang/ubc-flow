@@ -18,6 +18,11 @@
 
 # next.js
 /.next/
+# Any NEXT_DIST_DIR build (see next.config.ts) — build output, same as .next.
+# Keep scratch logs out of the repo root too: Tailwind v4 scans every file git
+# does not ignore, so a dev log sitting here gets read for class names, and a
+# log that has recorded one CSS error will regenerate it forever.
+/.next-*
 /out/
 
 # production

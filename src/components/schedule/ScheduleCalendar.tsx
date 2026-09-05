@@ -167,6 +167,25 @@ export default function ScheduleCalendar({
     ).values(),
   ];
 
+  // Hoisted out of the render so the legend can ask whether any day splits a
+  // column before deciding to occupy space above the grid.
+  const columnsByDay = new Map(
+    DAYS.map((day) => [
+      day,
+      layoutDayColumns(
+        timed.filter((e) => e.day === day),
+        (e) => ({ start: toMinutes(e.startTime), end: toMinutes(e.endTime) }),
+      ),
+    ]),
+  );
+  // A split column is too narrow for the subject, so those blocks fall back to
+  // the bare course number and the legend is what decodes them. With no splits
+  // every block names its own course and the legend is a second copy of the
+  // grid, charging vertical space on the screen with least to spare.
+  const hasSplitColumn = [...columnsByDay.values()].some((day) =>
+    [...day.values()].some((c) => c.columns > 1),
+  );
+
   const totalHeight = HOURS.length * HOUR_PX;
   // The grid starts at midnight, so a time's offset is just its own minutes.
   const nowTop = nowMin !== null ? (nowMin / 60) * HOUR_PX : null;
@@ -207,7 +226,7 @@ export default function ScheduleCalendar({
           legend shares this row so the key sits above the calendar rather than
           below 680px of it. */}
       <div className="mb-2 flex items-start justify-between gap-3 sm:hidden">
-        {!expanded && legend.length > 0 ? (
+        {!expanded && hasSplitColumn && legend.length > 0 ? (
           <ul className="flex flex-1 flex-wrap gap-x-3 gap-y-1">
             {legend.map((c) => (
               <li
@@ -253,7 +272,7 @@ export default function ScheduleCalendar({
         }`}
       >
         <div className={`flex sm:min-w-[680px] ${expanded ? 'min-w-[560px]' : 'min-w-0'}`}>
-          <div className={`shrink-0 sm:w-16 ${expanded ? 'w-10' : 'w-7'}`}>
+          <div className={`shrink-0 sm:w-16 ${expanded ? 'w-10' : 'w-6'}`}>
             <div className="sticky top-0 z-20 h-9 border-b border-border bg-background" />
             {HOURS.map((h) => (
               <div
@@ -318,10 +337,7 @@ export default function ScheduleCalendar({
                   // Side-by-side columns for overlapping classes, as Google
                   // Calendar and Notion Calendar do — without this the lower
                   // block is completely hidden behind the upper one.
-                  const columns = layoutDayColumns(dayEntries, (e) => ({
-                    start: toMinutes(e.startTime),
-                    end: toMinutes(e.endTime),
-                  }));
+                  const columns = columnsByDay.get(day)!;
 
                   return dayEntries.map((e) => {
                     const top = (toMinutes(e.startTime) / 60) * HOUR_PX;
@@ -416,18 +432,29 @@ export default function ScheduleCalendar({
                             the grid. Split columns fall back to the number
                             alone. Tapping still opens everything. */}
                         {!expanded && (
-                          <p
-                            // The remove and swap buttons sit in the top-right
-                            // and stay visible on touch, so the text has to be
-                            // kept out from under them.
-                            className={`truncate text-[10px] font-medium text-foreground sm:hidden ${
-                              onRemove ? (onSwap ? 'pr-10' : 'pr-4') : ''
-                            }`}
-                          >
-                            {colCount === 1 || !e.courseCode
-                              ? e.courseCode ?? e.label
-                              : courseNumberOnly(e.courseCode)}
-                          </p>
+                          <>
+                            <p
+                              // The remove and swap buttons sit in the top-right
+                              // and stay visible on touch, so the text has to be
+                              // kept out from under them.
+                              className={`truncate text-[10px] font-medium text-foreground sm:hidden ${
+                                onRemove ? (onSwap ? 'pr-10' : 'pr-4') : ''
+                              }`}
+                            >
+                              {colCount === 1 || !e.courseCode
+                                ? e.courseCode ?? e.label
+                                : courseNumberOnly(e.courseCode)}
+                            </p>
+                            {/* Start only, and only on a block tall enough to
+                                hold a second line: the end is readable off the
+                                block's own bottom edge, and a 30-minute block
+                                has room for the course or the time, not both. */}
+                            {colCount === 1 && height >= 60 && (
+                              <p className="truncate text-[9px] text-text-secondary sm:hidden">
+                                {e.startTime}
+                              </p>
+                            )}
+                          </>
                         )}
                         <p
                           className={`truncate font-medium text-foreground ${

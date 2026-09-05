@@ -171,7 +171,7 @@ export default async function SchedulePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-10">
+    <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
       <div className="sky-hero flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold text-foreground">My Schedules</h1>
         <CreateScheduleModal terms={plannableTerms} loggedIn={userId !== undefined} />
@@ -179,7 +179,10 @@ export default async function SchedulePage() {
 
       {/* Tabs and their contents sit on one solid panel — term headings and
           section labels are small secondary text the sky washes out. */}
-      <div className="sky-panel mt-6 p-6 sm:p-8">
+      {/* p-3 on phones: the panel and the page were charging 96px of the 390px
+          screen in padding, which came straight out of the calendar's five day
+          columns. */}
+      <div className="sky-panel mt-6 p-3 sm:p-8">
         {!userId && (
           <p className="mb-4 text-sm text-text-secondary">
             Sign in to build or import a schedule. You can look around this page first.

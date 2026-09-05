@@ -234,6 +234,9 @@ model EnrollmentMeeting {
   activity    String?
   building    String?
   room        String?
+  /// Parsed out of the Workday meeting pattern since day one and thrown away
+  /// until now: "CIRS 1250" is easier to find as "CIRS, Floor 2, Room 1250".
+  floor       String?
   days        String[]
   startTime   String?
   endTime     String?

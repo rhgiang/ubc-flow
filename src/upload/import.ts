@@ -158,6 +158,7 @@ export async function importExport(
           activity: row.activity,
           building: row.building,
           room: row.room,
+          floor: row.floor,
           days: row.days,
           startTime: row.meetingStartTime,
           endTime: row.meetingEndTime,

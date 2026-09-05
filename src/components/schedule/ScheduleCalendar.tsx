@@ -36,6 +36,18 @@ const OPENING_HOUR = 8;
 // once, so several stacked calendars on /schedule stay navigable; `fill` mode
 // lifts it where the calendar owns the page.
 
+/**
+ * "CPSC 110" -> "110".
+ *
+ * For a fitted column split between two overlapping classes, where the subject
+ * no longer fits. The number is the more distinguishing half anyway: a term
+ * with CPSC 110 and CPSC 121 in it shares the subject but never the number.
+ */
+export function courseNumberOnly(code: string): string {
+  const parts = code.trim().split(/\s+/);
+  return parts.length > 1 ? parts[parts.length - 1] : code;
+}
+
 /** "14:30" -> 870. */
 function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number);
@@ -397,14 +409,26 @@ export default function ScheduleCalendar({
                             ×
                           </button>
                         )}
-                        {/* Fitted columns are ~60px wide: the full
-                            "CPSC_V 110-101" wraps to three broken lines, while
-                            the course code alone reads at a glance. Tapping the
-                            block still opens everything. */}
-                        {/* Nothing readable fits a fitted column once two
-                            courses share an hour, so the fitted view drops the
-                            text and lets colour carry it - decoded by the
-                            legend under the grid, or by tapping the block. */}
+                        {/* A fitted phone column is ~60px: the section code,
+                            time and room don't fit, but "CPSC 110" does, and a
+                            block with no text at all leaves the calendar's one
+                            question — which class is this — to a legend above
+                            the grid. Split columns fall back to the number
+                            alone. Tapping still opens everything. */}
+                        {!expanded && (
+                          <p
+                            // The remove and swap buttons sit in the top-right
+                            // and stay visible on touch, so the text has to be
+                            // kept out from under them.
+                            className={`truncate text-[10px] font-medium text-foreground sm:hidden ${
+                              onRemove ? (onSwap ? 'pr-10' : 'pr-4') : ''
+                            }`}
+                          >
+                            {colCount === 1 || !e.courseCode
+                              ? e.courseCode ?? e.label
+                              : courseNumberOnly(e.courseCode)}
+                          </p>
+                        )}
                         <p
                           className={`truncate font-medium text-foreground ${
                             expanded ? '' : 'max-sm:hidden'

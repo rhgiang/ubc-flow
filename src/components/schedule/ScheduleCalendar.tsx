@@ -21,9 +21,14 @@ export type CalendarEntry = ScheduleEntry & {
 };
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;
-// Sized off the tightest real block: a 1-hour meeting has to hold four lines
-// — code, time, room, instructor — without the text filling it wall to wall.
-const HOUR_PX = 76;
+// The row height itself lives in CSS as --hour (see .cal-rows in globals.css),
+// so phones can shorten it without this component knowing the viewport. Every
+// position below is a multiple of it, written as calc().
+const hours = (n: number) => `calc(var(--hour) * ${n})`;
+// The desktop value, duplicated here only for the opening scroll offset, which
+// has to be a number. Read back off the DOM so a phone scrolls to the right
+// place too.
+const HOUR_PX_FALLBACK = 76;
 // The grid always covers the whole day and scrolls, the way Workday's and
 // Google's do — rather than resizing itself to whatever the current selection
 // happens to span, which made the rows jump whenever a section was added.
@@ -115,20 +120,28 @@ export default function ScheduleCalendar({
   // clear of the sticky header instead of half-tucked under it.
   const starts = entries.filter((e) => e.startTime).map((e) => toMinutes(e.startTime!));
   const earliestStart = starts.length ? Math.min(...starts) : OPENING_HOUR * 60;
-  // Keyed on the earliest start, not on `entries`: re-anchoring every time a
-  // section is added would yank the builder's view out from under the user,
-  // but a class earlier than anything else is worth scrolling up to reveal.
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = Math.max(0, (earliestStart / 60) * HOUR_PX - 12);
-    }
-  }, [earliestStart]);
 
   // Fit-the-week by default: a phone showing three and a half days makes the
   // student swipe to answer "am I free Thursday", which is the question the
   // calendar exists for. Expanded restores the readable-detail width and
   // scrolls, for when they want the room and the section code.
+  // Declared above the scroll effect below, which depends on it.
   const [expanded, setExpanded] = useState(false);
+
+  // Keyed on the earliest start, not on `entries`: re-anchoring every time a
+  // section is added would yank the builder's view out from under the user,
+  // but a class earlier than anything else is worth scrolling up to reveal.
+  // Re-runs on `expanded` because zooming changes --hour under the same scroll
+  // position, which would otherwise land the view on a different hour.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // --hour is whatever the media query settled on, which is the only place
+    // that knows whether this is a phone.
+    const hourPx =
+      parseFloat(getComputedStyle(el).getPropertyValue('--hour')) || HOUR_PX_FALLBACK;
+    el.scrollTop = Math.max(0, (earliestStart / 60) * hourPx - 12);
+  }, [earliestStart, expanded]);
 
   const [now, setNow] = useState<{ minutes: number | null; dayIndex: number } | null>(null);
   useEffect(() => {
@@ -186,9 +199,9 @@ export default function ScheduleCalendar({
     [...day.values()].some((c) => c.columns > 1),
   );
 
-  const totalHeight = HOURS.length * HOUR_PX;
+  const totalHeight = hours(HOURS.length);
   // The grid starts at midnight, so a time's offset is just its own minutes.
-  const nowTop = nowMin !== null ? (nowMin / 60) * HOUR_PX : null;
+  const nowTop = nowMin !== null ? hours(nowMin / 60) : null;
 
   return (
     <div className={fill ? 'flex min-h-0 flex-1 flex-col' : ''}>
@@ -264,7 +277,12 @@ export default function ScheduleCalendar({
 
       <div
         ref={scrollRef}
-        className={`overflow-auto rounded-card border border-border ${
+        // cal-rows carries --hour, the row height every position below is a
+        // multiple of; cal-rows-zoom opts a zoomed phone back out of the
+        // shorter mobile hour. See globals.css.
+        className={`cal-rows overflow-auto rounded-card border border-border ${
+          expanded ? 'cal-rows-zoom' : ''
+        } ${
           // Phones keep the cap even in fill mode: the un-pinned mobile
           // builder scrolls as a page, so an uncapped grid would be 1800px
           // of calendar between the header and the course list.
@@ -278,7 +296,7 @@ export default function ScheduleCalendar({
               <div
                 key={h}
                 className="relative pr-2 text-right"
-                style={{ height: HOUR_PX }}
+                style={{ height: 'var(--hour)' }}
               >
                 {/* The topmost label would straddle the container edge and clip,
                     so it is omitted — the same thing Google Calendar does. */}
@@ -318,7 +336,7 @@ export default function ScheduleCalendar({
                   <div
                     key={h}
                     className="border-b border-border-hairline"
-                    style={{ height: HOUR_PX }}
+                    style={{ height: 'var(--hour)' }}
                   />
                 ))}
 
@@ -340,9 +358,9 @@ export default function ScheduleCalendar({
                   const columns = columnsByDay.get(day)!;
 
                   return dayEntries.map((e) => {
-                    const top = (toMinutes(e.startTime) / 60) * HOUR_PX;
-                    const height =
-                      ((toMinutes(e.endTime) - toMinutes(e.startTime)) / 60) * HOUR_PX;
+                    const top = hours(toMinutes(e.startTime) / 60);
+                    const durationMin = toMinutes(e.endTime) - toMinutes(e.startTime);
+                    const height = hours(durationMin / 60);
                     const conflictLabels = conflictsByEntry.get(e);
                     const slot = courseColorIndex(e.courseCode ?? e.label);
                     const { column, columns: colCount } = columns.get(e) ?? {
@@ -449,7 +467,7 @@ export default function ScheduleCalendar({
                                 hold a second line: the end is readable off the
                                 block's own bottom edge, and a 30-minute block
                                 has room for the course or the time, not both. */}
-                            {colCount === 1 && height >= 60 && (
+                            {colCount === 1 && durationMin >= 50 && (
                               <p className="truncate text-[9px] text-text-secondary sm:hidden">
                                 {e.startTime}
                               </p>

@@ -592,6 +592,26 @@ body {
 }
 
 /*
+ * Row height for the week calendar, as a variable rather than a number in the
+ * component, so the phone's shorter hour is a media query and never a second
+ * server/client render.
+ *
+ * 76px is sized off the desktop block, which carries four lines. A phone block
+ * carries two, and at 76px an hour of nothing cost as much screen as an hour
+ * of class: eight hours filled the viewport and the week read as stretched.
+ * 52px puts about twelve on screen. Zoom in restores the full height, since
+ * that view exists to show the room and section code.
+ */
+.cal-rows {
+  --hour: 76px;
+}
+@media (max-width: 639px) {
+  .cal-rows:not(.cal-rows-zoom) {
+    --hour: 52px;
+  }
+}
+
+/*
  * Frosted capsules — the nav bar's recipe, reused for the pagination
  * cluster and the footer link bar so every piece of floating chrome on the
  * sky speaks one material language.

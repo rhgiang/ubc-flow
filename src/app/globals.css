@@ -956,3 +956,20 @@ a.capsule-chip:hover {
   box-shadow: 0 1px 4px rgba(12, 20, 44, 0.4);
   border: 2px solid rgba(255, 255, 255, 0.9);
 }
+
+/* Directions row in a map pin's popup. */
+.campus-pin-directions {
+  margin: 8px 0 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-hairline);
+  font-size: 12px;
+}
+
+.campus-pin-directions a {
+  color: var(--brand-accent);
+  font-weight: 500;
+}
+
+.campus-pin-directions a:hover {
+  text-decoration: underline;
+}

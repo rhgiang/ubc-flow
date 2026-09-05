@@ -40,3 +40,19 @@ describe('formatMeeting', () => {
     ).toBe('Wed');
   });
 });
+
+describe('formatRoom', () => {
+  it('adds the floor when the room does not already imply it', async () => {
+    const { formatRoom } = await import('../src/lib/format');
+    expect(formatRoom({ building: 'CIRS', room: '1250', floor: '2' })).toBe('CIRS 1250 · Floor 2');
+  });
+  it('omits a floor the room number already starts with', async () => {
+    const { formatRoom } = await import('../src/lib/format');
+    expect(formatRoom({ building: 'SWNG', room: '221', floor: '2' })).toBe('SWNG 221');
+  });
+  it('handles a building with no room, and nothing at all', async () => {
+    const { formatRoom } = await import('../src/lib/format');
+    expect(formatRoom({ building: 'MATH', room: null, floor: null })).toBe('MATH');
+    expect(formatRoom({ building: null, room: null, floor: null })).toBeNull();
+  });
+});

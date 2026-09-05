@@ -15,3 +15,20 @@ export function formatMeeting(m: {
   const place = m.building ? ` · ${m.building}${m.room ? ` ${m.room}` : ''}` : '';
   return `${m.day}${time}${place}`;
 }
+
+/**
+ * Where a meeting happens, in as much detail as the export gave us.
+ *
+ * The floor has been parsed out of the Workday meeting pattern since day one
+ * and thrown away; "CIRS 1250" is easier to find as "CIRS 1250 · Floor 2".
+ * Omitted when the room number already encodes it, which is common.
+ */
+export function formatRoom(m: {
+  building: string | null;
+  room: string | null;
+  floor: string | null;
+}): string | null {
+  if (!m.building && !m.room) return null;
+  const where = [m.building, m.room].filter(Boolean).join(' ');
+  return m.floor && !(m.room ?? '').startsWith(m.floor) ? `${where} · Floor ${m.floor}` : where;
+}

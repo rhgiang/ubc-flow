@@ -159,8 +159,11 @@ export default async function SchedulePage() {
         day,
         startTime: m.startTime,
         endTime: m.endTime,
-        location: m.building ? `${m.building}${m.room ? ` ${m.room}` : ''}` : null,
-        instructor: m.instructor,
+        location: formatRoom(m),
+        // Workday names the lecture's instructor and usually nobody else's, so
+        // a lab or tutorial arrives blank. Our own catalogue often knows who
+        // teaches that section - use it rather than showing nothing.
+        instructor: m.instructor ?? catalogueInstructor.get(sectionKey(m)) ?? null,
         building: m.building,
         room: m.room,
       } satisfies CalendarEntry);

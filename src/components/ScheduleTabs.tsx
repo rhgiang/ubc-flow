@@ -165,9 +165,14 @@ function CalendarTerm({
 }) {
   return (
     <div className={first ? '' : 'mt-8'}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h3 className="text-sm font-medium text-foreground">{group.termName}</h3>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
+          {/* The term name gets the full width on a phone: squeezed between two
+              buttons it wrapped to five lines. min-w-0 lets it shrink rather
+              than force the row wider than the screen. */}
+          <h3 className="min-w-0 flex-1 text-sm font-medium text-foreground sm:flex-none">
+            {group.termName}
+          </h3>
           {group.entries.length > 0 && (
             <>
               <ShareLinkMenu

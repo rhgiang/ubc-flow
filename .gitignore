@@ -56,3 +56,7 @@ wallpaper/
 
 # Throwaway verification scripts (screenshots, one-off probes).
 .*.mjs
+
+# Local-only Neon connection string, for one-off migrate/status runs.
+# Keeps the credential out of shell history and out of terminal screenshots.
+.neon-direct.txt

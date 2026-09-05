@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Unchanged by default. Set NEXT_DIST_DIR to give a second server its own
+  // build directory, so `next dev` can run against a working copy while a
+  // `next start` keeps serving .next — otherwise the two fight over it and
+  // the running server gets its chunks swapped out underneath it.
+  distDir: process.env.NEXT_DIST_DIR ?? '.next',
   async headers() {
     return [
       {

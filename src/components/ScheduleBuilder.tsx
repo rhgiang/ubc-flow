@@ -473,13 +473,19 @@ export default function ScheduleBuilder({
               </div>
             )}
 
-            <div className="h-full overflow-auto px-4 pb-4 pt-3">
+            {/* A flex column, not a scroll box: the calendar fills whatever
+                height the monitor gives and scrolls internally, instead of
+                stopping at a fixed 680px with a dead band under it. */}
+            {/* h-full, not flex-1: the parent is a positioned block, where
+                flex-1 is inert and the column would size to its content. */}
+            <div className="flex h-full min-h-0 flex-col px-4 pb-4 pt-3">
               <ScheduleCalendar
                 entries={entries}
                 onRemove={removeSection}
                 showNowIndicator={showNowIndicator}
                 onSelectCourse={setInfoCourseId}
                 onSwap={startSwapById}
+                fill
               />
             </div>
           </div>

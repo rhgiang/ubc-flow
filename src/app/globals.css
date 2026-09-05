@@ -597,17 +597,21 @@ body {
  * server/client render.
  *
  * 76px is sized off the desktop block, which carries four lines. A phone block
- * carries two, and at 76px an hour of nothing cost as much screen as an hour
- * of class: eight hours filled the viewport and the week read as stretched.
- * 52px puts about twelve on screen. Zoom in restores the full height, since
- * that view exists to show the room and section code.
+ * carries three, so an hour of nothing was costing as much screen as an hour
+ * of class and only eight fit on a viewport.
+ *
+ * 44px is set by the tightest block that still has to read: one hour, holding
+ * course, time and room in about 47px of text. Anything shorter would clip a
+ * lecture; anything taller leaves a two-hour class mostly empty, which is what
+ * reads as stretched. Zoom in restores the full height for the section code
+ * and instructor.
  */
 .cal-rows {
   --hour: 76px;
 }
 @media (max-width: 639px) {
   .cal-rows:not(.cal-rows-zoom) {
-    --hour: 52px;
+    --hour: 44px;
   }
 }
 

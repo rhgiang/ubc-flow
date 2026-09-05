@@ -189,7 +189,10 @@ function CalendarTerm({
   onSelectCourse: (courseId: string) => void;
 }) {
   return (
-    <div className={first ? '' : 'mt-8'}>
+    // mt-5 on a phone: the term heading, its two buttons and the update link
+    // already stack into three rows before the grid starts, so a full mt-8 on
+    // top of that was most of a screen of chrome between one term and the next.
+    <div className={first ? '' : 'mt-5 sm:mt-8'}>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
           {/* The term name gets the full width on a phone: squeezed between two

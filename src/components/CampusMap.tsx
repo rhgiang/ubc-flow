@@ -125,8 +125,19 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
             }</p>`;
           })
           .join('');
+        // Directions hand off to the native maps app. Neither URL names an
+        // origin, which both apps read as "from where I am now" — and both
+        // default to walking, since this is a campus. No SDK, no API key:
+        // these are the documented universal-link forms.
+        const dest = `${building.lat},${building.lng}`;
+        const directions =
+          `<p class="campus-pin-directions">Directions:` +
+          ` <a href="https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=walking" target="_blank" rel="noopener noreferrer">Google Maps</a>` +
+          ` · <a href="https://maps.apple.com/?daddr=${dest}&dirflg=w" target="_blank" rel="noopener noreferrer">Apple Maps</a></p>`;
         L.marker([building.lat, building.lng], { icon })
-          .bindPopup(`<p style="margin:2px 0 6px"><strong>${building.name}</strong></p>${rows}`)
+          .bindPopup(
+            `<p style="margin:2px 0 6px"><strong>${building.name}</strong></p>${rows}${directions}`,
+          )
           .addTo(pins);
       }
       if (bounds.length > 0) {

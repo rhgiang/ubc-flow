@@ -243,7 +243,7 @@ export default function ScheduleCalendar({
       {/* Phones only: the desktop grid is already wide enough to read. The
           legend shares this row so the key sits above the calendar rather than
           below 680px of it. */}
-      <div className="mb-2 flex items-start justify-between gap-3 sm:hidden">
+      <div className="mb-1.5 flex items-start justify-between gap-3 sm:hidden">
         {!expanded && hasSplitColumn && legend.length > 0 ? (
           <ul className="flex flex-1 flex-wrap gap-x-3 gap-y-1">
             {legend.map((c) => (
@@ -267,7 +267,9 @@ export default function ScheduleCalendar({
           type="button"
           onClick={() => setExpanded((v) => !v)}
           aria-pressed={expanded}
-          className="flex items-center gap-1.5 rounded-pill border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-muted active:bg-surface-muted"
+          // Tight because this sits on its own row above every calendar, and
+          // /schedule stacks one per term. Still a 32px-tall tap target.
+          className="flex items-center gap-1.5 rounded-pill border border-border px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors hover:bg-surface-muted active:bg-surface-muted"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden className="h-3.5 w-3.5">
             {expanded ? (
@@ -482,6 +484,16 @@ export default function ScheduleCalendar({
                             {colCount === 1 && durationMin >= 50 && (
                               <p className="truncate text-[9px] text-text-secondary sm:hidden">
                                 {e.startTime}
+                              </p>
+                            )}
+                            {/* Where to actually go, on the blocks with the
+                                room for it. A long class is the one that looked
+                                most stretched, because height scales with the
+                                hour while two lines of text do not, so it is
+                                also the one with space to say more. */}
+                            {colCount === 1 && durationMin >= 75 && e.location && (
+                              <p className="truncate text-[9px] text-text-tertiary sm:hidden">
+                                {e.location}
                               </p>
                             )}
                           </>

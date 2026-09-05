@@ -32,9 +32,9 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 // grid opens there; the small hours stay one scroll away rather than eating
 // the viewport.
 const OPENING_HOUR = 8;
-// Tall enough to show ~9 hours at once, capped so several stacked calendars
-// on /schedule stay navigable.
-const VIEWPORT_MAX_PX = 680;
+// The 680px viewport cap (max-h-[680px] on the scroll box) shows ~9 hours at
+// once, so several stacked calendars on /schedule stay navigable; `fill` mode
+// lifts it where the calendar owns the page.
 
 /** "14:30" -> 870. */
 function toMinutes(hhmm: string): number {
@@ -76,6 +76,7 @@ export default function ScheduleCalendar({
   onSwap,
   showNowIndicator = false,
   onSelectCourse,
+  fill = false,
 }: {
   entries: CalendarEntry[];
   onRemove?: (sectionId: string) => void;
@@ -85,6 +86,11 @@ export default function ScheduleCalendar({
    *  haven't started don't run a redundant interval. */
   showNowIndicator?: boolean;
   onSelectCourse?: (courseId: string) => void;
+  /** Take the full height of a flex column instead of capping at 680px — for
+   *  the builder, where the calendar IS the page and a fixed cap left a dead
+   *  band under the grid on tall monitors. Stacked contexts (the /schedule
+   *  tabs, shared pages) keep the cap so five calendars stay navigable. */
+  fill?: boolean;
 }) {
   // Both the indicator position AND which column counts as "today" are
   // resolved only after mount. The server's clock and timezone need not match
@@ -154,7 +160,7 @@ export default function ScheduleCalendar({
   const nowTop = nowMin !== null ? (nowMin / 60) * HOUR_PX : null;
 
   return (
-    <div>
+    <div className={fill ? 'flex min-h-0 flex-1 flex-col' : ''}>
       {untimed.length > 0 && (
         <div className="mb-3 rounded-card border border-border bg-surface-muted px-3 py-2">
           <p className="text-xs font-medium text-foreground">No fixed meeting time</p>
@@ -227,8 +233,12 @@ export default function ScheduleCalendar({
 
       <div
         ref={scrollRef}
-        className="overflow-auto rounded-card border border-border"
-        style={{ maxHeight: VIEWPORT_MAX_PX }}
+        className={`overflow-auto rounded-card border border-border ${
+          // Phones keep the cap even in fill mode: the un-pinned mobile
+          // builder scrolls as a page, so an uncapped grid would be 1800px
+          // of calendar between the header and the course list.
+          fill ? 'max-h-[680px] lg:max-h-none lg:min-h-0 lg:flex-1' : 'max-h-[680px]'
+        }`}
       >
         <div className={`flex sm:min-w-[680px] ${expanded ? 'min-w-[560px]' : 'min-w-0'}`}>
           <div className={`shrink-0 sm:w-16 ${expanded ? 'w-10' : 'w-7'}`}>

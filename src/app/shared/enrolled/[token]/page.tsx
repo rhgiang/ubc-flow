@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { formatRoom } from '@/lib/format';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
@@ -53,7 +54,7 @@ async function load(token: string) {
         day,
         startTime: m.startTime,
         endTime: m.endTime,
-        location: m.building ? `${m.building}${m.room ? ` ${m.room}` : ''}` : null,
+        location: formatRoom(m),
         instructor: m.instructor,
       });
     });

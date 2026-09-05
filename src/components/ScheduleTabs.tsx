@@ -7,6 +7,7 @@ import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/Sche
 import CourseInfoOverlay from '@/components/schedule/CourseInfoOverlay';
 import CalendarSubscribeMenu from '@/components/schedule/CalendarSubscribeMenu';
 import ShareLinkMenu from '@/components/schedule/ShareLinkMenu';
+import CampusMap from '@/components/CampusMap';
 import {
   getEnrolledSubscribeUrl,
   enableEnrollmentSharing,
@@ -29,7 +30,7 @@ export type CalendarTermGroup = {
 const VISIBLE_SECTIONS = 3;
 // Stable identity: a fresh Set every render would re-run the overlay's memos.
 const EMPTY_SECTION_IDS: Set<string> = new Set();
-type Tab = 'upcoming' | 'past' | 'calendar';
+type Tab = 'upcoming' | 'past' | 'calendar' | 'map';
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
   return (
@@ -165,9 +166,14 @@ function CalendarTerm({
 }) {
   return (
     <div className={first ? '' : 'mt-8'}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h3 className="text-sm font-medium text-foreground">{group.termName}</h3>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
+          {/* The term name gets the full width on a phone: squeezed between two
+              buttons it wrapped to five lines. min-w-0 lets it shrink rather
+              than force the row wider than the screen. */}
+          <h3 className="min-w-0 flex-1 text-sm font-medium text-foreground sm:flex-none">
+            {group.termName}
+          </h3>
           {group.entries.length > 0 && (
             <>
               <ShareLinkMenu
@@ -243,10 +249,33 @@ export default function ScheduleTabs({
         <TabButton active={tab === 'calendar'} onClick={() => setTab('calendar')}>
           View Calendar
         </TabButton>
+        <TabButton active={tab === 'map'} onClick={() => setTab('map')}>
+          Map
+        </TabButton>
       </div>
 
       <div className="mt-6">
-        {tab === 'calendar' ? (
+        {tab === 'map' ? (
+          // Same enrollment groups the calendar tab draws — the map is the
+          // "where" view of the identical data.
+          calendar.every((g) => g.entries.length === 0) ? (
+            <div>
+              <p className="text-sm text-text-tertiary">
+                No enrolled courses on record to map.
+              </p>
+              <UploadLink primary>Upload your Workday export →</UploadLink>
+            </div>
+          ) : (
+            calendar
+              .filter((g) => g.entries.length > 0)
+              .map((g, i) => (
+                <div key={g.termId} className={i === 0 ? '' : 'mt-8'}>
+                  <h3 className="mb-2 text-sm font-medium text-foreground">{g.termName}</h3>
+                  <CampusMap entries={g.entries} />
+                </div>
+              ))
+          )
+        ) : tab === 'calendar' ? (
           calendar.map((g, i) => (
             <CalendarTerm
               key={g.termId}

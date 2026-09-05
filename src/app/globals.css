@@ -981,6 +981,32 @@ a.capsule-chip:hover {
   border: 2px solid rgba(255, 255, 255, 0.9);
 }
 
+/* A route leg's label — "10 min gap · ~7 min walk" — pinned midway along the
+   dashed line. Fixed light colours, like .campus-pin: it sits on map tiles,
+   which stay light in every site theme. */
+.campus-leg {
+  display: inline-block;
+  /* Below the line's midpoint, not on it: a short leg between neighbouring
+     buildings otherwise lays this pill straight over both endpoint pins. */
+  transform: translate(-50%, calc(-50% + 15px));
+  border-radius: 100px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #1f2937;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(12, 20, 44, 0.25);
+  box-shadow: 0 1px 3px rgba(12, 20, 44, 0.3);
+}
+
+/* The walk does not fit the gap: the one label that must interrupt. */
+.campus-leg-tight {
+  color: #ffffff;
+  background: #b3261e;
+  border-color: rgba(255, 255, 255, 0.85);
+}
+
 /* Directions row in a map pin's popup. */
 .campus-pin-directions {
   margin: 8px 0 2px;

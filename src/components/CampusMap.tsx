@@ -180,14 +180,23 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
                     : `${leg.gapMin} min between classes`;
             const label = `${between} · ~${leg.walkMin} min walk`;
             const at: [number, number] = [(aLat + bLat) / 2, (aLng + bLng) / 2];
+            // The walk this leg is between: out of the last class at the stop
+            // behind it, into the first class at the stop ahead.
+            const from = route.stops[i];
+            const to = route.stops[i + 1];
             const m = L.marker(at, {
-              interactive: false,
               icon: L.divIcon({
                 className: '',
                 html: `<span class="campus-leg${leg.tight ? ' campus-leg-tight' : ''}">${label}</span>`,
                 iconSize: [0, 0],
               }),
-            }).addTo(pins);
+            })
+              .bindPopup(
+                `<p style="margin:2px 0"><strong>${from.labels[from.labels.length - 1]}</strong> in ${from.code}</p>` +
+                  `<p style="margin:2px 0">then</p>` +
+                  `<p style="margin:2px 0"><strong>${to.labels[0]}</strong> in ${to.code}</p>`,
+              )
+              .addTo(pins);
             legMarkers.push({ m, at });
           });
         }

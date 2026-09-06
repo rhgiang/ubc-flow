@@ -83,25 +83,12 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
   // the map, so it lives here rather than inside the marker effect.
   const route = useMemo(() => (day ? dayRoute(entries, day) : null), [entries, day]);
 
-  // True only while a touch device has panning switched off.
-  const [locked, setLocked] = useState(false);
-
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const L = (await import('leaflet')).default;
       if (cancelled || !containerRef.current || mapRef.current) return;
-      // Leaflet sets touch-action: none on its container, so on a phone a
-      // finger landing anywhere on a 420px-tall map pans the map instead of
-      // scrolling the page - and the map fills most of the screen, so the
-      // page can feel stuck. Panning starts off and the student turns it on
-      // by tapping, the same bargain scrollWheelZoom: false makes on desktop.
-      const touch = L.Browser.mobile;
-      const map = L.map(containerRef.current, {
-        scrollWheelZoom: false,
-        dragging: !touch,
-      }).setView(CAMPUS_CENTER, CAMPUS_ZOOM);
-      if (touch) setLocked(true);
+      const map = L.map(containerRef.current).setView(CAMPUS_CENTER, CAMPUS_ZOOM);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -390,31 +377,12 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
         </div>
       )}
 
-      <div className="relative">
-        <div
-          ref={containerRef}
-          className="h-[420px] w-full overflow-hidden rounded-card border border-border sm:h-[520px]"
-          role="application"
-          aria-label="Campus map of class locations"
-        />
-        {locked && (
-          <button
-            type="button"
-            onClick={() => {
-              mapRef.current?.dragging.enable();
-              setLocked(false);
-            }}
-            // Above the tiles but below Leaflet's own controls (z-1000), so
-            // the zoom buttons keep working while panning is still off.
-            className="absolute inset-0 z-[500] flex items-end justify-center rounded-card bg-transparent pb-4"
-            aria-label="Enable map panning"
-          >
-            <span className="rounded-pill bg-foreground/85 px-3 py-1.5 text-xs font-medium text-background shadow-lg">
-              Tap to move the map
-            </span>
-          </button>
-        )}
-      </div>
+      <div
+        ref={containerRef}
+        className="h-[420px] w-full overflow-hidden rounded-card border border-border sm:h-[520px]"
+        role="application"
+        aria-label="Campus map of class locations"
+      />
 
       {route && (
         <p className="mt-2 text-xs text-text-tertiary">

@@ -123,6 +123,7 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
     const pins = pinsRef.current;
     if (!map || !pins) return;
     let cancelled = false;
+    let offSpread: (() => void) | null = null;
     (async () => {
       const L = (await import('leaflet')).default;
       if (cancelled) return;
@@ -134,6 +135,10 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
       if (route) {
         const seen = new Map<string, number>();
         const points: [number, number][] = [];
+        // Markers kept for the label-spreading pass below: overlap is a
+        // screen-space question, unanswerable at geo-coordinate time.
+        const stopMarkers: { m: ReturnType<typeof L.marker>; at: [number, number] }[] = [];
+        const legMarkers: { m: ReturnType<typeof L.marker>; at: [number, number] }[] = [];
         route.stops.forEach((stop, i) => {
           // The same building visited twice non-consecutively would stack two
           // markers on identical coordinates; a hair of latitude keeps both
@@ -156,11 +161,12 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
             `<p class="campus-pin-directions">Directions:` +
             ` <a href="https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=walking" target="_blank" rel="noopener noreferrer">Google Maps</a>` +
             ` · <a href="https://maps.apple.com/?daddr=${dest}&dirflg=w" target="_blank" rel="noopener noreferrer">Apple Maps</a></p>`;
-          L.marker([lat, lng], { icon })
+          const m = L.marker([lat, lng], { icon })
             .bindPopup(
               `<p style="margin:2px 0 6px"><strong>${stop.building.name}</strong></p>${rows}${directions}`,
             )
             .addTo(pins);
+          stopMarkers.push({ m, at: [lat, lng] });
         });
 
         if (points.length > 1) {
@@ -186,19 +192,65 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
                       } between classes`
                     : `${leg.gapMin} min between classes`;
             const label = `${between} · ~${leg.walkMin} min walk`;
-            L.marker([(aLat + bLat) / 2, (aLng + bLng) / 2], {
+            const at: [number, number] = [(aLat + bLat) / 2, (aLng + bLng) / 2];
+            const m = L.marker(at, {
               interactive: false,
               icon: L.divIcon({
                 className: '',
-                // Odd legs drop to a second lane: consecutive short legs (or a
-                // route retracing a street) put two midpoints almost on the
-                // same pixel, and one shared lane stacks their labels.
-                html: `<span class="campus-leg${i % 2 ? ' campus-leg-alt' : ''}${leg.tight ? ' campus-leg-tight' : ''}">${label}</span>`,
+                html: `<span class="campus-leg${leg.tight ? ' campus-leg-tight' : ''}">${label}</span>`,
                 iconSize: [0, 0],
               }),
             }).addTo(pins);
+            legMarkers.push({ m, at });
           });
         }
+
+        // Two legs' midpoints can land on nearly the same pixel (consecutive
+        // short legs, a route retracing a street), stacking their labels.
+        // Geo-space offsets can't see that, so after render: measure every
+        // pin and label box in container pixels and slide each label further
+        // down its anchor until it clears everything placed before it.
+        // Re-run on zoom, which is the only thing that changes relative
+        // pixel distances.
+        const spread = () => {
+          const pad = 2;
+          type Rect = { x1: number; y1: number; x2: number; y2: number };
+          const rects: Rect[] = [];
+          const boxFor = ({ m, at }: { m: ReturnType<typeof L.marker>; at: [number, number] }, dy: number): Rect | null => {
+            const el = m.getElement()?.firstElementChild as HTMLElement | null;
+            if (!el) return null;
+            const p = map.latLngToContainerPoint(at);
+            const w = el.offsetWidth;
+            const h = el.offsetHeight;
+            return { x1: p.x - w / 2, y1: p.y - h / 2 + dy, x2: p.x + w / 2, y2: p.y + h / 2 + dy };
+          };
+          for (const s of stopMarkers) {
+            const r = boxFor(s, 0);
+            if (r) rects.push(r);
+          }
+          for (const lm of legMarkers) {
+            const el = lm.m.getElement()?.firstElementChild as HTMLElement | null;
+            if (!el) continue;
+            let dy = 15; // the old CSS resting spot: just below the line
+            let r = boxFor(lm, dy)!;
+            // ponytail: greedy slide-down, capped; smarter 2D placement only
+            // if routes grow enough legs to run out of vertical room.
+            while (
+              dy < 200 &&
+              rects.some(
+                (o) => r.x1 < o.x2 + pad && r.x2 > o.x1 - pad && r.y1 < o.y2 + pad && r.y2 > o.y1 - pad,
+              )
+            ) {
+              dy += 4;
+              r = boxFor(lm, dy)!;
+            }
+            el.style.transform = `translate(-50%, calc(-50% + ${dy}px))`;
+            rects.push(r);
+          }
+        };
+        spread();
+        map.on('zoomend', spread);
+        offSpread = () => map.off('zoomend', spread);
 
         if (points.length > 0) map.fitBounds(points, { padding: [56, 56], maxZoom: 17 });
         else map.setView(CAMPUS_CENTER, CAMPUS_ZOOM);
@@ -264,6 +316,7 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
     })();
     return () => {
       cancelled = true;
+      offSpread?.();
     };
   }, [located, selected, route, ready]);
 

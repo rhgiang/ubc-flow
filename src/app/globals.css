@@ -987,12 +987,15 @@ a.capsule-chip:hover {
 .campus-leg {
   display: inline-block;
   /* Below the line's midpoint, not on it: a short leg between neighbouring
-     buildings otherwise lays this pill straight over both endpoint pins. */
+     buildings otherwise lays this pill straight over both endpoint pins.
+     (First paint only — CampusMap's collision pass replaces this offset.) */
   transform: translate(-50%, calc(-50% + 15px));
-  border-radius: 100px;
-  padding: 2px 7px;
+  border-radius: 10px;
+  padding: 3px 8px;
   font-size: 10px;
   font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
   white-space: nowrap;
   color: #1f2937;
   background: rgba(255, 255, 255, 0.92);

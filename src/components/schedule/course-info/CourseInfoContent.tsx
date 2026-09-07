@@ -109,11 +109,14 @@ function locationLabel(s: CourseSectionDetail): string | null {
 export default function CourseInfoContent({
   detail,
   addedSectionIds,
+  highlightSectionCode,
   onAddSection,
   onRemoveSection,
 }: {
   detail: CourseDetail;
   addedSectionIds: Set<string>;
+  /** The student's own section: pinned first and visibly badged. */
+  highlightSectionCode?: string | null;
   onAddSection?: (hit: SectionHit) => void;
   onRemoveSection?: (sectionId: string) => void;
 }) {
@@ -121,6 +124,14 @@ export default function CourseInfoContent({
     name: string;
     grades: InstructorGradeHistory;
   } | null>(null);
+
+  // The student's section leads the list; everyone else keeps their order.
+  const sections = highlightSectionCode
+    ? [
+        ...detail.sections.filter((s) => s.sectionCode === highlightSectionCode),
+        ...detail.sections.filter((s) => s.sectionCode !== highlightSectionCode),
+      ]
+    : detail.sections;
 
   return (
     <>
@@ -147,16 +158,29 @@ export default function CourseInfoContent({
               </span>
             </summary>
             <ul className="mt-2 divide-y divide-border rounded-card border border-border">
-            {detail.sections.map((s) => {
+            {sections.map((s) => {
               const added = addedSectionIds.has(s.sectionId);
               const location = locationLabel(s);
+              const mine = s.sectionCode === highlightSectionCode;
               return (
-                <li key={s.sectionId} className="flex items-start justify-between gap-3 px-3 py-2">
+                <li
+                  key={s.sectionId}
+                  className={`flex items-start justify-between gap-3 px-3 py-2 ${
+                    // Their own section reads at a glance: tinted, with an
+                    // accent bar matching the calendar block they clicked.
+                    mine ? 'bg-info-surface shadow-[inset_3px_0_0_0_var(--info)]' : ''
+                  }`}
+                >
                   <div className="min-w-0">
                     <p className="text-sm text-foreground">
                       {s.sectionCode}
                       {s.activity && (
                         <span className="ml-2 text-xs text-text-secondary">{s.activity}</span>
+                      )}
+                      {mine && (
+                        <span className="ml-2 rounded-pill bg-brand px-2 py-0.5 text-[11px] font-medium text-brand-foreground">
+                          Your section
+                        </span>
                       )}
                     </p>
                     <p className="text-xs text-text-tertiary">{s.meetings}</p>

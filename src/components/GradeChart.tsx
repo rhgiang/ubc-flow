@@ -39,7 +39,13 @@ export default function GradeChart({
   }).join(', ');
 
   return (
-    <div>
+    // overflow-x-clip: at large system text sizes a centred tooltip can be
+    // most of a phone wide, and any index-based anchoring rule eventually
+    // lets one past the page edge — which widens the document and makes the
+    // page scroll sideways. Clip the x axis at the root instead; y stays
+    // visible (clip+visible is the legal mixed pair), so tooltips still
+    // rise above the bars.
+    <div className="overflow-x-clip">
       <p className="sr-only">Grade distribution. {summary}.</p>
       {/* Bars and labels are separate rows: when a label wrapped inside the
           column, it stole height from the bar area, so a two-line label made
@@ -53,16 +59,17 @@ export default function GradeChart({
             : Math.round((value / max) * CHART_HEIGHT * MAX_BAR_FRACTION);
           const percent = !suppressed && total > 0 ? Math.round((value / total) * 100) : null;
 
-          // The tooltip is wider than the bar it belongs to, so on the end
+          // The tooltip is wider than the bar it belongs to, so on the outer
           // columns it hung past the chart — and an absolutely positioned box
           // past the right edge widens the DOCUMENT, which made the whole
-          // professor page scroll sideways on a phone. Anchor the outer
-          // columns inward instead of centring them; the middle ones are
-          // nowhere near an edge and stay centred.
+          // professor page scroll sideways on a phone. Anchor the outer TWO
+          // columns each side inward instead of centring them: at a large
+          // system text size the tooltip grows to most of a phone's width,
+          // which put even the second-from-the-edge columns past the page.
           const anchor =
-            i === 0
+            i <= 1
               ? 'left-0'
-              : i === GRADE_BUCKETS.length - 1
+              : i >= GRADE_BUCKETS.length - 2
                 ? 'right-0'
                 : 'left-1/2 -translate-x-1/2';
 
@@ -109,9 +116,13 @@ export default function GradeChart({
 
       <div className="mt-1 flex gap-1">
         {GRADE_BUCKETS.map((bucket) => (
+          // min(): the labels follow a smaller system text size down, but stop
+          // GROWING at 11px — eleven of them share one phone width, and past
+          // that they widened the document itself. Axis microcopy only; the
+          // tooltips and the sr-only summary carry the same data at full size.
           <span
             key={bucket}
-            className="flex-1 text-center text-[0.625rem] leading-tight text-text-tertiary"
+            className="flex-1 text-center text-[min(0.625rem,11px)] leading-tight text-text-tertiary"
           >
             {bucket}
           </span>

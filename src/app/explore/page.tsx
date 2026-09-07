@@ -278,7 +278,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
-      <h1 className="sky-hero text-3xl font-semibold">Explore</h1>
+      <h1 className="sky-hero text-2xl font-semibold sm:text-3xl">Explore</h1>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_300px]">
         {/* min-w-0: without it the 1fr column refuses to shrink below its
@@ -288,7 +288,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           <div className="sky-panel flex overflow-hidden">
             <Link
               href={hrefWith(sp, { tab: null })}
-              className={`flex-1 px-4 py-3.5 text-center text-sm font-semibold ${
+              className={`flex-1 px-4 py-3 text-center text-sm font-semibold sm:py-3.5 ${
                 tab === 'courses' ? 'bg-surface text-foreground' : 'bg-surface-muted text-text-secondary'
               }`}
             >
@@ -296,7 +296,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             </Link>
             <Link
               href={hrefWith(sp, { tab: 'professors' })}
-              className={`flex-1 px-4 py-3.5 text-center text-sm font-semibold ${
+              className={`flex-1 px-4 py-3 text-center text-sm font-semibold sm:py-3.5 ${
                 tab === 'professors' ? 'bg-surface text-foreground' : 'bg-surface-muted text-text-secondary'
               }`}
             >

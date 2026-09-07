@@ -253,27 +253,51 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
               x2: x + w / 2,
               y2: y + h / 2,
             });
-            // Midpoint first, then outward along the line; below the line
-            // before above it, close before far — captions read best low.
+            // Midpoint first, then outward along the line, stepping
+            // PERPENDICULAR to the leg rather than straight down — a vertical
+            // slide on a near-vertical leg walks along the line into its own
+            // pins, while the normal always steps beside it. Close before far.
+            const dxl = B.x - A.x;
+            const dyl = B.y - A.y;
+            const len = Math.hypot(dxl, dyl) || 1;
+            const nxl = -dyl / len;
+            const nyl = dxl / len;
+            // How much of this rect is already covered — the "least bad spot"
+            // metric when nothing near the leg is fully free.
+            const overlapArea = (r: Rect) => {
+              let area = 0;
+              for (const o of rects) {
+                const ow = Math.min(r.x2, o.x2) - Math.max(r.x1, o.x1);
+                const oh = Math.min(r.y2, o.y2) - Math.max(r.y1, o.y1);
+                if (ow > 0 && oh > 0) area += ow * oh;
+              }
+              return area;
+            };
             let px = mid.x;
             let py = mid.y + 15;
-            let placed = false;
+            let bestArea = Infinity;
             outer: for (const t of [0.5, 0.38, 0.62, 0.26, 0.74, 0.14, 0.86]) {
-              for (const off of [15, -15, 30, -30]) {
-                const x = A.x + t * (B.x - A.x);
-                const y = A.y + t * (B.y - A.y) + off;
-                if (!hits(rectAt(x, y))) {
+              for (const off of [15, -15, 30, -30, 45, -45]) {
+                const x = A.x + t * dxl + nxl * off;
+                const y = A.y + t * dyl + nyl * off;
+                const r = rectAt(x, y);
+                if (!hits(r)) {
                   px = x;
                   py = y;
-                  placed = true;
+                  bestArea = 0;
                   break outer;
                 }
+                // No free spot anywhere near the leg: take the least-covered
+                // one instead of the old slide-down, which parked
+                // "back-to-back" up to 200px under the walk it described.
+                // Slightly overlapped but in place reads better than adrift.
+                const area = overlapArea(r);
+                if (area < bestArea) {
+                  bestArea = area;
+                  px = x;
+                  py = y;
+                }
               }
-            }
-            if (!placed) {
-              // ponytail: every spot on the line is taken — the old greedy
-              // slide-down, capped, remains the escape hatch.
-              while (py - mid.y < 200 && hits(rectAt(px, py))) py += 4;
             }
             el.style.transform = `translate(calc(-50% + ${Math.round(px - mid.x)}px), calc(-50% + ${Math.round(
               py - mid.y,
@@ -404,10 +428,9 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
           role="group"
           aria-label="Walk a day's route"
         >
-          <span className="shrink-0 pr-1 text-xs text-text-secondary">
-            <span className="sm:hidden">Route:</span>
-            <span className="hidden sm:inline">Day&apos;s route:</span>
-          </span>
+          {/* Just "Route:" at every size — the Mon–Fri chips beside it say
+              the rest, and one label beats a breakpoint-dependent pair. */}
+          <span className="shrink-0 pr-1 text-xs text-text-secondary">Route:</span>
           {routeDays.map((d) => (
             <button
               key={d}

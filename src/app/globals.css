@@ -171,6 +171,18 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* Track the iPhone's Text Size setting. Every font size in the app is rem,
+   and rem resolves against the root — on Android and desktop the browser's
+   own font-size preference sets it, but iOS only passes the system slider
+   through when the root font is a Dynamic Type token. `font:` also resets
+   the root line-height and family; body immediately re-declares both, so
+   only the size (1rem's meaning) survives, which is the point. */
+@supports (font: -apple-system-body) {
+  html {
+    font: -apple-system-body;
+  }
+}
+
 /* Keyboard-only focus ring, themed from the brand. Applies everywhere the
    browser default would otherwise show its own un-themed outline.
  *
@@ -204,12 +216,14 @@ html {
 
 /* iOS Safari auto-zooms the page on focusing any form control under 16px and
    never zooms back out. Every field in the app is text-sm (15px) or smaller,
-   so on phones they all get floored to 16px here instead of per-callsite. */
+   so on phones they all get floored to 16px here instead of per-callsite.
+   max() rather than a flat 16px: someone running a larger system text size
+   has 1rem above 16px, and their inputs should grow with everything else. */
 @media (max-width: 640px) {
   input,
   textarea,
   select {
-    font-size: 16px;
+    font-size: max(16px, 1rem);
   }
 }
 
@@ -973,7 +987,7 @@ a.capsule-chip:hover {
   transform: translate(-50%, -50%);
   border-radius: 100px;
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: #ffffff;
   white-space: nowrap;
@@ -992,7 +1006,7 @@ a.capsule-chip:hover {
   transform: translate(-50%, calc(-50% + 15px));
   border-radius: 10px;
   padding: 4px 9px;
-  font-size: 9.5px;
+  font-size: 0.59375rem;
   font-weight: 500;
   line-height: 1.4;
   text-align: center;
@@ -1008,7 +1022,7 @@ a.capsule-chip:hover {
    the route's own navy. */
 .campus-leg b {
   display: block;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: #002145;
 }
@@ -1025,7 +1039,7 @@ a.capsule-chip:hover {
   margin: 8px 0 2px;
   padding-top: 6px;
   border-top: 1px solid var(--border-hairline);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .campus-pin-directions a {

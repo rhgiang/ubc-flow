@@ -52,7 +52,7 @@ export default function Footer() {
         scrolled ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'
       }`}
     >
-      <nav className="sky-capsule mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-1 p-1.5 text-[14px] font-medium">
+      <nav className="sky-capsule mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-1 p-1.5 text-[0.875rem] font-medium">
         <Link href="/about" className="capsule-chip max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-4 py-2">
           About
         </Link>
@@ -77,7 +77,7 @@ export default function Footer() {
           Grade data: UBC PAIR
         </a>
       </nav>
-      <p className="mt-5 text-[13px]">
+      <p className="mt-5 text-xs">
         © 2026 UBC Flow ·{' '}
         <span className="whitespace-nowrap">Built by a student, not affiliated with UBC</span>
       </p>

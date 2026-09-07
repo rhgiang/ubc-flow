@@ -251,7 +251,7 @@ export default function ScheduleCalendar({
             {legend.map((c) => (
               <li
                 key={c.label}
-                className="flex items-center gap-1.5 text-[11px] text-text-secondary"
+                className="flex items-center gap-1.5 text-[0.6875rem] text-text-secondary"
               >
                 <span
                   aria-hidden
@@ -271,7 +271,7 @@ export default function ScheduleCalendar({
           aria-pressed={expanded}
           // Tight because this sits on its own row above every calendar, and
           // /schedule stacks one per term. Still a 32px-tall tap target.
-          className="flex items-center gap-1.5 rounded-pill border border-border px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors hover:bg-surface-muted active:bg-surface-muted"
+          className="flex items-center gap-1.5 rounded-pill border border-border px-2.5 py-1 text-[0.6875rem] font-medium text-text-secondary transition-colors hover:bg-surface-muted active:bg-surface-muted"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden className="h-3.5 w-3.5">
             {expanded ? (
@@ -319,7 +319,7 @@ export default function ScheduleCalendar({
                 {h !== 0 && (
                   <span
                     className={`absolute -top-2 text-text-tertiary ${
-                      expanded ? 'right-2 text-[11px]' : 'right-1 text-[10px] sm:right-2 sm:text-[11px]'
+                      expanded ? 'right-2 text-[0.6875rem]' : 'right-1 text-[0.625rem] sm:right-2 sm:text-[0.6875rem]'
                     }`}
                   >
                     {/* A 28px gutter has no room for "9 AM"; the bare hour is
@@ -401,7 +401,7 @@ export default function ScheduleCalendar({
                         // class — the most common block on the grid, and the
                         // one whose room was therefore never shown.
                         className={`group absolute overflow-hidden rounded-md py-1 leading-[1.15] sm:py-1.5 sm:leading-tight ${
-                          expanded ? 'pl-2 pr-1 text-[11px]' : 'pl-1 pr-0 text-[9px] sm:pl-2 sm:pr-1 sm:text-[11px]'
+                          expanded ? 'pl-2 pr-1 text-[0.6875rem]' : 'pl-1 pr-0 text-[0.5625rem] sm:pl-2 sm:pr-1 sm:text-[0.6875rem]'
                         } ${
                           conflictLabels ? 'ring-1 ring-danger-border' : ''
                         } ${onSelectCourse && e.courseId ? 'cursor-pointer' : ''}`}
@@ -476,7 +476,7 @@ export default function ScheduleCalendar({
                               // The remove and swap buttons sit in the top-right
                               // and stay visible on touch, so the text has to be
                               // kept out from under them.
-                              className={`truncate text-[10px] font-medium text-foreground sm:hidden ${
+                              className={`truncate text-[0.625rem] font-medium text-foreground sm:hidden ${
                                 onRemove ? (onSwap ? 'pr-10' : 'pr-4') : ''
                               }`}
                             >
@@ -489,7 +489,7 @@ export default function ScheduleCalendar({
                                 block's own bottom edge, and a 30-minute block
                                 has room for the course or the time, not both. */}
                             {colCount === 1 && durationMin >= 50 && (
-                              <p className="truncate text-[9px] text-text-secondary sm:hidden">
+                              <p className="truncate text-[0.5625rem] text-text-secondary sm:hidden">
                                 {e.startTime}
                               </p>
                             )}
@@ -500,7 +500,7 @@ export default function ScheduleCalendar({
                                 gating any higher hid the room on most of a
                                 week's classes. */}
                             {colCount === 1 && durationMin >= 60 && e.location && (
-                              <p className="truncate text-[9px] text-text-tertiary sm:hidden">
+                              <p className="truncate text-[0.5625rem] text-text-tertiary sm:hidden">
                                 {e.location}
                               </p>
                             )}

@@ -110,7 +110,7 @@ export default function HistoricalGradesTimeline({ terms }: { terms: HistoricalG
         {GRID.map((gv) => (
           <span
             key={`y-${gv}`}
-            className="absolute text-right text-[10px] text-text-secondary"
+            className="absolute text-right text-[0.625rem] text-text-secondary"
             style={{
               left: 0,
               width: AXIS.left - 6,
@@ -194,7 +194,7 @@ export default function HistoricalGradesTimeline({ terms }: { terms: HistoricalG
             i % labelStep === 0 ? (
               <span
                 key={`x-${t.year}-${t.session}`}
-                className="absolute whitespace-nowrap text-[10px] text-text-secondary"
+                className="absolute whitespace-nowrap text-[0.625rem] text-text-secondary"
                 style={{
                   left: `${xPct(i)}%`,
                   transformOrigin: 'top right',

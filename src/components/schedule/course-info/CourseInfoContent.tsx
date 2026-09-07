@@ -178,7 +178,7 @@ export default function CourseInfoContent({
                         <span className="ml-2 text-xs text-text-secondary">{s.activity}</span>
                       )}
                       {mine && (
-                        <span className="ml-2 rounded-pill bg-brand px-2 py-0.5 text-[11px] font-medium text-brand-foreground">
+                        <span className="ml-2 rounded-pill bg-brand px-2 py-0.5 text-[0.6875rem] font-medium text-brand-foreground">
                           Your section
                         </span>
                       )}

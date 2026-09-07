@@ -396,11 +396,18 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
           map had no caption anywhere explaining that a day is a walked route. */}
       {routeDays.length > 0 && (
         <div
-          className="mb-2 flex items-center gap-1.5 overflow-x-auto"
+          // gap-1/px-2.5 and the short label below sm: the full row measures
+          // ~380px, which shoved Fri off a phone and left it discoverable
+          // only by noticing a hairline strip scrolls. Scrolling stays as
+          // the fallback for very narrow screens in large fonts.
+          className="mb-2 flex items-center gap-1 overflow-x-auto sm:gap-1.5"
           role="group"
           aria-label="Walk a day's route"
         >
-          <span className="shrink-0 pr-1 text-xs text-text-secondary">Day&apos;s route:</span>
+          <span className="shrink-0 pr-1 text-xs text-text-secondary">
+            <span className="sm:hidden">Route:</span>
+            <span className="hidden sm:inline">Day&apos;s route:</span>
+          </span>
           {routeDays.map((d) => (
             <button
               key={d}
@@ -411,7 +418,7 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
                 setSelected(null);
                 setDay(day === d ? null : d);
               }}
-              className={`shrink-0 rounded-pill border px-3 py-1.5 text-xs font-medium ${
+              className={`shrink-0 rounded-pill border px-2.5 py-1.5 text-xs font-medium sm:px-3 ${
                 day === d
                   ? 'border-brand bg-brand text-brand-foreground'
                   : 'border-border text-foreground hover:bg-surface-muted'

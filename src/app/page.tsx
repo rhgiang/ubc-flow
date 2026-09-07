@@ -34,7 +34,9 @@ export default async function Home() {
           session?.user ? 'mb-16 sm:mb-40' : 'mt-24 sm:mt-6'
         }`}
       >
-        <h1 className="sky-hero text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+        {/* text-2xl on phones: at 30px the headline ran four lines and owned
+            most of the first screen, reading oversized next to other apps. */}
+        <h1 className="sky-hero text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Search and explore course and professor reviews from UBC students
         </h1>
 

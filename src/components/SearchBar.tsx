@@ -61,7 +61,7 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
           setOpen(false);
           router.push(`/explore?q=${encodeURIComponent(query)}`);
         }}
-        className="flex items-center gap-2 rounded-pill border border-border bg-surface px-5 py-3.5 shadow-sm transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100"
+        className="flex items-center gap-2 rounded-pill border border-border bg-surface px-4 py-3 shadow-sm transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100 sm:px-5 sm:py-3.5"
       >
         <svg
           viewBox="0 0 24 24"

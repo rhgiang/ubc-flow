@@ -328,31 +328,53 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           </details>
 
           <div className="mt-4 flex gap-1.5 overflow-x-auto sm:hidden" aria-label="Sort by">
-            {SORT_HEADERS.map((h) => (
-              <Link
-                key={h.key}
-                href={hrefWith(sp, { sort: h.key })}
-                // capsule-chip: dark backing so the chips survive pale
-                // gray-weather skies the way the nav and footer links do;
-                // plain themes strip it back to ordinary text via CSS.
-                className="capsule-chip whitespace-nowrap rounded-pill border border-border max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-3.5 py-2 text-sm font-medium"
-              >
-                {h.label}
-              </Link>
-            ))}
+            {SORT_HEADERS.map((h) => {
+              // 'ratings' is the fallback both list queries apply, so the
+              // lit chip matches the order on screen even before a tap.
+              const active = (sp.sort ?? 'ratings') === h.key;
+              return (
+                <Link
+                  key={h.key}
+                  href={hrefWith(sp, { sort: h.key })}
+                  aria-current={active ? 'true' : undefined}
+                  // capsule-chip: dark backing so the chips survive pale
+                  // gray-weather skies the way the nav and footer links do;
+                  // plain themes strip it back to ordinary text via CSS. The
+                  // active chip takes the brand fill instead — the same
+                  // treatment as the map's day chips, which reads on every
+                  // theme; capsule-chip's text colour would fight it.
+                  className={`whitespace-nowrap rounded-pill border max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-3.5 py-2 text-sm font-medium ${
+                    active
+                      ? 'border-brand bg-brand text-brand-foreground'
+                      : 'capsule-chip border-border'
+                  }`}
+                >
+                  {h.label}
+                </Link>
+              );
+            })}
           </div>
 
           <div className="sky-panel mt-4 overflow-x-auto">
             <table className="sky-table hidden w-full text-left text-sm sm:table">
               <thead className="border-b border-border text-xs text-text-secondary">
                 <tr>
-                  {SORT_HEADERS.map((h) => (
-                    <th key={h.key} className="whitespace-nowrap px-4 py-3 font-medium">
-                      <Link href={hrefWith(sp, { sort: h.key })} className="hover:text-foreground">
-                        {h.label}
-                      </Link>
-                    </th>
-                  ))}
+                  {SORT_HEADERS.map((h) => {
+                    const active = (sp.sort ?? 'ratings') === h.key;
+                    return (
+                      <th key={h.key} className="whitespace-nowrap px-4 py-3 font-medium">
+                        <Link
+                          href={hrefWith(sp, { sort: h.key })}
+                          aria-current={active ? 'true' : undefined}
+                          className={
+                            active ? 'font-semibold text-brand-accent' : 'hover:text-foreground'
+                          }
+                        >
+                          {h.label}
+                        </Link>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>

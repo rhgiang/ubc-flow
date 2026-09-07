@@ -186,7 +186,7 @@ function CalendarTerm({
 }: {
   group: CalendarTermGroup;
   first: boolean;
-  onSelectCourse: (courseId: string) => void;
+  onSelectCourse: (courseId: string, label?: string) => void;
 }) {
   return (
     // mt-5 on a phone: the term heading, its two buttons and the update link
@@ -258,8 +258,14 @@ export default function ScheduleTabs({
 }) {
   const [tab, setTab] = useState<Tab>('upcoming');
   // Which calendar block was clicked. The term travels with it: course detail
-  // is fetched per term, and this tab stacks one calendar per term.
-  const [info, setInfo] = useState<{ courseId: string; termId: string } | null>(null);
+  // is fetched per term, and this tab stacks one calendar per term. The
+  // section code rides along so the overlay can flag the student's own
+  // section instead of presenting all forty as equals.
+  const [info, setInfo] = useState<{
+    courseId: string;
+    termId: string;
+    sectionCode: string | null;
+  } | null>(null);
   const groups = tab === 'upcoming' ? upcoming : past;
 
   return (
@@ -309,7 +315,18 @@ export default function ScheduleTabs({
               key={g.termId}
               group={g}
               first={i === 0}
-              onSelectCourse={(courseId) => setInfo({ courseId, termId: g.termId })}
+              onSelectCourse={(courseId, label) =>
+                setInfo({
+                  courseId,
+                  termId: g.termId,
+                  // "MATH 200-103" -> "103". Section codes never contain a
+                  // dash, so the last one always splits label from section.
+                  sectionCode:
+                    label && label.includes('-')
+                      ? label.slice(label.lastIndexOf('-') + 1)
+                      : null,
+                })
+              }
             />
           ))
         ) : (
@@ -334,6 +351,7 @@ export default function ScheduleTabs({
         courseId={info?.courseId ?? null}
         termId={info?.termId ?? ''}
         addedSectionIds={EMPTY_SECTION_IDS}
+        highlightSectionCode={info?.sectionCode ?? null}
         onClose={() => setInfo(null)}
       />
     </div>

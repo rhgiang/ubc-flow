@@ -107,7 +107,9 @@ export default function ScheduleCalendar({
    *  indicator). Also gates the 60s clock timer so calendars for terms that
    *  haven't started don't run a redundant interval. */
   showNowIndicator?: boolean;
-  onSelectCourse?: (courseId: string) => void;
+  /** `label` is the clicked block's own label ("MATH 200-103"), so the
+   *  overlay can say which of the course's sections is this student's. */
+  onSelectCourse?: (courseId: string, label?: string) => void;
   /** Take the full height of a flex column instead of capping at 680px — for
    *  the builder, where the calendar IS the page and a fixed cap left a dead
    *  band under the grid on tall monitors. Stacked contexts (the /schedule
@@ -413,7 +415,7 @@ export default function ScheduleCalendar({
                         }}
                         onClick={
                           onSelectCourse && e.courseId
-                            ? () => onSelectCourse(e.courseId!)
+                            ? () => onSelectCourse(e.courseId!, e.label)
                             : undefined
                         }
                         role={onSelectCourse && e.courseId ? 'button' : undefined}
@@ -429,7 +431,7 @@ export default function ScheduleCalendar({
                                 if (ev.target !== ev.currentTarget) return;
                                 if (ev.key === 'Enter' || ev.key === ' ') {
                                   ev.preventDefault();
-                                  onSelectCourse(e.courseId!);
+                                  onSelectCourse(e.courseId!, e.label);
                                 }
                               }
                             : undefined

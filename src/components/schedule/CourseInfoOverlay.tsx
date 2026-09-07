@@ -20,6 +20,7 @@ export default function CourseInfoOverlay({
   courseId,
   termId,
   addedSectionIds,
+  highlightSectionCode,
   onAddSection,
   onRemoveSection,
   onDock,
@@ -28,6 +29,9 @@ export default function CourseInfoOverlay({
   courseId: string | null;
   termId: string;
   addedSectionIds: Set<string>;
+  /** The student's own section, when opened from their calendar — pinned and
+   *  badged so a click on "MATH 200-103" answers for 103, not all forty. */
+  highlightSectionCode?: string | null;
   onAddSection?: (hit: SectionHit) => void;
   onRemoveSection?: (sectionId: string) => void;
   /** Omitted where there is no side panel to dock into (the /schedule calendar). */
@@ -133,6 +137,7 @@ export default function CourseInfoOverlay({
               <CourseInfoContent
                 detail={detail}
                 addedSectionIds={addedSectionIds}
+                highlightSectionCode={highlightSectionCode}
                 onAddSection={onAddSection}
                 onRemoveSection={onRemoveSection}
               />

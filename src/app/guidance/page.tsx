@@ -565,7 +565,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
           </p>
 
           {tracking ? (
-            <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[11px] leading-relaxed text-info">
+            <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[0.6875rem] leading-relaxed text-info">
               Checked against your record. The route above starts from what you have left rather
               than from first year.{' '}
               {assumed > 0 && (
@@ -577,12 +577,12 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
               )}
             </p>
           ) : userId ? (
-            <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[11px] leading-relaxed text-info">
+            <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[0.6875rem] leading-relaxed text-info">
               Nothing to track against yet. Upload your Workday record from your account page and
               this becomes your own progress. Until then the ticks show what the route above covers.
             </p>
           ) : (
-            <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[11px] leading-relaxed text-info">
+            <p className="mt-2 rounded-card border border-info-border bg-info-surface px-2.5 py-2 text-[0.6875rem] leading-relaxed text-info">
               Ticks show what the route above covers, not a personal record. Sign in and upload your
               courses to track your own progress.
             </p>
@@ -608,7 +608,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                     <details>
                       <summary className="cursor-pointer list-none">
                         {body}
-                        <span className="mt-0.5 block text-[11px] opacity-60">see requirements</span>
+                        <span className="mt-0.5 block text-[0.6875rem] opacity-60">see requirements</span>
                       </summary>
                       <ul className="mt-1.5 space-y-1 border-t border-current/20 pt-1.5 opacity-90">
                         {parts.map((part) => (

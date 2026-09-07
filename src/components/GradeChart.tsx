@@ -111,7 +111,7 @@ export default function GradeChart({
         {GRADE_BUCKETS.map((bucket) => (
           <span
             key={bucket}
-            className="flex-1 text-center text-[10px] leading-tight text-text-tertiary"
+            className="flex-1 text-center text-[0.625rem] leading-tight text-text-tertiary"
           >
             {bucket}
           </span>

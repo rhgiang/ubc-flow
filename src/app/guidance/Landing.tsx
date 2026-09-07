@@ -74,7 +74,7 @@ export default function Landing() {
                     href={`/guidance?program=${p.code}`}
                     className="group flex h-full flex-col rounded-card border border-border p-4 transition-colors hover:border-brand hover:bg-surface-muted"
                   >
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-accent">
+                    <span className="text-[0.6875rem] font-semibold uppercase tracking-wider text-brand-accent">
                       {badge(p.code)}
                     </span>
                     <span className="mt-1 text-sm font-medium leading-snug text-foreground">

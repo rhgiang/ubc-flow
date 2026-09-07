@@ -115,11 +115,11 @@ export default function CalendarSubscribeMenu({
             Download .ics file
           </a>
           {failed && (
-            <p className="border-t border-border px-3 py-2 text-[11px] text-danger">
+            <p className="border-t border-border px-3 py-2 text-[0.6875rem] text-danger">
               Couldn&apos;t create the calendar link. Reload the page and try again.
             </p>
           )}
-          <p className="border-t border-border px-3 py-2 text-[11px] text-text-tertiary">
+          <p className="border-t border-border px-3 py-2 text-[0.6875rem] text-text-tertiary">
             Subscribing keeps your calendar updating on its own. The download is a
             one-off snapshot of it as it stands now.
           </p>

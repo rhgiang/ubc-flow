@@ -58,7 +58,7 @@ export default function CourseHeaderActions({
           onClick={handler(onInfo)}
           aria-label={`Course information for ${code}`}
           style={style}
-          className={`ml-2 inline-flex ${button} text-[11px] font-medium leading-none`}
+          className={`ml-2 inline-flex ${button} text-[0.6875rem] font-medium leading-none`}
         >
           i
         </button>

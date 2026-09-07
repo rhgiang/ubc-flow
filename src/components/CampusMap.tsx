@@ -404,10 +404,9 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
           role="group"
           aria-label="Walk a day's route"
         >
-          <span className="shrink-0 pr-1 text-xs text-text-secondary">
-            <span className="sm:hidden">Route:</span>
-            <span className="hidden sm:inline">Day&apos;s route:</span>
-          </span>
+          {/* Just "Route:" at every size — the Mon–Fri chips beside it say
+              the rest, and one label beats a breakpoint-dependent pair. */}
+          <span className="shrink-0 pr-1 text-xs text-text-secondary">Route:</span>
           {routeDays.map((d) => (
             <button
               key={d}

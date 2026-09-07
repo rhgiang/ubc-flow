@@ -125,7 +125,12 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
         // Markers kept for the label-spreading pass below: overlap is a
         // screen-space question, unanswerable at geo-coordinate time.
         const stopMarkers: { m: ReturnType<typeof L.marker>; at: [number, number] }[] = [];
-        const legMarkers: { m: ReturnType<typeof L.marker>; at: [number, number] }[] = [];
+        const legMarkers: {
+          m: ReturnType<typeof L.marker>;
+          at: [number, number];
+          a: [number, number];
+          b: [number, number];
+        }[] = [];
         route.stops.forEach((stop, i) => {
           // The same building visited twice non-consecutively would stack two
           // markers on identical coordinates; a hair of latitude keeps both
@@ -197,51 +202,78 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
                   `<p style="margin:2px 0"><strong>${to.labels[0]}</strong> in ${to.code}</p>`,
               )
               .addTo(pins);
-            legMarkers.push({ m, at });
+            legMarkers.push({ m, at, a: [aLat, aLng], b: [bLat, bLng] });
           });
         }
 
-        // Two legs' midpoints can land on nearly the same pixel (consecutive
-        // short legs, a route retracing a street), stacking their labels.
-        // Geo-space offsets can't see that, so after render: measure every
-        // pin and label box in container pixels and slide each label further
-        // down its anchor until it clears everything placed before it.
-        // Re-run on zoom, which is the only thing that changes relative
-        // pixel distances.
+        // Labels collide (short consecutive legs put two midpoints on nearly
+        // the same pixel), but the fix must keep each label ON the leg it
+        // describes: resolving a collision by sliding straight down left
+        // "back-to-back" floating over empty blocks with nothing tying it to
+        // its walk. So collisions are resolved by walking the label ALONG its
+        // own dashed line — midpoint first, then outward toward either stop,
+        // hugging the line above or below — and only when every spot on the
+        // line is taken does it fall back to sliding down. Re-run on zoom,
+        // the only thing that changes relative pixel distances.
         const spread = () => {
           const pad = 2;
           type Rect = { x1: number; y1: number; x2: number; y2: number };
           const rects: Rect[] = [];
-          const boxFor = ({ m, at }: { m: ReturnType<typeof L.marker>; at: [number, number] }, dy: number): Rect | null => {
-            const el = m.getElement()?.firstElementChild as HTMLElement | null;
-            if (!el) return null;
-            const p = map.latLngToContainerPoint(at);
-            const w = el.offsetWidth;
-            const h = el.offsetHeight;
-            return { x1: p.x - w / 2, y1: p.y - h / 2 + dy, x2: p.x + w / 2, y2: p.y + h / 2 + dy };
-          };
+          const hits = (r: Rect) =>
+            rects.some(
+              (o) => r.x1 < o.x2 + pad && r.x2 > o.x1 - pad && r.y1 < o.y2 + pad && r.y2 > o.y1 - pad,
+            );
           for (const s of stopMarkers) {
-            const r = boxFor(s, 0);
-            if (r) rects.push(r);
+            const el = s.m.getElement()?.firstElementChild as HTMLElement | null;
+            if (!el) continue;
+            const p = map.latLngToContainerPoint(s.at);
+            rects.push({
+              x1: p.x - el.offsetWidth / 2,
+              y1: p.y - el.offsetHeight / 2,
+              x2: p.x + el.offsetWidth / 2,
+              y2: p.y + el.offsetHeight / 2,
+            });
           }
           for (const lm of legMarkers) {
             const el = lm.m.getElement()?.firstElementChild as HTMLElement | null;
             if (!el) continue;
-            let dy = 15; // the old CSS resting spot: just below the line
-            let r = boxFor(lm, dy)!;
-            // ponytail: greedy slide-down, capped; smarter 2D placement only
-            // if routes grow enough legs to run out of vertical room.
-            while (
-              dy < 200 &&
-              rects.some(
-                (o) => r.x1 < o.x2 + pad && r.x2 > o.x1 - pad && r.y1 < o.y2 + pad && r.y2 > o.y1 - pad,
-              )
-            ) {
-              dy += 4;
-              r = boxFor(lm, dy)!;
+            const w = el.offsetWidth;
+            const h = el.offsetHeight;
+            const A = map.latLngToContainerPoint(lm.a);
+            const B = map.latLngToContainerPoint(lm.b);
+            const mid = map.latLngToContainerPoint(lm.at);
+            const rectAt = (x: number, y: number): Rect => ({
+              x1: x - w / 2,
+              y1: y - h / 2,
+              x2: x + w / 2,
+              y2: y + h / 2,
+            });
+            // Midpoint first, then outward along the line; below the line
+            // before above it, close before far — captions read best low.
+            let px = mid.x;
+            let py = mid.y + 15;
+            let placed = false;
+            outer: for (const t of [0.5, 0.38, 0.62, 0.26, 0.74, 0.14, 0.86]) {
+              for (const off of [15, -15, 30, -30]) {
+                const x = A.x + t * (B.x - A.x);
+                const y = A.y + t * (B.y - A.y) + off;
+                if (!hits(rectAt(x, y))) {
+                  px = x;
+                  py = y;
+                  placed = true;
+                  break outer;
+                }
+              }
             }
-            el.style.transform = `translate(-50%, calc(-50% + ${dy}px))`;
-            rects.push(r);
+            if (!placed) {
+              // ponytail: every spot on the line is taken — the old greedy
+              // slide-down, capped, remains the escape hatch.
+              while (py - mid.y < 200 && hits(rectAt(px, py))) py += 4;
+            }
+            el.style.transform = `translate(calc(-50% + ${Math.round(px - mid.x)}px), calc(-50% + ${Math.round(
+              py - mid.y,
+            )}px))`;
+            rects.push(rectAt(px, py));
           }
         };
         spread();

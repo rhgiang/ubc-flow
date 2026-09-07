@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCourseCode, formatMeeting } from '@/lib/format';
+import { parseCourseCode, formatMeeting, roomDetailsUrl } from '@/lib/format';
 
 describe('parseCourseCode', () => {
   it('splits a url slug into subject and number', () => {
@@ -38,6 +38,21 @@ describe('formatMeeting', () => {
     expect(
       formatMeeting({ day: 'Wed', startTime: null, endTime: null, building: null, room: null }),
     ).toBe('Wed');
+  });
+});
+
+describe('roomDetailsUrl', () => {
+  it('builds the Learning Spaces slug from building and room', () => {
+    expect(roomDetailsUrl('SWNG', '121')).toBe('https://learningspaces.ubc.ca/classrooms/swng-121/');
+  });
+  it('dashes a room name with spaces', () => {
+    expect(roomDetailsUrl('ESB', '1st Floor Concourse')).toBe(
+      'https://learningspaces.ubc.ca/classrooms/esb-1st-floor-concourse/',
+    );
+  });
+  it('returns null without both halves', () => {
+    expect(roomDetailsUrl('SWNG', null)).toBeNull();
+    expect(roomDetailsUrl(null, '121')).toBeNull();
   });
 });
 

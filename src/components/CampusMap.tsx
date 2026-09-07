@@ -5,6 +5,7 @@ import type { Map as LeafletMap, LayerGroup } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 import { findBuilding, floorFromRoom } from '@/map/buildings';
+import { roomDetailsUrl } from '@/lib/format';
 import { dayRoute } from '@/map/route';
 import { courseColorIndex } from '@/schedule/colors';
 
@@ -339,7 +340,16 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
         const rows = group
           .map((l) => {
             const floor = floorFromRoom(l.entry.room);
-            const where = [l.entry.room ? `Room ${l.entry.room}` : null, floor]
+            const roomUrl = roomDetailsUrl(l.entry.building, l.entry.room);
+            const where = [
+              l.entry.room ? `Room ${l.entry.room}` : null,
+              floor,
+              // UBC's own page for the room: photos, layout, capacity — the
+              // closest thing to an indoor map that actually exists for UBC.
+              roomUrl
+                ? `<a class="campus-room-link" href="${roomUrl}" target="_blank" rel="noopener noreferrer">room details ↗</a>`
+                : null,
+            ]
               .filter(Boolean)
               .join(' · ');
             const when = l.entry.startTime

@@ -23,6 +23,24 @@ export function formatMeeting(m: {
  * and thrown away; "CIRS 1250" is easier to find as "CIRS 1250 · Floor 2".
  * Omitted when the room number already encodes it, which is common.
  */
+/**
+ * UBC Learning Spaces' official page for a room — photos, floor, layout,
+ * capacity: learningspaces.ubc.ca/classrooms/swng-121/.
+ *
+ * ponytail: the URL is constructed optimistically. Only general teaching
+ * spaces have pages, so a department-restricted room 404s on UBC's site;
+ * their room index sits behind bot protection, so the upgrade path (vendor
+ * the valid slugs, show the link only when real) waits until 404s annoy.
+ */
+export function roomDetailsUrl(
+  building: string | null | undefined,
+  room: string | null | undefined,
+): string | null {
+  if (!building || !room) return null;
+  const slug = `${building}-${room}`.toLowerCase().replace(/\s+/g, '-');
+  return `https://learningspaces.ubc.ca/classrooms/${encodeURIComponent(slug)}/`;
+}
+
 export function formatRoom(m: {
   building: string | null;
   room: string | null;

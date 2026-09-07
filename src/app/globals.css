@@ -1036,3 +1036,13 @@ a.capsule-chip:hover {
 .campus-pin-directions a:hover {
   text-decoration: underline;
 }
+
+/* Learning Spaces room link inside a map pin's popup. */
+.campus-room-link {
+  color: var(--brand-accent);
+  font-weight: 500;
+}
+
+.campus-room-link:hover {
+  text-decoration: underline;
+}

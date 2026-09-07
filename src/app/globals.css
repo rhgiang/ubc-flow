@@ -126,16 +126,11 @@
 }
 
 @theme inline {
-  /* The comfort scale the explore page was rebuilt at, applied site-wide so
-     the rest of the pages match it: body text 15px instead of 14, and the
-     small labels 13 instead of 12. Everything else (spacing, max-widths, the
-     larger headings) keeps Tailwind's defaults — this is a type-size change,
-     not a zoom. */
-  --text-xs: 0.8125rem;
-  --text-xs--line-height: calc(1.125 / 0.8125);
-  --text-sm: 0.9375rem;
-  --text-sm--line-height: calc(1.375 / 0.9375);
-
+  /* Type sizes are Tailwind's stock scale (sm 14px, xs 12px at a default
+     root). An earlier "comfort scale" bumped these to 15/13, but combined
+     with Dynamic Type tracking it read oversized next to other apps — and
+     anyone who wants larger text now gets it from their system setting,
+     which every size here follows. */
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
@@ -215,7 +210,7 @@ html {
 }
 
 /* iOS Safari auto-zooms the page on focusing any form control under 16px and
-   never zooms back out. Every field in the app is text-sm (15px) or smaller,
+   never zooms back out. Every field in the app is text-sm (14px) or smaller,
    so on phones they all get floored to 16px here instead of per-callsite.
    max() rather than a flat 16px: someone running a larger system text size
    has 1rem above 16px, and their inputs should grow with everything else. */

@@ -185,8 +185,10 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
                     : `${leg.gapMin} min between classes`;
             // Two stacked lines, not one long one: a wide pill can't sit on
             // the short leg between neighbouring buildings without swallowing
-            // its pins; at half the width it tucks in beside any leg.
-            const label = `${between}<br>~${leg.walkMin} min walk`;
+            // its pins; at half the width it tucks in beside any leg. Walk
+            // time leads in bold — it's the number being checked against the
+            // gap — with the gap as the muted subline.
+            const label = `<b>~${leg.walkMin} min walk</b>${between}`;
             const at: [number, number] = [(aLat + bLat) / 2, (aLng + bLng) / 2];
             // The walk this leg is between: out of the last class at the stop
             // behind it, into the first class at the stop ahead.

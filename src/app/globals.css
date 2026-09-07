@@ -991,23 +991,33 @@ a.capsule-chip:hover {
      (First paint only — CampusMap's collision pass replaces this offset.) */
   transform: translate(-50%, calc(-50% + 15px));
   border-radius: 10px;
-  padding: 3px 8px;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.35;
+  padding: 4px 9px;
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1.4;
   text-align: center;
   white-space: nowrap;
-  color: #1f2937;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(12, 20, 44, 0.25);
-  box-shadow: 0 1px 3px rgba(12, 20, 44, 0.3);
+  color: #615f5c;
+  background: rgba(255, 255, 255, 0.96);
+  /* Same soft-float treatment as .campus-pin — shadow does the lifting, so
+     no hard outline fighting the pastel tiles. */
+  box-shadow: 0 2px 8px rgba(12, 20, 44, 0.28);
 }
 
-/* The walk does not fit the gap: the one label that must interrupt. */
-.campus-leg-tight {
-  color: #ffffff;
-  background: #b3261e;
-  border-color: rgba(255, 255, 255, 0.85);
+/* The walk time is the number being checked against the gap: it leads, in
+   the route's own navy. */
+.campus-leg b {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #002145;
+}
+
+/* The walk does not fit the gap: same quiet chip, but every word goes red —
+   a flag on the label, not a slab on the map. */
+.campus-leg-tight,
+.campus-leg-tight b {
+  color: #b3261e;
 }
 
 /* Directions row in a map pin's popup. */

@@ -271,7 +271,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
       >
         <span aria-hidden>&larr;</span> All programs
       </Link>
-      <h1 className="sky-hero mt-2 text-3xl font-semibold">{program.name}</h1>
+      <h1 className="sky-hero mt-2 text-2xl font-semibold sm:text-3xl">{program.name}</h1>
       <p className="sky-hero mt-2 max-w-2xl text-sm">
         {program.degree} &middot; Faculty of {program.faculty} &middot; {program.totalCredits}{' '}
         credits, ordered so prerequisites come first and every course is one UBC actually offers.

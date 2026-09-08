@@ -173,7 +173,7 @@ export default async function SchedulePage() {
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
       <div className="sky-hero flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-semibold text-foreground">My Schedules</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl text-foreground">My Schedules</h1>
         <CreateScheduleModal terms={plannableTerms} loggedIn={userId !== undefined} />
       </div>
 

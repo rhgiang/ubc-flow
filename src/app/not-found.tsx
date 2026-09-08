@@ -12,7 +12,7 @@ export default function NotFound() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-24 text-center">
       <p className="sky-hero text-sm font-medium uppercase tracking-widest opacity-70">404</p>
-      <h1 className="sky-hero mt-3 text-3xl font-semibold tracking-tight">
+      <h1 className="sky-hero mt-3 text-2xl font-semibold sm:text-3xl tracking-tight">
         We couldn&rsquo;t find that page
       </h1>
       <p className="sky-hero mx-auto mt-3 max-w-md text-sm opacity-80">

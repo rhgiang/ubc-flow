@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: 'Privacy' };
 export default function PrivacyPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-14">
-      <h1 className="sky-hero text-4xl font-semibold">Privacy</h1>
+      <h1 className="sky-hero text-2xl font-semibold sm:text-4xl">Privacy</h1>
 
       <div className="sky-panel mt-12 space-y-16 p-6 sm:p-12 lg:p-16">
         <section className="space-y-4">

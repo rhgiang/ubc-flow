@@ -354,7 +354,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
       <div className="grid gap-8 lg:grid-cols-[1fr_32rem] lg:items-start">
         <div className="sky-hero min-w-0">
           <p className="text-sm text-text-tertiary">{course.subject.name}</p>
-          <h1 className="text-3xl font-semibold">
+          <h1 className="text-2xl font-semibold sm:text-3xl">
             {course.subject.code} {course.number}
           </h1>
           <p className="mt-1 text-lg text-foreground">{course.title}</p>

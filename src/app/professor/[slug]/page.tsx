@@ -187,7 +187,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
           the left, the ratings card floating beside them. */}
       <div className="grid gap-8 lg:grid-cols-[1fr_32rem] lg:items-start">
         <div className="sky-hero min-w-0">
-          <h1 className="text-3xl font-semibold">{instructor.name}</h1>
+          <h1 className="text-2xl font-semibold sm:text-3xl">{instructor.name}</h1>
           <p className="mt-1 text-sm text-text-tertiary">
             {courses.length} course{courses.length === 1 ? '' : 's'} taught
           </p>

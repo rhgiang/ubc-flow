@@ -5,6 +5,7 @@ import { searchSections } from '@/app/actions/schedule';
 import { groupSectionsByCourse } from '@/schedule/group';
 import { courseColorIndex } from '@/schedule/colors';
 import CourseHeaderActions from '@/components/schedule/CourseHeaderActions';
+import SectionStatus from '@/components/schedule/SectionStatus';
 import type { SectionHit } from '@/lib/search';
 
 // Matches SearchBar's debounce so the whole app feels consistent while typing.
@@ -131,6 +132,7 @@ export default function FindCoursesPanel({
                           {section.instructors.join(', ')}
                         </p>
                       )}
+                      <SectionStatus status={section.status} />
                     </div>
                     <button
                       type="button"

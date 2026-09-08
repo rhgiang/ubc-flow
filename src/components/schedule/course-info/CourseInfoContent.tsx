@@ -8,6 +8,7 @@ import RequirementTree from '@/components/RequirementTree';
 import GradeComparisonOverlay, {
   formatDelta,
 } from '@/components/schedule/course-info/GradeComparisonOverlay';
+import SectionStatus from '@/components/schedule/SectionStatus';
 import type {
   CourseDetail,
   CourseSectionDetail,
@@ -27,6 +28,7 @@ function toHit(detail: CourseDetail, s: CourseSectionDetail): SectionHit {
     title: detail.title,
     sectionCode: s.sectionCode,
     activity: s.activity,
+    status: s.status,
     meetings: s.meetings,
     meetingTimes: s.meetingTimes,
     instructors: s.instructors.map((i) => i.name),
@@ -256,20 +258,7 @@ export default function CourseInfoContent({
                         ))}
                       </ul>
                     )}
-                    {s.status && (
-                      <p
-                        title="As of the last daily catalogue refresh"
-                        className={`text-xs ${
-                          s.status === 'Closed'
-                            ? 'text-danger'
-                            : s.status === 'Waitlist'
-                              ? 'text-info'
-                              : 'text-text-tertiary'
-                        }`}
-                      >
-                        {s.status === 'Closed' ? 'Full' : s.status}
-                      </p>
-                    )}
+                    <SectionStatus status={s.status} />
                   </div>
                   {(onAddSection || onRemoveSection) && (
                     <button

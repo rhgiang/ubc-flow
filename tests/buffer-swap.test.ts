@@ -9,6 +9,7 @@ const hit = (sectionId: string): SectionHit => ({
   title: 'Integral Calculus',
   sectionCode: sectionId,
   activity: 'Lecture',
+    status: null,
   meetings: 'Tue 10:00-12:00',
   meetingTimes: [],
   instructors: [],

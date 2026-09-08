@@ -36,7 +36,7 @@ export default function Landing() {
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-14">
       <header className="max-w-2xl">
-        <h1 className="sky-hero text-4xl font-semibold tracking-tight">Guidance</h1>
+        <h1 className="sky-hero text-2xl font-semibold sm:text-4xl tracking-tight">Guidance</h1>
         <p className="sky-hero mt-3 text-base">
           A term-by-term route through your degree, ordered so prerequisites come first and every
           course is one UBC actually offers.

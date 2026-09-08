@@ -391,7 +391,7 @@ export function ReviewForm({
           same arrangement as the course and professor pages. */}
       <div className="sky-hero">
         <p className="text-sm text-text-tertiary">{courseLabel}</p>
-        <h1 className="text-3xl font-semibold">{courseTitle}</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl">{courseTitle}</h1>
         <p className="mt-1 text-text-secondary">Write a review</p>
       </div>
 

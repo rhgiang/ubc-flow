@@ -269,7 +269,7 @@ export default async function OnboardingPage() {
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
       <div className="sky-hero flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-semibold text-foreground">Account</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl text-foreground">Account</h1>
         <SignOutButton />
       </div>
 

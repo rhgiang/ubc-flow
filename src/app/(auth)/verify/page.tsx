@@ -11,7 +11,7 @@ export default async function VerifyPage({
 
   return (
     <main className="mx-auto w-full max-w-md px-6 py-16">
-      <h1 className="text-3xl font-semibold">
+      <h1 className="text-2xl font-semibold sm:text-3xl">
         {result.ok ? 'Email verified' : 'Link not valid'}
       </h1>
       <p className="mt-2 text-text-secondary">

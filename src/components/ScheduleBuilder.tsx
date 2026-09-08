@@ -11,6 +11,7 @@ import SwapOverlay from '@/components/schedule/SwapOverlay';
 import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
 import UnsavedWorkDialog from '@/components/schedule/UnsavedWorkDialog';
 import ConflictSaveDialog from '@/components/schedule/ConflictSaveDialog';
+import MissingSectionsDialog from '@/components/schedule/MissingSectionsDialog';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
 import { findConflicts, conflictKey } from '@/schedule/conflicts';
@@ -19,7 +20,9 @@ import {
   saveGuestSchedule,
   replaceScheduleSections,
   deleteSchedule,
+  missingCompanionSections,
 } from '@/app/actions/schedule';
+import type { MissingCompanions } from '@/schedule/companions';
 import type { SectionHit } from '@/lib/search';
 import type { ImportedTerm } from '@/upload/match-schedule';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
@@ -83,6 +86,12 @@ export default function ScheduleBuilder({
   // when the student picks "Save anyway", so a gated save-and-switch still
   // switches instead of silently reverting to defaults.
   const [pendingSave, setPendingSave] = useState<{ redirectAfterCreate: boolean } | null>(null);
+  // Same shape for the missing-companion gate (lab/tutorial not added): holds
+  // the replay options plus what to list in the dialog.
+  const [pendingCompanions, setPendingCompanions] = useState<{
+    redirectAfterCreate: boolean;
+    missing: MissingCompanions[];
+  } | null>(null);
   const [importOpen, setImportOpen] = useState(openImport);
   // A successful save moves the baseline immediately. router.refresh() is not
   // awaited, so the refreshed initialSections prop lands later — without this,
@@ -243,6 +252,7 @@ export default function ScheduleBuilder({
   async function trySave({
     redirectAfterCreate = true,
     conflictsConfirmed = false,
+    companionsConfirmed = false,
   } = {}): Promise<boolean> {
     // Save is where an overlap stops being a sketch, so it is the one place we
     // ask. Planning stays silent on purpose.
@@ -251,9 +261,25 @@ export default function ScheduleBuilder({
       return false;
     }
 
+    const sectionIds = chosen.map((c) => c.sectionId);
+
+    // Second gate, same philosophy: a course whose lab or tutorial was never
+    // added is usually an unregisterable schedule, but only Workday knows for
+    // sure — so ask, don't block. Checked server-side because the builder
+    // only holds the sections the student picked, not everything each course
+    // offers. A failed check never blocks saving.
+    if (!companionsConfirmed && sectionIds.length > 0) {
+      const missing = await missingCompanionSections(termId, sectionIds).catch(
+        () => [] as MissingCompanions[],
+      );
+      if (missing.length > 0) {
+        setPendingCompanions({ redirectAfterCreate, missing });
+        return false;
+      }
+    }
+
     setSaving(true);
     setError(null);
-    const sectionIds = chosen.map((c) => c.sectionId);
     // Park before saving: the guest path navigates away on success, and the
     // offer has to outlive that.
     writePendingTerms(pendingTerms);
@@ -283,7 +309,7 @@ export default function ScheduleBuilder({
         // confirmed an overlap gets asked about the same overlap again
         // after signing in, and redirectAfterCreate is lost the same way.
         open('login', () => {
-          void trySave({ redirectAfterCreate, conflictsConfirmed });
+          void trySave({ redirectAfterCreate, conflictsConfirmed, companionsConfirmed });
         });
         return false;
       }
@@ -537,6 +563,28 @@ export default function ScheduleBuilder({
           if (!saved) return;
           // Mirrors UnsavedWorkDialog's own onSave: complete the navigation
           // that was parked behind it, now that the save actually went through.
+          if (pendingNav) {
+            const { go } = pendingNav;
+            setPendingNav(null);
+            go();
+          }
+        }}
+      />
+
+      <MissingSectionsDialog
+        missing={pendingCompanions?.missing ?? []}
+        onCancel={() => setPendingCompanions(null)}
+        onConfirm={async () => {
+          // Replay exactly like the conflict gate above. conflictsConfirmed
+          // rides along because this gate only opens after that one passed.
+          const redirectAfterCreate = pendingCompanions?.redirectAfterCreate ?? true;
+          setPendingCompanions(null);
+          const saved = await trySave({
+            redirectAfterCreate,
+            conflictsConfirmed: true,
+            companionsConfirmed: true,
+          });
+          if (!saved) return;
           if (pendingNav) {
             const { go } = pendingNav;
             setPendingNav(null);

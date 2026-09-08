@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useSyncExternalStore } from 'react';
 import type { WeatherNow } from '@/lib/weather';
-import { saveThemeMode } from '@/app/actions/theme';
+import { saveThemeMode, savedThemeMode } from '@/app/actions/theme';
 import { type Mode, DEFAULT_MODE } from '@/lib/theme';
 
 /**
@@ -178,6 +178,19 @@ export default function ThemeToggle({ weather }: { weather: WeatherNow | null })
     if ((localStorage.getItem('theme') ?? DEFAULT_MODE) === 'weather') {
       apply('weather', weather);
     }
+  }, [weather]);
+
+  // The account's saved theme still wins across devices, it just arrives
+  // after paint now: the pre-paint script no longer reads it (auth() during
+  // the layout render forced every page dynamic). apply() writes the mode
+  // back to localStorage, so this only ever runs work on the first load in
+  // a new browser — after that the two agree and nothing changes.
+  useEffect(() => {
+    void savedThemeMode().then((saved) => {
+      if (saved && saved !== (localStorage.getItem('theme') ?? DEFAULT_MODE)) {
+        apply(saved, weather);
+      }
+    });
   }, [weather]);
 
   // Campus conditions on a page that stays open. Without this, weather mode

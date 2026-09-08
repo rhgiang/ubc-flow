@@ -2,9 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
 import { useUnsavedChanges } from '@/components/UnsavedChangesContext';
+
+/** null = not yet known (the fetch is in flight on first paint). */
+async function fetchLoggedIn(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/auth/session');
+    const session = await res.json();
+    return Boolean(session?.user);
+  } catch {
+    return false;
+  }
+}
 
 const BASE =
   'rounded-full border px-4 py-2 text-sm font-medium transition duration-150 ease-out hover:scale-[1.02] active:scale-100';
@@ -18,12 +29,26 @@ const ROW = 'block w-full rounded-xl px-4 py-3 text-left text-base font-medium';
 
 type NavItem = { href: string; label: string } | { href?: undefined; label: string; onClick: () => void };
 
-export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
+export default function NavLinks() {
   const pathname = usePathname();
   const { open } = useAuthOverlay();
   const router = useRouter();
   const { isDirty, askToLeave } = useUnsavedChanges();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Resolved in the browser rather than passed from the server: the nav is on
+  // every page, and a server-side auth() read forced the WHOLE site into
+  // per-request rendering — no page could be served from the CDN. The button
+  // says "Account" in both states, so nothing flashes while this loads.
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void fetchLoggedIn().then((v) => {
+      if (!cancelled) setLoggedIn(v);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const items: NavItem[] = [
     { href: '/', label: 'Home' },
@@ -40,7 +65,16 @@ export default function NavLinks({ loggedIn }: { loggedIn: boolean }) {
     // Always reads "Account", whether or not you're signed in.
     loggedIn
       ? { href: '/onboarding', label: 'Account' }
-      : { label: 'Account', onClick: () => open('login') },
+      : {
+          label: 'Account',
+          onClick: async () => {
+            // Clicked before the first fetch answered: check now rather than
+            // showing a login form to someone who is already signed in.
+            const known = loggedIn ?? (await fetchLoggedIn());
+            if (known) router.push('/onboarding');
+            else open('login');
+          },
+        },
   ];
 
   const isActive = (item: NavItem) =>

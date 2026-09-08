@@ -10,8 +10,7 @@ import { AuthOverlayProvider } from "@/components/AuthOverlayContext";
 import AuthOverlay from "@/components/AuthOverlay";
 import { UnsavedChangesProvider } from "@/components/UnsavedChangesContext";
 import { getCampusWeather } from "@/lib/weather";
-import { getSavedThemeMode } from "@/lib/saved-theme";
-import { MODES, DEFAULT_MODE, type Mode } from "@/lib/theme";
+import { MODES, DEFAULT_MODE } from "@/lib/theme";
 import "./globals.css";
 
 const inter = Inter({
@@ -59,20 +58,19 @@ export const metadata: Metadata = {
 // Weather mode guesses daylight from the clock here; ThemeToggle re-applies
 // with the real campus observation after hydration.
 //
-// `seed` is the signed-in user's saved mode, or null. When present it wins
-// over localStorage and is written back to it: the account is the source of
-// truth across devices, and every deliberate change writes to both, so the
-// two converge rather than fighting. A signed-out visitor, or one who has
-// never chosen, falls through to localStorage and then to campus weather.
-function themeInit(seed: Mode | null) {
+// localStorage only — reading the signed-in user's saved mode here would
+// need auth(), which forces every page in the site dynamic. ThemeToggle
+// fetches the account's choice after hydration and reconciles it into
+// localStorage, so across devices the two still converge; the cost is a
+// brief flash of the local theme for the rare signed-in visitor whose
+// localStorage disagrees with their account.
+function themeInit() {
   return `
 (function () {
   try {
-    var seed = ${JSON.stringify(seed)};
     var modes = ${JSON.stringify(MODES)};
     var stored = localStorage.getItem('theme');
-    var mode = seed || (modes.indexOf(stored) >= 0 ? stored : ${JSON.stringify(DEFAULT_MODE)});
-    if (seed && seed !== stored) localStorage.setItem('theme', seed);
+    var mode = modes.indexOf(stored) >= 0 ? stored : ${JSON.stringify(DEFAULT_MODE)};
     var theme = mode === 'day' || mode === 'light' ? 'light' : 'dark';
     if (mode === 'weather') {
       // Campus time, not the viewer's, and replaced a moment later by
@@ -94,7 +92,7 @@ function themeInit(seed: Mode | null) {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const gaId = process.env.NEXT_PUBLIC_GA_ID;
-  const [weather, savedMode] = await Promise.all([getCampusWeather(), getSavedThemeMode()]);
+  const weather = await getCampusWeather();
   return (
     <html
       lang="en"
@@ -106,7 +104,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInit(savedMode) }} />
+        <script dangerouslySetInnerHTML={{ __html: themeInit() }} />
       </head>
       {/* dvh, not vh: mobile browsers measure 100vh with the URL bar
           retracted, which pinned the builder's bottom row under the toolbar. */}

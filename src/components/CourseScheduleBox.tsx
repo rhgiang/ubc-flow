@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { formatMeeting } from '@/lib/format';
 import { isUpcomingTerm } from '@/schedule/terms';
 
-type SectionRow = {
+export type SectionRow = {
   id: string;
   sectionCode: string;
   activity: string | null;
@@ -19,7 +19,7 @@ type SectionRow = {
 // The signed-in user's own saved schedules, for the "add this section" cell.
 // Undefined (not an empty array) means signed out — that's what hides the
 // column, same gating the old inline sections table used.
-type ScheduleOption = { id: string; name: string; termId: string };
+export type ScheduleOption = { id: string; name: string; termId: string };
 
 /**
  * Workday's registration state, in a student's words: "Closed" means the

@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth';
 import { isPlannableTerm } from '@/schedule/terms';
 import { searchSectionsForTerm, type SectionHit } from '@/lib/search';
 import { diffSections } from '@/schedule/buffer';
+import { findMissingCompanions, type MissingCompanions } from '@/schedule/companions';
 
 type Result = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; scheduleId: string } | { ok: false; error: string };
@@ -19,6 +20,39 @@ type SaveResult =
   | { ok: false; error: string; needsAuth?: true };
 
 const NOT_YOURS = 'That schedule does not belong to you.';
+
+/**
+ * Which chosen courses still lack a companion section (lab, tutorial,
+ * discussion, seminar or the lecture itself) among what they offer this term.
+ * Read-only over public catalogue data, so no auth — the builder calls it at
+ * save time for guests and signed-in students alike.
+ */
+export async function missingCompanionSections(
+  termId: string,
+  sectionIds: string[],
+): Promise<MissingCompanions[]> {
+  if (sectionIds.length === 0) return [];
+  const chosen = await db.section.findMany({
+    where: { id: { in: sectionIds } },
+    select: {
+      activity: true,
+      courseId: true,
+      course: { select: { number: true, subject: { select: { code: true } } } },
+    },
+  });
+  if (chosen.length === 0) return [];
+  const codeByCourse = new Map(
+    chosen.map((s) => [s.courseId, `${s.course.subject.code} ${s.course.number}`]),
+  );
+  const offered = await db.section.findMany({
+    where: { courseId: { in: [...codeByCourse.keys()] }, termId },
+    select: { activity: true, courseId: true },
+  });
+  return findMissingCompanions(
+    offered.map((s) => ({ code: codeByCourse.get(s.courseId)!, activity: s.activity })),
+    chosen.map((s) => ({ code: codeByCourse.get(s.courseId)!, activity: s.activity })),
+  );
+}
 
 /** Ownership check — every mutation goes through this first. */
 async function owns(userId: string, scheduleId: string): Promise<boolean> {

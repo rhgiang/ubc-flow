@@ -3,6 +3,7 @@
 import { groupSectionsByCourse } from '@/schedule/group';
 import { courseColorIndex } from '@/schedule/colors';
 import CourseHeaderActions from '@/components/schedule/CourseHeaderActions';
+import SectionStatus from '@/components/schedule/SectionStatus';
 import type { SectionHit } from '@/lib/search';
 
 export default function SavedCoursesPanel({
@@ -78,6 +79,7 @@ export default function SavedCoursesPanel({
                         {section.instructors.join(', ')}
                       </p>
                     )}
+                    <SectionStatus status={section.status} />
                   </div>
                   <button
                     type="button"

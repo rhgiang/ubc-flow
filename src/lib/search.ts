@@ -43,6 +43,8 @@ export type SectionHit = {
   title: string;
   sectionCode: string;
   activity: string | null;
+  /** "Open" / "Waitlist" / "Closed", as of the last catalogue refresh. */
+  status: string | null;
   meetings: string;
   meetingTimes: SectionMeetingTime[];
   /** Instructor names, in the order the scrape returned them. */
@@ -74,6 +76,7 @@ export function toSectionHit(s: SectionRowForHit): SectionHit {
     title: s.course.title,
     sectionCode: s.sectionCode,
     activity: s.activity,
+    status: s.status,
     meetings:
       s.meetingTimes
         .filter((m) => m.startTime && m.endTime)

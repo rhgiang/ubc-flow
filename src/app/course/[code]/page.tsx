@@ -5,16 +5,16 @@ import Link from 'next/link';
 import { db } from '@/lib/db';
 import { parseCourseCode } from '@/lib/format';
 import { presentableDescription } from '@/scrape/parse-body';
-import { auth } from '@/lib/auth';
-import { canReview } from '@/lib/gate';
 import { aggregateCourseReviews } from '@/reviews/aggregate';
 import { aggregateDistributions } from '@/grades/aggregate';
 import GradeChart from '@/components/GradeChart';
 import { addSection } from '@/app/actions/schedule';
 import RatingsBox from '@/components/RatingsBox';
 import RedditButton from '@/components/RedditButton';
-import CourseScheduleBox from '@/components/CourseScheduleBox';
+import CourseScheduleIsland from '@/components/CourseScheduleIsland';
 import RequirementSidebar from '@/components/RequirementSidebar';
+import CourseReviewCta from '@/components/CourseReviewCta';
+import { ViewerProvider } from '@/components/ViewerContext';
 import CourseReviewTabs, {
   type ProfessorGroup,
   type ReviewItem,
@@ -28,6 +28,26 @@ import { isUpcomingTerm } from '@/schedule/terms';
 import type { Requirement } from '@/prereqs/parse';
 
 const GRADE_DATA_SOURCE = 'https://github.com/DonneyF/ubc-pair-grade-data';
+
+/**
+ * Served statically, re-rendered at most daily: the catalogue half is the
+ * same for everyone and the nightly scrape is what changes it, while the
+ * per-viewer half (votes, review rights, schedules) loads client-side via
+ * ViewerProvider. A fresh review still appears immediately — review writes
+ * revalidate the 'catalogue' tag the loaders here cache under. Before this
+ * the page rendered on every request: ~11,500 crawler-indexed URLs each
+ * burning server CPU per hit.
+ */
+export const revalidate = 86400;
+
+// Empty on purpose: nothing is prerendered at build time (11,500 pages would
+// make every deploy crawl the database), but declaring the function is what
+// switches the route from per-request SSR to render-once-then-cache. Each
+// course page is built the first time someone visits it and served from the
+// cache for the next 24h.
+export function generateStaticParams() {
+  return [];
+}
 
 // Lecture/lab/tutorial first, in the order a student encounters them;
 // anything else (Thesis, Independent Study, ...) sorts after, alphabetically.
@@ -248,30 +268,13 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
     taughtByUser.set(r.userId, list);
   }
 
-  // The per-user half - never cached, and one parallel wave instead of four
-  // sequential awaits.
-  const session = await auth();
-  const viewerId = session?.user?.id ?? null;
-  const [{ counts: voteCounts, mine: myVotes }, mayReview, myReview, mySchedules] =
-    await Promise.all([
-      voteSummary(
-        [...reviews.map((r) => r.id), ...instructorReviews.map((r) => r.id)],
-        viewerId,
-      ),
-      viewerId ? canReview(viewerId, course.id) : false,
-      viewerId
-        ? db.courseReview.findUnique({
-            where: { userId_courseId: { userId: viewerId, courseId: course.id } },
-            select: { id: true },
-          })
-        : null,
-      viewerId
-        ? db.savedSchedule.findMany({
-            where: { userId: viewerId },
-            select: { id: true, name: true, termId: true },
-          })
-        : [],
-    ]);
+  // Public vote totals only. The per-user half (my votes, may-I-review, my
+  // schedules) loads client-side through ViewerProvider, so this page can be
+  // served statically to the crawlers and signed-out students who make up
+  // most of its traffic.
+  const reviewIds = [...reviews.map((r) => r.id), ...instructorReviews.map((r) => r.id)];
+  const { counts: voteCounts } = await voteSummary(reviewIds, null);
+  const myVotes = new Set<string>();
 
   const now = new Date();
 
@@ -344,6 +347,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
   const redditHref = `https://www.reddit.com/r/UBC/search/?q=${encodeURIComponent(`${course.subject.code} ${course.number}`)}`;
 
   return (
+    <ViewerProvider reviewIds={reviewIds} courseId={course.id} wantSchedules>
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
       {/* Course identity sits on the sky; everything below it lives on one
           solid panel, so the background reads as a border around the content. */}
@@ -386,28 +390,9 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
             <RatingsBox
               tone="glass"
               action={
-                mayReview ? (
-                  <Link
-                    href={`/course/${code}/review`}
-                    className="rounded-pill bg-brand px-4 py-1.5 text-xs font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100"
-                  >
-                    {myReview ? 'Edit your review' : 'Write a review'}
-                  </Link>
-                ) : (
-                  /* The gate used to fail silently - the one student who could
-                     fix the empty review list saw nothing at all. One quiet
-                     sentence, not a banner. */
-                  <span className="text-xs text-text-tertiary">
-                    Took this course?{' '}
-                    <Link
-                      href={viewerId ? '/onboarding#upload' : '/login'}
-                      className="text-brand-accent hover:underline"
-                    >
-                      {viewerId ? 'Verify your enrolment' : 'Sign in'}
-                    </Link>{' '}
-                    to review it.
-                  </span>
-                )
+                /* Whether the viewer can review is personal state — resolved
+                   in the browser (ViewerProvider) so this page stays static. */
+                <CourseReviewCta code={code} />
               }
               likedPercent={stats.likedPercent}
               ratingCount={stats.count}
@@ -512,7 +497,10 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
       )}
 
       <div className="mt-10">
-        <CourseScheduleBox
+        {/* The island reads the viewer's schedules from ViewerContext, so the
+            table renders statically and the Schedule column appears for
+            signed-in students once their state loads. */}
+        <CourseScheduleIsland
           sections={course.sections.map((s) => ({
             id: s.id,
             sectionCode: s.sectionCode,
@@ -522,7 +510,6 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
             instructors: s.instructors,
             term: s.term,
           }))}
-          mySchedules={session?.user?.id ? mySchedules : undefined}
           addToScheduleActions={addToScheduleActions}
         />
       </div>
@@ -533,7 +520,9 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
           <CourseReviewTabs
             courseReviews={courseReviewItems}
             professorGroups={professorGroups}
-            signedIn={viewerId !== null}
+            // Anonymous default; the vote buttons apply the viewer's real
+            // state from ViewerContext once it loads.
+            signedIn={false}
           />
         </div>
 
@@ -549,5 +538,6 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
       </div>
       </div>
     </main>
+    </ViewerProvider>
   );
 }

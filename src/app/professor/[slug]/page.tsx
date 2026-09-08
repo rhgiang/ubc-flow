@@ -3,7 +3,6 @@ import { unstable_cache } from 'next/cache';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { db } from '@/lib/db';
-import { auth } from '@/lib/auth';
 import { aggregateInstructorReviews } from '@/reviews/aggregate';
 import { aggregateDistributions } from '@/grades/aggregate';
 import GradeChart from '@/components/GradeChart';
@@ -12,9 +11,27 @@ import ReviewCard from '@/components/ReviewCard';
 import { timeAgo } from '@/lib/relative-time';
 import { voteSummary } from '@/reviews/votes';
 import { rmpSearchHref } from '@/lib/rmp';
-import { reviewableCourses } from '@/lib/gate';
+import { ViewerProvider } from '@/components/ViewerContext';
+import ProfessorReviewCta from '@/components/ProfessorReviewCta';
 
 const GRADE_DATA_SOURCE = 'https://github.com/DonneyF/ubc-pair-grade-data';
+
+/**
+ * Served statically and re-rendered at most daily: everything on the page is
+ * visitor-independent (per-viewer state loads client-side via ViewerProvider),
+ * and the nightly scrape is the only thing that changes the data. A fresh
+ * review still appears immediately — review writes revalidate the 'catalogue'
+ * tag these loaders cache under. Before this the page rendered on every
+ * request, which burned server CPU for each of ~4,000 crawler-indexed URLs.
+ */
+export const revalidate = 86400;
+
+// Empty on purpose: declaring generateStaticParams (even with no build-time
+// paths) is what switches the route from per-request SSR to
+// render-once-then-cache; each profile is built on first visit.
+export function generateStaticParams() {
+  return [];
+}
 
 /** "CPSC 110" -> "/course/cpsc-110", the way /explore links them. */
 const courseHref = (code: string) => `/course/${code.toLowerCase().replace(' ', '-')}`;
@@ -162,26 +179,14 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
 
   const rmpHref = rmpSearchHref(instructor.name);
 
-  const session = await auth();
-  const viewerId = session?.user?.id ?? null;
-  const { counts: voteCounts, mine: myVotes } = await voteSummary(
-    reviews.map((r) => r.id),
-    viewerId,
-  );
-
-  /**
-   * The courses you took with this professor.
-   *
-   * There is no such thing as a professor review on its own — InstructorReview
-   * carries a courseId and is unique per (user, instructor, course), because
-   * "explained things well" means something different in one course than
-   * another. So the button cannot open a blank form; it has to send you to the
-   * review for a course the two of you actually shared.
-   */
-  const mine = viewerId ? new Set(await reviewableCourses(viewerId)) : new Set<string>();
-  const reviewable = courses.filter((c) => mine.has(c.id));
+  // Public totals only — which reviews THIS viewer voted on, and which
+  // courses they shared with this professor, load client-side through
+  // ViewerProvider so the page itself can be served statically.
+  const reviewIds = reviews.map((r) => r.id);
+  const { counts: voteCounts } = await voteSummary(reviewIds, null);
 
   return (
+    <ViewerProvider reviewIds={reviewIds}>
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
       {/* Same arrangement as a course page: identity and blurb on the sky at
           the left, the ratings card floating beside them. */}
@@ -230,55 +235,16 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
               { label: 'Engaging', mean: stats.engaging, histogram: stats.histograms.engaging },
             ]}
             action={
-              reviewable.length === 1 ? (
-                <Link
-                  href={`${courseHref(reviewable[0].code)}/review?instructor=${instructor.id}`}
-                  className="rounded-pill bg-brand px-4 py-1.5 text-xs font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100"
-                >
-                  Write a review
-                </Link>
-              ) : reviewable.length > 1 ? (
-                /*
-                  A review belongs to a course, so with more than one shared
-                  course the button cannot decide for you. Native disclosure
-                  rather than a menu: it is a list of links, and it works
-                  before any JavaScript arrives.
-                */
-                <details className="group">
-                  <summary className="inline-block cursor-pointer list-none rounded-pill bg-brand px-4 py-1.5 text-xs font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100">
-                    Write a review
-                  </summary>
-                  <div className="mt-2">
-                    <p className="text-xs text-text-tertiary">Which course?</p>
-                    <ul className="mt-1 space-y-1">
-                      {reviewable.map((c) => (
-                        <li key={c.id}>
-                          <Link
-                            href={`${courseHref(c.code)}/review?instructor=${instructor.id}`}
-                            className="text-xs text-brand-accent hover:underline"
-                          >
-                            {c.code}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </details>
-              ) : (
-                /* Same quiet sentence the course page uses rather than a dead
-                   button — the one person who could fix an empty review list
-                   should be told how. */
-                <span className="text-xs text-text-tertiary">
-                  Took a course with them?{' '}
-                  <Link
-                    href={viewerId ? '/onboarding#upload' : '/login'}
-                    className="text-brand-accent hover:underline"
-                  >
-                    {viewerId ? 'Upload your courses' : 'Log in'}
-                  </Link>{' '}
-                  to review.
-                </span>
-              )
+              /* Which of these courses the viewer shared with the professor
+                 is personal state — resolved in the browser (ViewerProvider)
+                 so this page stays a static render. */
+              <ProfessorReviewCta
+                courses={courses.map((c) => ({
+                  id: c.id,
+                  code: c.code,
+                  reviewHref: `${courseHref(c.code)}/review?instructor=${instructor.id}`,
+                }))}
+              />
             }
           />
         </div>
@@ -380,8 +346,11 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
                     vote={{
                       kind: 'instructor',
                       votes: voteCounts.get(r.id) ?? 0,
-                      voted: myVotes.has(r.id),
-                      signedIn: viewerId !== null,
+                      // Anonymous defaults on the static render; the button
+                      // itself applies the viewer's real vote state from
+                      // ViewerContext once it loads.
+                      voted: false,
+                      signedIn: false,
                     }}
                   />
                 ))}
@@ -392,5 +361,6 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
       )}
       </div>
     </main>
+    </ViewerProvider>
   );
 }

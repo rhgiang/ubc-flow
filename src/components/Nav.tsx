@@ -1,12 +1,9 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
 import NavLinks from "@/components/NavLinks";
 import NavShell from "@/components/NavShell";
 import { CLOUD, WAVE_UPPER, WAVE_LOWER, MARK_VIEWBOX } from "@/lib/mark";
 
-export default async function Nav() {
-  const session = await auth();
-
+export default function Nav() {
   return (
     <NavShell>
       {/* Bar and contents both span the viewport: the wordmark sits against
@@ -34,7 +31,7 @@ export default async function Nav() {
             </svg>
             UBC Flow
           </Link>
-          <NavLinks loggedIn={!!session?.user} />
+          <NavLinks />
         </div>
       </nav>
     </NavShell>

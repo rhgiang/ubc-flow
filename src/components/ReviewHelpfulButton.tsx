@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { toggleReviewVote, type VoteKind } from '@/app/actions/review-votes';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
+import { useViewer } from '@/components/ViewerContext';
 
 /**
  * "Helpful" on someone else's review — UW Flow's upvote, under a name that
@@ -29,9 +30,21 @@ export default function ReviewHelpfulButton({
   const [state, setState] = useState({ votes, voted });
   const [pending, startTransition] = useTransition();
   const { open } = useAuthOverlay();
+  // On a statically served page the props arrive in their anonymous shape
+  // (voted false, signedIn false); the viewer's real state loads client-side
+  // and is applied once here. Pages without a ViewerProvider never load, so
+  // their server-provided props stand untouched.
+  const viewer = useViewer();
+  useEffect(() => {
+    if (!viewer.loaded) return;
+    setState((s) => ({ ...s, voted: viewer.votedReviewIds.has(reviewId) }));
+    // Once: applying again after a local toggle would undo the user's click.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewer.loaded]);
+  const effectiveSignedIn = signedIn || viewer.signedIn;
 
   function onClick() {
-    if (!signedIn) {
+    if (!effectiveSignedIn) {
       open('login');
       return;
     }

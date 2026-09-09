@@ -50,6 +50,8 @@ export async function importExport(
 
   const unmatched: string[] = [];
   let matched = 0;
+  // A section parses to one row per weekly pattern; it must count once.
+  const countedSections = new Set<string>();
   // A course can have more than one registration row (lecture + lab), each
   // contributing its own meeting — cleared once per (course, term) so a
   // second row this run appends instead of wiping the first's meeting.
@@ -134,7 +136,11 @@ export async function importExport(
         });
       }
     }
-    matched += 1;
+    const sectionKey = `${course.id}:${term?.id ?? 'record'}:${row.sectionCode ?? ''}`;
+    if (!countedSections.has(sectionKey)) {
+      countedSections.add(sectionKey);
+      matched += 1;
+    }
     if (term) {
       const kept = keptByTerm.get(term.id) ?? new Set<string>();
       kept.add(course.id);

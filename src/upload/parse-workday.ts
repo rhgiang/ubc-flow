@@ -130,23 +130,7 @@ function buildingCode(segment: string): string | null {
   return (m ? m[1].trim() : trimmed) || null;
 }
 
-/**
- * "2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m. - 11:30 a.m. | UBCV |
- * Hennings Building (HENN) | Floor: 1 | Room: 202"
- * -> the date range, the weekly day/time pattern, and the room location.
- *
- * A cell can hold more than one date-range block, blank-line separated
- * (e.g. a course split around reading week) — every block for one section
- * repeats the same days/time/room, so only the first block's pattern is read.
- * Dates are the exception: startDate is the first block's and endDate the
- * LAST block's, so a reading-week split reports its real span instead of
- * stopping in February.
- *
- * ponytail: one flat pattern per cell rather than a list of blocks — every
- * block in every real export repeats an identical pattern. Return a block
- * list if a section is ever seen changing room or time mid-term.
- */
-export function parseMeetingPattern(cell: string): {
+export type MeetingPattern = {
   startDate: string | null;
   endDate: string | null;
   days: string[];
@@ -155,11 +139,17 @@ export function parseMeetingPattern(cell: string): {
   building: string | null;
   room: string | null;
   floor: string | null;
-} {
-  const ranges = [...cell.matchAll(/(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})/g)];
+};
 
-  const firstBlock = cell.split(/\n\s*\n/)[0] ?? '';
-  const segments = firstBlock.split('|').map((s) => s.trim());
+/**
+ * "2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m. - 11:30 a.m. | UBCV |
+ * Hennings Building (HENN) | Floor: 1 | Room: 202"
+ * -> the date range, the weekly day/time pattern, and the room location.
+ */
+function parseBlock(block: string): MeetingPattern {
+  const ranges = [...block.matchAll(/(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})/g)];
+
+  const segments = block.split('|').map((s) => s.trim());
   const days = (segments[1] ?? '').split(/\s+/).filter((d) => DAY_ABBREVIATIONS.has(d));
   const timeMatch = segments[2]?.match(/^(.+?)\s*-\s*(.+)$/);
   const building = segments[4] ? buildingCode(segments[4]) : null;
@@ -176,6 +166,38 @@ export function parseMeetingPattern(cell: string): {
     room: roomRaw || null,
     floor: floorRaw || null,
   };
+}
+
+/**
+ * A cell holds one blank-line-separated block per date range. Blocks that
+ * repeat one weekly pattern (a course split around reading week) merge into a
+ * single pattern spanning the first block's start to the last block's end.
+ * A block with a DIFFERENT day, time or room is its own pattern — a real
+ * lecture can meet Mon Wed 1–2 in one room and Fri 2–3 in another, and
+ * reading only the first block dropped the Friday class from calendars.
+ */
+export function parseMeetingPatterns(cell: string): MeetingPattern[] {
+  const patterns: MeetingPattern[] = [];
+  for (const block of cell.split(/\n\s*\n/)) {
+    if (!block.trim()) continue;
+    const p = parseBlock(block);
+    const same = patterns.find(
+      (q) =>
+        q.days.join(' ') === p.days.join(' ') &&
+        q.startTime === p.startTime &&
+        q.endTime === p.endTime &&
+        q.building === p.building &&
+        q.room === p.room &&
+        q.floor === p.floor,
+    );
+    if (!same) {
+      patterns.push(p);
+      continue;
+    }
+    if (p.startDate && (!same.startDate || p.startDate < same.startDate)) same.startDate = p.startDate;
+    if (p.endDate && (!same.endDate || p.endDate > same.endDate)) same.endDate = p.endDate;
+  }
+  return patterns;
 }
 
 /** No export carries a term column — derive it from the start date. */
@@ -316,12 +338,12 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
       continue;
     }
 
-    const meeting = parseMeetingPattern(meetingCol === undefined ? '' : (row[meetingCol] ?? ''));
+    const patterns = parseMeetingPatterns(meetingCol === undefined ? '' : (row[meetingCol] ?? ''));
     const sectionStartDate = cell(row, startDateCol);
 
     // The Start Date column is the fallback: a section with no meeting pattern
     // at all (fully async) still belongs to a term, and used to be dropped.
-    const term = inferTerm(meeting.startDate ?? sectionStartDate ?? '');
+    const term = inferTerm(patterns[0]?.startDate ?? sectionStartDate ?? '');
     // A table with neither column cannot date ANY of its rows - that is the
     // academic record, which lists what you took and what you got and nothing
     // about when. Those rows are kept without a term. A row missing a date in
@@ -335,32 +357,37 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
     const rawCredits = cell(row, creditsCol);
     const credits = rawCredits === null ? null : Number(rawCredits);
 
-    rows.push({
-      subjectCode: code.subjectCode,
-      campus: code.campus,
-      courseNumber: code.number,
-      sectionCode: sectionCol === undefined ? null : parseSectionCode(row[sectionCol] ?? ''),
-      activity: cell(row, activityCol),
-      startDate: meeting.startDate,
-      days: meeting.days,
-      meetingStartTime: meeting.startTime,
-      meetingEndTime: meeting.endTime,
-      meetingEndDate: meeting.endDate,
-      building: meeting.building,
-      room: meeting.room,
-      floor: meeting.floor,
-      credits: Number.isFinite(credits) ? credits : null,
-      registrationStatus: cell(row, statusCol),
-      deliveryMode: cell(row, deliveryCol),
-      instructor: cell(row, instructorCol),
-      sectionStartDate,
-      sectionEndDate: cell(row, endDateCol),
-      grade: grade.trim() || null,
-      status: statusFromGrade(grade),
-      termYear: term?.year ?? null,
-      termSession: term?.session ?? null,
-      termNumber: term?.termNumber ?? null,
-    });
+    // One row per weekly pattern: a section meeting at two different times
+    // registers each of them. A patternless row (fully async, or the academic
+    // record) still yields its single row.
+    for (const meeting of patterns.length > 0 ? patterns : [parseBlock('')]) {
+      rows.push({
+        subjectCode: code.subjectCode,
+        campus: code.campus,
+        courseNumber: code.number,
+        sectionCode: sectionCol === undefined ? null : parseSectionCode(row[sectionCol] ?? ''),
+        activity: cell(row, activityCol),
+        startDate: meeting.startDate,
+        days: meeting.days,
+        meetingStartTime: meeting.startTime,
+        meetingEndTime: meeting.endTime,
+        meetingEndDate: meeting.endDate,
+        building: meeting.building,
+        room: meeting.room,
+        floor: meeting.floor,
+        credits: Number.isFinite(credits) ? credits : null,
+        registrationStatus: cell(row, statusCol),
+        deliveryMode: cell(row, deliveryCol),
+        instructor: cell(row, instructorCol),
+        sectionStartDate,
+        sectionEndDate: cell(row, endDateCol),
+        grade: grade.trim() || null,
+        status: statusFromGrade(grade),
+        termYear: term?.year ?? null,
+        termSession: term?.session ?? null,
+        termNumber: term?.termNumber ?? null,
+      });
+    }
   }
 
   if (seenStudents.size > 1) {

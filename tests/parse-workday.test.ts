@@ -4,7 +4,7 @@ import { readWorkbookGrid } from '@/upload/read-grid';
 import {
   parseStudentNumber,
   parseSectionCode,
-  parseMeetingPattern,
+  parseMeetingPatterns,
   inferTerm,
   parseWorkdayExport,
 } from '@/upload/parse-workday';
@@ -36,53 +36,64 @@ describe('parseSectionCode', () => {
   });
 });
 
-describe('parseMeetingPattern', () => {
+describe('parseMeetingPatterns', () => {
   it('extracts the date range from a pipe-delimited pattern', () => {
-    const r = parseMeetingPattern('2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m. - 11:00 a.m.');
+    const [r] = parseMeetingPatterns('2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m. - 11:00 a.m.');
     expect(r.startDate).toBe('2026-09-09');
     expect(r.endDate).toBe('2026-12-04');
   });
 
   it('extracts days and converts the time range to 24-hour', () => {
-    const r = parseMeetingPattern('2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m. - 11:30 a.m. | UBCV');
+    const [r] = parseMeetingPatterns('2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m. - 11:30 a.m. | UBCV');
     expect(r.days).toEqual(['Wed', 'Fri']);
     expect(r.startTime).toBe('10:00');
     expect(r.endTime).toBe('11:30');
   });
 
   it('converts a p.m. time range correctly, including the 12 p.m./a.m. edge cases', () => {
-    const r = parseMeetingPattern('2026-09-09 - 2026-12-04 | Mon | 12:00 p.m. - 1:30 p.m.');
+    const [r] = parseMeetingPatterns('2026-09-09 - 2026-12-04 | Mon | 12:00 p.m. - 1:30 p.m.');
     expect(r.startTime).toBe('12:00');
     expect(r.endTime).toBe('13:30');
-    const midnight = parseMeetingPattern('2026-09-09 - 2026-12-04 | Mon | 12:00 a.m. - 1:00 a.m.');
+    const [midnight] = parseMeetingPatterns('2026-09-09 - 2026-12-04 | Mon | 12:00 a.m. - 1:00 a.m.');
     expect(midnight.startTime).toBe('00:00');
   });
 
-  it('reads only the first block when a cell has multiple date-range blocks', () => {
-    const r = parseMeetingPattern(
+  it('merges blocks that repeat one weekly pattern into a single span', () => {
+    // A course split around reading week: same days, time and room, so it is
+    // ONE pattern running from the first block's start to the last block's end.
+    const r = parseMeetingPatterns(
       '2027-01-06 - 2027-02-12 | Mon Wed Fri | 10:00 a.m. - 11:00 a.m.\n\n2027-02-22 - 2027-04-12 | Mon Wed Fri | 10:00 a.m. - 11:00 a.m.',
     );
-    expect(r.startDate).toBe('2027-01-06');
-    expect(r.days).toEqual(['Mon', 'Wed', 'Fri']);
+    expect(r).toHaveLength(1);
+    expect(r[0].startDate).toBe('2027-01-06');
+    expect(r[0].endDate).toBe('2027-04-12');
+    expect(r[0].days).toEqual(['Mon', 'Wed', 'Fri']);
   });
 
-  it('returns nulls and an empty day list when no dates are present', () => {
-    expect(parseMeetingPattern('')).toEqual({
-      startDate: null,
-      endDate: null,
-      days: [],
-      startTime: null,
-      endTime: null,
-      building: null,
-      room: null,
-      floor: null,
-    });
+  it('keeps a block with a different day, time or room as its OWN pattern', () => {
+    // MANU_V 261's real cell: Mon Wed 1–2 plus Fri 2–3. Reading only the
+    // first block dropped the Friday class from student calendars.
+    const r = parseMeetingPatterns(
+      '2026-09-09 - 2026-12-07 | Mon Wed | 1:00 p.m. - 2:00 p.m. | UBCV | Frank Forward Building (FORW) | Floor: 2 | Room: 217\n\n' +
+        '2026-09-11 - 2026-12-04 | Fri | 2:00 p.m. - 3:00 p.m. | UBCV | Frank Forward Building (FORW) | Floor: 2 | Room: 217',
+    );
+    expect(r).toHaveLength(2);
+    expect(r[0].days).toEqual(['Mon', 'Wed']);
+    expect(r[0].startTime).toBe('13:00');
+    expect(r[1].days).toEqual(['Fri']);
+    expect(r[1].startTime).toBe('14:00');
+    expect(r[1].endTime).toBe('15:00');
+    expect(r[1].room).toBe('217');
+  });
+
+  it('returns no patterns for an empty cell', () => {
+    expect(parseMeetingPatterns('')).toEqual([]);
   });
 
   it('extracts the building code from the trailing parenthetical', () => {
     const cell =
       '2026-09-09 - 2026-12-04 | Wed Fri | 10:00 a.m. - 11:30 a.m. | UBCV | Hennings Building (HENN) | Floor: 1 | Room: 202';
-    const m = parseMeetingPattern(cell);
+    const [m] = parseMeetingPatterns(cell);
     expect(m.building).toBe('HENN');
     expect(m.room).toBe('202');
   });
@@ -90,19 +101,19 @@ describe('parseMeetingPattern', () => {
   it('takes the LAST parenthetical when the name repeats the code', () => {
     const cell =
       '2026-09-09 - 2026-12-04 | Wed | 10:00 a.m. - 11:30 a.m. | UBCV | CIRS (Centre for Interactive Research on Sustainability) (CIRS) | Floor: 1 | Room: 1250';
-    expect(parseMeetingPattern(cell).building).toBe('CIRS');
+    expect(parseMeetingPatterns(cell)[0].building).toBe('CIRS');
   });
 
   it('handles a room with a letter prefix and a negative floor', () => {
     const cell =
       '2026-09-09 - 2026-12-04 | Mon | 2:00 p.m. - 3:30 p.m. | UBCV | Gordon B. Shrum Building (SHRM) | Floor: -1 | Room: B1001';
-    const m = parseMeetingPattern(cell);
+    const [m] = parseMeetingPatterns(cell);
     expect(m.building).toBe('SHRM');
     expect(m.room).toBe('B1001');
   });
 
   it('returns nulls when the cell carries no location segments', () => {
-    const m = parseMeetingPattern('2026-09-09 - 2026-12-04 | Wed | 10:00 a.m. - 11:30 a.m.');
+    const [m] = parseMeetingPatterns('2026-09-09 - 2026-12-04 | Wed | 10:00 a.m. - 11:30 a.m.');
     expect(m.building).toBeNull();
     expect(m.room).toBeNull();
     // The fields it already parsed must be unaffected.
@@ -112,7 +123,36 @@ describe('parseMeetingPattern', () => {
 
   it('falls back to the raw building segment when it has no parenthetical', () => {
     const cell = '2026-09-09 - 2026-12-04 | Wed | 10:00 a.m. - 11:30 a.m. | UBCV | Some Hall | Floor: 2 | Room: 5';
-    expect(parseMeetingPattern(cell).building).toBe('Some Hall');
+    expect(parseMeetingPatterns(cell)[0].building).toBe('Some Hall');
+  });
+});
+
+describe('parseWorkdayExport — one row per weekly pattern', () => {
+  it('emits a row for EACH weekly pattern of a section', () => {
+    // MANU_V 231's real shape: the lecture meets Wed 2–3 in one room and
+    // Fri 1–2 in another, in one Meeting Patterns cell.
+    const grid = [
+      ['', 'Course Listing', 'Section', 'Instructional Format', 'Meeting Patterns'],
+      [
+        'A Student (12345678) - Faculty',
+        'MANU_V 231 - Introduction to Manufacturing Engineering',
+        'MANU_V 231-101 - Introduction to Manufacturing Engineering',
+        'Lecture',
+        '2026-09-09 - 2026-12-02 | Wed | 2:00 p.m. - 3:00 p.m. | UBCV | Civil and Mechanical Engineering Building (CEME) | Floor: 1 | Room: 1204\n\n' +
+          '2026-09-11 - 2026-12-04 | Fri | 1:00 p.m. - 2:00 p.m. | UBCV | Civil and Mechanical Engineering Building (CEME) | Floor: 1 | Room: 1202',
+      ],
+    ];
+    const r = parseWorkdayExport(grid);
+    expect(r.rows).toHaveLength(2);
+    expect(r.rows.map((x) => x.sectionCode)).toEqual(['101', '101']);
+    expect(r.rows[0].days).toEqual(['Wed']);
+    expect(r.rows[0].meetingStartTime).toBe('14:00');
+    expect(r.rows[0].room).toBe('1204');
+    expect(r.rows[1].days).toEqual(['Fri']);
+    expect(r.rows[1].meetingStartTime).toBe('13:00');
+    expect(r.rows[1].room).toBe('1202');
+    // Both rows carry the same September-inferred term.
+    expect(r.rows.every((x) => x.termYear === 2026 && x.termNumber === 1)).toBe(true);
   });
 });
 

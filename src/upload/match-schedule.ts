@@ -124,9 +124,14 @@ export async function matchWorkdayRows(rows: EnrollmentRow[]): Promise<ScheduleI
       bucket.unmatched.push(`${label(row)}: no matching section`);
       continue;
     }
-    // An export lists a section once per meeting block, so the same section
-    // can appear more than once.
-    if (seen.has(section.id)) continue;
+    // A section parses to one row per weekly pattern, so the same section can
+    // appear more than once. It is matched once; each later row still fills
+    // its own days' rooms (a Friday class can be in a different room).
+    if (seen.has(section.id)) {
+      const i = bucket.matched.findIndex((h) => h.sectionId === section.id);
+      if (i !== -1) bucket.matched[i] = withExportDetails(bucket.matched[i], row);
+      continue;
+    }
     seen.add(section.id);
     bucket.matched.push(withExportDetails(toSectionHit(section), row));
   }

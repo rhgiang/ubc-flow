@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { sectionHitInclude, toSectionHit } from '@/lib/search';
+import { applySectionLocations } from '@/schedule/locations';
 import SharedCalendar from './SharedCalendar';
 
 /**
@@ -18,7 +19,11 @@ export const dynamic = 'force-dynamic';
 async function load(token: string) {
   const schedule = await db.savedSchedule.findUnique({
     where: { shareToken: token },
-    select: { name: true, termId: true, sections: { select: { sectionId: true } } },
+    select: {
+      name: true,
+      termId: true,
+      sections: { select: { sectionId: true, building: true, room: true } },
+    },
   });
   if (!schedule) return null;
 
@@ -29,7 +34,13 @@ async function load(token: string) {
       : Promise.resolve([]),
     db.term.findUnique({ where: { id: schedule.termId }, select: { name: true } }),
   ]);
-  return { name: schedule.name, termName: term?.name ?? null, sections: sections.map(toSectionHit) };
+  return {
+    name: schedule.name,
+    termName: term?.name ?? null,
+    // Rooms saved with the schedule, since the catalogue carries none — a
+    // shared timetable is most useful when it says where to go.
+    sections: applySectionLocations(sections.map(toSectionHit), schedule.sections),
+  };
 }
 
 export async function generateMetadata({

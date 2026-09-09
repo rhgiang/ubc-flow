@@ -96,3 +96,40 @@ describe('meetingEvents', () => {
     expect(ics).toContain('BYDAY=FR');
   });
 });
+
+/**
+ * The room is what a phone offers directions from, so it is worth carrying
+ * into the subscribed calendar rather than leaving in the web page.
+ */
+describe('event location', () => {
+  it('writes LOCATION when the meeting has a place', () => {
+    const ics = buildIcs('My Schedule', [{ ...event, location: 'BUCH A101' }]);
+    expect(ics).toContain('LOCATION:BUCH A101');
+  });
+
+  it('omits the field entirely rather than writing an empty one', () => {
+    expect(buildIcs('My Schedule', [event])).not.toContain('LOCATION:');
+    expect(buildIcs('My Schedule', [{ ...event, location: null }])).not.toContain('LOCATION:');
+  });
+
+  it('escapes a comma the way RFC 5545 asks', () => {
+    const ics = buildIcs('My Schedule', [{ ...event, location: 'BUCH, A101' }]);
+    expect(ics).toContain(String.raw`LOCATION:BUCH\, A101`);
+  });
+
+  it('builds the place from an enrolled meeting row', () => {
+    const [first] = meetingEvents('CPSC 110', {
+      id: 'm1',
+      sectionCode: '101',
+      activity: 'Lecture',
+      days: ['Mon'],
+      startTime: '09:00',
+      endTime: '10:00',
+      startDate: null,
+      endDate: null,
+      building: 'CIRS',
+      room: '1250',
+    });
+    expect(first.location).toBe('CIRS 1250');
+  });
+});

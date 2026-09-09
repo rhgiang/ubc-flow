@@ -19,7 +19,7 @@ export async function GET(
       schedule: {
         select: {
           name: true,
-          sections: { select: { sectionId: true } },
+          sections: { select: { sectionId: true, building: true, room: true } },
         },
       },
     },
@@ -43,6 +43,15 @@ export async function GET(
     },
   });
 
+  // The room is saved with the schedule, not carried by the section: the
+  // catalogue has no location for anything (see schedule/locations).
+  const placeBySection = new Map(
+    record.schedule.sections.map((s) => [
+      s.sectionId,
+      [s.building, s.room].filter(Boolean).join(' ') || null,
+    ]),
+  );
+
   const events: IcsEvent[] = [];
   for (const section of sections) {
     const label = `${section.course.subject.code ?? ''} ${section.course.number}`.trim();
@@ -57,6 +66,7 @@ export async function GET(
         endTime: m.endTime,
         startDate: m.startDate,
         endDate: m.endDate,
+        location: [m.building, m.room].filter(Boolean).join(' ') || placeBySection.get(section.id) || null,
       });
     }
   }

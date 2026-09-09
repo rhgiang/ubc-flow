@@ -16,6 +16,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
 import { findConflicts, conflictKey } from '@/schedule/conflicts';
 import { diffSections, swapSection } from '@/schedule/buffer';
+import { collectSectionLocations } from '@/schedule/locations';
 import {
   saveGuestSchedule,
   replaceScheduleSections,
@@ -262,6 +263,10 @@ export default function ScheduleBuilder({
     }
 
     const sectionIds = chosen.map((c) => c.sectionId);
+    // Saved alongside the ids: a room only ever comes from the student's own
+    // Workday import, so re-reading the section afterwards would find nothing
+    // and the timetable would come back with no places in it.
+    const locations = collectSectionLocations(chosen);
 
     // Second gate, same philosophy: a course whose lab or tutorial was never
     // added is usually an unregisterable schedule, but only Workday knows for
@@ -286,7 +291,13 @@ export default function ScheduleBuilder({
 
     try {
       if (scheduleId) {
-        const result = await replaceScheduleSections(scheduleId, name, sectionIds, baselineIds);
+        const result = await replaceScheduleSections(
+          scheduleId,
+          name,
+          sectionIds,
+          baselineIds,
+          locations,
+        );
         if (!result.ok) {
           setError(result.error);
           return false;
@@ -296,7 +307,7 @@ export default function ScheduleBuilder({
         return true;
       }
 
-      const result = await saveGuestSchedule(termId, name, sectionIds);
+      const result = await saveGuestSchedule(termId, name, sectionIds, locations);
       if (result.ok) {
         if (redirectAfterCreate) router.push(`/schedule/${result.scheduleId}`);
         // Clears `dirty` so the guard doesn't fire again on the way out.

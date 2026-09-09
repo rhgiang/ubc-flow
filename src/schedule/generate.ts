@@ -6,10 +6,14 @@ import { COMPANION_ACTIVITIES } from '@/schedule/companions';
  * ranked by what the student said they want.
  *
  * Deliberately not machine learning. Every preference is a visible weight on
- * a visible measurement (minutes before 9:30, gap minutes, days on campus,
- * instructor scores), so every ranking can be explained back to the student
- * in the results list — and a schedule you can't explain is one nobody
- * trusts enough to register from.
+ * a visible measurement (minutes before your earliest, class time on a day
+ * you wanted free, gap minutes, instructor scores), so every ranking can be
+ * explained back to the student in the results list — and a schedule you
+ * can't explain is one nobody trusts enough to register from.
+ *
+ * Every preference is also SOFT: a want, not a filter. Filtering would make
+ * "keep Friday free" silently delete the only workable timetable; scoring
+ * instead surfaces it last with an honest note that Friday couldn't be kept.
  *
  * Pure and synchronous, so it runs in the browser: the sections are already
  * in client state and a permutation search is exactly the kind of work the
@@ -17,28 +21,30 @@ import { COMPANION_ACTIVITIES } from '@/schedule/companions';
  */
 
 export type GeneratePrefs = {
-  /**
-   * 'no-early': keep mornings clear (class time before 9:30 counts against).
-   * 'early-bird': start early and be done (class time after 16:00 counts
-   * against). 'whatever': time of day is free.
-   */
-  mornings: 'no-early' | 'early-bird' | 'whatever';
+  /** Minutes from midnight; class time before this counts against. Null: any. */
+  earliest: number | null;
+  /** Minutes from midnight; class time after this counts against. Null: any. */
+  latest: number | null;
   /** 'compact': minimize dead time. 'spread': room to breathe between classes. */
   rhythm: 'compact' | 'spread' | 'whatever';
   /** Squeeze the week into as few days on campus as possible. */
   fewerDays: boolean;
+  /** Days to try to keep clear of classes entirely (0 = Mon … 6 = Sun). */
+  freeDays: number[];
+  /** Insist on a real break (30+ min) somewhere in 11:00–14:00 each day. */
+  lunchBreak: boolean;
   /** Prefer sections whose instructors rate well (reviews, then grade history). */
   bestProfs: boolean;
-  /** Class time after 18:00 counts against, hard. */
-  noEvenings: boolean;
 };
 
 export const DEFAULT_PREFS: GeneratePrefs = {
-  mornings: 'whatever',
+  earliest: null,
+  latest: null,
   rhythm: 'whatever',
   fewerDays: false,
+  freeDays: [],
+  lunchBreak: false,
   bestProfs: false,
-  noEvenings: false,
 };
 
 export type GeneratedSchedule = {
@@ -67,6 +73,7 @@ const DAY_INDEX: Record<string, number> = {
   Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6,
 };
 const DAY_NAME = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 // Search caps. A five-course load stays far under these; they exist so a
 // pathological term (huge multi-section service courses) degrades to "ranked
@@ -75,9 +82,9 @@ const MAX_BUNDLES_PER_COURSE = 300;
 const MAX_COLLECTED = 3000;
 const MAX_VISITS = 60_000;
 
-const EARLY = 9 * 60 + 30; // 9:30
-const AFTERNOON_END = 16 * 60; // early-bird wants the day over by here
-const EVENING = 18 * 60;
+const LUNCH_FROM = 11 * 60;
+const LUNCH_TO = 14 * 60;
+const LUNCH_MIN_BREAK = 30;
 
 function minutes(hhmm: string | null): number | null {
   const m = hhmm?.match(/^(\d{1,2}):(\d{2})$/);
@@ -156,9 +163,10 @@ function courseBundles(sections: Cand[]): { bundles: Bundle[]; truncated: boolea
   return { bundles, truncated };
 }
 
-// ── scoring ─────────────────────────────────────────────────────────────────
+// ── measuring a week ────────────────────────────────────────────────────────
 
-type DayShape = { day: number; first: number; last: number; gaps: number[] };
+type Gap = { from: number; to: number };
+type DayShape = { day: number; first: number; last: number; gaps: Gap[] };
 
 function dayShapes(meets: Meet[]): DayShape[] {
   const byDay = new Map<number, Meet[]>();
@@ -166,12 +174,13 @@ function dayShapes(meets: Meet[]): DayShape[] {
   const shapes: DayShape[] = [];
   for (const [day, list] of byDay) {
     list.sort((a, b) => a.start - b.start);
-    const gaps: number[] = [];
+    const gaps: Gap[] = [];
+    let reach = list[0].end;
     for (let i = 1; i < list.length; i += 1) {
-      const gap = list[i].start - list[i - 1].end;
-      if (gap > 0) gaps.push(gap);
+      if (list[i].start > reach) gaps.push({ from: reach, to: list[i].start });
+      reach = Math.max(reach, list[i].end);
     }
-    shapes.push({ day, first: list[0].start, last: list[list.length - 1].end, gaps });
+    shapes.push({ day, first: list[0].start, last: reach, gaps });
   }
   return shapes.sort((a, b) => a.day - b.day);
 }
@@ -181,6 +190,29 @@ function minutesWithin(meets: Meet[], from: number, to: number): number {
   let total = 0;
   for (const m of meets) total += Math.max(0, Math.min(m.end, to) - Math.max(m.start, from));
   return total;
+}
+
+/**
+ * A day fails lunch when classes leave no 30-minute free run anywhere in
+ * 11:00–14:00. A day that never touches the window passes trivially — an
+ * empty campus day IS a lunch break.
+ */
+function daysWithoutLunch(shapes: DayShape[]): number[] {
+  const failed: number[] = [];
+  for (const s of shapes) {
+    // Free runs inside the window: before the first class, each gap, after
+    // the last class — clipped to the window.
+    const runs: Gap[] = [
+      { from: LUNCH_FROM, to: Math.min(s.first, LUNCH_TO) },
+      ...s.gaps,
+      { from: Math.max(s.last, LUNCH_FROM), to: LUNCH_TO },
+    ];
+    const free = runs.some(
+      (r) => Math.min(r.to, LUNCH_TO) - Math.max(r.from, LUNCH_FROM) >= LUNCH_MIN_BREAK,
+    );
+    if (!free) failed.push(s.day);
+  }
+  return failed;
 }
 
 function statusPenalty(status: string | null): number {
@@ -194,17 +226,24 @@ function scoreSchedule(sections: Cand[], prefs: GeneratePrefs): number {
   const shapes = dayShapes(meets);
   let score = 0;
 
-  if (prefs.mornings === 'no-early') score -= 1.2 * minutesWithin(meets, 0, EARLY);
-  if (prefs.mornings === 'early-bird') score -= 0.8 * minutesWithin(meets, AFTERNOON_END, 24 * 60);
-  if (prefs.noEvenings) score -= 1.5 * minutesWithin(meets, EVENING, 24 * 60);
+  if (prefs.earliest !== null) score -= 1.2 * minutesWithin(meets, 0, prefs.earliest);
+  if (prefs.latest !== null) score -= 1.2 * minutesWithin(meets, prefs.latest, 24 * 60);
 
-  const gaps = shapes.flatMap((s) => s.gaps);
-  if (prefs.rhythm === 'compact') score -= 0.8 * gaps.reduce((a, g) => a + g, 0);
+  // A day you asked to keep free weighs more than a merely early class:
+  // people plan work shifts and commutes around it.
+  for (const day of prefs.freeDays) {
+    score -= 2.5 * minutesWithin(meets.filter((m) => m.day === day), 0, 24 * 60);
+  }
+
+  if (prefs.lunchBreak) score -= 60 * daysWithoutLunch(shapes).length;
+
+  const gapWidths = shapes.flatMap((s) => s.gaps.map((g) => g.to - g.from));
+  if (prefs.rhythm === 'compact') score -= 0.8 * gapWidths.reduce((a, g) => a + g, 0);
   if (prefs.rhythm === 'spread') {
     // Breathing room is a gap you can use; a three-hour stranding is not.
-    score += 0.5 * gaps.reduce((a, g) => a + Math.min(g, 90), 0);
-    score -= 0.5 * gaps.reduce((a, g) => a + Math.max(0, g - 180), 0);
-    score -= 25 * shapes.reduce((a, s) => a + s.gaps.filter((g) => g < 15).length, 0);
+    score += 0.5 * gapWidths.reduce((a, g) => a + Math.min(g, 90), 0);
+    score -= 0.5 * gapWidths.reduce((a, g) => a + Math.max(0, g - 180), 0);
+    score -= 25 * gapWidths.filter((g) => g < 15).length;
   }
 
   if (prefs.fewerDays) score -= 140 * shapes.length;
@@ -220,6 +259,13 @@ function scoreSchedule(sections: Cand[], prefs: GeneratePrefs): number {
   return score;
 }
 
+function listDays(days: number[], full = true): string {
+  const names = days.map((d) => (full ? DAY_FULL[d] : DAY_NAME[d]));
+  return names.length <= 1
+    ? (names[0] ?? '')
+    : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
 function notes(sections: Cand[], prefs: GeneratePrefs): string[] {
   const meets = sections.flatMap((s) => s.meets);
   const shapes = dayShapes(meets);
@@ -228,10 +274,36 @@ function notes(sections: Cand[], prefs: GeneratePrefs): string[] {
 
   const firstStart = Math.min(...shapes.map((s) => s.first));
   const lastEnd = Math.max(...shapes.map((s) => s.last));
-  if (prefs.mornings === 'no-early') {
-    lines.push(firstStart >= EARLY ? 'No classes before 9:30' : `Earliest class ${fmt(firstStart)}`);
-  } else if (prefs.mornings === 'early-bird' || prefs.noEvenings) {
-    lines.push(`Done by ${fmt(lastEnd)} every day`);
+  if (prefs.earliest !== null) {
+    lines.push(
+      firstStart >= prefs.earliest
+        ? `No classes before ${fmt(prefs.earliest)}`
+        : `Earliest class ${fmt(firstStart)}`,
+    );
+  }
+  if (prefs.latest !== null) {
+    lines.push(
+      lastEnd <= prefs.latest
+        ? `Done by ${fmt(lastEnd)} every day`
+        : `Latest class runs to ${fmt(lastEnd)}`,
+    );
+  }
+
+  if (prefs.freeDays.length) {
+    const busy = new Set(shapes.map((s) => s.day));
+    const kept = prefs.freeDays.filter((d) => !busy.has(d));
+    const missed = prefs.freeDays.filter((d) => busy.has(d));
+    if (kept.length) lines.push(`${listDays(kept)} kept free`);
+    if (missed.length) lines.push(`Couldn't keep ${listDays(missed)} free`);
+  }
+
+  if (prefs.lunchBreak) {
+    const failed = daysWithoutLunch(shapes);
+    lines.push(
+      failed.length === 0
+        ? 'Room for lunch every day'
+        : `No lunch break on ${listDays(failed, false)}`,
+    );
   }
 
   const dayNames = shapes.map((s) => DAY_NAME[s.day]);
@@ -242,8 +314,8 @@ function notes(sections: Cand[], prefs: GeneratePrefs): string[] {
   );
 
   if (prefs.rhythm !== 'whatever') {
-    const gaps = shapes.flatMap((s) => s.gaps);
-    const longest = gaps.length ? Math.max(...gaps) : 0;
+    const widths = shapes.flatMap((s) => s.gaps.map((g) => g.to - g.from));
+    const longest = widths.length ? Math.max(...widths) : 0;
     lines.push(
       longest === 0
         ? 'Back-to-back, no waiting around'

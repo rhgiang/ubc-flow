@@ -93,16 +93,44 @@ describe('generateSchedules', () => {
   it('ranks the later start first for someone avoiding mornings', () => {
     const early = section('cpsc110', 'Lecture', [['Mon', '08:00', '09:00']]);
     const late = section('cpsc110', 'Lecture', [['Mon', '13:00', '14:00']]);
-    const result = generateSchedules([early, late], prefs({ mornings: 'no-early' }));
+    const result = generateSchedules([early, late], prefs({ earliest: 570 }));
     expect(result.schedules[0].sectionIds).toEqual([late.sectionId]);
     expect(result.schedules[0].notes).toContain('No classes before 9:30');
   });
 
-  it('ranks the morning section first for an early bird', () => {
+  it('ranks the morning section first when the day should end by 3 pm', () => {
     const early = section('cpsc110', 'Lecture', [['Mon', '08:00', '09:00']]);
     const late = section('cpsc110', 'Lecture', [['Mon', '16:00', '17:00']]);
-    const result = generateSchedules([early, late], prefs({ mornings: 'early-bird' }));
+    const result = generateSchedules([early, late], prefs({ latest: 900 }));
     expect(result.schedules[0].sectionIds).toEqual([early.sectionId]);
+    expect(result.schedules[0].notes).toContain('Done by 9:00 every day');
+  });
+
+  it('keeps a requested day free when it can, and says so', () => {
+    const lecture = section('cpsc110', 'Lecture', [['Mon', '09:00', '10:00']]);
+    const friday = section('math100', 'Lecture', [['Fri', '09:00', '10:00']]);
+    const tuesday = section('math100', 'Lecture', [['Tue', '09:00', '10:00']]);
+    const result = generateSchedules([lecture, friday, tuesday], prefs({ freeDays: [4] }));
+    expect(result.schedules[0].sectionIds).toContain(tuesday.sectionId);
+    expect(result.schedules[0].notes).toContain('Friday kept free');
+  });
+
+  it('admits when a requested free day is impossible instead of returning nothing', () => {
+    const onlyOption = section('cpsc110', 'Lecture', [['Fri', '09:00', '10:00']]);
+    const result = generateSchedules([onlyOption], prefs({ freeDays: [4] }));
+    expect(result.schedules).toHaveLength(1);
+    expect(result.schedules[0].notes).toContain("Couldn't keep Friday free");
+  });
+
+  it('protects a lunch break when asked', () => {
+    // Two morning-to-afternoon walls vs a version with a noon gap.
+    const wallA = section('cpsc110', 'Lecture', [['Mon', '10:00', '12:00']]);
+    const wallB = section('math100', 'Lecture', [['Mon', '12:00', '14:00']]);
+    const gapped = section('math100', 'Lecture', [['Mon', '13:00', '15:00']]);
+    const result = generateSchedules([wallA, wallB, gapped], prefs({ lunchBreak: true }));
+    expect(result.schedules[0].sectionIds).toContain(gapped.sectionId);
+    expect(result.schedules[0].notes).toContain('Room for lunch every day');
+    expect(result.schedules[1].notes).toContain('No lunch break on Mon');
   });
 
   it('prefers the compact day when asked to pack classes together', () => {

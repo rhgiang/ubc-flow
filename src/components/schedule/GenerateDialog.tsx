@@ -21,55 +21,62 @@ import type { SectionHit } from '@/lib/search';
  * section pool and instructor signals in one round trip.
  */
 
-type Question = {
-  key: keyof GeneratePrefs;
+/** One selectable chip; the whole questionnaire is rows of these. */
+function Chip({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
   label: string;
-  options: { value: GeneratePrefs[keyof GeneratePrefs]; label: string }[];
-};
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={`rounded-pill border px-3 py-1.5 text-xs font-medium transition duration-150 ease-out hover:scale-[1.02] active:scale-100 ${
+        active
+          ? 'border-brand bg-brand text-brand-foreground'
+          : 'border-border text-foreground hover:bg-surface-muted'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
 
-const QUESTIONS: Question[] = [
-  {
-    key: 'mornings',
-    label: 'How do you feel about mornings?',
-    options: [
-      { value: 'no-early', label: 'Nothing before 9:30' },
-      { value: 'early-bird', label: 'Start early, finish early' },
-      { value: 'whatever', label: 'No preference' },
-    ],
-  },
-  {
-    key: 'rhythm',
-    label: 'Gaps between classes?',
-    options: [
-      { value: 'compact', label: 'Pack them together' },
-      { value: 'spread', label: 'I like breaks' },
-      { value: 'whatever', label: 'No preference' },
-    ],
-  },
-  {
-    key: 'fewerDays',
-    label: 'Days on campus?',
-    options: [
-      { value: true, label: 'As few as possible' },
-      { value: false, label: 'No preference' },
-    ],
-  },
-  {
-    key: 'bestProfs',
-    label: 'Do professors matter?',
-    options: [
-      { value: true, label: 'Get me the best-rated' },
-      { value: false, label: 'No preference' },
-    ],
-  },
-  {
-    key: 'noEvenings',
-    label: 'Evening classes?',
-    options: [
-      { value: true, label: 'Avoid them' },
-      { value: false, label: "They're fine" },
-    ],
-  },
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <fieldset>
+      <legend className="text-xs font-medium text-text-secondary">{label}</legend>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">{children}</div>
+    </fieldset>
+  );
+}
+
+const EARLIEST: { value: number | null; label: string }[] = [
+  { value: null, label: 'No preference' },
+  { value: 9 * 60, label: 'After 9:00' },
+  { value: 9 * 60 + 30, label: 'After 9:30' },
+  { value: 10 * 60, label: 'After 10:00' },
+  { value: 11 * 60, label: 'After 11:00' },
+];
+
+const LATEST: { value: number | null; label: string }[] = [
+  { value: null, label: 'No preference' },
+  { value: 15 * 60, label: 'By 3 pm' },
+  { value: 17 * 60, label: 'By 5 pm' },
+  { value: 18 * 60, label: 'By 6 pm' },
+];
+
+const WEEKDAYS = [
+  { value: 0, label: 'Mon' },
+  { value: 1, label: 'Tue' },
+  { value: 2, label: 'Wed' },
+  { value: 3, label: 'Thu' },
+  { value: 4, label: 'Fri' },
 ];
 
 export default function GenerateDialog({
@@ -182,31 +189,102 @@ export default function GenerateDialog({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {!result && (
             <div className="space-y-4">
-              {QUESTIONS.map((q) => (
-                <fieldset key={q.key}>
-                  <legend className="text-xs font-medium text-text-secondary">{q.label}</legend>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {q.options.map((o) => {
-                      const active = prefs[q.key] === o.value;
-                      return (
-                        <button
-                          key={String(o.value)}
-                          type="button"
-                          aria-pressed={active}
-                          onClick={() => setPrefs((p) => ({ ...p, [q.key]: o.value }))}
-                          className={`rounded-pill border px-3 py-1.5 text-xs font-medium transition duration-150 ease-out hover:scale-[1.02] active:scale-100 ${
-                            active
-                              ? 'border-brand bg-brand text-brand-foreground'
-                              : 'border-border text-foreground hover:bg-surface-muted'
-                          }`}
-                        >
-                          {o.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              ))}
+              <Row label="Earliest class you'll take?">
+                {EARLIEST.map((o) => (
+                  <Chip
+                    key={String(o.value)}
+                    active={prefs.earliest === o.value}
+                    label={o.label}
+                    onClick={() => setPrefs((p) => ({ ...p, earliest: o.value }))}
+                  />
+                ))}
+              </Row>
+
+              <Row label="When should your day be over?">
+                {LATEST.map((o) => (
+                  <Chip
+                    key={String(o.value)}
+                    active={prefs.latest === o.value}
+                    label={o.label}
+                    onClick={() => setPrefs((p) => ({ ...p, latest: o.value }))}
+                  />
+                ))}
+              </Row>
+
+              <Row label="Any days you'd love to keep free? (pick any)">
+                {WEEKDAYS.map((d) => (
+                  <Chip
+                    key={d.value}
+                    active={prefs.freeDays.includes(d.value)}
+                    label={d.label}
+                    onClick={() =>
+                      setPrefs((p) => ({
+                        ...p,
+                        freeDays: p.freeDays.includes(d.value)
+                          ? p.freeDays.filter((x) => x !== d.value)
+                          : [...p.freeDays, d.value],
+                      }))
+                    }
+                  />
+                ))}
+              </Row>
+
+              <Row label="Gaps between classes?">
+                <Chip
+                  active={prefs.rhythm === 'compact'}
+                  label="Pack them together"
+                  onClick={() => setPrefs((p) => ({ ...p, rhythm: 'compact' }))}
+                />
+                <Chip
+                  active={prefs.rhythm === 'spread'}
+                  label="I like breaks"
+                  onClick={() => setPrefs((p) => ({ ...p, rhythm: 'spread' }))}
+                />
+                <Chip
+                  active={prefs.rhythm === 'whatever'}
+                  label="No preference"
+                  onClick={() => setPrefs((p) => ({ ...p, rhythm: 'whatever' }))}
+                />
+              </Row>
+
+              <Row label="Days on campus?">
+                <Chip
+                  active={prefs.fewerDays}
+                  label="As few as possible"
+                  onClick={() => setPrefs((p) => ({ ...p, fewerDays: true }))}
+                />
+                <Chip
+                  active={!prefs.fewerDays}
+                  label="No preference"
+                  onClick={() => setPrefs((p) => ({ ...p, fewerDays: false }))}
+                />
+              </Row>
+
+              <Row label="Lunch break?">
+                <Chip
+                  active={prefs.lunchBreak}
+                  label="Always leave room for lunch"
+                  onClick={() => setPrefs((p) => ({ ...p, lunchBreak: true }))}
+                />
+                <Chip
+                  active={!prefs.lunchBreak}
+                  label="I'll eat whenever"
+                  onClick={() => setPrefs((p) => ({ ...p, lunchBreak: false }))}
+                />
+              </Row>
+
+              <Row label="Do professors matter?">
+                <Chip
+                  active={prefs.bestProfs}
+                  label="Get me the best-rated"
+                  onClick={() => setPrefs((p) => ({ ...p, bestProfs: true }))}
+                />
+                <Chip
+                  active={!prefs.bestProfs}
+                  label="No preference"
+                  onClick={() => setPrefs((p) => ({ ...p, bestProfs: false }))}
+                />
+              </Row>
             </div>
           )}
 

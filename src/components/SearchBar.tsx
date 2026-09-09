@@ -78,11 +78,7 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search courses and professors"
-          // leading-5 is what text-sm already gives on desktop; it matters on
-          // phones, where globals.css floors every input to 16px against iOS
-          // auto-zoom and the taller default line box was setting the pill's
-          // height on its own.
-          className="w-full bg-transparent text-sm leading-5 text-foreground placeholder:text-text-tertiary focus:outline-none"
+          className="w-full bg-transparent text-sm text-foreground placeholder:text-text-tertiary focus:outline-none"
         />
       </form>
 

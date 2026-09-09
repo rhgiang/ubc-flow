@@ -220,6 +220,17 @@ html {
   select {
     font-size: max(16px, 1rem);
   }
+  /* Tailwind v4 states line-height as a ratio, not a length, so the floor
+     above silently scaled the line box with it: text-sm's 1.43 ratio against
+     16px is a 23px line, and a field's line box — not its padding — is what
+     sets its height. That made every input the tallest control on the page.
+     Pin the ratio for single-line fields; textarea keeps the roomier leading,
+     which is what multi-line reading wants. Unlayered like the rule above,
+     since it has to beat the same text-* utility. */
+  input,
+  select {
+    line-height: 1.25;
+  }
 }
 
 body {

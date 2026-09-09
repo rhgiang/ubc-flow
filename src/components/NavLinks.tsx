@@ -173,9 +173,11 @@ export default function NavLinks() {
               aria-hidden
               onClick={() => setMenuOpen(false)}
             />
-            {/* w-44, not w-56: at 224px the panel covered 57% of a 390px
-                phone, and the longest label ("Schedules") needs 140. */}
-            <div className="absolute right-0 top-full z-50 mt-1.5 w-44 rounded-card border border-border bg-surface p-1.5 shadow-lg">
+            {/* w-36, not the old w-56: at 224px the panel covered 57% of a
+                393px phone for five one-word labels, the longest of which
+                ("Schedules") sets type at 66px. 144 leaves it room to breathe
+                and still hands back a third of the width it was taking. */}
+            <div className="absolute right-0 top-full z-50 mt-1.5 w-36 rounded-card border border-border bg-surface p-1.5 shadow-lg">
               {items.map((item) => render(item, 'row'))}
             </div>
           </>

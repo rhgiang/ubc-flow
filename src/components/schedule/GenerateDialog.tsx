@@ -140,7 +140,7 @@ function CustomTime({
             : 'border-border text-foreground hover:bg-surface-muted'
         }`}
       >
-        {active ? `${prefix} ${fmt12(value)}` : 'Pick a time…'}
+        {active ? `${prefix} ${fmt12(value)}` : 'Custom'}
       </button>
       <input
         ref={inputRef}

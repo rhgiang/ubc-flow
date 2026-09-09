@@ -59,10 +59,12 @@ export type ProfessorGroup = {
 function Tab({
   active,
   onClick,
+  short,
   children,
 }: {
   active: boolean;
   onClick: () => void;
+  short: string;
   children: string;
 }) {
   return (
@@ -71,13 +73,18 @@ function Tab({
       onClick={onClick}
       aria-selected={active}
       role="tab"
-      className={`flex-1 px-4 py-3.5 text-center text-sm font-semibold ${
+      // py-3 below sm: matches the identical tab pair on explore. The short
+      // label is what keeps the pair one line: at half a 393px phone
+      // "Professor reviews (1)" wrapped, and a wrapped tab stood 68px tall —
+      // the largest control anywhere on the site.
+      className={`flex-1 px-4 py-3 text-center text-sm font-semibold sm:py-3.5 ${
         active
           ? 'bg-surface text-foreground'
           : 'bg-surface-muted text-text-secondary hover:bg-surface hover:text-foreground'
       }`}
     >
-      {children}
+      <span className="sm:hidden">{short}</span>
+      <span className="hidden sm:inline">{children}</span>
     </button>
   );
 }
@@ -133,10 +140,18 @@ export default function CourseReviewTabs({
   return (
     <div>
       <div className="sky-panel flex overflow-hidden" role="tablist">
-        <Tab active={tab === 'course'} onClick={() => setTab('course')}>
+        <Tab
+          active={tab === 'course'}
+          onClick={() => setTab('course')}
+          short={`Course (${courseReviews.length})`}
+        >
           {`Course reviews (${courseReviews.length})`}
         </Tab>
-        <Tab active={tab === 'professor'} onClick={() => setTab('professor')}>
+        <Tab
+          active={tab === 'professor'}
+          onClick={() => setTab('professor')}
+          short={`Professor (${professorCount})`}
+        >
           {`Professor reviews (${professorCount})`}
         </Tab>
       </div>

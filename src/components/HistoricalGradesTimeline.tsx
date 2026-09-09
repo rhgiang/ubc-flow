@@ -95,7 +95,7 @@ export default function HistoricalGradesTimeline({ terms }: { terms: HistoricalG
               setShowAll(value);
               setPinned(null); // indices mean different terms per range
             }}
-            className={`rounded-input px-3 py-1 text-xs font-medium transition-colors ${
+            className={`rounded-input px-3 py-1 text-xs font-medium transition-colors max-sm:inline-flex max-sm:min-h-8 max-sm:items-center ${
               showAll === value
                 ? 'bg-brand text-brand-foreground'
                 : 'border border-border text-text-secondary hover:text-foreground'

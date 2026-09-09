@@ -67,7 +67,7 @@ export default function ReviewHelpfulButton({
       disabled={pending}
       aria-pressed={state.voted}
       aria-label={state.voted ? 'Remove helpful' : 'Mark this review helpful'}
-      className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1 text-xs font-medium transition duration-150 ease-out hover:scale-[1.03] active:scale-100 disabled:opacity-60 ${
+      className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1 text-xs font-medium transition duration-150 ease-out hover:scale-[1.03] active:scale-100 disabled:opacity-60 max-sm:min-h-8 max-sm:px-3.5 ${
         state.voted
           ? 'border-brand bg-brand text-brand-foreground'
           : 'border-border text-text-secondary hover:text-foreground'

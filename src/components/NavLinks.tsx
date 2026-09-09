@@ -23,9 +23,12 @@ const INACTIVE = 'border-border text-foreground hover:bg-surface-muted';
 const ACTIVE = 'border-brand bg-brand text-brand-foreground';
 
 // The menu rows are their own shape: full width, no pill, and tall enough to
-// be a real touch target. 44px is the floor both Apple and Google publish, and
-// the desktop pill at py-2 is 36.
-const ROW = 'block w-full rounded-xl px-4 py-3 text-left text-base font-medium';
+// be a real touch target. 44px is the floor both Apple and Google publish, so
+// the row sits exactly on it (min-h-11, no vertical padding) rather than the
+// 48 it used to be — the menu shrinks by way of smaller text and a narrower
+// panel, never by taking the target under the line.
+const ROW =
+  'flex min-h-11 w-full items-center rounded-xl px-3 text-left text-sm font-medium';
 
 type NavItem = { href: string; label: string } | { href?: undefined; label: string; onClick: () => void };
 
@@ -170,7 +173,9 @@ export default function NavLinks() {
               aria-hidden
               onClick={() => setMenuOpen(false)}
             />
-            <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-card border border-border bg-surface p-2 shadow-lg">
+            {/* w-44, not w-56: at 224px the panel covered 57% of a 390px
+                phone, and the longest label ("Schedules") needs 140. */}
+            <div className="absolute right-0 top-full z-50 mt-1.5 w-44 rounded-card border border-border bg-surface p-1.5 shadow-lg">
               {items.map((item) => render(item, 'row'))}
             </div>
           </>

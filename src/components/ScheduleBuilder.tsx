@@ -12,6 +12,7 @@ import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';
 import UnsavedWorkDialog from '@/components/schedule/UnsavedWorkDialog';
 import ConflictSaveDialog from '@/components/schedule/ConflictSaveDialog';
 import MissingSectionsDialog from '@/components/schedule/MissingSectionsDialog';
+import GenerateDialog from '@/components/schedule/GenerateDialog';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import type { ScheduleOption } from '@/components/schedule/ScheduleSwitcher';
 import { findConflicts, conflictKey } from '@/schedule/conflicts';
@@ -94,6 +95,7 @@ export default function ScheduleBuilder({
     missing: MissingCompanions[];
   } | null>(null);
   const [importOpen, setImportOpen] = useState(openImport);
+  const [generateOpen, setGenerateOpen] = useState(false);
   // A successful save moves the baseline immediately. router.refresh() is not
   // awaited, so the refreshed initialSections prop lands later — without this,
   // a quick second Save would send a stale baseline and be refused as stale.
@@ -471,6 +473,8 @@ export default function ScheduleBuilder({
             onSave={() => void trySave()}
             onDelete={() => setConfirmingDelete(true)}
             onImport={() => setImportOpen(true)}
+            onGenerate={() => setGenerateOpen(true)}
+            canGenerate={chosen.length > 0 && termId !== ''}
           />
 
           {/* The banner floats over the calendar rather than sitting above it
@@ -609,6 +613,17 @@ export default function ScheduleBuilder({
         onClose={() => setImportOpen(false)}
         plannableTermIds={terms.map((t) => t.id)}
         onImport={applyImport}
+      />
+
+      <GenerateDialog
+        open={generateOpen}
+        termId={termId}
+        courseIds={[...new Set(chosen.map((s) => s.courseId))]}
+        // Wholesale replacement, in the builder's usual reading order: the
+        // generator answers for every course in the buffer at once, so the
+        // old picks for those same courses are exactly what it replaces.
+        onApply={(sections) => setChosen(sections)}
+        onClose={() => setGenerateOpen(false)}
       />
 
       <ConfirmDialog

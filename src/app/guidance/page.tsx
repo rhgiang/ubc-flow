@@ -313,7 +313,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                   <Link
                     key={n}
                     href={href({ credits: n })}
-                    className={`rounded-pill border px-3 py-1 text-xs font-medium max-sm:inline-flex max-sm:min-h-11 max-sm:items-center max-sm:px-4 ${
+                    className={`rounded-pill border px-3 py-1 text-xs font-medium max-sm:inline-flex max-sm:min-h-8 max-sm:items-center max-sm:px-4 ${
                       n === load
                         ? 'border-brand bg-brand text-brand-foreground'
                         : 'border-border text-foreground hover:bg-surface-muted'
@@ -324,7 +324,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                 ))}
                 <Link
                   href={href({ summer: useSummer ? '' : '1', coop: '' })}
-                  className={`ml-1 rounded-pill border px-3 py-1 text-xs font-medium max-sm:inline-flex max-sm:min-h-11 max-sm:items-center max-sm:px-4 ${
+                  className={`ml-1 rounded-pill border px-3 py-1 text-xs font-medium max-sm:inline-flex max-sm:min-h-8 max-sm:items-center max-sm:px-4 ${
                     useSummer
                       ? 'border-brand bg-brand text-brand-foreground'
                       : 'border-border text-foreground hover:bg-surface-muted'
@@ -347,7 +347,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
               <div className="flex flex-wrap items-center gap-1.5">
               <Link
                 href={href({ coop: '' })}
-                className={`rounded-pill border px-3 py-1 text-xs font-medium max-sm:inline-flex max-sm:min-h-11 max-sm:items-center max-sm:px-4 ${
+                className={`rounded-pill border px-3 py-1 text-xs font-medium max-sm:inline-flex max-sm:min-h-8 max-sm:items-center max-sm:px-4 ${
                   coop === null
                     ? 'border-brand bg-brand text-brand-foreground'
                     : 'border-border text-foreground hover:bg-surface-muted'
@@ -359,7 +359,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                 <Link
                   key={p.id}
                   href={href({ coop: p.id })}
-                  className={`rounded-pill border px-3 py-1 text-xs font-medium max-sm:inline-flex max-sm:min-h-11 max-sm:items-center max-sm:px-4 ${
+                  className={`rounded-pill border px-3 py-1 text-xs font-medium max-sm:inline-flex max-sm:min-h-8 max-sm:items-center max-sm:px-4 ${
                     coop?.id === p.id
                       ? 'border-brand bg-brand text-brand-foreground'
                       : 'border-border text-foreground hover:bg-surface-muted'
@@ -439,7 +439,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                             <Link
                               key={pl.course.id}
                               href={courseHref(pl.course.code)}
-                              className="max-sm:inline-flex max-sm:min-h-11 max-sm:items-center rounded-pill border border-border bg-surface-muted px-3 py-1 text-sm font-medium text-foreground hover:border-brand hover:bg-brand hover:text-brand-foreground"
+                              className="max-sm:inline-flex max-sm:min-h-8 max-sm:items-center rounded-pill border border-border bg-surface-muted px-3 py-1 text-sm font-medium text-foreground hover:border-brand hover:bg-brand hover:text-brand-foreground"
                             >
                               {pl.course.code}
                               <span className="ml-1.5 text-xs opacity-70">{pl.course.credits}cr</span>
@@ -451,7 +451,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                             // and opens the other routes rather than deciding
                             // silently for the student.
                             <details key={pl.course.id} className="group relative">
-                              <summary className="max-sm:inline-flex max-sm:min-h-11 max-sm:items-center cursor-pointer list-none rounded-pill border border-border bg-surface-muted px-3 py-1 text-sm font-medium text-foreground hover:border-brand">
+                              <summary className="max-sm:inline-flex max-sm:min-h-8 max-sm:items-center cursor-pointer list-none rounded-pill border border-border bg-surface-muted px-3 py-1 text-sm font-medium text-foreground hover:border-brand">
                                 {pl.course.code}
                                 <span className="ml-1.5 text-xs opacity-70">{pl.course.credits}cr</span>
                                 {/*
@@ -502,7 +502,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                           // to make, not a course we are telling them to take.
                           <span
                             key={`${pl.label}-${i}`}
-                            className="max-sm:inline-flex max-sm:min-h-11 max-sm:items-center rounded-pill border border-dashed border-border px-3 py-1 text-sm font-medium text-text-secondary"
+                            className="max-sm:inline-flex max-sm:min-h-8 max-sm:items-center rounded-pill border border-dashed border-border px-3 py-1 text-sm font-medium text-text-secondary"
                             title={
                               pl.examples.length > 0
                                 ? `e.g. ${pl.examples.map((e) => e.code).join(', ')}`

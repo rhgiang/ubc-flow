@@ -16,6 +16,11 @@ import { CONTACT_EMAIL } from '@/lib/version';
  *
  * Extra bottom padding on phones keeps it clear of the floating theme/sky
  * buttons pinned to a bottom corner.
+ *
+ * The chips are their natural 36px on phones, not the 44 they were forced to:
+ * 44 is Apple's and Google's guidance for a primary control, WCAG 2.2's own
+ * floor is 24, and applying 44 to every chip on the site left the secondary
+ * chrome as visually heavy as the actions.
  */
 function subscribe(onChange: () => void) {
   window.addEventListener('scroll', onChange, { passive: true });
@@ -53,18 +58,18 @@ export default function Footer() {
       }`}
     >
       <nav className="sky-capsule mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-1 p-1.5 text-[0.875rem] font-medium">
-        <Link href="/about" className="capsule-chip max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-4 py-2">
+        <Link href="/about" className="capsule-chip px-4 py-2">
           About
         </Link>
-        <Link href="/privacy" className="capsule-chip max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-4 py-2">
+        <Link href="/privacy" className="capsule-chip px-4 py-2">
           Privacy
         </Link>
-        <Link href="/terms" className="capsule-chip max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-4 py-2">
+        <Link href="/terms" className="capsule-chip px-4 py-2">
           Terms
         </Link>
         <a
           href={`mailto:${CONTACT_EMAIL}`}
-          className="capsule-chip max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-4 py-2"
+          className="capsule-chip px-4 py-2"
         >
           Contact
         </a>
@@ -72,7 +77,7 @@ export default function Footer() {
           href="https://ubcgrades.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="capsule-chip max-sm:inline-flex max-sm:min-h-11 max-sm:items-center whitespace-nowrap px-4 py-2"
+          className="capsule-chip whitespace-nowrap px-4 py-2"
         >
           Grade data: UBC PAIR
         </a>

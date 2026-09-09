@@ -166,7 +166,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                 <Link
                   key={lvl}
                   href={hrefWith(sp, { level: nextLevels.join(',') || null })}
-                  className={`rounded-pill border px-3.5 py-2 max-sm:inline-flex max-sm:min-h-11 max-sm:items-center text-sm font-medium ${
+                  className={`rounded-pill border px-3.5 py-2 text-sm font-medium ${
                     active
                       ? 'border-brand bg-brand text-brand-foreground'
                       : 'border-border text-foreground hover:bg-surface-muted'
@@ -184,7 +184,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
               <Link
                 key={t.id}
                 href={hrefWith(sp, { term: sp.term === t.id ? null : t.id })}
-                className={`rounded-pill border px-3.5 py-2 max-sm:inline-flex max-sm:min-h-11 max-sm:items-center text-left text-sm font-medium ${
+                className={`rounded-pill border px-3.5 py-2 text-left text-sm font-medium ${
                   sp.term === t.id
                     ? 'border-brand bg-brand text-brand-foreground'
                     : 'border-border text-foreground hover:bg-surface-muted'
@@ -201,7 +201,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
               <Link
                 key={f}
                 href={hrefWith(sp, { faculty: faculty === f ? null : f })}
-                className={`rounded-pill border px-3.5 py-2 max-sm:inline-flex max-sm:min-h-11 max-sm:items-center text-left text-sm font-medium ${
+                className={`rounded-pill border px-3.5 py-2 text-left text-sm font-medium ${
                   faculty === f
                     ? 'border-brand bg-brand text-brand-foreground'
                     : 'border-border text-foreground hover:bg-surface-muted'
@@ -216,7 +216,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           <div className="mt-2 flex flex-col gap-1.5">
             <Link
               href={hrefWith(sp, { requirements: requirements === 'none' ? null : 'none' })}
-              className={`rounded-pill border px-3.5 py-2 max-sm:inline-flex max-sm:min-h-11 max-sm:items-center text-left text-sm font-medium ${
+              className={`rounded-pill border px-3.5 py-2 text-left text-sm font-medium ${
                 requirements === 'none'
                   ? 'border-brand bg-brand text-brand-foreground'
                   : 'border-border text-foreground hover:bg-surface-muted'
@@ -226,7 +226,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             </Link>
             <Link
               href={hrefWith(sp, { requirements: requirements === 'has' ? null : 'has' })}
-              className={`rounded-pill border px-3.5 py-2 max-sm:inline-flex max-sm:min-h-11 max-sm:items-center text-left text-sm font-medium ${
+              className={`rounded-pill border px-3.5 py-2 text-left text-sm font-medium ${
                 requirements === 'has'
                   ? 'border-brand bg-brand text-brand-foreground'
                   : 'border-border text-foreground hover:bg-surface-muted'
@@ -343,7 +343,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                   // active chip takes the brand fill instead — the same
                   // treatment as the map's day chips, which reads on every
                   // theme; capsule-chip's text colour would fight it.
-                  className={`whitespace-nowrap rounded-pill border max-sm:inline-flex max-sm:min-h-11 max-sm:items-center px-3.5 py-2 text-sm font-medium ${
+                  className={`whitespace-nowrap rounded-pill border px-3.5 py-2 text-sm font-medium ${
                     active
                       ? 'border-brand bg-brand text-brand-foreground'
                       : 'capsule-chip border-border'

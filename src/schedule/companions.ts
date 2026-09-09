@@ -12,8 +12,10 @@
 
 /** Activity types that, when offered, a registration normally includes one of.
  *  Deliberately a closed list: UBC data also carries "Waiting List",
- *  "Work Placement", "Thesis" and friends, none of which anyone plans. */
-const COMPANION_ACTIVITIES = ['Lecture', 'Laboratory', 'Tutorial', 'Discussion', 'Seminar'];
+ *  "Work Placement", "Thesis" and friends, none of which anyone plans.
+ *  Exported for the schedule generator, which enumerates one section per
+ *  offered activity — the same rule this gate checks after the fact. */
+export const COMPANION_ACTIVITIES = ['Lecture', 'Laboratory', 'Tutorial', 'Discussion', 'Seminar'];
 
 export type SectionActivity = { code: string; activity: string | null };
 export type MissingCompanions = { code: string; missing: string[] };

@@ -26,6 +26,8 @@ export default function ScheduleHeader({
   onSave,
   onDelete,
   onImport,
+  onGenerate,
+  canGenerate,
 }: {
   name: string;
   onNameChange: (name: string) => void;
@@ -45,6 +47,9 @@ export default function ScheduleHeader({
   onSave: () => void;
   onDelete: () => void;
   onImport: () => void;
+  onGenerate: () => void;
+  /** False until there are courses to build from and a term to build in. */
+  canGenerate: boolean;
 }) {
   const activeTerm = terms.find((t) => t.id === termId);
 
@@ -75,6 +80,15 @@ export default function ScheduleHeader({
             className="shrink-0 rounded-pill border border-border px-4 py-1.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100"
           >
             Import from Workday
+          </button>
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={!canGenerate}
+            title={canGenerate ? undefined : 'Add courses first, then auto-build from them'}
+            className="shrink-0 rounded-pill border border-border px-4 py-1.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+          >
+            Auto-build
           </button>
         </div>
 

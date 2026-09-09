@@ -61,14 +61,14 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
           setOpen(false);
           router.push(`/explore?q=${encodeURIComponent(query)}`);
         }}
-        className="flex items-center gap-2 rounded-pill border border-border bg-surface px-4 py-3 shadow-sm transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100 sm:px-5 sm:py-3.5"
+        className="flex items-center gap-2 rounded-pill border border-border bg-surface px-4 py-2 shadow-sm transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-100 sm:px-5 sm:py-3.5"
       >
         <svg
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth={1.75}
-          className="h-5 w-5 shrink-0 text-text-tertiary"
+          className="h-4 w-4 shrink-0 text-text-tertiary sm:h-5 sm:w-5"
         >
           <circle cx="11" cy="11" r="7" />
           <path d="m20 20-3.5-3.5" strokeLinecap="round" />
@@ -78,7 +78,11 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search courses and professors"
-          className="w-full bg-transparent text-sm text-foreground placeholder:text-text-tertiary focus:outline-none"
+          // leading-5 is what text-sm already gives on desktop; it matters on
+          // phones, where globals.css floors every input to 16px against iOS
+          // auto-zoom and the taller default line box was setting the pill's
+          // height on its own.
+          className="w-full bg-transparent text-sm leading-5 text-foreground placeholder:text-text-tertiary focus:outline-none"
         />
       </form>
 

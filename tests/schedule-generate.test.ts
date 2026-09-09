@@ -122,15 +122,23 @@ describe('generateSchedules', () => {
     expect(result.schedules[0].notes).toContain("Couldn't keep Friday free");
   });
 
-  it('protects a lunch break when asked', () => {
+  it('protects a lunch break in the packed-but-fed mode', () => {
     // Two morning-to-afternoon walls vs a version with a noon gap.
     const wallA = section('cpsc110', 'Lecture', [['Mon', '10:00', '12:00']]);
     const wallB = section('math100', 'Lecture', [['Mon', '12:00', '14:00']]);
     const gapped = section('math100', 'Lecture', [['Mon', '13:00', '15:00']]);
-    const result = generateSchedules([wallA, wallB, gapped], prefs({ lunchBreak: true }));
+    const result = generateSchedules([wallA, wallB, gapped], prefs({ rhythm: 'lunch' }));
     expect(result.schedules[0].sectionIds).toContain(gapped.sectionId);
     expect(result.schedules[0].notes).toContain('Room for lunch every day');
     expect(result.schedules[1].notes).toContain('No lunch break on Mon');
+  });
+
+  it('still packs the day outside the lunch window in that mode', () => {
+    const lecture = section('cpsc110', 'Lecture', [['Mon', '14:00', '15:00']]);
+    const near = section('math100', 'Lecture', [['Mon', '15:00', '16:00']]);
+    const far = section('math100', 'Lecture', [['Mon', '18:00', '19:00']]);
+    const result = generateSchedules([lecture, near, far], prefs({ rhythm: 'lunch' }));
+    expect(result.schedules[0].sectionIds).toContain(near.sectionId);
   });
 
   it('prefers the compact day when asked to pack classes together', () => {

@@ -174,11 +174,11 @@ export default function GenerateDialog({
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-label="Auto-build a schedule"
+        aria-label="Flow Builder: build a schedule from your preferences"
         className="flex max-h-[85dvh] w-full max-w-lg flex-col rounded-card border border-border bg-background"
       >
         <div className="border-b border-border px-5 py-3">
-          <p className="text-sm font-semibold text-foreground">Auto-build your week</p>
+          <p className="text-sm font-semibold text-foreground">Flow Builder</p>
           <p className="mt-0.5 text-xs text-text-tertiary">
             {result
               ? 'Pick an option to load it into the builder — nothing is saved until you press Save.'
@@ -236,6 +236,11 @@ export default function GenerateDialog({
                   onClick={() => setPrefs((p) => ({ ...p, rhythm: 'compact' }))}
                 />
                 <Chip
+                  active={prefs.rhythm === 'lunch'}
+                  label="Packed, but keep lunch free"
+                  onClick={() => setPrefs((p) => ({ ...p, rhythm: 'lunch' }))}
+                />
+                <Chip
                   active={prefs.rhythm === 'spread'}
                   label="I like breaks"
                   onClick={() => setPrefs((p) => ({ ...p, rhythm: 'spread' }))}
@@ -257,19 +262,6 @@ export default function GenerateDialog({
                   active={!prefs.fewerDays}
                   label="No preference"
                   onClick={() => setPrefs((p) => ({ ...p, fewerDays: false }))}
-                />
-              </Row>
-
-              <Row label="Lunch break?">
-                <Chip
-                  active={prefs.lunchBreak}
-                  label="Always leave room for lunch"
-                  onClick={() => setPrefs((p) => ({ ...p, lunchBreak: true }))}
-                />
-                <Chip
-                  active={!prefs.lunchBreak}
-                  label="I'll eat whenever"
-                  onClick={() => setPrefs((p) => ({ ...p, lunchBreak: false }))}
                 />
               </Row>
 

@@ -25,14 +25,16 @@ export type GeneratePrefs = {
   earliest: number | null;
   /** Minutes from midnight; class time after this counts against. Null: any. */
   latest: number | null;
-  /** 'compact': minimize dead time. 'spread': room to breathe between classes. */
-  rhythm: 'compact' | 'spread' | 'whatever';
+  /**
+   * 'compact': minimize dead time. 'lunch': the in-between — packed, but
+   * insist on a real break (30+ min) somewhere in 11:00–14:00 each day.
+   * 'spread': room to breathe between classes.
+   */
+  rhythm: 'compact' | 'lunch' | 'spread' | 'whatever';
   /** Squeeze the week into as few days on campus as possible. */
   fewerDays: boolean;
   /** Days to try to keep clear of classes entirely (0 = Mon … 6 = Sun). */
   freeDays: number[];
-  /** Insist on a real break (30+ min) somewhere in 11:00–14:00 each day. */
-  lunchBreak: boolean;
   /** Prefer sections whose instructors rate well (reviews, then grade history). */
   bestProfs: boolean;
 };
@@ -43,7 +45,6 @@ export const DEFAULT_PREFS: GeneratePrefs = {
   rhythm: 'whatever',
   fewerDays: false,
   freeDays: [],
-  lunchBreak: false,
   bestProfs: false,
 };
 
@@ -235,10 +236,15 @@ function scoreSchedule(sections: Cand[], prefs: GeneratePrefs): number {
     score -= 2.5 * minutesWithin(meets.filter((m) => m.day === day), 0, 24 * 60);
   }
 
-  if (prefs.lunchBreak) score -= 60 * daysWithoutLunch(shapes).length;
-
   const gapWidths = shapes.flatMap((s) => s.gaps.map((g) => g.to - g.from));
   if (prefs.rhythm === 'compact') score -= 0.8 * gapWidths.reduce((a, g) => a + g, 0);
+  if (prefs.rhythm === 'lunch') {
+    // The in-between: still packed (at half the compact weight, so a lunch
+    // gap isn't punished into oblivion), but a day with no room to eat costs
+    // more than the gap that would have fixed it.
+    score -= 0.4 * gapWidths.reduce((a, g) => a + g, 0);
+    score -= 60 * daysWithoutLunch(shapes).length;
+  }
   if (prefs.rhythm === 'spread') {
     // Breathing room is a gap you can use; a three-hour stranding is not.
     score += 0.5 * gapWidths.reduce((a, g) => a + Math.min(g, 90), 0);
@@ -297,7 +303,7 @@ function notes(sections: Cand[], prefs: GeneratePrefs): string[] {
     if (missed.length) lines.push(`Couldn't keep ${listDays(missed)} free`);
   }
 
-  if (prefs.lunchBreak) {
+  if (prefs.rhythm === 'lunch') {
     const failed = daysWithoutLunch(shapes);
     lines.push(
       failed.length === 0

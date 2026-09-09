@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import AuthPanel from '@/components/AuthPanel';
 import SearchBar from '@/components/SearchBar';
+import { useSignedIn } from '@/components/use-signed-in';
 
 /**
  * The home hero, with the signed-in check moved to the browser so the page
@@ -13,23 +13,10 @@ import SearchBar from '@/components/SearchBar';
  * the hero paints.
  */
 export default function HomeHero() {
-  // null = unknown (fetch in flight); the panel renders only on a known
-  // signed-out answer.
-  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
-  useEffect(() => {
-    let alive = true;
-    fetch('/api/auth/session')
-      .then((res) => res.json())
-      .then((session) => {
-        if (alive) setLoggedIn(Boolean(session?.user));
-      })
-      .catch(() => {
-        if (alive) setLoggedIn(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  // null = unknown (read in flight); the panel renders only on a known
+  // signed-out answer. Re-reads when a sign-in announces itself, so the panel
+  // actually goes away once you use it.
+  const loggedIn = useSignedIn();
 
   return (
     // zoom, not a pile of one-off sizes: the hero, the field and the

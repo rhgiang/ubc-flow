@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import { announceSignIn } from '@/components/use-signed-in';
 import { registerUser } from '@/app/actions/auth';
 import { requestPasswordReset } from '@/app/actions/password-reset';
 
@@ -55,6 +56,12 @@ export default function AuthPanel({
         setError('Invalid email or password.');
         return;
       }
+      // router.refresh() alone re-renders the server tree but never re-runs a
+      // mounted client effect, and the nav and the home hero both read the
+      // session in one of those. Without this announcement they stayed on
+      // their signed-out answer — and on the home page that answer IS the
+      // login card, so a successful sign-in looked like nothing happening.
+      announceSignIn();
       if (onSuccess) {
         onSuccess();
         router.refresh();
@@ -103,6 +110,7 @@ export default function AuthPanel({
       // verification is the required next step) — onSuccess just closes the
       // overlay first if this panel is rendered inside one, so it doesn't
       // stay mounted mid-navigation.
+      announceSignIn();
       onSuccess?.();
       router.push('/onboarding');
     } catch {

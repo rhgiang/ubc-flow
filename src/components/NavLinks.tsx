@@ -2,20 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
+import { readSignedIn, useSignedIn } from '@/components/use-signed-in';
 import { useUnsavedChanges } from '@/components/UnsavedChangesContext';
-
-/** null = not yet known (the fetch is in flight on first paint). */
-async function fetchLoggedIn(): Promise<boolean> {
-  try {
-    const res = await fetch('/api/auth/session');
-    const session = await res.json();
-    return Boolean(session?.user);
-  } catch {
-    return false;
-  }
-}
 
 const BASE =
   'rounded-full border px-4 py-2 text-sm font-medium transition duration-150 ease-out hover:scale-[1.02] active:scale-100';
@@ -42,16 +32,7 @@ export default function NavLinks() {
   // every page, and a server-side auth() read forced the WHOLE site into
   // per-request rendering — no page could be served from the CDN. The button
   // says "Account" in both states, so nothing flashes while this loads.
-  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    void fetchLoggedIn().then((v) => {
-      if (!cancelled) setLoggedIn(v);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const loggedIn = useSignedIn();
 
   const items: NavItem[] = [
     { href: '/', label: 'Home' },
@@ -71,9 +52,15 @@ export default function NavLinks() {
       : {
           label: 'Account',
           onClick: async () => {
-            // Clicked before the first fetch answered: check now rather than
-            // showing a login form to someone who is already signed in.
-            const known = loggedIn ?? (await fetchLoggedIn());
+            // Ask every time; never trust the cached answer. loggedIn is read
+            // once in a mount effect, so for anyone who has signed in since —
+            // through the very overlay this button opens — it still says
+            // "signed out". `loggedIn ?? fetch` then short-circuited on that
+            // stale false and never re-checked at all, so Account reopened the
+            // login form for someone already signed in: the exact thing this
+            // check exists to prevent. Only the signed-out branch has this
+            // handler, so the fetch costs nothing anyone is waiting on.
+            const known = await readSignedIn();
             if (known) router.push('/onboarding');
             else open('login');
           },

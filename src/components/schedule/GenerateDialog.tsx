@@ -258,7 +258,9 @@ export default function GenerateDialog({
           <p className="mt-0.5 text-xs text-text-tertiary">
             {result
               ? 'Pick an option to load it into the builder — nothing is saved until you press Save.'
-              : 'Answer a few questions and every conflict-free timetable for your courses gets ranked to match.'}
+              : `Answer a few questions and every conflict-free timetable for your ${
+                  courseIds.length > 1 ? `${courseIds.length} courses` : 'courses'
+                } gets ranked to match.`}
           </p>
         </div>
 

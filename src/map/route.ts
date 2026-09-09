@@ -8,8 +8,8 @@ import { findBuilding, type Building } from '@/map/buildings';
 export type RouteStop = {
   code: string;
   building: Building;
-  /** "CPSC 110 · 09:00–10:00" per class held here, in time order. */
-  labels: string[];
+  /** One per class held here, in time order; label is "CPSC 110 · 09:00–10:00". */
+  classes: { label: string; entry: CalendarEntry }[];
   /** Minutes since midnight; start of the first class, end of the last. */
   start: number;
   end: number;
@@ -87,10 +87,10 @@ export function dayRoute(
     const end = toMin(e.endTime!);
     const last = stops[stops.length - 1];
     if (last && last.code === code) {
-      last.labels.push(label);
+      last.classes.push({ label, entry: e });
       last.end = Math.max(last.end, end);
     } else {
-      stops.push({ code, building, labels: [label], start, end });
+      stops.push({ code, building, classes: [{ label, entry: e }], start, end });
     }
   }
 

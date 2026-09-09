@@ -22,6 +22,22 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;
 // from --brand, which sky-themed scopes override to white.
 const ROUTE_COLOR = '#002145';
 
+// "Room 1250 · Floor 1 · room details ↗" — where inside the building a class
+// is. UBC's own page for the room (photos, layout, capacity) is the closest
+// thing to an indoor map that actually exists for UBC.
+function whereLine(entry: CalendarEntry): string {
+  const roomUrl = roomDetailsUrl(entry.building, entry.room);
+  return [
+    entry.room ? `Room ${entry.room}` : null,
+    floorFromRoom(entry.room),
+    roomUrl
+      ? `<a class="campus-room-link" href="${roomUrl}" target="_blank" rel="noopener noreferrer">room details ↗</a>`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
 type Located = {
   entry: CalendarEntry;
   building: NonNullable<ReturnType<typeof findBuilding>>;
@@ -146,8 +162,11 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
             html: `<span class="campus-pin" style="background: ${ROUTE_COLOR}">${i + 1} · ${stop.code}</span>`,
             iconSize: [0, 0],
           });
-          const rows = stop.labels
-            .map((l) => `<p style="margin:2px 0">${l}</p>`)
+          const rows = stop.classes
+            .map((c) => {
+              const where = whereLine(c.entry);
+              return `<p style="margin:2px 0">${c.label}${where ? `<br>${where}` : ''}</p>`;
+            })
             .join('');
           const dest = `${stop.building.lat},${stop.building.lng}`;
           const directions =
@@ -203,9 +222,9 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
               }),
             })
               .bindPopup(
-                `<p style="margin:2px 0"><strong>${from.labels[from.labels.length - 1]}</strong> in ${from.code}</p>` +
+                `<p style="margin:2px 0"><strong>${from.classes[from.classes.length - 1].label}</strong> in ${from.code}</p>` +
                   `<p style="margin:2px 0">then</p>` +
-                  `<p style="margin:2px 0"><strong>${to.labels[0]}</strong> in ${to.code}</p>`,
+                  `<p style="margin:2px 0"><strong>${to.classes[0].label}</strong> in ${to.code}</p>`,
               )
               .addTo(pins);
             legMarkers.push({ m, at, a: [aLat, aLng], b: [bLat, bLng] });
@@ -339,19 +358,7 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
         });
         const rows = group
           .map((l) => {
-            const floor = floorFromRoom(l.entry.room);
-            const roomUrl = roomDetailsUrl(l.entry.building, l.entry.room);
-            const where = [
-              l.entry.room ? `Room ${l.entry.room}` : null,
-              floor,
-              // UBC's own page for the room: photos, layout, capacity — the
-              // closest thing to an indoor map that actually exists for UBC.
-              roomUrl
-                ? `<a class="campus-room-link" href="${roomUrl}" target="_blank" rel="noopener noreferrer">room details ↗</a>`
-                : null,
-            ]
-              .filter(Boolean)
-              .join(' · ');
+            const where = whereLine(l.entry);
             const when = l.entry.startTime
               ? `${l.entry.day} ${l.entry.startTime}–${l.entry.endTime}`
               : l.entry.day;

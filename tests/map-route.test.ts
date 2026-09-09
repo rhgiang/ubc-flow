@@ -59,7 +59,7 @@ describe('dayRoute', () => {
       'Tue',
     );
     expect(stops).toHaveLength(1);
-    expect(stops[0].labels).toHaveLength(2);
+    expect(stops[0].classes).toHaveLength(2);
     expect(stops[0].end).toBe(11 * 60);
     expect(legs).toHaveLength(0);
   });

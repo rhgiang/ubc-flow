@@ -90,36 +90,68 @@ function minutesToTime(min: number): string {
   return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 }
 
+/** 975 -> "4:15 pm", the way the preset chips speak. */
+function fmt12(min: number): string {
+  const h = Math.floor(min / 60);
+  const mm = String(min % 60).padStart(2, '0');
+  return `${((h + 11) % 12) + 1}:${mm} ${h < 12 ? 'am' : 'pm'}`;
+}
+
 /**
- * A native time input at the end of a chip row, for anyone the presets don't
- * fit ("after 12", "done by 4:15"). It reads as selected exactly when the
- * stored minutes match no preset — picking a preset clears it, typing a time
+ * A chip that opens the browser's own time picker, for anyone the presets
+ * don't fit ("after 12", "done by 4:15"). Looks and presses like every other
+ * chip; the native input is invisible underneath and only supplies the
+ * picker UI and the value. It reads as selected exactly when the stored
+ * minutes match no preset — picking a preset clears it, picking a time
  * deselects the presets, and no third piece of state has to agree with two
  * others.
  */
 function CustomTime({
+  prefix,
   value,
   isCustom,
   onChange,
 }: {
+  /** "After" / "By" — so the selected chip reads like its preset siblings. */
+  prefix: string;
   value: number | null;
   isCustom: boolean;
   onChange: (minutes: number | null) => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const active = isCustom && value !== null;
   return (
-    <label
-      className={`flex items-center gap-1.5 rounded-pill border px-3 py-1 text-xs font-medium ${
-        isCustom ? 'border-brand text-foreground' : 'border-border text-text-secondary'
-      }`}
-    >
-      Custom
+    <div className="relative">
+      <button
+        type="button"
+        aria-pressed={active}
+        onClick={() => {
+          const input = inputRef.current;
+          if (!input) return;
+          try {
+            input.showPicker();
+          } catch {
+            input.focus();
+          }
+        }}
+        className={`rounded-pill border px-3 py-1.5 text-xs font-medium transition duration-150 ease-out hover:scale-[1.02] active:scale-100 ${
+          active
+            ? 'border-brand bg-brand text-brand-foreground'
+            : 'border-border text-foreground hover:bg-surface-muted'
+        }`}
+      >
+        {active ? `${prefix} ${fmt12(value)}` : 'Pick a time…'}
+      </button>
       <input
+        ref={inputRef}
         type="time"
-        value={isCustom && value !== null ? minutesToTime(value) : ''}
+        aria-hidden
+        tabIndex={-1}
+        value={active ? minutesToTime(value) : ''}
         onChange={(e) => onChange(timeToMinutes(e.target.value))}
-        className="bg-transparent text-xs text-foreground focus:outline-none"
+        className="pointer-events-none absolute left-0 top-full h-px w-px opacity-0"
       />
-    </label>
+    </div>
   );
 }
 
@@ -243,6 +275,7 @@ export default function GenerateDialog({
                   />
                 ))}
                 <CustomTime
+                  prefix="After"
                   value={prefs.earliest}
                   isCustom={!EARLIEST.some((o) => o.value === prefs.earliest)}
                   onChange={(minutes) => setPrefs((p) => ({ ...p, earliest: minutes }))}
@@ -259,6 +292,7 @@ export default function GenerateDialog({
                   />
                 ))}
                 <CustomTime
+                  prefix="By"
                   value={prefs.latest}
                   isCustom={!LATEST.some((o) => o.value === prefs.latest)}
                   onChange={(minutes) => setPrefs((p) => ({ ...p, latest: minutes }))}

@@ -329,6 +329,18 @@ model ScheduleSection {
   scheduleId String
   schedule   SavedSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   sectionId  String
+  /**
+   * Where the class actually meets. Kept HERE rather than read back from the
+   * section, because the catalogue has no room at all — UBC's course API
+   * exposes no location (see upload/match-schedule), so a student's own
+   * Workday export is the only source there has ever been. Without these the
+   * import's rooms survived only until the schedule was saved, and reloading
+   * showed a timetable with nowhere to go.
+   *
+   * Null for a section added by hand from the catalogue, which never had one.
+   */
+  building   String?
+  room       String?
 
   @@id([scheduleId, sectionId])
 }

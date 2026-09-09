@@ -6,6 +6,8 @@ export type IcsEvent = {
   endTime: string | null;
   startDate: Date | null;
   endDate: Date | null;
+  /** "BUCH A101". Omitted from the event entirely when there is none. */
+  location?: string | null;
 };
 
 const TZID = 'America/Vancouver';
@@ -20,6 +22,8 @@ export type MeetingLike = {
   endTime: string | null;
   startDate: Date | null;
   endDate: Date | null;
+  building?: string | null;
+  room?: string | null;
 };
 
 /**
@@ -31,6 +35,7 @@ export function meetingEvents(courseLabel: string, m: MeetingLike): IcsEvent[] {
   const title = [courseLabel, m.activity, m.sectionCode && `(${m.sectionCode})`]
     .filter(Boolean)
     .join(' ');
+  const location = [m.building, m.room].filter(Boolean).join(' ') || null;
   return m.days.map((day) => ({
     uid: `${m.id}-${day}`,
     title,
@@ -39,6 +44,7 @@ export function meetingEvents(courseLabel: string, m: MeetingLike): IcsEvent[] {
     endTime: m.endTime,
     startDate: m.startDate,
     endDate: m.endDate,
+    location,
   }));
 }
 
@@ -107,6 +113,9 @@ export function buildIcs(calendarName: string, events: IcsEvent[]): string {
       `DTEND;TZID=${TZID}:${end}`,
       `RRULE:FREQ=WEEKLY;BYDAY=${ICS_DAY[dayIndex]};UNTIL=${dateStamp(e.endDate)}T235959Z`,
       `SUMMARY:${escapeText(e.title)}`,
+      // Phones offer directions from this field, so it is worth more here than
+      // anywhere else on the site. Absent rather than empty when unknown.
+      ...(e.location ? [`LOCATION:${escapeText(e.location)}`] : []),
       'END:VEVENT',
     );
   }

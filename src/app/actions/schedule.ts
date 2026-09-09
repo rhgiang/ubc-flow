@@ -8,6 +8,7 @@ import { isPlannableTerm } from '@/schedule/terms';
 import { searchSectionsForTerm, type SectionHit } from '@/lib/search';
 import { diffSections } from '@/schedule/buffer';
 import { findMissingCompanions, type MissingCompanions } from '@/schedule/companions';
+import { sanitizeSectionLocations, type SectionLocation } from '@/schedule/locations';
 
 type Result = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; scheduleId: string } | { ok: false; error: string };
@@ -98,6 +99,7 @@ async function createScheduleWithSectionsFor(
   termId: string,
   name: string,
   sectionIds: string[],
+  locations?: SectionLocation[],
 ): Promise<CreateResult> {
   const clean = name.trim();
   if (!clean) return { ok: false, error: 'Give the schedule a name.' };
@@ -119,12 +121,24 @@ async function createScheduleWithSectionsFor(
     }
   }
 
+  // Rooms come from the student's own Workday import and exist nowhere else,
+  // so they are saved with the sections rather than looked up later.
+  const places = new Map(
+    sanitizeSectionLocations(locations, ids).map((l) => [l.sectionId, l]),
+  );
+
   const schedule = await db.savedSchedule.create({
     data: {
       userId,
       termId,
       name: clean,
-      sections: { create: ids.map((sectionId) => ({ sectionId })) },
+      sections: {
+        create: ids.map((sectionId) => ({
+          sectionId,
+          building: places.get(sectionId)?.building ?? null,
+          room: places.get(sectionId)?.room ?? null,
+        })),
+      },
     },
     select: { id: true },
   });
@@ -341,10 +355,11 @@ export async function saveGuestSchedule(
   termId: string,
   name: string,
   sectionIds: string[],
+  locations?: SectionLocation[],
 ): Promise<SaveResult> {
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Sign in to save your schedule.', needsAuth: true };
-  const result = await createScheduleWithSectionsFor(userId, termId, name, sectionIds);
+  const result = await createScheduleWithSectionsFor(userId, termId, name, sectionIds, locations);
   if (result.ok) revalidatePath('/schedule');
   return result;
 }
@@ -360,6 +375,7 @@ export async function replaceScheduleSectionsFor(
   name: string,
   sectionIds: string[],
   expectedSectionIds: string[],
+  locations?: SectionLocation[],
 ): Promise<Result> {
   if (!(await owns(userId, scheduleId))) return { ok: false, error: NOT_YOURS };
   const clean = name.trim();
@@ -397,6 +413,18 @@ export async function replaceScheduleSectionsFor(
 
   const { added, removed } = diffSections(existing.map((s) => s.sectionId), sectionIds);
 
+  const places = new Map(
+    sanitizeSectionLocations(locations, ids).map((l) => [l.sectionId, l]),
+  );
+  // Rows that survive this save still get their location rewritten: a student
+  // who re-imports their export onto an existing schedule is telling us where
+  // the class moved to, and a section that lost its room should lose it here.
+  //
+  // Only when the caller actually sent locations, though. Omitting them means
+  // "I have nothing to say about rooms" — a caller that saved a name change
+  // must not wipe every room in the schedule on its way past.
+  const kept = locations === undefined ? [] : ids.filter((id) => !added.includes(id));
+
   // One transaction: a half-applied Save would leave the student looking at a
   // schedule that is neither what they had nor what they asked for.
   await db.$transaction([
@@ -407,11 +435,25 @@ export async function replaceScheduleSectionsFor(
     ...(added.length
       ? [
           db.scheduleSection.createMany({
-            data: added.map((sectionId) => ({ scheduleId, sectionId })),
+            data: added.map((sectionId) => ({
+              scheduleId,
+              sectionId,
+              building: places.get(sectionId)?.building ?? null,
+              room: places.get(sectionId)?.room ?? null,
+            })),
             skipDuplicates: true,
           }),
         ]
       : []),
+    ...kept.map((sectionId) =>
+      db.scheduleSection.updateMany({
+        where: { scheduleId, sectionId },
+        data: {
+          building: places.get(sectionId)?.building ?? null,
+          room: places.get(sectionId)?.room ?? null,
+        },
+      }),
+    ),
   ]);
   return { ok: true };
 }
@@ -422,6 +464,7 @@ export async function replaceScheduleSections(
   name: string,
   sectionIds: string[],
   expectedSectionIds: string[],
+  locations?: SectionLocation[],
 ): Promise<Result> {
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Sign in to save your schedule.' };
@@ -431,6 +474,7 @@ export async function replaceScheduleSections(
     name,
     sectionIds,
     expectedSectionIds,
+    locations,
   );
   if (result.ok) {
     revalidatePath('/schedule');

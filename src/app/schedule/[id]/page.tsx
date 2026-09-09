@@ -5,6 +5,7 @@ import ScheduleBuilder from '@/components/ScheduleBuilder';
 import { isPlannableTerm } from '@/schedule/terms';
 import { listSwitchableSchedules } from '@/schedule/switcher';
 import { toSectionHit, sectionHitInclude, type SectionHit } from '@/lib/search';
+import { applySectionLocations } from '@/schedule/locations';
 
 export default async function SchedulePlannerPage({
   params,
@@ -34,8 +35,13 @@ export default async function SchedulePlannerPage({
       })
     : [];
 
-  // Same shape searchSectionsForTerm produces, so the builder holds one type.
-  const initialSections: SectionHit[] = sections.map(toSectionHit);
+  // Same shape searchSectionsForTerm produces, so the builder holds one type —
+  // with the rooms saved from the student's import put back on, since the
+  // catalogue has none of its own to give.
+  const initialSections: SectionHit[] = applySectionLocations(
+    sections.map(toSectionHit),
+    schedule.sections,
+  );
 
   const terms = await db.term.findMany({
     where: { campus: 'V' },

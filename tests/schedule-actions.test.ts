@@ -296,3 +296,83 @@ describe('replaceScheduleSectionsFor staleness', () => {
     expect(second).toEqual({ ok: true });
   });
 });
+
+/**
+ * The room a student sees after importing their Workday export comes from that
+ * file and nowhere else — the catalogue has no location for any section. Before
+ * these columns existed, saving kept only section ids, so the timetable came
+ * back with nowhere to go. See src/schedule/locations.ts.
+ */
+describe('saved section locations', () => {
+  it('keeps the imported room through a save', async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Rooms A');
+    if (!created.ok) throw new Error(created.error);
+    const id = created.scheduleId;
+
+    const saved = await replaceScheduleSectionsFor(ownerId, id, 'Rooms A', [sectionId], [], [
+      { sectionId, building: 'BUCH', room: 'A101' },
+    ]);
+    expect(saved).toEqual({ ok: true });
+
+    const row = await db.scheduleSection.findFirstOrThrow({
+      where: { scheduleId: id, sectionId },
+      select: { building: true, room: true },
+    });
+    expect(row).toEqual({ building: 'BUCH', room: 'A101' });
+  });
+
+  it('updates the room of a section that was already saved', async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Rooms B');
+    if (!created.ok) throw new Error(created.error);
+    const id = created.scheduleId;
+
+    await replaceScheduleSectionsFor(ownerId, id, 'Rooms B', [sectionId], [], [
+      { sectionId, building: 'BUCH', room: 'A101' },
+    ]);
+    // A re-import after the room changed: same section, new place.
+    await replaceScheduleSectionsFor(ownerId, id, 'Rooms B', [sectionId], [sectionId], [
+      { sectionId, building: 'SWNG', room: '121' },
+    ]);
+
+    const row = await db.scheduleSection.findFirstOrThrow({
+      where: { scheduleId: id, sectionId },
+      select: { building: true, room: true },
+    });
+    expect(row).toEqual({ building: 'SWNG', room: '121' });
+  });
+
+  it('leaves saved rooms alone when a save says nothing about them', async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Rooms C');
+    if (!created.ok) throw new Error(created.error);
+    const id = created.scheduleId;
+
+    await replaceScheduleSectionsFor(ownerId, id, 'Rooms C', [sectionId], [], [
+      { sectionId, building: 'BUCH', room: 'A101' },
+    ]);
+    // A rename-only save from a caller that never carried locations must not
+    // wipe the schedule's rooms on its way past.
+    await replaceScheduleSectionsFor(ownerId, id, 'Renamed', [sectionId], [sectionId]);
+
+    const row = await db.scheduleSection.findFirstOrThrow({
+      where: { scheduleId: id, sectionId },
+      select: { building: true, room: true },
+    });
+    expect(row).toEqual({ building: 'BUCH', room: 'A101' });
+  });
+
+  it('refuses a location for a section that is not in the schedule', async () => {
+    const created = await createScheduleFor(ownerId, termId, 'Rooms D');
+    if (!created.ok) throw new Error(created.error);
+    const id = created.scheduleId;
+
+    await replaceScheduleSectionsFor(ownerId, id, 'Rooms D', [sectionId], [], [
+      { sectionId: otherTermSectionId, building: 'IKB', room: '182' },
+    ]);
+
+    const rows = await db.scheduleSection.findMany({
+      where: { scheduleId: id },
+      select: { sectionId: true, building: true },
+    });
+    expect(rows).toEqual([{ sectionId, building: null }]);
+  });
+});

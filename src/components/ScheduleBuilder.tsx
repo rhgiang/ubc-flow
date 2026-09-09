@@ -485,7 +485,9 @@ export default function ScheduleBuilder({
             onDelete={() => setConfirmingDelete(true)}
             onImport={() => setImportOpen(true)}
             onGenerate={() => setGenerateOpen(true)}
-            canGenerate={generateCourseIds.length > 0 && termId !== ''}
+            // A term is all it takes now: with no courses the dialog opens on
+            // the program intake and finds the courses itself.
+            canGenerate={termId !== ''}
           />
 
           {/* The banner floats over the calendar rather than sitting above it

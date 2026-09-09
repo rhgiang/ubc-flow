@@ -1,7 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { generationData, type GenerationData } from '@/app/actions/generate';
+import {
+  generationData,
+  intakeOptions,
+  plannedCoursesForTerm,
+  type GenerationData,
+} from '@/app/actions/generate';
 import {
   generateSchedules,
   DEFAULT_PREFS,
@@ -180,6 +185,51 @@ export default function GenerateDialog({
   // answers is instant — no second round trip.
   const dataRef = useRef<GenerationData | null>(null);
 
+  // The from-scratch intake: an empty builder means there is nothing to
+  // arrange yet, so the dialog first asks who the student is and takes the
+  // term's courses from their degree's plan — the same list guidance's
+  // "Arrange this term" button carries.
+  const [options, setOptions] = useState<Awaited<ReturnType<typeof intakeOptions>> | null>(null);
+  const [programCode, setProgramCode] = useState('');
+  const [coopId, setCoopId] = useState<string | null>(null);
+  const [planning, setPlanning] = useState(false);
+  const [plannedCourses, setPlannedCourses] = useState<{ id: string; code: string }[] | null>(
+    null,
+  );
+  const [slotCount, setSlotCount] = useState(0);
+  const needsIntake = courseIds.length === 0 && plannedCourses === null;
+  const effectiveCourseIds =
+    courseIds.length > 0 ? courseIds : (plannedCourses?.map((c) => c.id) ?? []);
+
+  useEffect(() => {
+    if (!open || courseIds.length > 0 || options) return;
+    void intakeOptions().then(setOptions).catch(() => {});
+  }, [open, courseIds.length, options]);
+
+  async function findCourses() {
+    setPlanning(true);
+    setError(null);
+    try {
+      const plan = await plannedCoursesForTerm(programCode, coopId, termId);
+      if ('error' in plan) {
+        setError(plan.error);
+      } else if (plan.workTerm) {
+        setError("Under that co-op pattern this is a work term — there's nothing to schedule.");
+      } else if (!plan.planned || plan.courses.length === 0) {
+        setError(
+          "The degree plan doesn't put courses in this term. Try another term, or add courses by hand.",
+        );
+      } else {
+        setPlannedCourses(plan.courses);
+        setSlotCount(plan.slotCount);
+      }
+    } catch {
+      setError('Something went wrong reading the degree plan. Try again.');
+    } finally {
+      setPlanning(false);
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -206,7 +256,7 @@ export default function GenerateDialog({
   }, [open]);
 
   // The cached pool is only valid for the courses it was fetched for.
-  const poolKey = `${termId}|${[...courseIds].sort().join(',')}`;
+  const poolKey = `${termId}|${[...effectiveCourseIds].sort().join(',')}`;
   const poolKeyRef = useRef('');
 
   if (!open) return null;
@@ -217,7 +267,7 @@ export default function GenerateDialog({
     setApplied(null);
     try {
       if (!dataRef.current || poolKeyRef.current !== poolKey) {
-        dataRef.current = await generationData(termId, courseIds);
+        dataRef.current = await generationData(termId, effectiveCourseIds);
         poolKeyRef.current = poolKey;
       }
       const { sections, profScores } = dataRef.current;
@@ -258,15 +308,86 @@ export default function GenerateDialog({
           <p className="mt-0.5 text-xs text-text-tertiary">
             {result
               ? 'Pick an option to load it into the builder — nothing is saved until you press Save.'
-              : `Answer a few questions and every conflict-free timetable for your ${
-                  courseIds.length > 1 ? `${courseIds.length} courses` : 'courses'
-                } gets ranked to match.`}
+              : needsIntake
+                ? "Starting from scratch? Say what you're studying and Flow Builder takes this term's courses from your degree's suggested plan."
+                : `Answer a few questions and every conflict-free timetable for your ${
+                    effectiveCourseIds.length > 1
+                      ? `${effectiveCourseIds.length} courses`
+                      : 'courses'
+                  } gets ranked to match.`}
           </p>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          {!result && (
+          {!result && needsIntake && (
             <div className="space-y-4">
+              <fieldset>
+                <legend className="text-xs font-medium text-text-secondary">
+                  What are you studying?
+                </legend>
+                <select
+                  value={programCode}
+                  onChange={(e) => setProgramCode(e.target.value)}
+                  className="mt-1.5 w-full rounded-input border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-foreground focus:outline-none"
+                >
+                  <option value="">Pick your program…</option>
+                  {options?.programs.map((g) => (
+                    <optgroup key={g.degree} label={`${g.degree} · ${g.faculty}`}>
+                      {g.programs.map((p) => (
+                        <option key={p.code} value={p.code}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </fieldset>
+
+              <Row label="Co-op?">
+                <Chip active={coopId === null} label="No co-op" onClick={() => setCoopId(null)} />
+                {options?.coops.map((c) => (
+                  <Chip
+                    key={c.id}
+                    active={coopId === c.id}
+                    label={c.label}
+                    onClick={() => setCoopId(c.id)}
+                  />
+                ))}
+              </Row>
+
+              <p className="text-xs text-text-tertiary">
+                Signed in with your Workday record uploaded, the plan starts from what
+                you&apos;ve already completed; otherwise it plans the degree from first year.
+                You can also skip this and add courses by hand from Find Courses.
+              </p>
+            </div>
+          )}
+
+          {!result && !needsIntake && (
+            <div className="space-y-4">
+              {courseIds.length === 0 && plannedCourses && (
+                <div className="rounded-card border border-border bg-surface-muted p-3">
+                  <p className="text-xs font-medium text-text-secondary">
+                    Arranging from your degree plan:
+                  </p>
+                  <p className="mt-1 text-sm text-foreground">
+                    {plannedCourses.map((c) => c.code).join(' · ')}
+                  </p>
+                  {slotCount > 0 && (
+                    <p className="mt-1 text-xs text-text-tertiary">
+                      Plus {slotCount} elective slot{slotCount === 1 ? '' : 's'} to pick by hand
+                      afterwards.
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPlannedCourses(null)}
+                    className="mt-1.5 text-xs font-medium text-brand-accent underline decoration-dotted underline-offset-2 hover:decoration-solid"
+                  >
+                    Change program
+                  </button>
+                </div>
+              )}
               <Row label="Earliest class you'll take?">
                 {EARLIEST.map((o) => (
                   <Chip
@@ -447,14 +568,25 @@ export default function GenerateDialog({
                 Change answers
               </button>
             )}
-            <button
-              type="button"
-              onClick={run}
-              disabled={working || courseIds.length === 0}
-              className="rounded-pill bg-brand px-4 py-1.5 text-sm font-medium text-brand-foreground hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {working ? 'Building…' : result ? 'Regenerate' : 'Build my schedule'}
-            </button>
+            {needsIntake ? (
+              <button
+                type="button"
+                onClick={findCourses}
+                disabled={planning || programCode === ''}
+                className="rounded-pill bg-brand px-4 py-1.5 text-sm font-medium text-brand-foreground hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {planning ? 'Reading your degree plan…' : 'Find my courses'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={run}
+                disabled={working || effectiveCourseIds.length === 0}
+                className="rounded-pill bg-brand px-4 py-1.5 text-sm font-medium text-brand-foreground hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {working ? 'Building…' : result ? 'Regenerate' : 'Build my schedule'}
+              </button>
+            )}
           </div>
         </div>
       </div>

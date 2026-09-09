@@ -85,7 +85,7 @@ export default function ScheduleHeader({
             type="button"
             onClick={onGenerate}
             disabled={!canGenerate}
-            title={canGenerate ? undefined : 'Add courses first, then let Flow Builder arrange them'}
+            title={canGenerate ? undefined : 'Pick a term first'}
             className="shrink-0 rounded-pill border border-border px-4 py-1.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-surface-muted active:scale-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
           >
             Flow Builder

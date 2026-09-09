@@ -53,6 +53,8 @@ export default function ScheduleBuilder({
   schedules = [],
   openImport = false,
   loadPendingImport = false,
+  initialCourseIds = [],
+  openGenerate = false,
 }: {
   mode: BuilderMode;
   initialName: string;
@@ -67,6 +69,11 @@ export default function ScheduleBuilder({
   /** Set by /schedule/new?fromImport=1 — consume the next term parked by a
    *  multi-term Workday import and open it as a fresh draft. */
   loadPendingImport?: boolean;
+  /** Courses to arrange before any section is picked — how a guidance plan
+   *  hands a term to Flow Builder. Ignored once sections are chosen. */
+  initialCourseIds?: string[];
+  /** Open Flow Builder immediately (guidance's ?flow=1 handoff). */
+  openGenerate?: boolean;
 }) {
   const [name, setName] = useState(initialName);
   // On /schedule/new with no termId query param, initialTermId is '' — falling
@@ -95,7 +102,11 @@ export default function ScheduleBuilder({
     missing: MissingCompanions[];
   } | null>(null);
   const [importOpen, setImportOpen] = useState(openImport);
-  const [generateOpen, setGenerateOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(openGenerate);
+  // Sections already picked trump the handoff list: once the student is
+  // editing, Flow Builder should arrange what they actually have.
+  const generateCourseIds =
+    chosen.length > 0 ? [...new Set(chosen.map((s) => s.courseId))] : initialCourseIds;
   // A successful save moves the baseline immediately. router.refresh() is not
   // awaited, so the refreshed initialSections prop lands later — without this,
   // a quick second Save would send a stale baseline and be refused as stale.
@@ -474,7 +485,7 @@ export default function ScheduleBuilder({
             onDelete={() => setConfirmingDelete(true)}
             onImport={() => setImportOpen(true)}
             onGenerate={() => setGenerateOpen(true)}
-            canGenerate={chosen.length > 0 && termId !== ''}
+            canGenerate={generateCourseIds.length > 0 && termId !== ''}
           />
 
           {/* The banner floats over the calendar rather than sitting above it
@@ -618,7 +629,7 @@ export default function ScheduleBuilder({
       <GenerateDialog
         open={generateOpen}
         termId={termId}
-        courseIds={[...new Set(chosen.map((s) => s.courseId))]}
+        courseIds={generateCourseIds}
         // Wholesale replacement, in the builder's usual reading order: the
         // generator answers for every course in the buffer at once, so the
         // old picks for those same courses are exactly what it replaces.

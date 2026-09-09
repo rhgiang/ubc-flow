@@ -519,6 +519,35 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                         ),
                       )}
                     </div>
+                    {/*
+                      The plan says WHAT to take; Flow Builder says WHEN. Only
+                      terms the catalogue actually has sections for get the
+                      button — a projected term has nothing to arrange — and
+                      only the concrete courses travel: a slot is a decision
+                      the student still owns, so it cannot be auto-arranged.
+                    */}
+                    {!t.term.projected && t.placements.some((pl) => pl.kind === 'course') && (
+                      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                        <Link
+                          href={`/schedule/new?${new URLSearchParams({
+                            termId: t.term.id,
+                            name: `${program.name} · ${t.term.name}`.slice(0, 80),
+                            courses: t.placements
+                              .flatMap((pl) => (pl.kind === 'course' ? [pl.course.id] : []))
+                              .join(','),
+                            flow: '1',
+                          })}`}
+                          className="rounded-pill border border-brand px-3 py-1 text-xs font-medium text-brand-accent transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand hover:text-brand-foreground active:scale-100"
+                        >
+                          Arrange this term in Flow Builder
+                        </Link>
+                        {t.placements.some((pl) => pl.kind === 'slot') && (
+                          <span className="text-xs text-text-tertiary">
+                            Electives aren&apos;t carried over — pick those in the builder.
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </li>
                   ),
                 )}

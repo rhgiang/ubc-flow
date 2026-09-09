@@ -12,9 +12,20 @@ export default async function NewSchedulePage({
     termId?: string;
     import?: string;
     fromImport?: string;
+    /** Comma-separated course ids for Flow Builder to arrange — how a
+     *  guidance plan hands a term over. Bogus ids simply match no sections. */
+    courses?: string;
+    flow?: string;
   }>;
 }) {
-  const { name = '', termId = '', import: importFlag, fromImport } = await searchParams;
+  const {
+    name = '',
+    termId = '',
+    import: importFlag,
+    fromImport,
+    courses,
+    flow,
+  } = await searchParams;
 
   const [terms, session] = await Promise.all([
     db.term.findMany({
@@ -36,6 +47,8 @@ export default async function NewSchedulePage({
       schedules={schedules}
       openImport={importFlag === '1'}
       loadPendingImport={fromImport === '1'}
+      initialCourseIds={courses ? [...new Set(courses.split(',').filter(Boolean))].slice(0, 12) : []}
+      openGenerate={flow === '1'}
     />
   );
 }

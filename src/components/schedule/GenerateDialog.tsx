@@ -79,6 +79,50 @@ const WEEKDAYS = [
   { value: 4, label: 'Fri' },
 ];
 
+/** "13:45" -> 825; null for empty/unparseable. */
+function timeToMinutes(value: string): number | null {
+  const m = value.match(/^(\d{1,2}):(\d{2})$/);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+/** 825 -> "13:45", the value a native time input wants. */
+function minutesToTime(min: number): string {
+  return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+}
+
+/**
+ * A native time input at the end of a chip row, for anyone the presets don't
+ * fit ("after 12", "done by 4:15"). It reads as selected exactly when the
+ * stored minutes match no preset — picking a preset clears it, typing a time
+ * deselects the presets, and no third piece of state has to agree with two
+ * others.
+ */
+function CustomTime({
+  value,
+  isCustom,
+  onChange,
+}: {
+  value: number | null;
+  isCustom: boolean;
+  onChange: (minutes: number | null) => void;
+}) {
+  return (
+    <label
+      className={`flex items-center gap-1.5 rounded-pill border px-3 py-1 text-xs font-medium ${
+        isCustom ? 'border-brand text-foreground' : 'border-border text-text-secondary'
+      }`}
+    >
+      Custom
+      <input
+        type="time"
+        value={isCustom && value !== null ? minutesToTime(value) : ''}
+        onChange={(e) => onChange(timeToMinutes(e.target.value))}
+        className="bg-transparent text-xs text-foreground focus:outline-none"
+      />
+    </label>
+  );
+}
+
 export default function GenerateDialog({
   open,
   termId,
@@ -198,6 +242,11 @@ export default function GenerateDialog({
                     onClick={() => setPrefs((p) => ({ ...p, earliest: o.value }))}
                   />
                 ))}
+                <CustomTime
+                  value={prefs.earliest}
+                  isCustom={!EARLIEST.some((o) => o.value === prefs.earliest)}
+                  onChange={(minutes) => setPrefs((p) => ({ ...p, earliest: minutes }))}
+                />
               </Row>
 
               <Row label="When should your day be over?">
@@ -209,6 +258,11 @@ export default function GenerateDialog({
                     onClick={() => setPrefs((p) => ({ ...p, latest: o.value }))}
                   />
                 ))}
+                <CustomTime
+                  value={prefs.latest}
+                  isCustom={!LATEST.some((o) => o.value === prefs.latest)}
+                  onChange={(minutes) => setPrefs((p) => ({ ...p, latest: minutes }))}
+                />
               </Row>
 
               <Row label="Any days you'd love to keep free? (pick any)">

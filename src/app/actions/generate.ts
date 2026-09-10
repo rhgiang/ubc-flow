@@ -169,7 +169,18 @@ export type PlannedTermCourses = {
    * student's decision), but they must be VISIBLE: a plan that quietly hands
    * over one course when the term is really five reads as broken.
    */
-  slots: { label: string; credits: number; examples: string[] }[];
+  slots: {
+    label: string;
+    credits: number;
+    /** Real courses offered this term that would fill it — pickable. */
+    options: { id: string; code: string; credits: number }[];
+    /**
+     * A free elective: the requirement names no list at all, so anything
+     * counts. Distinguished from "no options" because the two need opposite
+     * things said — "pick whatever interests you" versus "nothing fits".
+     */
+    free: boolean;
+  }[];
   /** False when the plan puts no coursework in this term at all. */
   planned: boolean;
   /** Set when the term is a co-op work term under the chosen pattern. */
@@ -285,22 +296,68 @@ export async function plannedCoursesForTerm(
   const planned = done.length > 0 ? (byCalendar ?? byYear) : (byYear ?? byCalendar);
 
   if (!planned) return { courses: [], slots: [], planned: false, workTerm: false };
-  return {
-    courses: planned.placements.flatMap((pl) =>
-      pl.kind === 'course' ? [{ id: pl.course.id, code: pl.course.code }] : [],
-    ),
-    slots: planned.placements.flatMap((pl) =>
-      pl.kind === 'slot'
-        ? [
-            {
-              label: pl.label,
-              credits: pl.credits,
-              examples: pl.examples.slice(0, 3).map((e) => e.code),
-            },
-          ]
-        : [],
-    ),
-    planned: true,
-    workTerm: false,
-  };
+
+  const courses = planned.placements.flatMap((pl) =>
+    pl.kind === 'course' ? [{ id: pl.course.id, code: pl.course.code }] : [],
+  );
+
+  /*
+    Fill each slot with courses the student could actually register for.
+
+    Everything the plan hands over by name is only half a term — most of
+    Winter Term 2, and nearly all of third and fourth year for a CS major, is
+    "3 credits of Arts" or "9 credits of CPSC 300+". Without real options
+    behind those, Flow Builder answered a five-course term with one course.
+
+    The set comes from the rule the slot was cut from; what a student will
+    have finished by then is everything the plan places before this term,
+    which is what makes the prerequisite filter honest.
+  */
+  const { suggestElectives } = await import('@/schedule/electives');
+  const rulesById = new Map<string, (typeof rules)[number]>();
+  walk(rules, (r) => rulesById.set(r.id, r));
+
+  const before = new Set<string>(done.map((c) => c.course.id));
+  for (const t of plan.terms) {
+    if (t.term.id === planned.term.id) break;
+    for (const pl of t.placements) if (pl.kind === 'course') before.add(pl.course.id);
+  }
+
+  const taken = new Set<string>([...before, ...courses.map((c) => c.id)]);
+  const slots: PlannedTermCourses['slots'] = [];
+  for (const pl of planned.placements) {
+    if (pl.kind !== 'slot') continue;
+    // A slot cut from a "N credits of X" rule carries that rule's set; one cut
+    // from a chooseN branch carries the branch's, matched by its label.
+    const rule = pl.forRules.map((id) => rulesById.get(id)).find(Boolean);
+    const set =
+      rule?.kind === 'credits'
+        ? rule.from
+        : rule?.kind === 'chooseN'
+          ? rule.of
+              .filter((b): b is Extract<typeof b, { kind: 'credits' }> => b.kind === 'credits')
+              .find((b) => b.label === pl.label)?.from
+          : undefined;
+
+    const options = set
+      ? suggestElectives({
+          set,
+          catalogue,
+          offerings,
+          termId,
+          prereqs,
+          satisfied: before,
+          year: wantYear,
+          exclude: taken,
+          limit: 8,
+        })
+      : [];
+    for (const o of options) taken.add(o.id);
+    // An empty code list is how the programs record "any course" — see the
+    // Electives rules in guidance/programs — not a transcription gap.
+    const free = set?.kind === 'codes' && set.codes.length === 0;
+    slots.push({ label: pl.label, credits: pl.credits, options, free });
+  }
+
+  return { courses, slots, planned: true, workTerm: false };
 }

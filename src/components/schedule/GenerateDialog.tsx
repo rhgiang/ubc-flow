@@ -199,11 +199,21 @@ export default function GenerateDialog({
     null,
   );
   const [slots, setSlots] = useState<
-    { label: string; credits: number; examples: string[] }[]
+    {
+      label: string;
+      credits: number;
+      options: { id: string; code: string; credits: number }[];
+      free: boolean;
+    }[]
   >([]);
+  // Electives the student picked to fill their slots — arranged alongside the
+  // plan's named courses, which is what turns a one-course term into a week.
+  const [extraCourseIds, setExtraCourseIds] = useState<string[]>([]);
   const needsIntake = courseIds.length === 0 && plannedCourses === null;
   const effectiveCourseIds =
-    courseIds.length > 0 ? courseIds : (plannedCourses?.map((c) => c.id) ?? []);
+    courseIds.length > 0
+      ? courseIds
+      : [...(plannedCourses?.map((c) => c.id) ?? []), ...extraCourseIds];
 
   useEffect(() => {
     if (!open || courseIds.length > 0 || options) return;
@@ -222,13 +232,15 @@ export default function GenerateDialog({
         setError(plan.error);
       } else if (plan.workTerm) {
         setError("Under that co-op pattern this is a work term — there's nothing to schedule.");
-      } else if (!plan.planned || plan.courses.length === 0) {
+      } else if (
+        !plan.planned ||
+        (plan.courses.length === 0 && plan.slots.every((s) => s.options.length === 0))
+      ) {
+        // Only a dead end when there is nothing to name AND nothing to offer.
+        // A term that is all electives is the normal shape of third and fourth
+        // year, and it is now the case the suggestions exist to serve.
         setError(
-          plan.planned
-            ? "Year " +
-              year +
-              " of this program fills this term with electives you choose yourself, so there's nothing to arrange automatically. Add the courses you want from Find Courses, then run Flow Builder again."
-            : "The degree plan doesn't put courses in this term. Try another term or year, or add courses by hand.",
+          "The degree plan doesn't put anything in this term. Try another term or year, or add courses by hand from Find Courses.",
         );
       } else {
         setPlannedCourses(plan.courses);
@@ -408,11 +420,15 @@ export default function GenerateDialog({
               {courseIds.length === 0 && plannedCourses && (
                 <div className="rounded-card border border-border bg-surface-muted p-3">
                   <p className="text-xs font-medium text-text-secondary">
-                    Arranging from your degree plan:
+                    {plannedCourses.length > 0
+                      ? 'Arranging from your degree plan:'
+                      : 'Your plan names no fixed courses this term — it is all your choice:'}
                   </p>
-                  <p className="mt-1 text-sm text-foreground">
-                    {plannedCourses.map((c) => c.code).join(' · ')}
-                  </p>
+                  {plannedCourses.length > 0 && (
+                    <p className="mt-1 text-sm text-foreground">
+                      {plannedCourses.map((c) => c.code).join(' · ')}
+                    </p>
+                  )}
                   {/*
                     Named after what they are, with examples: "1 elective slot"
                     told a student nothing, and a term that hands over one
@@ -420,22 +436,45 @@ export default function GenerateDialog({
                     than as a term that is mostly their own choice.
                   */}
                   {slots.length > 0 && (
-                    <div className="mt-1.5 border-t border-border pt-1.5">
-                      <p className="text-xs text-text-tertiary">
-                        This term also has {slots.length === 1 ? 'a requirement' : 'requirements'}{' '}
-                        you choose yourself — add {slots.length === 1 ? 'it' : 'them'} from Find
-                        Courses:
+                    <div className="mt-2 border-t border-border pt-2">
+                      <p className="text-xs text-text-secondary">
+                        The rest of this term is yours to choose. Pick any of these and
+                        they&apos;ll be arranged too — all offered this term, with the
+                        prerequisites you&apos;ll have by then.
                       </p>
-                      <ul className="mt-1 space-y-0.5 text-xs text-text-secondary">
+                      <div className="mt-1.5 space-y-2">
                         {slots.map((s, i) => (
-                          <li key={`${s.label}-${i}`}>
-                            {s.credits}cr · {s.label}
-                            {s.examples.length > 0 && (
-                              <span className="opacity-70"> — e.g. {s.examples.join(', ')}</span>
+                          <div key={`${s.label}-${i}`}>
+                            <p className="text-xs font-medium text-text-tertiary">
+                              {s.credits}cr · {s.label}
+                            </p>
+                            {s.options.length === 0 ? (
+                              <p className="mt-0.5 text-xs text-text-tertiary opacity-70">
+                                {s.free
+                                  ? 'Any course counts here — add whatever interests you from Find Courses.'
+                                  : 'Nothing offered this term fits this one.'}
+                              </p>
+                            ) : (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {s.options.map((o) => (
+                                  <Chip
+                                    key={o.id}
+                                    active={extraCourseIds.includes(o.id)}
+                                    label={o.code}
+                                    onClick={() =>
+                                      setExtraCourseIds((prev) =>
+                                        prev.includes(o.id)
+                                          ? prev.filter((x) => x !== o.id)
+                                          : [...prev, o.id],
+                                      )
+                                    }
+                                  />
+                                ))}
+                              </div>
                             )}
-                          </li>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   )}
                   <button

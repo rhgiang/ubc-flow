@@ -192,11 +192,15 @@ export default function GenerateDialog({
   const [options, setOptions] = useState<Awaited<ReturnType<typeof intakeOptions>> | null>(null);
   const [programCode, setProgramCode] = useState('');
   const [coopId, setCoopId] = useState<string | null>(null);
+  const [year, setYear] = useState(1);
+  const [creditsPerTerm, setCreditsPerTerm] = useState<number | null>(null);
   const [planning, setPlanning] = useState(false);
   const [plannedCourses, setPlannedCourses] = useState<{ id: string; code: string }[] | null>(
     null,
   );
-  const [slotCount, setSlotCount] = useState(0);
+  const [slots, setSlots] = useState<
+    { label: string; credits: number; examples: string[] }[]
+  >([]);
   const needsIntake = courseIds.length === 0 && plannedCourses === null;
   const effectiveCourseIds =
     courseIds.length > 0 ? courseIds : (plannedCourses?.map((c) => c.id) ?? []);
@@ -210,18 +214,25 @@ export default function GenerateDialog({
     setPlanning(true);
     setError(null);
     try {
-      const plan = await plannedCoursesForTerm(programCode, coopId, termId);
+      const plan = await plannedCoursesForTerm(programCode, coopId, termId, {
+        year,
+        creditsPerTerm,
+      });
       if ('error' in plan) {
         setError(plan.error);
       } else if (plan.workTerm) {
         setError("Under that co-op pattern this is a work term — there's nothing to schedule.");
       } else if (!plan.planned || plan.courses.length === 0) {
         setError(
-          "The degree plan doesn't put courses in this term. Try another term, or add courses by hand.",
+          plan.planned
+            ? "Year " +
+              year +
+              " of this program fills this term with electives you choose yourself, so there's nothing to arrange automatically. Add the courses you want from Find Courses, then run Flow Builder again."
+            : "The degree plan doesn't put courses in this term. Try another term or year, or add courses by hand.",
         );
       } else {
         setPlannedCourses(plan.courses);
-        setSlotCount(plan.slotCount);
+        setSlots(plan.slots);
       }
     } catch {
       setError('Something went wrong reading the degree plan. Try again.');
@@ -343,6 +354,35 @@ export default function GenerateDialog({
                 </select>
               </fieldset>
 
+              <Row label="What year will you be in?">
+                {[1, 2, 3, 4, 5].map((y) => (
+                  <Chip
+                    key={y}
+                    active={year === y}
+                    label={
+                      y === 1 ? '1st (incoming)' : `${y}${['th', 'st', 'nd', 'rd'][y % 10] ?? 'th'}`
+                    }
+                    onClick={() => setYear(y)}
+                  />
+                ))}
+              </Row>
+
+              <Row label="How heavy a term?">
+                <Chip
+                  active={creditsPerTerm === null}
+                  label="Standard for my program"
+                  onClick={() => setCreditsPerTerm(null)}
+                />
+                {[12, 15, 18].map((c) => (
+                  <Chip
+                    key={c}
+                    active={creditsPerTerm === c}
+                    label={`${c} credits`}
+                    onClick={() => setCreditsPerTerm(c)}
+                  />
+                ))}
+              </Row>
+
               <Row label="Co-op?">
                 <Chip active={coopId === null} label="No co-op" onClick={() => setCoopId(null)} />
                 {options?.coops.map((c) => (
@@ -356,9 +396,9 @@ export default function GenerateDialog({
               </Row>
 
               <p className="text-xs text-text-tertiary">
-                Signed in with your Workday record uploaded, the plan starts from what
-                you&apos;ve already completed; otherwise it plans the degree from first year.
-                You can also skip this and add courses by hand from Find Courses.
+                Signed in with your Workday record uploaded, the plan starts from the courses
+                you&apos;ve actually finished and your year answer is only a fallback. Either
+                way you can add or drop courses by hand afterwards.
               </p>
             </div>
           )}
@@ -373,11 +413,30 @@ export default function GenerateDialog({
                   <p className="mt-1 text-sm text-foreground">
                     {plannedCourses.map((c) => c.code).join(' · ')}
                   </p>
-                  {slotCount > 0 && (
-                    <p className="mt-1 text-xs text-text-tertiary">
-                      Plus {slotCount} elective slot{slotCount === 1 ? '' : 's'} to pick by hand
-                      afterwards.
-                    </p>
+                  {/*
+                    Named after what they are, with examples: "1 elective slot"
+                    told a student nothing, and a term that hands over one
+                    course plus three invisible slots reads as broken rather
+                    than as a term that is mostly their own choice.
+                  */}
+                  {slots.length > 0 && (
+                    <div className="mt-1.5 border-t border-border pt-1.5">
+                      <p className="text-xs text-text-tertiary">
+                        This term also has {slots.length === 1 ? 'a requirement' : 'requirements'}{' '}
+                        you choose yourself — add {slots.length === 1 ? 'it' : 'them'} from Find
+                        Courses:
+                      </p>
+                      <ul className="mt-1 space-y-0.5 text-xs text-text-secondary">
+                        {slots.map((s, i) => (
+                          <li key={`${s.label}-${i}`}>
+                            {s.credits}cr · {s.label}
+                            {s.examples.length > 0 && (
+                              <span className="opacity-70"> — e.g. {s.examples.join(', ')}</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                   <button
                     type="button"
@@ -493,6 +552,15 @@ export default function GenerateDialog({
 
           {result && (
             <div className="space-y-3">
+              {(dataRef.current?.missing.length ?? 0) > 0 && (
+                <p className="rounded-card border border-info-border bg-info-surface px-3 py-2 text-xs text-info">
+                  {dataRef.current!.missing.map((m) => m.code).join(', ')}{' '}
+                  {dataRef.current!.missing.length === 1 ? 'has' : 'have'} no sections this term,
+                  so {dataRef.current!.missing.length === 1 ? "it isn't" : "they aren't"} in these
+                  options.
+                </p>
+              )}
+
               {result.unplaceable.length > 0 && (
                 <p className="rounded-card border border-danger-border bg-danger-surface px-3 py-2 text-xs text-danger">
                   {result.unplaceable.join(', ')}{' '}
@@ -529,6 +597,20 @@ export default function GenerateDialog({
                         {applied === i ? 'In the builder' : 'Use this one'}
                       </button>
                     </div>
+                    {/* The sections themselves, not just the shape of the
+                        week: applying an option WAS a leap of faith about
+                        which lecture and lab you were agreeing to. */}
+                    <p className="mt-1 text-xs text-foreground">
+                      {s.sectionIds
+                        .map((id) => {
+                          const hit = dataRef.current?.sections.find(
+                            (x) => x.sectionId === id,
+                          );
+                          return hit ? `${hit.code} ${hit.sectionCode}` : null;
+                        })
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
                     <ul className="mt-1.5 space-y-0.5 text-xs text-text-secondary">
                       {s.notes.map((n) => (
                         <li key={n}>{n}</li>

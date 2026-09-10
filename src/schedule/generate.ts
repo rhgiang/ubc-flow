@@ -278,21 +278,24 @@ function notes(sections: Cand[], prefs: GeneratePrefs): string[] {
   const lines: string[] = [];
   if (shapes.length === 0) return ['No scheduled meeting times to compare.'];
 
+  /*
+    The span always leads, whether or not it was asked about. With notes tied
+    only to the preferences, someone who expressed none got five options
+    reading "5 days on campus" and nothing else — five identical-looking
+    schedules that were in fact quite different. An option has to say enough
+    to be chosen between.
+  */
   const firstStart = Math.min(...shapes.map((s) => s.first));
   const lastEnd = Math.max(...shapes.map((s) => s.last));
-  if (prefs.earliest !== null) {
-    lines.push(
-      firstStart >= prefs.earliest
-        ? `No classes before ${fmt(prefs.earliest)}`
-        : `Earliest class ${fmt(firstStart)}`,
-    );
+  lines.push(`Classes run ${fmt(firstStart)}–${fmt(lastEnd)}`);
+
+  // A satisfied bound is already visible in the span above; only a MISSED one
+  // needs saying, and it needs saying plainly.
+  if (prefs.earliest !== null && firstStart < prefs.earliest) {
+    lines.push(`Couldn't start after ${fmt(prefs.earliest)} — earliest is ${fmt(firstStart)}`);
   }
-  if (prefs.latest !== null) {
-    lines.push(
-      lastEnd <= prefs.latest
-        ? `Done by ${fmt(lastEnd)} every day`
-        : `Latest class runs to ${fmt(lastEnd)}`,
-    );
+  if (prefs.latest !== null && lastEnd > prefs.latest) {
+    lines.push(`Couldn't finish by ${fmt(prefs.latest)} — runs to ${fmt(lastEnd)}`);
   }
 
   if (prefs.freeDays.length) {
@@ -319,17 +322,17 @@ function notes(sections: Cand[], prefs: GeneratePrefs): string[] {
     }`,
   );
 
-  if (prefs.rhythm !== 'whatever') {
-    const widths = shapes.flatMap((s) => s.gaps.map((g) => g.to - g.from));
-    const longest = widths.length ? Math.max(...widths) : 0;
-    lines.push(
-      longest === 0
-        ? 'Back-to-back, no waiting around'
-        : `Longest gap ${
-            longest >= 60 ? `${Math.round((longest / 60) * 10) / 10}h` : `${longest} min`
-          }`,
-    );
-  }
+  // Also unconditional: dead time between classes is the thing people compare
+  // two timetables on, whether or not they thought to ask about it.
+  const widths = shapes.flatMap((s) => s.gaps.map((g) => g.to - g.from));
+  const longest = widths.length ? Math.max(...widths) : 0;
+  lines.push(
+    longest === 0
+      ? 'Back-to-back, no waiting around'
+      : `Longest gap ${
+          longest >= 60 ? `${Math.round((longest / 60) * 10) / 10}h` : `${longest} min`
+        }`,
+  );
 
   if (prefs.bestProfs) {
     const rated = sections.filter((s) => s.prof !== null && s.prof >= 0.7);
@@ -434,11 +437,35 @@ export function generateSchedules(
           .map((s) => s.hit.sectionId)
           .join()
           .localeCompare(b.sections.map((s) => s.hit.sectionId).join()),
-    )
-    .slice(0, limit);
+    );
+
+  /*
+    Five options that draw the same week are one option shown five times.
+    Ranking by score alone did exactly that: swapping a lab for another lab at
+    the same hour scores identically and looks identical, so the list filled
+    with near-duplicates while genuinely different weeks never surfaced. Keep
+    the best-scoring schedule per week SHAPE — the times actually occupied —
+    and the five on offer are five real choices.
+  */
+  const shape = (sections: Cand[]) =>
+    sections
+      .flatMap((s) => s.meets)
+      .map((m) => `${m.day}:${m.start}-${m.end}`)
+      .sort()
+      .join('|');
+
+  const distinct: typeof ranked = [];
+  const seenShapes = new Set<string>();
+  for (const candidate of ranked) {
+    const sig = shape(candidate.sections);
+    if (seenShapes.has(sig)) continue;
+    seenShapes.add(sig);
+    distinct.push(candidate);
+    if (distinct.length >= limit) break;
+  }
 
   return {
-    schedules: ranked.map(({ sections, score }) => ({
+    schedules: distinct.map(({ sections, score }) => ({
       sectionIds: sections.map((s) => s.hit.sectionId),
       score,
       notes: notes(sections, prefs),

@@ -95,7 +95,17 @@ describe('generateSchedules', () => {
     const late = section('cpsc110', 'Lecture', [['Mon', '13:00', '14:00']]);
     const result = generateSchedules([early, late], prefs({ earliest: 570 }));
     expect(result.schedules[0].sectionIds).toEqual([late.sectionId]);
-    expect(result.schedules[0].notes).toContain('No classes before 9:30');
+    // The span is always stated; a satisfied bound needs no separate line.
+    expect(result.schedules[0].notes).toContain('Classes run 13:00–14:00');
+    expect(result.schedules[0].notes.join(' ')).not.toContain("Couldn't start");
+  });
+
+  it('says plainly when a time bound could not be met', () => {
+    const only = section('cpsc110', 'Lecture', [['Mon', '08:00', '09:00']]);
+    const result = generateSchedules([only], prefs({ earliest: 600 }));
+    expect(result.schedules[0].notes).toContain(
+      "Couldn't start after 10:00 — earliest is 8:00",
+    );
   });
 
   it('ranks the morning section first when the day should end by 3 pm', () => {
@@ -103,7 +113,26 @@ describe('generateSchedules', () => {
     const late = section('cpsc110', 'Lecture', [['Mon', '16:00', '17:00']]);
     const result = generateSchedules([early, late], prefs({ latest: 900 }));
     expect(result.schedules[0].sectionIds).toEqual([early.sectionId]);
-    expect(result.schedules[0].notes).toContain('Done by 9:00 every day');
+    expect(result.schedules[0].notes).toContain('Classes run 8:00–9:00');
+  });
+
+  it('gives every option enough to tell it apart, even with no preferences set', () => {
+    const pool = [
+      section('cpsc110', 'Lecture', [['Mon', '09:00', '10:00']]),
+      section('cpsc110', 'Lecture', [['Tue', '14:00', '15:00']]),
+      section('math100', 'Lecture', [['Mon', '11:00', '12:00']]),
+    ];
+    const result = generateSchedules(pool, DEFAULT_PREFS);
+    expect(result.schedules.length).toBeGreaterThan(1);
+    // Span, days and gap are stated regardless of what was asked, so two
+    // different timetables never read identically.
+    for (const s of result.schedules) {
+      expect(s.notes.some((n) => n.startsWith('Classes run'))).toBe(true);
+      expect(s.notes.some((n) => n.includes('day') && n.includes('campus'))).toBe(true);
+    }
+    const first = result.schedules[0].notes.join('|');
+    const second = result.schedules[1].notes.join('|');
+    expect(first).not.toEqual(second);
   });
 
   it('keeps a requested day free when it can, and says so', () => {
@@ -219,5 +248,26 @@ describe('generateSchedules', () => {
     expect(Date.now() - started).toBeLessThan(3000);
     expect(result.schedules.length).toBeGreaterThan(0);
     expect(result.truncated).toBe(true);
+  });
+
+  it('never offers the same week twice under different section codes', () => {
+    // Two labs at the identical hour: same week, different section codes.
+    const pool = [
+      section('cpsc110', 'Lecture', [['Mon', '09:00', '10:00']]),
+      section('cpsc110', 'Laboratory', [['Tue', '14:00', '15:00']]),
+      section('cpsc110', 'Laboratory', [['Tue', '14:00', '15:00']]),
+    ];
+    const result = generateSchedules(pool, DEFAULT_PREFS);
+    expect(result.schedules).toHaveLength(1);
+  });
+
+  it('still offers genuinely different weeks', () => {
+    const pool = [
+      section('cpsc110', 'Lecture', [['Mon', '09:00', '10:00']]),
+      section('cpsc110', 'Laboratory', [['Tue', '14:00', '15:00']]),
+      section('cpsc110', 'Laboratory', [['Wed', '16:00', '17:00']]),
+    ];
+    const result = generateSchedules(pool, DEFAULT_PREFS);
+    expect(result.schedules).toHaveLength(2);
   });
 });

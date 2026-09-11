@@ -334,71 +334,94 @@ export async function plannedCoursesForTerm(
     for (const pl of t.placements) if (pl.kind === 'course') before.add(pl.course.id);
   }
 
-  const taken = new Set<string>([...before, ...courses.map((c) => c.id)]);
-  const slots: PlannedTermCourses['slots'] = [];
-  for (const pl of planned.placements) {
-    if (pl.kind !== 'slot') continue;
-    /*
-      What this slot will accept, as one or more course sets.
+  const planted = new Set<string>([...before, ...courses.map((c) => c.id)]);
 
-      A "N credits of X" rule has exactly one. A chooseN rule — Science
-      Breadth's "3 credits from any 6 of 7 categories" — has one per category,
-      and the solver deliberately does not say WHICH category a slot is for
-      (naming it would read as an instruction when the choice is the
-      student's), so every unmet category is a legitimate answer and all of
-      them get suggested.
-    */
-    const rule = pl.forRules.map((id) => rulesById.get(id)).find(Boolean);
-    const sets =
-      rule?.kind === 'credits'
-        ? [rule.from]
-        : rule?.kind === 'chooseN'
-          ? rule.of
-              .filter((b): b is Extract<typeof b, { kind: 'credits' }> => b.kind === 'credits')
-              .map((b) => b.from)
-          : [];
+  /*
+    Candidates per slot, computed independently first.
 
-    // A free elective ("any course", recorded as an empty code list) still
-    // deserves suggestions — the most-taken things they can get into — so it
-    // gets a set that matches anything rather than nothing.
-    const free = sets.length === 1 && sets[0].kind === 'codes' && sets[0].codes.length === 0;
-    const effectiveSets = free ? [{ kind: 'pattern' } as const] : sets;
+    Slots cannot simply claim courses in the order they appear: "Arts credits"
+    is a whole faculty and "Communication requirement" is a list of six, so
+    the broad one ran first and took WRDS 150 — the canonical communication
+    course — leaving Communication showing ENVR 200 alone. The narrower
+    requirement has the better claim on a course both accept, so candidates
+    are gathered first and then assigned smallest-pool-first.
 
-    // One pass per set, then round-robin so no single category or department
-    // owns the top of the list. Enough for a browsable list, not just chips.
-    const perSet = effectiveSets.map((set) =>
-      suggestElectives({
-        set,
-        catalogue,
-        offerings,
-        termId,
-        prereqs,
-        satisfied: before,
-        year: wantYear,
-        exclude: taken,
-        popularity,
-        limit: 40,
-      }),
-    );
-    const options: { id: string; code: string; credits: number }[] = [];
-    const seenOption = new Set<string>();
-    for (let round = 0; options.length < 40; round += 1) {
-      let added = false;
-      for (const list of perSet) {
-        const option = list[round];
-        if (!option || seenOption.has(option.id)) continue;
-        seenOption.add(option.id);
-        options.push(option);
-        added = true;
-        if (options.length >= 40) break;
+    (The Calendar agrees: Arts credits used for the Communication Requirement
+    may not also count toward the Arts Requirement, so one course really does
+    belong to one of them.)
+  */
+  const draft = planned.placements
+    .map((pl, index) => ({ pl, index }))
+    .filter((entry) => entry.pl.kind === 'slot')
+    .map(({ pl, index }) => {
+      const slot = pl as Extract<typeof pl, { kind: 'slot' }>;
+      const rule = slot.forRules.map((id) => rulesById.get(id)).find(Boolean);
+      const sets =
+        rule?.kind === 'credits'
+          ? [rule.from]
+          : rule?.kind === 'chooseN'
+            ? rule.of
+                .filter((b): b is Extract<typeof b, { kind: 'credits' }> => b.kind === 'credits')
+                .map((b) => b.from)
+            : [];
+
+      // A free elective ("any course", recorded as an empty code list) still
+      // deserves suggestions — the most-taken things they can get into — so
+      // it gets a set that matches anything rather than nothing.
+      const free = sets.length === 1 && sets[0].kind === 'codes' && sets[0].codes.length === 0;
+      const effectiveSets = free ? [{ kind: 'pattern' } as const] : sets;
+
+      // One pass per set, then round-robin so no single category or
+      // department owns the top of the list.
+      const perSet = effectiveSets.map((set) =>
+        suggestElectives({
+          set,
+          catalogue,
+          offerings,
+          termId,
+          prereqs,
+          satisfied: before,
+          year: wantYear,
+          exclude: planted,
+          popularity,
+          limit: 40,
+        }),
+      );
+      const merged: { id: string; code: string; credits: number }[] = [];
+      const seenOption = new Set<string>();
+      for (let round = 0; merged.length < 40; round += 1) {
+        let added = false;
+        for (const list of perSet) {
+          const option = list[round];
+          if (!option || seenOption.has(option.id)) continue;
+          seenOption.add(option.id);
+          merged.push(option);
+          added = true;
+          if (merged.length >= 40) break;
+        }
+        if (!added) break;
       }
-      if (!added) break;
-    }
-    // Only the first few of each list become chips; the rest are there for
-    // the student who wants to look past them.
-    for (const o of options.slice(0, 12)) taken.add(o.id);
-    slots.push({ label: pl.label, credits: pl.credits, options, free });
+      return { index, label: slot.label, credits: slot.credits, free, candidates: merged };
+    });
+
+  // Narrowest first: whoever has fewest ways to be satisfied picks first.
+  const claimed = new Set<string>();
+  const assigned = new Map<number, { id: string; code: string; credits: number }[]>();
+  for (const entry of [...draft].sort((a, b) => a.candidates.length - b.candidates.length)) {
+    const mine = entry.candidates.filter((c) => !claimed.has(c.id));
+    // Only what a student can see claims a course; the long tail of the
+    // browse list is not worth hiding from a neighbouring requirement.
+    for (const c of mine.slice(0, 12)) claimed.add(c.id);
+    assigned.set(entry.index, mine);
   }
+
+  // Back into the order the term reads in.
+  const slots: PlannedTermCourses['slots'] = draft.map((entry) => ({
+    label: entry.label,
+    credits: entry.credits,
+    options: assigned.get(entry.index) ?? [],
+    free: entry.free,
+  }));
 
   return { courses, slots, planned: true, workTerm: false };
 }

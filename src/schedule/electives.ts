@@ -33,6 +33,12 @@ export type SuggestInput = {
   year: number;
   /** Ids to leave out — already planned, or already suggested elsewhere. */
   exclude: Set<string>;
+  /**
+   * courseId -> how many students have taken it, summed from the grade
+   * history. The difference between offering ENGL 110 (21,557 students) and
+   * ENGL 229B (a seminar nobody outside the department has heard of).
+   */
+  popularity?: Map<string, number>;
   limit?: number;
 };
 
@@ -64,14 +70,50 @@ export function suggestElectives(input: SuggestInput): ElectiveCandidate[] {
     return treeMet(prereqs.get(course.id), satisfied);
   });
 
-  // Senior-most first within the ceiling: a third-year filling "CPSC 300+"
-  // wants 300-level options at the top, not the 100-level ones that also
-  // technically match.
-  return eligible
-    .sort(
+  /*
+    Ranked by how many students actually take the course, then spread across
+    subjects.
+
+    Sorting by level and code alone put eight ENGL courses at the top of
+    "3 credits of Arts" — alphabetically first, and mostly seminars nobody
+    takes. A student wants the courses their friends are in: ENGL 110, PSYC
+    101, HIST 102. Enrolment history says which those are, and round-robining
+    subjects stops one department owning the whole list.
+  */
+  const popularity = input.popularity ?? new Map<string, number>();
+  const rank = (c: CourseRef) =>
+    popularity.get(c.id) ?? 0;
+
+  const bySubject = new Map<string, CourseRef[]>();
+  for (const course of eligible) {
+    const list = bySubject.get(course.subject);
+    if (list) list.push(course);
+    else bySubject.set(course.subject, [course]);
+  }
+  for (const list of bySubject.values()) {
+    list.sort(
       (a, b) =>
-        courseLevel(b.number) - courseLevel(a.number) || a.code.localeCompare(b.code),
-    )
-    .slice(0, input.limit ?? 8)
-    .map((c) => ({ id: c.id, code: c.code, credits: c.credits }));
+        rank(b) - rank(a) ||
+        courseLevel(b.number) - courseLevel(a.number) ||
+        a.code.localeCompare(b.code),
+    );
+  }
+
+  // Subjects ordered by their strongest course, then one from each in turn.
+  const queues = [...bySubject.values()].sort((a, b) => rank(b[0]) - rank(a[0]));
+  const out: CourseRef[] = [];
+  const limit = input.limit ?? 8;
+  for (let round = 0; out.length < limit; round += 1) {
+    let added = false;
+    for (const queue of queues) {
+      const course = queue[round];
+      if (!course) continue;
+      out.push(course);
+      added = true;
+      if (out.length >= limit) break;
+    }
+    if (!added) break;
+  }
+
+  return out.map((c) => ({ id: c.id, code: c.code, credits: c.credits }));
 }

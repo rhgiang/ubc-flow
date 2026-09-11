@@ -317,6 +317,17 @@ export async function plannedCoursesForTerm(
   const rulesById = new Map<string, (typeof rules)[number]>();
   walk(rules, (r) => rulesById.set(r.id, r));
 
+  // How many students have actually taken each course, from the grade
+  // history. One grouped query over the whole catalogue, and it is what makes
+  // a suggestion list read like the courses people take rather than whatever
+  // sorted first.
+  const enrolment = await db.gradeDistribution.groupBy({
+    by: ['courseId'],
+    where: { courseId: { in: catalogue.map((c) => c.id) } },
+    _sum: { count: true },
+  });
+  const popularity = new Map(enrolment.map((row) => [row.courseId, row._sum.count ?? 0]));
+
   const before = new Set<string>(done.map((c) => c.course.id));
   for (const t of plan.terms) {
     if (t.term.id === planned.term.id) break;
@@ -327,35 +338,65 @@ export async function plannedCoursesForTerm(
   const slots: PlannedTermCourses['slots'] = [];
   for (const pl of planned.placements) {
     if (pl.kind !== 'slot') continue;
-    // A slot cut from a "N credits of X" rule carries that rule's set; one cut
-    // from a chooseN branch carries the branch's, matched by its label.
+    /*
+      What this slot will accept, as one or more course sets.
+
+      A "N credits of X" rule has exactly one. A chooseN rule — Science
+      Breadth's "3 credits from any 6 of 7 categories" — has one per category,
+      and the solver deliberately does not say WHICH category a slot is for
+      (naming it would read as an instruction when the choice is the
+      student's), so every unmet category is a legitimate answer and all of
+      them get suggested.
+    */
     const rule = pl.forRules.map((id) => rulesById.get(id)).find(Boolean);
-    const set =
+    const sets =
       rule?.kind === 'credits'
-        ? rule.from
+        ? [rule.from]
         : rule?.kind === 'chooseN'
           ? rule.of
               .filter((b): b is Extract<typeof b, { kind: 'credits' }> => b.kind === 'credits')
-              .find((b) => b.label === pl.label)?.from
-          : undefined;
+              .map((b) => b.from)
+          : [];
 
-    const options = set
-      ? suggestElectives({
-          set,
-          catalogue,
-          offerings,
-          termId,
-          prereqs,
-          satisfied: before,
-          year: wantYear,
-          exclude: taken,
-          limit: 8,
-        })
-      : [];
-    for (const o of options) taken.add(o.id);
-    // An empty code list is how the programs record "any course" — see the
-    // Electives rules in guidance/programs — not a transcription gap.
-    const free = set?.kind === 'codes' && set.codes.length === 0;
+    // A free elective ("any course", recorded as an empty code list) still
+    // deserves suggestions — the most-taken things they can get into — so it
+    // gets a set that matches anything rather than nothing.
+    const free = sets.length === 1 && sets[0].kind === 'codes' && sets[0].codes.length === 0;
+    const effectiveSets = free ? [{ kind: 'pattern' } as const] : sets;
+
+    // One pass per set, then round-robin so no single category or department
+    // owns the top of the list. Enough for a browsable list, not just chips.
+    const perSet = effectiveSets.map((set) =>
+      suggestElectives({
+        set,
+        catalogue,
+        offerings,
+        termId,
+        prereqs,
+        satisfied: before,
+        year: wantYear,
+        exclude: taken,
+        popularity,
+        limit: 40,
+      }),
+    );
+    const options: { id: string; code: string; credits: number }[] = [];
+    const seenOption = new Set<string>();
+    for (let round = 0; options.length < 40; round += 1) {
+      let added = false;
+      for (const list of perSet) {
+        const option = list[round];
+        if (!option || seenOption.has(option.id)) continue;
+        seenOption.add(option.id);
+        options.push(option);
+        added = true;
+        if (options.length >= 40) break;
+      }
+      if (!added) break;
+    }
+    // Only the first few of each list become chips; the rest are there for
+    // the student who wants to look past them.
+    for (const o of options.slice(0, 12)) taken.add(o.id);
     slots.push({ label: pl.label, credits: pl.credits, options, free });
   }
 

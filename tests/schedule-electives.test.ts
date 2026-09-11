@@ -76,3 +76,37 @@ describe('suggestElectives', () => {
     expect(out[0].code).toBe('CPSC 310');
   });
 });
+
+describe('suggestElectives ranking', () => {
+  it('leads with what students actually take, not what sorts first', () => {
+    const cat = [course('ENGL 229B'), course('ENGL 110'), course('ENGL 243')];
+    const popularity = new Map([
+      ['id-ENGL 110', 21557],
+      ['id-ENGL 243', 400],
+      ['id-ENGL 229B', 12],
+    ]);
+    const out = suggestElectives(ctx(cat, { popularity }));
+    expect(out.map((c) => c.code)).toEqual(['ENGL 110', 'ENGL 243', 'ENGL 229B']);
+  });
+
+  it('spreads the top of the list across subjects', () => {
+    // Four ENGL courses all more popular than the one PSYC course: without
+    // round-robin the visible chips would be ENGL, ENGL, ENGL, ENGL.
+    const cat = [
+      course('ENGL 110'),
+      course('ENGL 100'),
+      course('ENGL 111'),
+      course('ENGL 112'),
+      course('PSYC 101'),
+    ];
+    const popularity = new Map([
+      ['id-ENGL 110', 9000],
+      ['id-ENGL 100', 8000],
+      ['id-ENGL 111', 7000],
+      ['id-ENGL 112', 6000],
+      ['id-PSYC 101', 5000],
+    ]);
+    const out = suggestElectives(ctx(cat, { popularity }));
+    expect(out.slice(0, 2).map((c) => c.code)).toEqual(['ENGL 110', 'PSYC 101']);
+  });
+});

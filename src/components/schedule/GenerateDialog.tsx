@@ -209,6 +209,10 @@ export default function GenerateDialog({
   // Electives the student picked to fill their slots — arranged alongside the
   // plan's named courses, which is what turns a one-course term into a week.
   const [extraCourseIds, setExtraCourseIds] = useState<string[]>([]);
+  // Which slot has its full list open, and what is typed in its filter. One
+  // at a time: the dialog is already a column of decisions.
+  const [browsing, setBrowsing] = useState<number | null>(null);
+  const [filter, setFilter] = useState('');
   const needsIntake = courseIds.length === 0 && plannedCourses === null;
   const effectiveCourseIds =
     courseIds.length > 0
@@ -219,6 +223,12 @@ export default function GenerateDialog({
     if (!open || courseIds.length > 0 || options) return;
     void intakeOptions().then(setOptions).catch(() => {});
   }, [open, courseIds.length, options]);
+
+  function toggleExtra(id: string) {
+    setExtraCourseIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
 
   async function findCourses() {
     setPlanning(true);
@@ -450,26 +460,84 @@ export default function GenerateDialog({
                             </p>
                             {s.options.length === 0 ? (
                               <p className="mt-0.5 text-xs text-text-tertiary opacity-70">
-                                {s.free
-                                  ? 'Any course counts here — add whatever interests you from Find Courses.'
-                                  : 'Nothing offered this term fits this one.'}
+                                Nothing offered this term fits this one — add it from Find
+                                Courses.
                               </p>
                             ) : (
-                              <div className="mt-1 flex flex-wrap gap-1">
-                                {s.options.map((o) => (
+                              <div className="mt-1 flex flex-wrap items-center gap-1">
+                                {/* The most-taken few as chips; everything else
+                                    lives behind the list, for the student who
+                                    already knows what they want. */}
+                                {s.options.slice(0, 6).map((o) => (
                                   <Chip
                                     key={o.id}
                                     active={extraCourseIds.includes(o.id)}
                                     label={o.code}
-                                    onClick={() =>
-                                      setExtraCourseIds((prev) =>
-                                        prev.includes(o.id)
-                                          ? prev.filter((x) => x !== o.id)
-                                          : [...prev, o.id],
-                                      )
-                                    }
+                                    onClick={() => toggleExtra(o.id)}
                                   />
                                 ))}
+                                {/* A course picked from the list keeps its chip
+                                    even when it is not in the top few, or
+                                    unticking it would mean hunting for it. */}
+                                {s.options
+                                  .slice(6)
+                                  .filter((o) => extraCourseIds.includes(o.id))
+                                  .map((o) => (
+                                    <Chip
+                                      key={o.id}
+                                      active
+                                      label={o.code}
+                                      onClick={() => toggleExtra(o.id)}
+                                    />
+                                  ))}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFilter('');
+                                    setBrowsing(browsing === i ? null : i);
+                                  }}
+                                  className="rounded-pill border border-dashed border-border px-3 py-1.5 text-xs font-medium text-brand-accent hover:bg-surface-muted"
+                                >
+                                  {browsing === i ? 'Close list' : 'Browse all ' + s.options.length}
+                                </button>
+                              </div>
+                            )}
+
+                            {browsing === i && (
+                              <div className="mt-1.5 rounded-card border border-border bg-background p-2">
+                                <input
+                                  value={filter}
+                                  onChange={(e) => setFilter(e.target.value)}
+                                  placeholder="Filter by code, e.g. PSYC"
+                                  aria-label="Filter courses"
+                                  className="w-full rounded-input border border-border bg-surface px-2 py-1 text-xs text-foreground placeholder:text-text-tertiary focus:border-foreground focus:outline-none"
+                                />
+                                <div className="mt-1.5 max-h-44 overflow-y-auto">
+                                  {s.options
+                                    .filter((o) =>
+                                      o.code.toLowerCase().includes(filter.trim().toLowerCase()),
+                                    )
+                                    .map((o) => {
+                                      const picked = extraCourseIds.includes(o.id);
+                                      return (
+                                        <button
+                                          key={o.id}
+                                          type="button"
+                                          aria-pressed={picked}
+                                          onClick={() => toggleExtra(o.id)}
+                                          className={
+                                            'flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-xs hover:bg-surface-muted ' +
+                                            (picked ? 'text-brand-accent' : 'text-foreground')
+                                          }
+                                        >
+                                          <span>{o.code}</span>
+                                          <span className="opacity-70">
+                                            {picked ? 'Added' : o.credits + 'cr'}
+                                          </span>
+                                        </button>
+                                      );
+                                    })}
+                                </div>
                               </div>
                             )}
                           </div>

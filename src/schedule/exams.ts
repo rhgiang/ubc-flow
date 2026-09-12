@@ -162,27 +162,38 @@ export async function syllabusExamRowsForUser(userId: string, termId: string): P
 }
 
 /**
- * Merges scraped finals with syllabus-derived rows into one list, one row
- * per (courseLabel, kind). Midterms only ever come from syllabi, so they
- * never collide with a scraped final — a collision is only possible between
- * two finals for the same course. Precedence for that collision:
+ * Merges scraped finals with syllabus-derived rows into one list. Only
+ * `kind: 'final'` rows are deduped, one per courseLabel, with this
+ * precedence on a collision:
  *   1. `editedByUser` wins over everything.
  *   2. Otherwise a scraped ('ubc') row wins over a syllabus one — UBC's own
  *      schedule is authoritative over a syllabus saying "final exam,
  *      scheduled by the registrar".
+ * `kind: 'midterm'` rows are never deduped — they only ever come from
+ * syllabi, there's nothing for them to collide with, and a course can
+ * (usually does) have more than one, so every midterm passes straight
+ * through unchanged.
  * Reuses `compareItems` for the final sort rather than a second ordering.
  */
 export function mergeExams(scraped: ExamListItem[], fromSyllabus: ExamListItem[]): ExamListItem[] {
   const key = (item: ExamListItem) => `${item.courseLabel}::${item.kind}`;
-  const byKey = new Map<string, ExamListItem>();
+  const finals = new Map<string, ExamListItem>();
+  const passthrough: ExamListItem[] = [];
 
-  for (const item of scraped) byKey.set(key(item), item);
-
-  for (const item of fromSyllabus) {
-    const existing = byKey.get(key(item));
-    if (existing && existing.source === 'ubc' && !item.editedByUser) continue;
-    byKey.set(key(item), item);
+  for (const item of scraped) {
+    if (item.kind === 'final') finals.set(key(item), item);
+    else passthrough.push(item);
   }
 
-  return [...byKey.values()].sort(compareItems);
+  for (const item of fromSyllabus) {
+    if (item.kind !== 'final') {
+      passthrough.push(item);
+      continue;
+    }
+    const existing = finals.get(key(item));
+    if (existing && existing.source === 'ubc' && !item.editedByUser) continue;
+    finals.set(key(item), item);
+  }
+
+  return [...finals.values(), ...passthrough].sort(compareItems);
 }

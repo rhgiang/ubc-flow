@@ -50,4 +50,17 @@ describe('mergeExams', () => {
     const other = { ...scrapedFinal, id: 'ubc-2', courseLabel: 'MATH 101' };
     expect(mergeExams([scrapedFinal, other], [])).toHaveLength(2);
   });
+
+  it('keeps every midterm of a course, not just the last', () => {
+    const m1 = midterm;
+    const m2 = { ...midterm, id: 'syl-m2', date: new Date('2026-11-12T00:00:00Z') };
+    const out = mergeExams([], [m1, m2]);
+    expect(out.map((e) => e.id).sort()).toEqual(['syl-2', 'syl-m2']);
+  });
+
+  it('still collapses a duplicate final for the same course', () => {
+    const out = mergeExams([scrapedFinal], [syllabusFinal]);
+    expect(out).toHaveLength(1);
+    expect(out[0].source).toBe('ubc');
+  });
 });

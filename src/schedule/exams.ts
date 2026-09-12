@@ -179,7 +179,17 @@ export async function syllabusExamRowsForUser(userId: string, termId: string): P
  *      — UBC's own schedule is authoritative over a syllabus saying "final
  *      exam, scheduled by the registrar".
  *   2. Unless the student edited that row (`editedByUser`), which wins over
- *      everything — then it is the scraped finals for that course that go.
+ *      everything — then the scraped final for that course goes instead.
+ *
+ * Case 2 applies only when the course has EXACTLY ONE scraped final. Spec §9
+ * scopes that precedence to "when the same exam appears twice", and a sibling
+ * alpha-split row is not the same exam: correcting a CHEM 123 final's date on
+ * the confirm screen is ordinary use, and letting it displace a whole course's
+ * scraped finals would take IRC 2 and IRC 6 off the page — the very failure
+ * this function exists to prevent. With two or more, everything stays and the
+ * source label on each card says which is which; one extra row beats a hidden
+ * exam room.
+ *
  * `kind: 'midterm'` rows only ever come from syllabi, there's nothing for
  * them to collide with, and a course usually has more than one, so every
  * midterm passes straight through.
@@ -187,18 +197,22 @@ export async function syllabusExamRowsForUser(userId: string, termId: string): P
  * Reuses `compareItems` for the final sort rather than a second ordering.
  */
 export function mergeExams(scraped: ExamListItem[], fromSyllabus: ExamListItem[]): ExamListItem[] {
-  const coursesWithScrapedFinal = new Set(
-    scraped.filter((i) => i.kind === 'final').map((i) => i.courseLabel),
-  );
+  const scrapedFinalsPerCourse = new Map<string, number>();
+  for (const i of scraped) {
+    if (i.kind !== 'final') continue;
+    scrapedFinalsPerCourse.set(i.courseLabel, (scrapedFinalsPerCourse.get(i.courseLabel) ?? 0) + 1);
+  }
   const coursesWithEditedFinal = new Set(
     fromSyllabus.filter((i) => i.kind === 'final' && i.editedByUser).map((i) => i.courseLabel),
   );
 
   const keptScraped = scraped.filter(
-    (i) => i.kind !== 'final' || !coursesWithEditedFinal.has(i.courseLabel),
+    (i) => i.kind !== 'final'
+      || scrapedFinalsPerCourse.get(i.courseLabel) !== 1
+      || !coursesWithEditedFinal.has(i.courseLabel),
   );
   const keptSyllabus = fromSyllabus.filter(
-    (i) => i.kind !== 'final' || i.editedByUser || !coursesWithScrapedFinal.has(i.courseLabel),
+    (i) => i.kind !== 'final' || i.editedByUser || !scrapedFinalsPerCourse.has(i.courseLabel),
   );
 
   return [...keptScraped, ...keptSyllabus].sort(compareItems);

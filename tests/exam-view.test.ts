@@ -54,7 +54,11 @@ describe('formatDate', () => {
     try {
       expect(formatDate(new Date('2026-12-15T00:00:00Z'))).toBe('Tue, Dec 15');
     } finally {
-      process.env.TZ = tz;
+      // Assigning an undefined `tz` back would set the literal string
+      // "undefined", and fileParallelism:false leaks that into every later
+      // test file in the run.
+      if (tz === undefined) delete process.env.TZ;
+      else process.env.TZ = tz;
     }
   });
 });

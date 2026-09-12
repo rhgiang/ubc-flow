@@ -90,4 +90,25 @@ describe('mergeExams', () => {
     expect(out.map((e) => e.id)).toEqual(['ubc-live', 'ubc-cancelled']);
     expect(out[0].cancelled).toBe(false);
   });
+
+  // An edited syllabus final wins over THE scraped final (spec §9: "when the
+  // same exam appears twice"). A sibling alpha-split row is not the same exam,
+  // so correcting a date on the confirm screen — ordinary use — must not take
+  // both of the course's rooms off the page.
+  it('keeps both alpha-split finals even when the student edited a syllabus final', () => {
+    const adi: ExamListItem = {
+      ...scrapedFinal, id: 'ubc-adi', courseLabel: 'CHEM 123', sectionCode: '921',
+      alphaSplit: 'ADI-SUN', location: 'IRC 2', startTime: '08:30',
+    };
+    const taz: ExamListItem = { ...adi, id: 'ubc-taz', alphaSplit: 'TAZ-ZHU', location: 'IRC 6' };
+    const edited: ExamListItem = {
+      ...syllabusFinal, id: 'syl-chem', courseLabel: 'CHEM 123', editedByUser: true,
+      date: new Date('2026-12-16T00:00:00Z'), startTime: '09:00',
+    };
+
+    const out = mergeExams([adi, taz], [edited]);
+    expect(out.map((e) => e.id).sort()).toEqual(['syl-chem', 'ubc-adi', 'ubc-taz']);
+    expect(out.map((e) => e.location)).toContain('IRC 2');
+    expect(out.map((e) => e.location)).toContain('IRC 6');
+  });
 });

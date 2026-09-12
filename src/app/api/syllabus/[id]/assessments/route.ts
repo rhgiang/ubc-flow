@@ -13,6 +13,8 @@ import { normalizeAssessments } from '@/syllabus/schema';
  * hand-rolled duplicate — with the `edited` flag and date coercion layered
  * on top of what it returns.
  */
+const MAX_ASSESSMENT_ROWS = 100;
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -39,7 +41,10 @@ export async function POST(
   // Run it one row at a time instead — still the single source of truth for
   // the validation rules, just called N times — so each surviving row can be
   // paired with its own `edited` flag with no index bookkeeping.
-  const clean = rows.flatMap((raw) => {
+  // Authenticated, but still caller-supplied and headed straight into a bulk
+  // insert. A real syllabus lists a dozen assessments; 100 is far past any
+  // honest one and keeps a scripted client from writing an unbounded table.
+  const clean = rows.slice(0, MAX_ASSESSMENT_ROWS).flatMap((raw) => {
     const [a] = normalizeAssessments({ assessments: [raw] });
     if (!a) return [];
     return [{

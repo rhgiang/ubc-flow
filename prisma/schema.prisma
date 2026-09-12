@@ -472,6 +472,36 @@ model CoursePrereqEdge {
   @@index([requiredCourseId])
 }
 
+model FinalExam {
+  id          String   @id @default(cuid())
+  courseId    String
+  termId      String
+  /// "901" from "AMNE_V 101.901", "B_941" from "FNH_V 497.B_941". Not numeric.
+  sectionCode String
+  /// Null ONLY on a cancelled exam, which the table publishes with empty date,
+  /// time and location cells — see §4. Never null on a live exam.
+  date        DateTime?
+  /// "08:30". The published table gives a start only — see §4 on duration.
+  startTime   String?
+  /// Surname range, e.g. "ADI-SUN". Empty for most exams; when UBC splits a
+  /// course across rooms it is the ONLY thing distinguishing two rows, which
+  /// is why it is part of the unique key rather than a display detail.
+  alphaSplit  String?
+  /// Null for "SEE PROF" and other non-room sentinels — see §4.
+  building    String?
+  room        String?
+  /// Registrar annotations, verbatim: "Late Request", "Location Change (was
+  /// DMP 201)", "Cancelled: August 17 2026, 3:30pm". Always displayed as-is.
+  notes       String?
+  /// Derived from `notes` beginning with "Cancelled" — see §4. A cancelled
+  /// exam is kept, never deleted: a student who remembers seeing it needs to
+  /// be told it is off, and a row that vanishes tells them nothing.
+  cancelled   Boolean  @default(false)
+
+  @@unique([courseId, termId, sectionCode, alphaSplit])
+  @@index([termId])
+}
+
 /// One table for every emailed single-use link, discriminated by `purpose`.
 ///
 /// The discriminator is a security control, not bookkeeping. Without it a

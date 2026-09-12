@@ -287,8 +287,15 @@ syllabus has asked for the file to be gone.
   Handles tables and scanned pages that a text parser would mangle.
 - One tool with `strict: true`, whose input schema is the assessment list.
   Strict mode guarantees the arguments validate against the schema.
-- Cost is roughly **5¢ per syllabus** (a 10-page PDF is ~10–15k input tokens at
-  $5/MTok), so about 25¢ for a student's full term.
+- `output_config: { effort: 'low' }` — pulling a list out of a structured
+  document isn't reasoning-hard, and Opus 5's default (high) thinking effort
+  would otherwise run adaptive thinking on every call, with output tokens at
+  $25/MTok dominating the bill for no accuracy gain here.
+- Cost estimate, **not yet measured against the real API**: input is roughly
+  10–15k tokens for a 10-page PDF at $5/MTok (~5–8¢), plus whatever the tool
+  call itself and any output/thinking tokens add on top even at low effort —
+  call it **10–15¢ per syllabus** as a rough upper bound pending a real
+  invoice, i.e. under a dollar for a student's full term.
 
 **Synchronous, on upload.** ~15 seconds for one file. A student uploads one
 syllabus at a time and can watch it work. This avoids building a job queue,

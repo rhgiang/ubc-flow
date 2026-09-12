@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { ASSESSMENT_KINDS, type AssessmentKind } from '@/syllabus/schema';
+import { normalizeAssessments } from '@/syllabus/schema';
 
 /**
  * The confirm screen's Save action — the only place a SyllabusAssessment row
  * is ever written. The extract route (src/app/api/syllabus/extract/route.ts)
  * only proposes rows; nothing is persisted until a student accepts them here.
  *
- * Re-validated server-side with the same rules normalizeAssessments applies
- * (schema.ts) — the client is trusted to render honestly, not to enforce
- * these on its own before POSTing.
+ * Re-validated server-side by running the client's payload back through
+ * normalizeAssessments (schema.ts) — one copy of those rules, not a
+ * hand-rolled duplicate — with the `edited` flag and date coercion layered
+ * on top of what it returns.
  */
 export async function POST(
   req: Request,
@@ -33,34 +34,25 @@ export async function POST(
     return NextResponse.json({ error: 'Missing assessments.' }, { status: 400 });
   }
 
-  const clean: {
-    title: string;
-    kind: AssessmentKind;
-    date: Date | null;
-    startTime: string | null;
-    weight: number | null;
-    quote: string;
-    page: number;
-    editedByUser: boolean;
-  }[] = [];
-  for (const raw of rows) {
-    const r = raw as Record<string, unknown>;
-    if (typeof r?.title !== 'string' || r.title.trim() === '') continue;
-    if (!ASSESSMENT_KINDS.includes(r.kind as AssessmentKind)) continue;
-    if (typeof r.quote !== 'string' || r.quote.trim() === '') continue;
-    if (!Number.isInteger(r.page)) continue;
-
-    clean.push({
-      title: r.title.trim(),
-      kind: r.kind as AssessmentKind,
-      date: typeof r.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? new Date(r.date) : null,
-      startTime: typeof r.startTime === 'string' && /^\d{2}:\d{2}$/.test(r.startTime) ? r.startTime : null,
-      weight: typeof r.weight === 'number' && Number.isFinite(r.weight) ? r.weight : null,
-      quote: r.quote.trim(),
-      page: r.page as number,
-      editedByUser: r.edited === true,
-    });
-  }
+  // normalizeAssessments drops invalid rows, so mapping its output back onto
+  // `rows` by index would desync as soon as anything mid-array gets dropped.
+  // Run it one row at a time instead — still the single source of truth for
+  // the validation rules, just called N times — so each surviving row can be
+  // paired with its own `edited` flag with no index bookkeeping.
+  const clean = rows.flatMap((raw) => {
+    const [a] = normalizeAssessments({ assessments: [raw] });
+    if (!a) return [];
+    return [{
+      title: a.title,
+      kind: a.kind,
+      date: a.date ? new Date(a.date) : null,
+      startTime: a.startTime,
+      weight: a.weight,
+      quote: a.quote,
+      page: a.page,
+      editedByUser: (raw as Record<string, unknown>)?.edited === true,
+    }];
+  });
 
   // Wipe-and-replace: a Save is the confirmed state of this syllabus's
   // assessment list, not a merge with whatever an earlier extraction saved.

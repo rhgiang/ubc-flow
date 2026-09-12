@@ -143,10 +143,13 @@ model User {
   /// Chosen sky/theme mode, so it follows the account across devices.
   /// Null means never chosen — the app falls back to campus weather.
   themeMode     String?
-  /// Sliding-window counter for the syllabus-extraction cost guard (see
+  /// Fixed-window counter for the syllabus-extraction cost guard (see
   /// src/app/api/syllabus/extract/route.ts) — resets once
-  /// extractionWindowStart is more than 24h old. Two plain columns rather
-  /// than a new table: one user, one active window, nothing to join.
+  /// extractionWindowStart is more than 24h old. Fixed, not sliding: the
+  /// window starts at whichever request lands first after expiry, so e.g. 8
+  /// calls at t+23:59 and 8 more at t+24:01 is possible. Bounded, and not
+  /// worth a real sliding window for an abuse guard. Two plain columns
+  /// rather than a new table: one user, one active window, nothing to join.
   extractionCount       Int       @default(0)
   extractionWindowStart DateTime?
   enrollments   Enrollment[]

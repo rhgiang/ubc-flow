@@ -12,8 +12,17 @@ export async function extractAssessments(pdf: Buffer): Promise<ExtractedAssessme
   const response = await client.messages.create({
     model: 'claude-opus-5',
     max_tokens: 16000,
+    // Pulling a list out of a structured document isn't reasoning-hard —
+    // default (high) thinking effort buys nothing here and output tokens at
+    // $25/MTok are what actually drive the bill.
+    output_config: { effort: 'low' },
     system: SYSTEM,
     tools: [ASSESSMENT_TOOL],
+    // Force the tool call: without this a prose reply (no tool_use block)
+    // silently becomes normalizeAssessments(undefined) -> [], which renders
+    // as "No graded assessments found" — indistinguishable from a real empty
+    // result, after the call has already been paid for.
+    tool_choice: { type: 'tool', name: 'report_assessments' },
     messages: [{
       role: 'user',
       content: [

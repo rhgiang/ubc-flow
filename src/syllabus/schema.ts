@@ -58,7 +58,7 @@ export function normalizeAssessments(input: unknown): ExtractedAssessment[] {
     if (typeof r?.title !== 'string' || r.title.trim() === '') continue;
     if (!ASSESSMENT_KINDS.includes(r.kind as AssessmentKind)) continue;
     if (typeof r.quote !== 'string' || r.quote.trim() === '') continue;
-    if (!Number.isInteger(r.page)) continue;
+    if (!Number.isInteger(r.page) || (r.page as number) <= 0) continue;
 
     out.push({
       title: r.title.trim(),

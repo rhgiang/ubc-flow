@@ -22,6 +22,19 @@ const nextConfig: NextConfig = {
           // only; a real one needs the nonce-via-middleware setup.
         ],
       },
+      {
+        // The syllabus viewer embeds this route in an <embed> on the same
+        // origin. The blanket DENY/'none' above blocks that in every real
+        // browser, same-origin included — this entry, being LAST in the
+        // array, wins on these two keys for this path only (Next.js: last
+        // matching header wins on key conflicts). Every other route keeps
+        // the strict global rule.
+        source: '/api/syllabus/:id/file',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self'" },
+        ],
+      },
     ];
   },
 };

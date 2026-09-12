@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { put, del } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { validateSyllabusFile } from '@/syllabus/validate';
+import { validateSyllabusFile, sanitizeFilename } from '@/syllabus/validate';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -25,6 +25,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
+  // The only bound on how much billed blob storage one account can create:
+  // courseId/termId are otherwise caller-supplied, so without this a signed-in
+  // user could mint unlimited private blobs against courses they've never
+  // taken. A syllabus for a course you're not enrolled in is meaningless
+  // anyway. Same query shape as src/app/syllabus/page.tsx's enrollment lookup.
+  const enrollment = await db.enrollment.findFirst({
+    where: { userId, courseId, termId },
+    select: { id: true },
+  });
+  if (!enrollment) {
+    return NextResponse.json({ error: "You're not enrolled in that course this term." }, { status: 403 });
+  }
+
+  const safeName = sanitizeFilename(file.name);
+
   // Kept so a re-upload's old blob is cleaned up below rather than left
   // dangling in the private store forever.
   const existing = await db.syllabus.findUnique({
@@ -33,7 +48,7 @@ export async function POST(req: Request) {
   });
 
   try {
-    const blob = await put(`syllabi/${userId}/${courseId}-${termId}-${file.name}`, file, {
+    const blob = await put(`syllabi/${userId}/${courseId}-${termId}-${safeName}`, file, {
       access: 'private',
       addRandomSuffix: true,
       contentType: 'application/pdf',
@@ -41,8 +56,8 @@ export async function POST(req: Request) {
 
     const syllabus = await db.syllabus.upsert({
       where: { userId_courseId_termId: { userId, courseId, termId } },
-      create: { userId, courseId, termId, pathname: blob.pathname, filename: file.name, size: file.size },
-      update: { pathname: blob.pathname, filename: file.name, size: file.size },
+      create: { userId, courseId, termId, pathname: blob.pathname, filename: safeName, size: file.size },
+      update: { pathname: blob.pathname, filename: safeName, size: file.size },
     });
 
     if (existing && existing.pathname !== blob.pathname) {

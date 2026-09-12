@@ -162,38 +162,44 @@ export async function syllabusExamRowsForUser(userId: string, termId: string): P
 }
 
 /**
- * Merges scraped finals with syllabus-derived rows into one list. Only
- * `kind: 'final'` rows are deduped, one per courseLabel, with this
- * precedence on a collision:
- *   1. `editedByUser` wins over everything.
- *   2. Otherwise a scraped ('ubc') row wins over a syllabus one — UBC's own
- *      schedule is authoritative over a syllabus saying "final exam,
- *      scheduled by the registrar".
- * `kind: 'midterm'` rows are never deduped — they only ever come from
- * syllabi, there's nothing for them to collide with, and a course can
- * (usually does) have more than one, so every midterm passes straight
- * through unchanged.
+ * Merges scraped finals with syllabus-derived rows into one list.
+ *
+ * Nothing is deduped BETWEEN scraped rows. `examRowsForUser` joins on
+ * courseId only (Enrollment carries no section), so one course routinely
+ * returns several `FinalExam` rows — alpha splits (CHEM 123: ADI–SUN in
+ * IRC 2, TAZ–ZHU in IRC 6) and every published section. Keying them per
+ * course would keep whichever came last: half the class sent to the wrong
+ * room, and — because `examRowsForUser` sorts cancelled/dateless rows last —
+ * a cancelled section overwriting the student's real exam. Spec §4 put
+ * `alphaSplit` in the unique key for exactly this reason; collapsing here
+ * would undo it. So every scraped row passes through untouched.
+ *
+ * The only drop is a syllabus-derived one, in two cases, matching spec §9:
+ *   1. A syllabus `final` when UBC already publishes a final for that course
+ *      — UBC's own schedule is authoritative over a syllabus saying "final
+ *      exam, scheduled by the registrar".
+ *   2. Unless the student edited that row (`editedByUser`), which wins over
+ *      everything — then it is the scraped finals for that course that go.
+ * `kind: 'midterm'` rows only ever come from syllabi, there's nothing for
+ * them to collide with, and a course usually has more than one, so every
+ * midterm passes straight through.
+ *
  * Reuses `compareItems` for the final sort rather than a second ordering.
  */
 export function mergeExams(scraped: ExamListItem[], fromSyllabus: ExamListItem[]): ExamListItem[] {
-  const key = (item: ExamListItem) => `${item.courseLabel}::${item.kind}`;
-  const finals = new Map<string, ExamListItem>();
-  const passthrough: ExamListItem[] = [];
+  const coursesWithScrapedFinal = new Set(
+    scraped.filter((i) => i.kind === 'final').map((i) => i.courseLabel),
+  );
+  const coursesWithEditedFinal = new Set(
+    fromSyllabus.filter((i) => i.kind === 'final' && i.editedByUser).map((i) => i.courseLabel),
+  );
 
-  for (const item of scraped) {
-    if (item.kind === 'final') finals.set(key(item), item);
-    else passthrough.push(item);
-  }
+  const keptScraped = scraped.filter(
+    (i) => i.kind !== 'final' || !coursesWithEditedFinal.has(i.courseLabel),
+  );
+  const keptSyllabus = fromSyllabus.filter(
+    (i) => i.kind !== 'final' || i.editedByUser || !coursesWithScrapedFinal.has(i.courseLabel),
+  );
 
-  for (const item of fromSyllabus) {
-    if (item.kind !== 'final') {
-      passthrough.push(item);
-      continue;
-    }
-    const existing = finals.get(key(item));
-    if (existing && existing.source === 'ubc' && !item.editedByUser) continue;
-    finals.set(key(item), item);
-  }
-
-  return [...finals.values(), ...passthrough].sort(compareItems);
+  return [...keptScraped, ...keptSyllabus].sort(compareItems);
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { toExamListItem } from '@/schedule/exams';
+import { formatDate } from '@/components/ExamList';
 
 describe('toExamListItem', () => {
   it('joins building and room into one location string', () => {
@@ -36,5 +37,24 @@ describe('toExamListItem', () => {
     expect(item.kind).toBe('final');
     expect(item.source).toBe('ubc');
     expect(item.alphaSplit).toBe('ADI-SUN');
+  });
+});
+
+// Exam dates are stored as UTC midnight. Without an explicit timeZone this
+// formats in the server's zone, and every date west of Greenwich renders a
+// day early — "Mon, Aug 17" for a Tuesday exam.
+describe('formatDate', () => {
+  it('reads a UTC-midnight date back in UTC, not the server zone', () => {
+    expect(formatDate(new Date('2026-08-18T00:00:00Z'))).toBe('Tue, Aug 18');
+  });
+
+  it('holds even when the process runs in America/Vancouver', () => {
+    const tz = process.env.TZ;
+    process.env.TZ = 'America/Vancouver';
+    try {
+      expect(formatDate(new Date('2026-12-15T00:00:00Z'))).toBe('Tue, Dec 15');
+    } finally {
+      process.env.TZ = tz;
+    }
   });
 });

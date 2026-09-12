@@ -1,10 +1,19 @@
 import type { ExamListItem } from '@/schedule/exams';
 
-function formatDate(date: Date): string {
+/**
+ * Exam dates are stored as UTC midnight (src/scrape/jobs/exams.ts,
+ * src/app/api/syllabus/[id]/assessments/route.ts), so they must be READ back
+ * in UTC. This is a server component: without an explicit zone it formats in
+ * the runtime's, and every date west of Greenwich renders a day early
+ * ("Mon, Aug 17" for 2026-08-18T00:00:00Z in America/Vancouver).
+ * Exported for tests/exam-view.test.ts.
+ */
+export function formatDate(date: Date): string {
   return date.toLocaleDateString('en-CA', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC',
   });
 }
 
@@ -57,8 +66,8 @@ export default function ExamList({ items }: { items: ExamListItem[] }) {
   if (items.length === 0) {
     return (
       <p className="text-sm text-text-secondary">
-        UBC hasn&apos;t published the final exam schedule for this term yet — it usually appears
-        partway through term.
+        Nothing here yet. UBC publishes the final exam schedule partway through term, and
+        midterms show up once you upload a syllabus.
       </p>
     );
   }

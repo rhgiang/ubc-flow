@@ -63,4 +63,31 @@ describe('mergeExams', () => {
     expect(out).toHaveLength(1);
     expect(out[0].source).toBe('ubc');
   });
+
+  // Enrollment carries no section, so examRowsForUser returns EVERY FinalExam
+  // row for the course. CHEM 123 splits by surname across two rooms; keeping
+  // one of them sends half the class to the wrong building.
+  it('keeps both halves of an alpha-split final', () => {
+    const adi: ExamListItem = {
+      ...scrapedFinal, id: 'ubc-adi', courseLabel: 'CHEM 123', sectionCode: '921',
+      alphaSplit: 'ADI-SUN', location: 'IRC 2', startTime: '08:30',
+    };
+    const taz: ExamListItem = { ...adi, id: 'ubc-taz', alphaSplit: 'TAZ-ZHU', location: 'IRC 6' };
+    const out = mergeExams([adi, taz], []);
+    expect(out.map((e) => e.location).sort()).toEqual(['IRC 2', 'IRC 6']);
+  });
+
+  // examRowsForUser sorts cancelled/dateless rows last, so a per-course key
+  // let the cancelled row land last and erase the live one — the student's
+  // real exam replaced by a struck-through "cancelled" card.
+  it('never lets a cancelled scraped final replace a live one for the same course', () => {
+    const live: ExamListItem = { ...scrapedFinal, id: 'ubc-live', sectionCode: '921' };
+    const cancelled: ExamListItem = {
+      ...scrapedFinal, id: 'ubc-cancelled', sectionCode: '951', cancelled: true,
+      date: null, startTime: null, location: null, notes: 'Cancelled',
+    };
+    const out = mergeExams([live, cancelled], []);
+    expect(out.map((e) => e.id)).toEqual(['ubc-live', 'ubc-cancelled']);
+    expect(out[0].cancelled).toBe(false);
+  });
 });

@@ -42,6 +42,7 @@ export default function NavLinks() {
     // This replaced an older login gate here — the page owns that decision
     // now, and the nav should not second-guess it.
     { href: '/schedule', label: 'Schedules' },
+    { href: '/exams', label: 'Exams' },
     // Guidance needs no account either: the roadmap for a student starting
     // fresh is useful on its own, and is the page's best argument for signing
     // in. Personalisation is what login adds, not access.

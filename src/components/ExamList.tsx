@@ -37,8 +37,13 @@ function ExamRow({ item }: { item: ExamListItem }) {
     <div className="rounded-card border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-2">
         <span className="font-medium text-brand-accent">{item.courseLabel}</span>
-        <span className="text-sm text-text-tertiary">Section {item.sectionCode}</span>
+        {item.sectionCode && (
+          <span className="text-sm text-text-tertiary">Section {item.sectionCode}</span>
+        )}
       </div>
+      <p className="text-xs text-text-tertiary">
+        {item.source === 'ubc' ? 'UBC exam schedule' : 'From your syllabus — double-check this date'}
+      </p>
       {item.cancelled ? (
         <div className="mt-1 line-through decoration-2 opacity-70">{body}</div>
       ) : (

@@ -103,3 +103,86 @@ export async function examRowsForUser(userId: string, termId: string): Promise<E
 
   return items.sort(compareItems);
 }
+
+/** Shape `syllabusExamRowsForUser` assembles by hand — `Syllabus.courseId` is
+ *  a raw FK (same convention as `FinalExamRow` above), so the course/subject
+ *  join happens in JS. */
+type SyllabusAssessmentRow = {
+  id: string;
+  title: string;
+  kind: string; // 'midterm' | 'final' | 'assignment' | 'quiz'
+  date: Date | null;
+  startTime: string | null;
+  editedByUser: boolean;
+};
+
+/** Every confirmed midterm/final a student has this term, from their saved
+ *  `SyllabusAssessment` rows. `assignment`/`quiz` rows don't belong on the
+ *  exam page and are dropped. */
+export async function syllabusExamRowsForUser(userId: string, termId: string): Promise<ExamListItem[]> {
+  const syllabi = await db.syllabus.findMany({
+    where: { userId, termId },
+    include: { assessments: true },
+  });
+  if (syllabi.length === 0) return [];
+
+  const courses = await db.course.findMany({
+    where: { id: { in: [...new Set(syllabi.map((s) => s.courseId))] } },
+    include: { subject: true },
+  });
+  const courseById = new Map(courses.map((c) => [c.id, c]));
+
+  const items: ExamListItem[] = [];
+  for (const syllabus of syllabi) {
+    const course = courseById.get(syllabus.courseId);
+    if (!course) continue;
+    const code = course.subject.code?.replace(/_[A-Z]$/, '') ?? '';
+    const courseLabel = `${code} ${course.number}`;
+
+    for (const a of syllabus.assessments as SyllabusAssessmentRow[]) {
+      if (a.kind !== 'midterm' && a.kind !== 'final') continue;
+      items.push({
+        id: a.id,
+        courseLabel,
+        sectionCode: '', // a syllabus assessment isn't tied to a section
+        date: a.date,
+        startTime: a.startTime,
+        location: null,
+        alphaSplit: null,
+        notes: a.title,
+        cancelled: false,
+        source: 'syllabus',
+        editedByUser: a.editedByUser,
+        kind: a.kind,
+      });
+    }
+  }
+
+  return items.sort(compareItems);
+}
+
+/**
+ * Merges scraped finals with syllabus-derived rows into one list, one row
+ * per (courseLabel, kind). Midterms only ever come from syllabi, so they
+ * never collide with a scraped final — a collision is only possible between
+ * two finals for the same course. Precedence for that collision:
+ *   1. `editedByUser` wins over everything.
+ *   2. Otherwise a scraped ('ubc') row wins over a syllabus one — UBC's own
+ *      schedule is authoritative over a syllabus saying "final exam,
+ *      scheduled by the registrar".
+ * Reuses `compareItems` for the final sort rather than a second ordering.
+ */
+export function mergeExams(scraped: ExamListItem[], fromSyllabus: ExamListItem[]): ExamListItem[] {
+  const key = (item: ExamListItem) => `${item.courseLabel}::${item.kind}`;
+  const byKey = new Map<string, ExamListItem>();
+
+  for (const item of scraped) byKey.set(key(item), item);
+
+  for (const item of fromSyllabus) {
+    const existing = byKey.get(key(item));
+    if (existing && existing.source === 'ubc' && !item.editedByUser) continue;
+    byKey.set(key(item), item);
+  }
+
+  return [...byKey.values()].sort(compareItems);
+}

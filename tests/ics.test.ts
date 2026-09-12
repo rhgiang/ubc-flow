@@ -187,4 +187,24 @@ describe('examEvent', () => {
   it('drops a dateless exam rather than guessing', () => {
     expect(examEvent({ ...base, date: null, startTime: null })).toBeNull();
   });
+
+  // The feed carries syllabus midterms too (spec S1). Titling one "Final
+  // Exam" would be a lie sitting on the student's phone.
+  it('titles a midterm a midterm, not a final exam', () => {
+    const ev = examEvent({ ...base, kind: 'midterm', source: 'syllabus', id: 'syl-1' })!;
+    expect(ev.title).toBe('BIOC 302 Midterm');
+    expect(examEvent(base)!.title).toBe('BIOC 302 Final Exam');
+  });
+
+  it('says a syllabus-derived event came from the uploaded syllabus', () => {
+    const ev = examEvent({ ...base, kind: 'midterm', source: 'syllabus', id: 'syl-1' })!;
+    expect(ev.description).toMatch(/syllabus you uploaded/);
+    expect(ev.description).toMatch(/double-check/);
+  });
+
+  it('still drops a cancelled or dateless syllabus row', () => {
+    const syl = { ...base, kind: 'midterm' as const, source: 'syllabus' as const };
+    expect(examEvent({ ...syl, cancelled: true })).toBeNull();
+    expect(examEvent({ ...syl, date: null })).toBeNull();
+  });
 });

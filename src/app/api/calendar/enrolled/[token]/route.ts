@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { icsFilename, icsResponse, meetingEvents, examEvent, type IcsEvent } from '@/schedule/ics';
-import { examRowsForUser } from '@/schedule/exams';
+import { examRowsForUser, syllabusExamRowsForUser, mergeExams } from '@/schedule/exams';
 
 // Same reasoning as /api/calendar/[token]: a subscribed calendar is only worth
 // anything if it reflects current state, so nothing here may be cached.
@@ -44,8 +44,14 @@ export async function GET(
     events.push(...meetingEvents(`${course.subject.code} ${course.number}`, m));
   }
 
-  const exams = await examRowsForUser(record.userId, record.termId);
-  for (const exam of exams) {
+  // The same merged list /exams renders, not just the scraped finals — spec
+  // §1 wants syllabus midterms in the subscribed calendar too, and one source
+  // of truth for precedence beats two.
+  const [scraped, fromSyllabus] = await Promise.all([
+    examRowsForUser(record.userId, record.termId),
+    syllabusExamRowsForUser(record.userId, record.termId),
+  ]);
+  for (const exam of mergeExams(scraped, fromSyllabus)) {
     const event = examEvent(exam);
     if (event) events.push(event);
   }

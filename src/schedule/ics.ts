@@ -193,27 +193,40 @@ function addMinutes(time: string, minutes: number): string | null {
 }
 
 /**
- * A `FinalExam` row into a one-off calendar event. Returns null for exactly
- * the two cases that must never reach a phone: cancelled (would ring an
- * alarm for a test that isn't happening) and dateless (nothing to place it
- * on). Both are still shown on /exams — this only guards the calendar feed.
+ * One merged exam row (scraped final OR syllabus-derived midterm/final) into
+ * a one-off calendar event. Returns null for exactly the two cases that must
+ * never reach a phone: cancelled (would ring an alarm for a test that isn't
+ * happening) and dateless (nothing to place it on). Both are still shown on
+ * /exams — this only guards the calendar feed.
+ *
+ * The title comes from `item.kind`, not a hardcoded "Final Exam": the feed
+ * carries midterms too (spec §1), and titling one "Final Exam" would be a
+ * lie on the student's phone.
  */
 export function examEvent(item: ExamListItem): IcsEvent | null {
   if (item.cancelled || !item.date || !item.startTime) return null;
   const endTime = addMinutes(item.startTime, EXAM_DEFAULT_MINUTES);
   if (!endTime) return null;
 
+  // A syllabus row is a model's reading of a PDF the student confirmed, not
+  // UBC's published schedule — the event has to say which it is, because
+  // that's what decides whether it's worth double-checking.
+  const description =
+    item.source === 'syllabus'
+      ? `From the syllabus you uploaded, not UBC's exam schedule — double-check the date `
+        + `and time with your instructor. The ${endTime} end time is an estimate.`
+      : `The ${endTime} end time is an estimate — UBC publishes a start time only. `
+        + `Confirm with your instructor.`;
+
   return {
     uid: `exam-${item.id}`,
-    title: `${item.courseLabel} Final Exam`,
+    title: `${item.courseLabel} ${item.kind === 'final' ? 'Final Exam' : 'Midterm'}`,
     day: null,
     startTime: item.startTime,
     endTime,
     startDate: item.date,
     endDate: item.date,
     location: item.location,
-    description:
-      `Ends at ${endTime} is an estimate — UBC publishes a start time only. ` +
-      `Confirm with your instructor.`,
+    description,
   };
 }

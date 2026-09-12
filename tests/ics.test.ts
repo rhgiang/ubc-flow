@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildIcs, meetingEvents, type IcsEvent } from '@/schedule/ics';
+import { buildIcs, meetingEvents, examEvent, EXAM_DEFAULT_MINUTES, type IcsEvent } from '@/schedule/ics';
 
 const event: IcsEvent = {
   uid: 'section-1-Mon',
@@ -131,5 +131,60 @@ describe('event location', () => {
       room: '1250',
     });
     expect(first.location).toBe('CIRS 1250');
+  });
+});
+
+describe('one-off events', () => {
+  const exam: IcsEvent = {
+    uid: 'exam-1', title: 'BIOC 302 Final', day: null,
+    startTime: '12:00', endTime: '14:30',
+    startDate: new Date('2026-08-18T00:00:00Z'),
+    endDate: new Date('2026-08-18T00:00:00Z'),
+    location: 'BIOL 1000',
+  };
+
+  it('emits no RRULE for an event with no weekday', () => {
+    const ics = buildIcs('Exams', [exam]);
+    expect(ics).toContain('DTSTART;TZID=America/Vancouver:20260818T120000');
+    expect(ics).not.toContain('RRULE');
+  });
+
+  it('still repeats a weekly meeting', () => {
+    const weekly: IcsEvent = { ...exam, uid: 'w', day: 'Mon',
+      endDate: new Date('2026-12-04T00:00:00Z') };
+    expect(buildIcs('Term', [weekly])).toContain('RRULE:FREQ=WEEKLY;BYDAY=MO');
+  });
+});
+
+describe('examEvent', () => {
+  const base = {
+    id: 'e1', courseLabel: 'BIOC 302', sectionCode: '951',
+    date: new Date('2026-08-18T00:00:00Z'), startTime: '12:00',
+    location: 'BIOL 1000', alphaSplit: null, notes: null,
+    cancelled: false, source: 'ubc' as const, kind: 'final' as const,
+  };
+
+  // UBC publishes no end time. The event still needs one, so it is ours.
+  it('ends an exam a default duration after it starts', () => {
+    expect(EXAM_DEFAULT_MINUTES).toBe(150);
+    expect(examEvent(base)!.endTime).toBe('14:30');
+  });
+
+  it('rolls the default duration over an hour boundary correctly', () => {
+    expect(examEvent({ ...base, startTime: '15:30' })!.endTime).toBe('18:00');
+  });
+
+  // Spec §6: the end time is our assumption, so the event has to say so.
+  it('discloses the assumed end time in the event description', () => {
+    const ics = buildIcs('Exams', [examEvent(base)!]);
+    expect(ics).toMatch(/DESCRIPTION:.*UBC publishes a start time only/);
+  });
+
+  it('drops a cancelled exam from the feed', () => {
+    expect(examEvent({ ...base, cancelled: true })).toBeNull();
+  });
+
+  it('drops a dateless exam rather than guessing', () => {
+    expect(examEvent({ ...base, date: null, startTime: null })).toBeNull();
   });
 });

@@ -1,13 +1,18 @@
+import type { ExamListItem } from '@/schedule/exams';
+
 export type IcsEvent = {
   uid: string;
   title: string;
-  day: string;
+  /** null means a single occurrence (e.g. an exam), not a weekly meeting. */
+  day: string | null;
   startTime: string | null;
   endTime: string | null;
   startDate: Date | null;
   endDate: Date | null;
   /** "BUCH A101". Omitted from the event entirely when there is none. */
   location?: string | null;
+  /** Spec §6: discloses when a time on the event is our assumption, not UBC's. */
+  description?: string | null;
 };
 
 const TZID = 'America/Vancouver';
@@ -95,10 +100,29 @@ export function buildIcs(calendarName: string, events: IcsEvent[]): string {
   ];
 
   for (const e of events) {
+    if (!e.startTime || !e.endTime || !e.startDate) continue;
+
+    // A null day is a single occurrence — an exam, not a weekly meeting.
+    if (e.day === null) {
+      const stamp = dateStamp(e.startDate);
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:${e.uid}@ubcflow`,
+        `DTSTAMP:${dateStamp(new Date())}T000000Z`,
+        `DTSTART;TZID=${TZID}:${stamp}T${e.startTime.replace(':', '')}00`,
+        `DTEND;TZID=${TZID}:${stamp}T${e.endTime.replace(':', '')}00`,
+        `SUMMARY:${escapeText(e.title)}`,
+        ...(e.location ? [`LOCATION:${escapeText(e.location)}`] : []),
+        ...(e.description ? [`DESCRIPTION:${escapeText(e.description)}`] : []),
+        'END:VEVENT',
+      );
+      continue;
+    }
+
     const dayIndex = DAY_INDEX[e.day];
     // Skip rather than guess: an unscheduled meeting has no correct rendering.
     if (dayIndex === undefined) continue;
-    if (!e.startTime || !e.endTime || !e.startDate || !e.endDate) continue;
+    if (!e.endDate) continue;
 
     const first = firstOccurrence(e.startDate, dayIndex);
     const stamp = dateStamp(first);
@@ -148,4 +172,48 @@ export function icsResponse(
 /** Filesystem-safe .ics name for a calendar, e.g. "2026 Winter Term 1". */
 export function icsFilename(calendarName: string): string {
   return `ubc-flow-${calendarName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.ics`;
+}
+
+/**
+ * How long an exam is assumed to run. UBC's published table gives a start
+ * time and no end, so this is our assumption, not their data.
+ *
+ * ponytail: one constant rather than per-faculty rules. If the table ever
+ * gains a duration column, or 2.5h proves wrong somewhere, this is the single
+ * line to change.
+ */
+export const EXAM_DEFAULT_MINUTES = 150;
+
+function addMinutes(time: string, minutes: number): string | null {
+  const m = time.match(/^(\d{2}):(\d{2})$/);
+  if (!m) return null;
+  const total = Number(m[1]) * 60 + Number(m[2]) + minutes;
+  if (total >= 24 * 60) return null;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+/**
+ * A `FinalExam` row into a one-off calendar event. Returns null for exactly
+ * the two cases that must never reach a phone: cancelled (would ring an
+ * alarm for a test that isn't happening) and dateless (nothing to place it
+ * on). Both are still shown on /exams — this only guards the calendar feed.
+ */
+export function examEvent(item: ExamListItem): IcsEvent | null {
+  if (item.cancelled || !item.date || !item.startTime) return null;
+  const endTime = addMinutes(item.startTime, EXAM_DEFAULT_MINUTES);
+  if (!endTime) return null;
+
+  return {
+    uid: `exam-${item.id}`,
+    title: `${item.courseLabel} Final Exam`,
+    day: null,
+    startTime: item.startTime,
+    endTime,
+    startDate: item.date,
+    endDate: item.date,
+    location: item.location,
+    description:
+      `Ends at ${endTime} is an estimate — UBC publishes a start time only. ` +
+      `Confirm with your instructor.`,
+  };
 }

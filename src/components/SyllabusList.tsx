@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SyllabusUpload from '@/components/SyllabusUpload';
+import AssessmentConfirm from '@/components/AssessmentConfirm';
 
 export type SyllabusListItem = {
   courseId: string;
   courseLabel: string;
-  syllabus: { id: string; filename: string; size: number } | null;
+  syllabus: { id: string; filename: string; size: number; extractedAt: string | null } | null;
 };
 
 function formatSize(bytes: number): string {
@@ -85,6 +86,11 @@ export default function SyllabusList({ termId, items }: { termId: string; items:
                   className="mt-4 h-[37.5rem] w-full rounded-input border border-border"
                 />
               )}
+              <AssessmentConfirm
+                syllabusId={item.syllabus.id}
+                alreadyExtracted={item.syllabus.extractedAt !== null}
+                onSaved={() => router.refresh()}
+              />
             </>
           ) : (
             <SyllabusUpload courseId={item.courseId} termId={termId} onUploaded={() => router.refresh()} />

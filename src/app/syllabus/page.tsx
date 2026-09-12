@@ -32,7 +32,9 @@ export default async function SyllabusPage() {
       courseLabel: `${c.subject.code?.replace(/_[A-Z]$/, '') ?? ''} ${c.number}`.trim(),
       syllabus: (() => {
         const s = syllabusByCourse.get(c.id);
-        return s ? { id: s.id, filename: s.filename, size: s.size } : null;
+        return s
+          ? { id: s.id, filename: s.filename, size: s.size, extractedAt: s.extractedAt?.toISOString() ?? null }
+          : null;
       })(),
     }))
     .sort((a, b) => a.courseLabel.localeCompare(b.courseLabel));

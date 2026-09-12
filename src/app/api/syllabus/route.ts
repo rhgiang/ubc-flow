@@ -4,6 +4,18 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { validateSyllabusFile, sanitizeFilename } from '@/syllabus/validate';
 
+// The enrollment gate and the (userId, courseId, termId) upsert bound stored
+// BYTES to one blob per enrolled course, but not billed write OPERATIONS:
+// re-POSTing the same course, or DELETE-then-POST, loops put() forever. 10 a
+// day is several times more than any honest student — you upload a syllabus
+// once per course, and a handful more if you re-upload a corrected PDF —
+// while capping what a compromised or scripted account can bill.
+// Same fixed-window shape and same atomic conditional-updateMany as
+// src/app/api/syllabus/extract/route.ts; see the long comment there for why
+// it is two updateManys rather than a read-then-write.
+const UPLOADS_PER_DAY = 10;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -36,6 +48,34 @@ export async function POST(req: Request) {
   });
   if (!enrollment) {
     return NextResponse.json({ error: "You're not enrolled in that course this term." }, { status: 403 });
+  }
+
+  // Charged here: after the file and the enrollment have both checked out (a
+  // rejected request shouldn't cost a quota unit), before the billed put().
+  const now = new Date();
+  const windowCutoff = new Date(now.getTime() - DAY_MS);
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { uploadWindowStart: true },
+  });
+  const windowExpired = !user?.uploadWindowStart || user.uploadWindowStart < windowCutoff;
+  const capUpdate = windowExpired
+    ? await db.user.updateMany({
+        where: {
+          id: userId,
+          OR: [{ uploadWindowStart: null }, { uploadWindowStart: { lt: windowCutoff } }],
+        },
+        data: { uploadCount: 1, uploadWindowStart: now },
+      })
+    : await db.user.updateMany({
+        where: { id: userId, uploadCount: { lt: UPLOADS_PER_DAY } },
+        data: { uploadCount: { increment: 1 } },
+      });
+  if (capUpdate.count === 0) {
+    return NextResponse.json(
+      { error: `You've hit today's limit of ${UPLOADS_PER_DAY} syllabus uploads. Try again tomorrow.` },
+      { status: 429 },
+    );
   }
 
   const safeName = sanitizeFilename(file.name);

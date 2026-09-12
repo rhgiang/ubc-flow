@@ -152,6 +152,12 @@ model User {
   /// rather than a new table: one user, one active window, nothing to join.
   extractionCount       Int       @default(0)
   extractionWindowStart DateTime?
+  /// The same fixed-window counter, for syllabus UPLOADS (see
+  /// src/app/api/syllabus/route.ts). Separate columns from the extraction
+  /// pair on purpose: the two quotas bound different costs (billed blob
+  /// write operations vs. Anthropic calls) and must not consume each other.
+  uploadCount           Int       @default(0)
+  uploadWindowStart     DateTime?
   enrollments   Enrollment[]
   enrollmentMeetings EnrollmentMeeting[]
   courseReviews CourseReview[]
@@ -566,8 +572,15 @@ model SyllabusAssessment {
   /// on the confirm screen. The row is never saved without a human seeing this.
   quote      String?
   page       Int?
-  /// True once the student has edited the row, which makes it win over any
-  /// later re-extraction or scraped value.
+  /// True once the student has edited the row. Read by mergeExams
+  /// (src/schedule/exams.ts), where it makes the row win over a scraped
+  /// FinalExam for the same course.
+  ///
+  /// It does NOT survive a re-extraction: saving
+  /// (src/app/api/syllabus/[id]/assessments/route.ts) deletes every row for
+  /// the syllabus and recreates them from the payload, so re-running the
+  /// extract and saving replaces an edited row with the model's version and
+  /// the flag with whatever the client sent. Known gap, not yet fixed.
   editedByUser Boolean @default(false)
 
   @@index([syllabusId])

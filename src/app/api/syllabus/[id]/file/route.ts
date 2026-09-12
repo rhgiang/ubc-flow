@@ -1,0 +1,40 @@
+import { get } from '@vercel/blob';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+
+// The blob store is private — there is no directly-fetchable URL for a
+// syllabus. This route is the ONLY reader: it re-checks ownership on every
+// request and streams the bytes through from get(), so <embed> in the
+// browser never talks to Vercel Blob directly.
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return new Response('Not signed in.', { status: 401 });
+  }
+
+  const { id } = await params;
+  const syllabus = await db.syllabus.findUnique({ where: { id } });
+
+  // Same 404 whether the id doesn't exist or belongs to someone else — never
+  // confirm to a caller that another student's syllabus id is real.
+  if (!syllabus || syllabus.userId !== session.user.id) {
+    return new Response('Not found.', { status: 404 });
+  }
+
+  const blob = await get(syllabus.pathname, { access: 'private' });
+  if (!blob || blob.statusCode !== 200) {
+    return new Response('Not found.', { status: 404 });
+  }
+
+  return new Response(blob.stream, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${syllabus.filename}"`,
+      // Never cached by a shared cache or disk — this is a private document.
+      'Cache-Control': 'private, no-store',
+    },
+  });
+}

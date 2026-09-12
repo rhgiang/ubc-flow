@@ -152,6 +152,7 @@ model User {
   enrollmentShareTokens EnrollmentShareToken[]
   reviewVotes ReviewVote[]
   transferCredits TransferCredit[]
+  syllabi Syllabus[]
 }
 
 model Enrollment {
@@ -500,6 +501,32 @@ model FinalExam {
 
   @@unique([courseId, termId, sectionCode, alphaSplit])
   @@index([termId])
+}
+
+/**
+ * A student's own uploaded syllabus PDF for one course in one term, stored
+ * privately in Vercel Blob (see src/app/api/syllabus/route.ts). `pathname`
+ * is the blob's pathname, never a URL — the store is private, so there is no
+ * directly-fetchable URL. The only reader is the authenticated streaming
+ * route at src/app/api/syllabus/[id]/file/route.ts, which re-checks
+ * ownership before calling get().
+ *
+ * courseId/termId are raw FKs with no Prisma relation, same convention as
+ * FinalExam above.
+ */
+model Syllabus {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  termId    String
+  pathname  String
+  filename  String
+  size      Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseId, termId])
 }
 
 /// One table for every emailed single-use link, discriminated by `purpose`.

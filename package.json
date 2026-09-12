@@ -26,6 +26,7 @@
     "@next/third-parties": "^16.3.3",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "@vercel/blob": "^2.8.0",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",

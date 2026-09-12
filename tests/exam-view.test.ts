@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { toExamListItem } from '@/schedule/exams';
-import { formatDate } from '@/components/ExamList';
+import { formatDate, groupExams } from '@/components/ExamList';
 
 describe('toExamListItem', () => {
   it('joins building and room into one location string', () => {
@@ -60,5 +60,39 @@ describe('formatDate', () => {
       if (tz === undefined) delete process.env.TZ;
       else process.env.TZ = tz;
     }
+  });
+});
+
+// UBC splits a big exam across rooms by surname and publishes one row per
+// room. Rendering those as separate cards read as "you have two BIOL 121
+// exams" to the first person who saw the page.
+describe('groupExams', () => {
+  const base = {
+    courseLabel: 'BIOL 121', sectionCode: '201', kind: 'final' as const,
+    date: new Date('2026-12-12T00:00:00Z'), startTime: '15:30',
+    notes: null, cancelled: false, source: 'ubc' as const,
+  };
+  const adi = { ...base, id: 'a', alphaSplit: 'ABB-MEN', location: 'IRC 2' };
+  const taz = { ...base, id: 'b', alphaSplit: 'MER-ZHU', location: 'IRC 6' };
+
+  it('collapses rooms of one split exam into a single group', () => {
+    const groups = groupExams([adi, taz]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].map((r) => r.location)).toEqual(['IRC 2', 'IRC 6']);
+  });
+
+  it('keeps a midterm and a final for one course apart', () => {
+    const midterm = { ...adi, id: 'c', kind: 'midterm' as const };
+    expect(groupExams([adi, midterm])).toHaveLength(2);
+  });
+
+  it('keeps two exams of the same kind on different dates apart', () => {
+    const later = { ...adi, id: 'd', date: new Date('2026-12-19T00:00:00Z') };
+    expect(groupExams([adi, later])).toHaveLength(2);
+  });
+
+  it('keeps a scraped and a syllabus row apart even when they align', () => {
+    const fromSyllabus = { ...adi, id: 'e', source: 'syllabus' as const };
+    expect(groupExams([adi, fromSyllabus])).toHaveLength(2);
   });
 });

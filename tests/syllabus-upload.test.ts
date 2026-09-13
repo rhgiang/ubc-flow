@@ -354,4 +354,31 @@ describe('which syllabus sources the extract route can read', () => {
     expect(res.status).toBe(200);
     expect(vi.mocked(extractAssessments).mock.lastCall?.[0]).toBeInstanceOf(Buffer);
   });
+
+  async function extractionCount() {
+    return (await db.user.findUniqueOrThrow({
+      where: { id: ownerId }, select: { extractionCount: true },
+    })).extractionCount;
+  }
+
+  // The upload route refunds its quota unit when put() throws; this route
+  // did not when the Anthropic call threw. A missing ANTHROPIC_API_KEY in
+  // production would have burned a student's 8 a day on our misconfiguration.
+  it('refunds the extraction unit when the model call throws', async () => {
+    const before = await extractionCount();
+    vi.mocked(extractAssessments).mockRejectedValueOnce(new Error('no api key'));
+    const res = await extract({ sourceText: 'Midterm 1: Oct 14 (20%)' }, 1);
+    expect(res.status).toBe(500);
+    expect(await extractionCount()).toBe(before);
+  });
+
+  // Zero assessments is a real, paid answer. Only a call that never
+  // completed is given back.
+  it('still charges for a successful call that found nothing', async () => {
+    const before = await extractionCount();
+    vi.mocked(extractAssessments).mockResolvedValueOnce([]);
+    const res = await extract({ sourceText: 'Office hours: Tuesdays' }, 1);
+    expect(res.status).toBe(200);
+    expect(await extractionCount()).toBe(before + 1);
+  });
 });

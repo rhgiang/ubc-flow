@@ -125,6 +125,23 @@ export async function POST(req: Request) {
     // problems that all reach the student as the same sentence; the server
     // needs to be able to tell them apart.
     console.error('syllabus extraction failed:', e instanceof Error ? e.message : e);
+
+    // Give the quota unit back, the same way src/app/api/syllabus/route.ts
+    // refunds a failed put(). The cap is charged before the call so that
+    // concurrent requests cannot all pass the same check, but what it bounds
+    // is paid Anthropic calls, and a call that threw is not one we were
+    // billed for the way a completed one is. Without this a missing
+    // ANTHROPIC_API_KEY in production burns a student's 8 a day on our
+    // misconfiguration. A successful call that found nothing is NOT refunded:
+    // that was a real paid call. Best effort on purpose, a failed refund must
+    // not replace the real error.
+    await db.user
+      .updateMany({
+        where: { id: userId, extractionCount: { gt: 0 } },
+        data: { extractionCount: { decrement: 1 } },
+      })
+      .catch(() => {});
+
     return NextResponse.json(
       { error: 'Could not read this syllabus right now. Try again in a moment.' },
       { status: 500 },

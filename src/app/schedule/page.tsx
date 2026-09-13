@@ -16,6 +16,7 @@ import {
   hiddenExamRowsForUser,
   mergeExams,
   examCoverage,
+  courseLabel,
 } from '@/schedule/exams';
 import { toSavedAssessmentRow } from '@/syllabus/schema';
 import { isPlannableTerm, isUpcomingTerm, getCurrentAndNextTerm } from '@/schedule/terms';
@@ -69,10 +70,6 @@ async function examsTabData(
       ])
     : [[], []];
   const syllabusByCourse = new Map(syllabi.map((s) => [s.courseId, s]));
-  // Same spelling `toExamListItem` builds - "CPSC 110", no campus suffix - so
-  // the coverage check can match an enrolled course against an exam row.
-  const courseLabel = (c: (typeof courses)[number]) =>
-    `${c.subject.code?.replace(/_[A-Z]$/, '') ?? ''} ${c.number}`.trim();
 
   const items = mergeExams(scraped, fromSyllabus);
 

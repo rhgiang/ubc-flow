@@ -71,7 +71,7 @@ export async function POST(req: Request) {
   // courseId/termId are otherwise caller-supplied, so without this a signed-in
   // user could mint unlimited private blobs against courses they've never
   // taken. A syllabus for a course you're not enrolled in is meaningless
-  // anyway. Same query shape as src/app/syllabus/page.tsx's enrollment lookup.
+  // anyway. Same gate as POST /api/exams.
   const enrollment = await db.enrollment.findFirst({
     where: { userId, courseId, termId },
     select: { id: true },

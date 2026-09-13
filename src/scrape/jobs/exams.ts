@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { fetchText } from '@/scrape/http';
 import { parseExamSchedule } from '@/scrape/parse-exams';
+import { courseLabel, stripCampusSuffix } from '@/schedule/exams';
 
 export const EXAM_SCHEDULE_URL = 'https://tools.students.ubc.ca/exam-schedule/';
 
@@ -9,6 +10,11 @@ const CAMPUS = 'V';
 
 export async function fetchExamSchedule(): Promise<string> {
   return fetchText(EXAM_SCHEDULE_URL);
+}
+
+/** The same "BIOC 302" the exam views use, so a skipped row reads as one. */
+function label(row: { subjectCode: string; courseNumber: string }): string {
+  return courseLabel({ number: row.courseNumber, subject: { code: row.subjectCode } });
 }
 
 export async function ingestExams(html: string) {
@@ -25,16 +31,13 @@ export async function ingestExams(html: string) {
     },
   });
   if (!term) {
-    return {
-      written: 0,
-      skipped: rows.map((r) => `${r.subjectCode.replace(/_[A-Z]$/, '')} ${r.courseNumber}`),
-    };
+    return { written: 0, skipped: rows.map(label) };
   }
 
   let written = 0;
   for (const row of rows) {
     // The parser preserves UBC's "_V" campus suffix; Subject.code does not carry it.
-    const subjectCode = row.subjectCode.replace(/_[A-Z]$/, '');
+    const subjectCode = stripCampusSuffix(row.subjectCode);
     const course = await db.course.findFirst({
       where: {
         number: row.courseNumber,
@@ -42,7 +45,7 @@ export async function ingestExams(html: string) {
       },
     });
     if (!course) {
-      skipped.push(`${subjectCode} ${row.courseNumber}`);
+      skipped.push(label(row));
       continue;
     }
 

@@ -1,9 +1,9 @@
 import { db } from '@/lib/db';
 
 /**
- * One exam on the /exams page. Declared as a union from the start (`source`)
- * so Task 7 - which merges scraped finals with syllabus-derived midterms -
- * widens no types.
+ * One exam on the exams tab of /schedule. A union on `source`: scraped finals
+ * (`ubc`) and the rows a student confirmed from a syllabus or typed by hand
+ * (`syllabus`) render through the same shape, and `mergeExams` joins them.
  */
 export type ExamListItem = {
   id: string;
@@ -19,8 +19,8 @@ export type ExamListItem = {
   /** Set on syllabus rows a student edited or typed by hand. `mergeExams`
    *  keeps such a final beside UBC's instead of dropping it. */
   editedByUser?: boolean;
-  /** Which kind of exam this is. Task 7 merges scraped finals with syllabus
-   *  midterms and dedupes per course+kind, so this field is load-bearing. */
+  /** Which kind of exam this is. `mergeExams` and `groupExams` both key on
+   *  it, so this field is load-bearing. */
   kind: 'final' | 'midterm';
   /** Set when the course published several exam sections and we could not tell
    *  which one is the student's - see `filterToOwnSection`. Every section is
@@ -44,10 +44,17 @@ type FinalExamRow = {
   course: { number: string; subject: { code: string | null } };
 };
 
-/** "BIOC 302" - the campus-suffixed catalogue spelling ("BIOC_V") is not what
- *  a student reads, and every consumer keys on this one. */
-function courseLabelOf(course: { number: string; subject: { code: string | null } }): string {
-  return `${course.subject.code?.replace(/_[A-Z]$/, '') ?? ''} ${course.number}`;
+/** "BIOC" from "BIOC_V": the scrape and Workday spellings carry a campus
+ *  suffix that `Subject.code` and a student's eyes do not. */
+export function stripCampusSuffix(subjectCode: string): string {
+  return subjectCode.replace(/_[A-Z]$/, '');
+}
+
+/** "BIOC 302" - the one spelling every exam consumer keys on: the exam rows,
+ *  the coverage check, the section filter and the scrape job's skipped list.
+ *  Trimmed so a subject with no code still compares equal to itself. */
+export function courseLabel(course: { number: string; subject: { code: string | null } }): string {
+  return `${course.subject.code ? stripCampusSuffix(course.subject.code) : ''} ${course.number}`.trim();
 }
 
 /** Pure: a scraped `FinalExam` row (joined with its course/subject) into the
@@ -56,7 +63,7 @@ function courseLabelOf(course: { number: string; subject: { code: string | null 
 export function toExamListItem(row: FinalExamRow): ExamListItem {
   return {
     id: row.id,
-    courseLabel: courseLabelOf(row.course),
+    courseLabel: courseLabel(row.course),
     sectionCode: row.sectionCode,
     date: row.date,
     startTime: row.startTime,
@@ -241,7 +248,7 @@ export async function examRowsForUser(userId: string, termId: string): Promise<E
   const lectureSectionByCourse = new Map<string, string>();
   for (const m of lectures) {
     const course = courseById.get(m.courseId);
-    if (course && m.sectionCode) lectureSectionByCourse.set(courseLabelOf(course), m.sectionCode);
+    if (course && m.sectionCode) lectureSectionByCourse.set(courseLabel(course), m.sectionCode);
   }
 
   const items = exams
@@ -327,7 +334,7 @@ export async function syllabusExamRowsForUser(userId: string, termId: string): P
       if (!course) return [];
       return [{
         id: a.id,
-        courseLabel: courseLabelOf(course),
+        courseLabel: courseLabel(course),
         sectionCode: '', // a syllabus assessment isn't tied to a section
         date: a.date,
         startTime: a.startTime,

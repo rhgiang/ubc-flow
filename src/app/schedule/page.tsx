@@ -6,8 +6,11 @@ import ScheduleTabs, {
   type SectionLite,
   type TermGroup,
   type CalendarTermGroup,
+  type ExamsTabData,
 } from '@/components/ScheduleTabs';
 import type { CalendarEntry } from '@/components/schedule/ScheduleCalendar';
+import type { SyllabusListItem } from '@/components/SyllabusList';
+import { examRowsForUser, syllabusExamRowsForUser, mergeExams } from '@/schedule/exams';
 import { isPlannableTerm, isUpcomingTerm, getCurrentAndNextTerm } from '@/schedule/terms';
 
 function courseHref(subjectCode: string, number: string): string {
@@ -19,9 +22,55 @@ function sectionKey(m: { courseId: string; termId: string; sectionCode: string |
   return `${m.courseId}:${m.termId}:${m.sectionCode ?? ''}`;
 }
 
-export default async function SchedulePage() {
+/** Everything the Exams tab renders, for a signed-in student. Null for a
+ *  signed-out visitor — the rest of this page is browsable without an account,
+ *  and the tab says so rather than the whole page redirecting to /login. */
+async function examsTabData(userId: string, currentTermId: string | null): Promise<ExamsTabData> {
+  if (!currentTermId) return { items: [], termId: null, syllabi: [] };
+
+  const [scraped, fromSyllabus, enrollments] = await Promise.all([
+    examRowsForUser(userId, currentTermId),
+    syllabusExamRowsForUser(userId, currentTermId),
+    db.enrollment.findMany({ where: { userId, termId: currentTermId }, select: { courseId: true } }),
+  ]);
+
+  const courseIds = [...new Set(enrollments.map((e) => e.courseId))];
+  const [courses, syllabi] = courseIds.length
+    ? await Promise.all([
+        db.course.findMany({ where: { id: { in: courseIds } }, include: { subject: true } }),
+        db.syllabus.findMany({ where: { userId, termId: currentTermId, courseId: { in: courseIds } } }),
+      ])
+    : [[], []];
+  const syllabusByCourse = new Map(syllabi.map((s) => [s.courseId, s]));
+
+  return {
+    items: mergeExams(scraped, fromSyllabus),
+    termId: currentTermId,
+    syllabi: courses
+      .map((c): SyllabusListItem => {
+        const s = syllabusByCourse.get(c.id);
+        return {
+          courseId: c.id,
+          courseLabel: `${c.subject.code?.replace(/_[A-Z]$/, '') ?? ''} ${c.number}`.trim(),
+          syllabus: s
+            ? { id: s.id, filename: s.filename, size: s.size, extractedAt: s.extractedAt?.toISOString() ?? null }
+            : null,
+        };
+      })
+      .sort((a, b) => a.courseLabel.localeCompare(b.courseLabel)),
+  };
+}
+
+export default async function SchedulePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
   const session = await auth();
   const userId = session?.user?.id;
+  // /exams and /syllabus redirect here with ?tab=exams, so a bookmark from
+  // before those pages folded in still lands on their content.
+  const requestedTab = (await searchParams).tab;
 
   const [user, schedules, terms, meetings, enrollmentShares] = await Promise.all([
     userId ? db.user.findUnique({ where: { id: userId }, select: { program: true } }) : null,
@@ -126,6 +175,7 @@ export default async function SchedulePage() {
   const courseById = new Map(meetingCourses.map((c) => [c.id, c]));
 
   const currentTermId = getCurrentAndNextTerm(terms).current?.id ?? null;
+  const exams = userId ? await examsTabData(userId, currentTermId) : null;
 
   const calendarByTerm = new Map<string, CalendarTermGroup>(
     [...plannableTerms]
@@ -194,6 +244,8 @@ export default async function SchedulePage() {
           upcoming={[...upcomingByTerm.values()]}
           past={[...pastByTerm.values()]}
           calendar={[...calendarByTerm.values()]}
+          exams={exams}
+          initialTab={requestedTab === 'exams' ? 'exams' : 'upcoming'}
         />
       </div>
     </main>

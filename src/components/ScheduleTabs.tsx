@@ -8,6 +8,10 @@ import CourseInfoOverlay from '@/components/schedule/CourseInfoOverlay';
 import CalendarSubscribeMenu from '@/components/schedule/CalendarSubscribeMenu';
 import ShareLinkMenu from '@/components/schedule/ShareLinkMenu';
 import CampusMap from '@/components/CampusMap';
+import ExamList from '@/components/ExamList';
+import ExamCalendar from '@/components/ExamCalendar';
+import SyllabusList, { type SyllabusListItem } from '@/components/SyllabusList';
+import type { ExamListItem } from '@/schedule/exams';
 import {
   getEnrolledSubscribeUrl,
   enableEnrollmentSharing,
@@ -27,10 +31,28 @@ export type CalendarTermGroup = {
   shareToken: string | null;
 };
 
+/**
+ * Everything the Exams tab needs, or null for a signed-out visitor — an exam
+ * list is per-student, and this page lets signed-out people look around the
+ * rest of it.
+ *
+ * Exams live here rather than at /exams because they answer the same question
+ * a timetable does: when and where am I supposed to be. The syllabus rows come
+ * along for the same reason — uploading a syllabus is not a destination, it is
+ * how midterms get onto this view, so it hangs off the gap in the exam list
+ * instead of owning a tab or a nav pill.
+ */
+export type ExamsTabData = {
+  items: ExamListItem[];
+  /** Null when we can't work out the current term; the syllabus form needs it. */
+  termId: string | null;
+  syllabi: SyllabusListItem[];
+};
+
 const VISIBLE_SECTIONS = 3;
 // Stable identity: a fresh Set every render would re-run the overlay's memos.
 const EMPTY_SECTION_IDS: Set<string> = new Set();
-type Tab = 'upcoming' | 'past' | 'calendar' | 'map';
+type Tab = 'upcoming' | 'past' | 'calendar' | 'map' | 'exams';
 
 /**
  * `short` is what a phone gets. The full set of labels needs 568px of strip in
@@ -245,18 +267,89 @@ function CalendarTerm({
   );
 }
 
+function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
+  // List and calendar are the same data, so this is a view switch inside the
+  // tab rather than a sixth tab in the strip above. TabButton is reused so it
+  // reads as the same control, one level down.
+  const [view, setView] = useState<'list' | 'calendar'>('list');
+
+  if (!exams) {
+    return (
+      <p className="text-sm text-text-secondary">
+        Sign in to see your exam schedule for this term.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex gap-5 border-b border-border sm:gap-6">
+        <TabButton active={view === 'list'} onClick={() => setView('list')}>
+          List
+        </TabButton>
+        <TabButton active={view === 'calendar'} onClick={() => setView('calendar')}>
+          Calendar
+        </TabButton>
+      </div>
+
+      <div className="mt-4">
+        {view === 'list' ? (
+          <ExamList items={exams.items} />
+        ) : (
+          <ExamCalendar items={exams.items} />
+        )}
+      </div>
+
+      {/* Closed by default and phrased as the answer to "where are my
+          midterms?" — a syllabus upload is the means, not a place to go. */}
+      <details className="mt-6 rounded-card border border-border bg-surface p-4">
+        <summary className="cursor-pointer text-sm font-medium text-foreground">
+          Midterms missing? They come from your syllabus.
+        </summary>
+        <p className="mt-2 text-sm text-text-secondary">
+          UBC only publishes finals. Upload a course syllabus and we&apos;ll read the
+          midterm dates out of it — you confirm them before anything lands above. Your
+          files stay private to you.
+        </p>
+        {!exams.termId ? (
+          <p className="mt-3 text-sm text-text-secondary">
+            We couldn&apos;t work out the current term.
+          </p>
+        ) : exams.syllabi.length === 0 ? (
+          <p className="mt-3 text-sm text-text-secondary">
+            No courses on record for this term yet. Upload your Workday export from the{' '}
+            <Link href="/onboarding#upload" className="font-medium text-brand-accent hover:underline">
+              Account page
+            </Link>{' '}
+            first.
+          </p>
+        ) : (
+          <div className="mt-3">
+            <SyllabusList termId={exams.termId} items={exams.syllabi} />
+          </div>
+        )}
+      </details>
+    </div>
+  );
+}
+
 export default function ScheduleTabs({
   program,
   upcoming,
   past,
   calendar,
+  exams,
+  initialTab = 'upcoming',
 }: {
   program: string | null;
   upcoming: TermGroup[];
   past: TermGroup[];
   calendar: CalendarTermGroup[];
+  exams: ExamsTabData | null;
+  /** Set from ?tab= so the old /exams and /syllabus links land on this tab. */
+  initialTab?: Tab;
 }) {
-  const [tab, setTab] = useState<Tab>('upcoming');
+  const [tab, setTab] = useState<Tab>(initialTab);
   // Which calendar block was clicked. The term travels with it: course detail
   // is fetched per term, and this tab stacks one calendar per term. The
   // section code rides along so the overlay can flag the student's own
@@ -283,13 +376,19 @@ export default function ScheduleTabs({
         <TabButton active={tab === 'calendar'} onClick={() => setTab('calendar')} short="Calendar">
           View Calendar
         </TabButton>
+        {/* One word already, like Map — nothing to shorten for a phone. */}
+        <TabButton active={tab === 'exams'} onClick={() => setTab('exams')}>
+          Exams
+        </TabButton>
         <TabButton active={tab === 'map'} onClick={() => setTab('map')}>
           Map
         </TabButton>
       </div>
 
       <div className="mt-6">
-        {tab === 'map' ? (
+        {tab === 'exams' ? (
+          <ExamsTab exams={exams} />
+        ) : tab === 'map' ? (
           // Same enrollment groups the calendar tab draws — the map is the
           // "where" view of the identical data.
           calendar.every((g) => g.entries.length === 0) ? (

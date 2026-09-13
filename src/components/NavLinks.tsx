@@ -41,9 +41,12 @@ export default function NavLinks() {
     // or importing prompts sign-in), so this is a plain link either way.
     // This replaced an older login gate here — the page owns that decision
     // now, and the nav should not second-guess it.
+    // Exams and Syllabus used to sit here as two more pills. An exam schedule
+    // answers the same question a timetable does — when and where am I
+    // supposed to be — so it is a tab inside /schedule now; and uploading a
+    // syllabus is the means by which midterms appear on that tab, not a
+    // destination, so it hangs off the exam list rather than the nav.
     { href: '/schedule', label: 'Schedules' },
-    { href: '/exams', label: 'Exams' },
-    { href: '/syllabus', label: 'Syllabus' },
     // Guidance needs no account either: the roadmap for a student starting
     // fresh is useful on its own, and is the page's best argument for signing
     // in. Personalisation is what login adds, not access.

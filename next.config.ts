@@ -6,6 +6,16 @@ const nextConfig: NextConfig = {
   // `next start` keeps serving .next — otherwise the two fight over it and
   // the running server gets its chunks swapped out underneath it.
   distDir: process.env.NEXT_DIST_DIR ?? '.next',
+  // /exams and /syllabus were their own pages and their own nav pills. Both
+  // are now the Exams tab on /schedule, but people bookmarked them — so the
+  // paths stay alive and land on that tab. A config redirect rather than two
+  // stub pages: nothing is left to rot, and it's one place to read.
+  async redirects() {
+    return [
+      { source: '/exams', destination: '/schedule?tab=exams', permanent: true },
+      { source: '/syllabus', destination: '/schedule?tab=exams', permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

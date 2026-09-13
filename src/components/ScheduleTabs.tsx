@@ -8,13 +8,13 @@ import CourseInfoOverlay from '@/components/schedule/CourseInfoOverlay';
 import CalendarSubscribeMenu from '@/components/schedule/CalendarSubscribeMenu';
 import ShareLinkMenu from '@/components/schedule/ShareLinkMenu';
 import CampusMap from '@/components/CampusMap';
-import ExamList, { ExamCoverageNote } from '@/components/ExamList';
+import ExamList, { ExamCoverageNote, NoFinalsPostedYet } from '@/components/ExamList';
 import ExamCalendar from '@/components/ExamCalendar';
 import ExamDetailOverlay from '@/components/ExamDetailOverlay';
 import { useRemoveExam } from '@/components/use-remove-exam';
 import { AddExamButton, HiddenExams } from '@/components/ExamActions';
 import SyllabusList, { type SyllabusListItem } from '@/components/SyllabusList';
-import type { ExamCoverage, ExamListItem } from '@/schedule/exams';
+import { examsEmptyReason, type ExamCoverage, type ExamListItem, type ExamsEmptyReason } from '@/schedule/exams';
 import {
   getEnrolledSubscribeUrl,
   enableEnrollmentSharing,
@@ -198,6 +198,39 @@ function TermTable({ group, first }: { group: TermGroup; first: boolean }) {
 // The calendar is drawn from Workday enrollment data, so every fix for it -
 // nothing imported yet, or a schedule that changed since the last import -
 // is the same upload form on the Account page.
+/**
+ * What an empty exam tab says, by the reason it is empty (see
+ * `examsEmptyReason`). Each reason has a different next step, and only one of
+ * them is "wait": a student with nothing imported who is told to check back
+ * later would wait forever.
+ */
+function ExamsEmptyState({ reason }: { reason: NonNullable<ExamsEmptyReason> }) {
+  if (reason === 'no-term') {
+    return (
+      <p className="text-sm text-text-secondary">
+        We couldn&apos;t find a current term to show exams for. Check back once the term
+        catalogue updates.
+      </p>
+    );
+  }
+  if (reason === 'no-enrollments') {
+    return (
+      <div className="space-y-2 text-sm text-text-secondary">
+        <p>Your courses aren&apos;t in here yet. Import your Workday schedule and your exams will show up.</p>
+        <UploadLink primary>Upload your Workday export →</UploadLink>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2 text-sm text-text-secondary">
+      <p>
+        <NoFinalsPostedYet />
+      </p>
+      <p>Midterms show up here as soon as you add a syllabus below.</p>
+    </div>
+  );
+}
+
 function UploadLink({ children, primary }: { children: string; primary?: boolean }) {
   return (
     <Link
@@ -302,6 +335,15 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
   // Narrowed once into a const so the callbacks below close over a string
   // rather than a possibly-null property.
   const termId = exams.termId;
+  // Decided once, above the views: the reason the tab is empty picks the
+  // message, and the same reason decides whether the coverage footnote below
+  // would be repeating it.
+  const emptyReason = examsEmptyReason({
+    termId,
+    enrolledCount: exams.syllabi.length,
+    itemCount: exams.items.length,
+    published: exams.coverage.published,
+  });
 
   return (
     <div>
@@ -352,7 +394,9 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
       )}
 
       <div className="mt-4">
-        {view === 'list' ? (
+        {emptyReason ? (
+          <ExamsEmptyState reason={emptyReason} />
+        ) : view === 'list' ? (
           <ExamList items={exams.items} onSelect={setSelected} onRemove={removeExam} />
         ) : (
           <ExamCalendar items={exams.items} onSelect={setSelected} onRemove={removeExam} />
@@ -363,8 +407,11 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
       <HiddenExams items={exams.hidden} />
 
       {/* Under the exams rather than over them: it is the footnote to the list
-          - what ISN'T on it and why - not the headline. */}
-      <ExamCoverageNote coverage={exams.coverage} />
+          - what ISN'T on it and why - not the headline. Skipped when the empty
+          state above already said why, so "not posted yet" is not said twice,
+          and when there is no term or nothing enrolled, where a note about
+          UBC's schedule would be answering a question nobody asked. */}
+      {!emptyReason && <ExamCoverageNote coverage={exams.coverage} />}
 
       <ExamDetailOverlay group={selected} onClose={() => setSelected(null)} />
       {/* The confirm behind the hover x on a card or a chip; the overlay carries its own. */}

@@ -224,12 +224,26 @@ export default function ExamList({
  * See `examCoverage` for how that call is made. Deliberately small and below
  * the exams themselves: it is a footnote to the list, not the headline.
  */
+/**
+ * The one sentence for "UBC has posted nothing for this term yet", shared by
+ * the tab's empty state and the coverage footnote so the two cannot drift.
+ * It tells the student what to do (check back) and when (partway through
+ * term), which "nothing here yet" never did.
+ */
+export function NoFinalsPostedYet() {
+  return (
+    <>
+      No final exams have been posted for this term yet. UBC usually publishes the
+      schedule partway through term, so check back later.
+    </>
+  );
+}
+
 export function ExamCoverageNote({ coverage }: { coverage: ExamCoverage }) {
   if (!coverage.published) {
     return (
       <p className="mt-4 rounded-card border border-border bg-surface-muted px-3 py-2 text-xs text-text-secondary">
-        UBC hasn&apos;t published this term&apos;s final exam schedule yet - it usually
-        appears partway through term. Until it does, we can&apos;t tell you which of your
+        <NoFinalsPostedYet /> Until it does, we can&apos;t tell you which of your
         courses have a final.
       </p>
     );

@@ -292,3 +292,34 @@ export function examCoverage(
     noFinal: [...new Set(enrolledLabels)].filter((l) => !withFinal.has(l)).sort(),
   };
 }
+
+/**
+ * Why the exam tab has nothing to show, so the empty state can say the one
+ * thing that is actually true instead of "nothing here yet".
+ *
+ * These are different situations that look identical on screen and call for
+ * different next steps:
+ *   - no-term: no term in the catalogue is current. Not a student state, a
+ *     data gap, and "check back later" would be wrong: waiting fixes nothing.
+ *   - no-enrollments: nothing imported for this term. Telling this student to
+ *     wait for UBC to publish is misdirection; they need to import Workday.
+ *   - not-published: enrolled, but UBC has posted nothing for the term yet,
+ *     for anyone. The only case where "check back later" is the right advice.
+ * The order matters: each earlier reason makes the later message misleading.
+ *
+ * Null when there is something to render, or when the schedule IS out and the
+ * student's courses simply are not in it; `examCoverage` names those below.
+ */
+export type ExamsEmptyReason = 'no-term' | 'no-enrollments' | 'not-published' | null;
+
+export function examsEmptyReason(input: {
+  termId: string | null;
+  enrolledCount: number;
+  itemCount: number;
+  published: boolean;
+}): ExamsEmptyReason {
+  if (input.termId === null) return 'no-term';
+  if (input.enrolledCount === 0) return 'no-enrollments';
+  if (input.itemCount === 0 && !input.published) return 'not-published';
+  return null;
+}

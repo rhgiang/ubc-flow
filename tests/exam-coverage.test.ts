@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { examCoverage, type ExamListItem } from '@/schedule/exams';
+import { examCoverage, examsEmptyReason, type ExamListItem } from '@/schedule/exams';
 
 function exam(over: Partial<ExamListItem> & { id: string }): ExamListItem {
   return {
@@ -91,5 +91,40 @@ describe('examCoverage', () => {
   it('reports a duplicated enrollment once', () => {
     const coverage = examCoverage([], ['CRWR 200', 'CRWR 200'], true);
     expect(coverage).toEqual({ published: true, noFinal: ['CRWR 200'] });
+  });
+});
+
+// The empty tab has to say the one true thing. Three situations look identical
+// on screen (nothing to show) and only one of them is fixed by waiting.
+describe('examsEmptyReason', () => {
+  const base = { termId: 't1', enrolledCount: 6, itemCount: 0, published: false };
+
+  it('says "not published" only when enrolled, nothing to show, and UBC has posted nothing', () => {
+    expect(examsEmptyReason(base)).toBe('not-published');
+  });
+
+  // Waiting fixes nothing here; "check back later" would be a lie.
+  it('reports a missing current term ahead of everything else', () => {
+    expect(examsEmptyReason({ ...base, termId: null })).toBe('no-term');
+    expect(examsEmptyReason({ ...base, termId: null, published: true })).toBe('no-term');
+  });
+
+  // A student with nothing imported must be told to import, not to wait,
+  // whatever UBC has or has not published.
+  it('reports no enrollments before saying anything about publication', () => {
+    expect(examsEmptyReason({ ...base, enrolledCount: 0 })).toBe('no-enrollments');
+    expect(examsEmptyReason({ ...base, enrolledCount: 0, published: true })).toBe('no-enrollments');
+  });
+
+  // The schedule is out and this student's courses are not in it: the
+  // coverage footnote names them, so the empty state stays generic.
+  it('returns null when the schedule is published and there is simply nothing for this student', () => {
+    expect(examsEmptyReason({ ...base, published: true })).toBeNull();
+  });
+
+  // Syllabus midterms are on the page; the "not posted yet" line belongs to
+  // the footnote in that case, not to an empty state that is not empty.
+  it('returns null whenever there is something to render, even before UBC publishes', () => {
+    expect(examsEmptyReason({ ...base, itemCount: 3 })).toBeNull();
   });
 });

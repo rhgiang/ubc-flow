@@ -3,6 +3,9 @@
 import { useId, useRef, useState } from 'react';
 
 type Mode = 'file' | 'url' | 'text';
+/** Nothing picked yet. The dropdown opens on this, so no field shows until a
+ *  student chooses one and the form starts as a single control. */
+type Choice = Mode | '';
 
 const FIELD =
   'mt-2 block w-full rounded-input border border-border bg-surface px-2 py-1 text-sm text-foreground';
@@ -32,7 +35,7 @@ export default function SyllabusUpload({
   onUploaded: () => void;
 }) {
   const selectId = useId();
-  const [mode, setMode] = useState<Mode>('file');
+  const [mode, setMode] = useState<Choice>('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -40,6 +43,10 @@ export default function SyllabusUpload({
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    if (mode === '') {
+      setError('Choose how you are adding it first.');
+      return;
+    }
 
     // Only the chosen source is sent: the other two inputs are still in the
     // form (they keep whatever the student typed while switching) and an
@@ -66,6 +73,10 @@ export default function SyllabusUpload({
         return;
       }
       formRef.current?.reset();
+      // reset() clears the inputs but not React state, and a saved source
+      // should leave the picker back on "Select" rather than on the kind that
+      // was just added.
+      setMode('');
       onUploaded();
     } catch {
       setError('Could not save that. Check your connection and try again.');
@@ -79,21 +90,18 @@ export default function SyllabusUpload({
       <input type="hidden" name="courseId" value={courseId} />
       <input type="hidden" name="termId" value={termId} />
 
-      <div>
-        <label htmlFor={selectId} className="block text-sm font-medium text-foreground">
-          How are you adding it?
-        </label>
-        <select
-          id={selectId}
-          value={mode}
-          onChange={(e) => setMode(e.target.value as Mode)}
-          className={FIELD}
-        >
-          <option value="file">Upload a PDF</option>
-          <option value="url">Add a link</option>
-          <option value="text">Paste the text</option>
-        </select>
-      </div>
+      <select
+        id={selectId}
+        value={mode}
+        onChange={(e) => setMode(e.target.value as Choice)}
+        aria-label="How to add this syllabus"
+        className={`${FIELD} mt-0`}
+      >
+        <option value="">Select</option>
+        <option value="file">Upload a PDF</option>
+        <option value="url">Add a link</option>
+        <option value="text">Paste the text</option>
+      </select>
 
       {/*
         Only the chosen source is rendered. The submit handler still strips the
@@ -130,7 +138,7 @@ export default function SyllabusUpload({
         />
       )}
 
-      <p className="text-sm text-text-secondary">{HINT[mode]}</p>
+      {mode !== '' && <p className="text-sm text-text-secondary">{HINT[mode]}</p>}
 
       <div className="flex items-center gap-3">
         <button

@@ -10,14 +10,8 @@ import ScheduleTabs, {
 } from '@/components/ScheduleTabs';
 import type { CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 import type { SyllabusListItem } from '@/components/SyllabusList';
-import {
-  examRowsForUser,
-  syllabusExamRowsForUser,
-  hiddenExamRowsForUser,
-  mergeExams,
-  examCoverage,
-  courseLabel,
-} from '@/schedule/exams';
+import { examRowsForUser, syllabusExamRowsForUser, hiddenExamRowsForUser } from '@/schedule/exam-queries';
+import { mergeExams, examCoverage, courseLabel } from '@/schedule/exams';
 import { toSavedAssessmentRow } from '@/syllabus/schema';
 import { isPlannableTerm, isUpcomingTerm, getCurrentAndNextTerm } from '@/schedule/terms';
 

@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 import ExamList from '@/components/ExamList';
-import { examRowsForUser } from '@/schedule/exams';
+import { examRowsForUser } from '@/schedule/exam-queries';
 
 /**
  * A term's Workday-imported calendar, read-only, for anyone holding the link -

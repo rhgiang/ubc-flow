@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { icsFilename, icsResponse, meetingEvents, examEvent, type IcsEvent } from '@/schedule/ics';
-import { examRowsForUser, syllabusExamRowsForUser, mergeExams, groupExams } from '@/schedule/exams';
+import { examRowsForUser, syllabusExamRowsForUser } from '@/schedule/exam-queries';
+import { mergeExams, groupExams } from '@/schedule/exams';
 
 // Same reasoning as /api/calendar/[token]: a subscribed calendar is only worth
 // anything if it reflects current state, so nothing here may be cached.

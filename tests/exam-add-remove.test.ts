@@ -1,13 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { db } from '@/lib/db';
+import { withoutHidden, mergeExams, type ExamListItem } from '@/schedule/exams';
 import {
-  withoutHidden,
   examRowsForUser,
   syllabusExamRowsForUser,
   hiddenExamRowsForUser,
-  mergeExams,
-  type ExamListItem,
-} from '@/schedule/exams';
+} from '@/schedule/exam-queries';
 import { examCalendar } from '@/schedule/exam-calendar';
 import { normalizeManualExam, normalizeSavedAssessment } from '@/syllabus/schema';
 

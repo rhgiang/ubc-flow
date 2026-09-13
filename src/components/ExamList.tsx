@@ -62,6 +62,22 @@ export function groupExams(items: ExamListItem[]): ExamListItem[][] {
   return [...groups.values()];
 }
 
+/**
+ * Shown on every row of a course that published several exam sections when we
+ * can't tell which is the student's (see `filterToOwnSection`). Without it the
+ * two cards read as "you have two PHIL 347 finals", and picking one for them
+ * would be worse: the sections sit in different rooms at different times.
+ * Exported for the detail overlay, which says the same thing.
+ */
+export function AmbiguousSectionNote() {
+  return (
+    <p className="mt-1 rounded-input border border-border bg-surface-muted px-2 py-1 text-xs text-text-secondary">
+      UBC scheduled more than one section of this course, and we don&apos;t know which
+      one is yours — check your section code, only one of these is your exam.
+    </p>
+  );
+}
+
 /** Click target for an exam, shared by the list and the calendar. */
 export type SelectExam = (group: ExamListItem[]) => void;
 
@@ -114,6 +130,9 @@ function ExamRow({ group, onSelect }: { group: ExamListItem[]; onSelect?: Select
         )}
       </div>
       <p className="text-xs text-text-tertiary">{sourceLabel(item)}</p>
+      {/* Outside the cancelled strike-through below: it says this card may not
+          be the student's exam at all, which is not a detail of the exam. */}
+      {item.ambiguousSection && <AmbiguousSectionNote />}
       {item.cancelled ? (
         <div className="mt-1 line-through decoration-2 opacity-70">{body}</div>
       ) : (

@@ -218,6 +218,14 @@ export function examEvent(item: ExamListItem): IcsEvent | null {
       : `The ${endTime} end time is an estimate — UBC publishes a start time only. `
         + `Confirm with your instructor.`;
 
+  // Several sections of this course have exams and we don't know which is the
+  // student's, so the feed carries all of them — the calendar has no card to
+  // read the caveat off, so the event says it itself.
+  const sectionNote = item.ambiguousSection
+    ? ` UBC scheduled more than one section of this course — this is section ${item.sectionCode}, `
+      + `which may not be yours.`
+    : '';
+
   return {
     uid: `exam-${item.id}`,
     title: `${item.courseLabel} ${item.kind === 'final' ? 'Final Exam' : 'Midterm'}`,
@@ -227,6 +235,6 @@ export function examEvent(item: ExamListItem): IcsEvent | null {
     startDate: item.date,
     endDate: item.date,
     location: item.location,
-    description,
+    description: description + sectionNote,
   };
 }

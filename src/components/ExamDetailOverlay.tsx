@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { courseColorIndex } from '@/schedule/colors';
-import { formatAlphaSplit, formatDate, sourceLabel } from '@/components/ExamList';
+import { AmbiguousSectionNote, formatAlphaSplit, formatDate, sourceLabel } from '@/components/ExamList';
 import type { ExamListItem } from '@/schedule/exams';
 
 /**
@@ -96,6 +96,14 @@ export default function ExamDetailOverlay({
             </svg>
           </button>
         </div>
+
+        {/* Above the details, and outside the strike-through: which section
+            this is decides whether any of them apply to the student. */}
+        {item.ambiguousSection && (
+          <div className="mt-4">
+            <AmbiguousSectionNote />
+          </div>
+        )}
 
         {item.cancelled && (
           <p className="mt-4 rounded-input border border-danger-border bg-danger-surface px-2 py-1 text-sm font-medium text-danger">

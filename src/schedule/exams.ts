@@ -21,6 +21,10 @@ export type ExamListItem = {
   /** Which kind of exam this is. Task 7 merges scraped finals with syllabus
    *  midterms and dedupes per course+kind, so this field is load-bearing. */
   kind: 'final' | 'midterm';
+  /** Set when the course published several exam sections and we could not tell
+   *  which one is the student's — see `filterToOwnSection`. Every section is
+   *  shown, and the flag is what stops that reading as "you have two exams". */
+  ambiguousSection?: boolean;
 };
 
 /** Shape `examRowsForUser` assembles by hand — `FinalExam` has no Prisma
@@ -39,14 +43,19 @@ type FinalExamRow = {
   course: { number: string; subject: { code: string | null } };
 };
 
+/** "BIOC 302" — the campus-suffixed catalogue spelling ("BIOC_V") is not what
+ *  a student reads, and every consumer keys on this one. */
+function courseLabelOf(course: { number: string; subject: { code: string | null } }): string {
+  return `${course.subject.code?.replace(/_[A-Z]$/, '') ?? ''} ${course.number}`;
+}
+
 /** Pure: a scraped `FinalExam` row (joined with its course/subject) into the
  *  shape the exam view renders. Every row this produces is `kind: 'final'` —
  *  syllabus-derived midterms are a later task. */
 export function toExamListItem(row: FinalExamRow): ExamListItem {
-  const code = row.course.subject.code?.replace(/_[A-Z]$/, '') ?? '';
   return {
     id: row.id,
-    courseLabel: `${code} ${row.course.number}`,
+    courseLabel: courseLabelOf(row.course),
     sectionCode: row.sectionCode,
     date: row.date,
     startTime: row.startTime,
@@ -72,8 +81,64 @@ function compareItems(a: ExamListItem, b: ExamListItem): number {
   return ka[0] - kb[0] || ka[1] - kb[1] || ka[2].localeCompare(kb[2]);
 }
 
+/** Section codes are compared, never displayed, through this: the exam table
+ *  and a Workday export are two different transcriptions of the same string. */
+function sameSection(a: string): string {
+  return a.trim().toUpperCase();
+}
+
+/**
+ * Drops the other sections' exams.
+ *
+ * `Enrollment` carries no section, so the course+term join brings back every
+ * published section of a course — and 8 of the 108 courses in UBC's table
+ * publish more than one (PHIL_V 347 001/002, ENGL_V 110 JL1/JL2, LAW_V 505
+ * 98A/98B). A student in one of them was shown both exams, at different times
+ * in different buildings, with nothing saying which was theirs.
+ *
+ * `lectureSectionByCourse` is their own section per course label, from their
+ * Workday import — the LECTURE one only. A lab's "L1U" or a tutorial's "T2M"
+ * is not an exam section and would match nothing.
+ *
+ * Three cases, in order of how much we know:
+ *   - One published section: nothing to choose between. Untouched — this is
+ *     the overwhelming majority, and it stays a no-op.
+ *   - Several, and their lecture section is one of them: only that one.
+ *   - Several, and we don't know theirs (never imported Workday) or it matches
+ *     none of them: ALL of them, flagged `ambiguousSection`. Guessing sends
+ *     someone to the wrong room; hiding one loses a real exam. Neither is
+ *     worth saving them a glance at a label.
+ *
+ * `alphaSplit` is a different axis: rows sharing a `sectionCode` are ONE exam
+ * in several rooms, and they pass through together — grouping them is
+ * `groupExams`' job, downstream of this.
+ */
+export function filterToOwnSection(
+  items: ExamListItem[],
+  lectureSectionByCourse: Map<string, string>,
+): ExamListItem[] {
+  const publishedByCourse = new Map<string, Set<string>>();
+  for (const i of items) {
+    const seen = publishedByCourse.get(i.courseLabel) ?? new Set<string>();
+    seen.add(sameSection(i.sectionCode));
+    publishedByCourse.set(i.courseLabel, seen);
+  }
+
+  return items.flatMap((item) => {
+    const published = publishedByCourse.get(item.courseLabel)!;
+    if (published.size < 2) return [item];
+
+    const mine = lectureSectionByCourse.get(item.courseLabel);
+    const mineCode = mine ? sameSection(mine) : null;
+    if (mineCode && published.has(mineCode)) {
+      return sameSection(item.sectionCode) === mineCode ? [item] : [];
+    }
+    return [{ ...item, ambiguousSection: true }];
+  });
+}
+
 /** Every final exam a student has this term, from their `Enrollment` rows
- *  joined to `FinalExam` on course + term. */
+ *  joined to `FinalExam` on course + term, narrowed to their own section. */
 export async function examRowsForUser(userId: string, termId: string): Promise<ExamListItem[]> {
   const enrollments = await db.enrollment.findMany({
     where: { userId, termId },
@@ -87,11 +152,26 @@ export async function examRowsForUser(userId: string, termId: string): Promise<E
   });
   if (exams.length === 0) return [];
 
-  const courses = await db.course.findMany({
-    where: { id: { in: [...new Set(exams.map((e) => e.courseId))] } },
-    include: { subject: true },
-  });
+  const [courses, lectures] = await Promise.all([
+    db.course.findMany({
+      where: { id: { in: [...new Set(exams.map((e) => e.courseId))] } },
+      include: { subject: true },
+    }),
+    // The student's own section, for the courses that publish more than one
+    // exam. Workday's "Instructional Format" is the activity: only the lecture
+    // row's code is the one UBC's exam table publishes against.
+    db.enrollmentMeeting.findMany({
+      where: { userId, termId, courseId: { in: courseIds }, activity: 'Lecture' },
+      select: { courseId: true, sectionCode: true },
+    }),
+  ]);
   const courseById = new Map(courses.map((c) => [c.id, c]));
+
+  const lectureSectionByCourse = new Map<string, string>();
+  for (const m of lectures) {
+    const course = courseById.get(m.courseId);
+    if (course && m.sectionCode) lectureSectionByCourse.set(courseLabelOf(course), m.sectionCode);
+  }
 
   const items = exams
     .map((exam) => {
@@ -101,7 +181,11 @@ export async function examRowsForUser(userId: string, termId: string): Promise<E
     })
     .filter((item): item is ExamListItem => item !== null);
 
-  return items.sort(compareItems);
+  // Before `groupExams` and before `mergeExams`: both count rows per course,
+  // and they should count the student's own. `examCoverage` is unaffected —
+  // this never empties a course that had an exam, so a course still on the
+  // page is never named as having no final.
+  return filterToOwnSection(items, lectureSectionByCourse).sort(compareItems);
 }
 
 /** Shape `syllabusExamRowsForUser` assembles by hand — `Syllabus.courseId` is

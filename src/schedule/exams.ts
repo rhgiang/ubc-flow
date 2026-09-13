@@ -137,8 +137,25 @@ export function filterToOwnSection(
   });
 }
 
+/**
+ * Drops the scraped rows this student has hidden.
+ *
+ * A `FinalExam` is global - one row per published exam, read by every student
+ * in the course - so "remove this from my exams" is a per-user marker
+ * (`HiddenFinalExam`), never a delete. This is where the marker is applied,
+ * and it is applied in `examRowsForUser` so that every consumer gets it: the
+ * page, the shared page, and the subscribed ICS feed.
+ *
+ * Syllabus rows are never in this set: those belong to the student and are
+ * deleted outright, so there is nothing to hide.
+ */
+export function withoutHidden(items: ExamListItem[], hiddenIds: Set<string>): ExamListItem[] {
+  return items.filter((i) => i.source !== 'ubc' || !hiddenIds.has(i.id));
+}
+
 /** Every final exam a student has this term, from their `Enrollment` rows
- *  joined to `FinalExam` on course + term, narrowed to their own section. */
+ *  joined to `FinalExam` on course + term, narrowed to their own section,
+ *  minus whatever they have hidden. */
 export async function examRowsForUser(userId: string, termId: string): Promise<ExamListItem[]> {
   const enrollments = await db.enrollment.findMany({
     where: { userId, termId },
@@ -152,7 +169,7 @@ export async function examRowsForUser(userId: string, termId: string): Promise<E
   });
   if (exams.length === 0) return [];
 
-  const [courses, lectures] = await Promise.all([
+  const [courses, lectures, hidden] = await Promise.all([
     db.course.findMany({
       where: { id: { in: [...new Set(exams.map((e) => e.courseId))] } },
       include: { subject: true },
@@ -163,6 +180,10 @@ export async function examRowsForUser(userId: string, termId: string): Promise<E
     db.enrollmentMeeting.findMany({
       where: { userId, termId, courseId: { in: courseIds }, activity: 'Lecture' },
       select: { courseId: true, sectionCode: true },
+    }),
+    db.hiddenFinalExam.findMany({
+      where: { userId, finalExamId: { in: exams.map((e) => e.id) } },
+      select: { finalExamId: true },
     }),
   ]);
   const courseById = new Map(courses.map((c) => [c.id, c]));
@@ -181,68 +202,94 @@ export async function examRowsForUser(userId: string, termId: string): Promise<E
     })
     .filter((item): item is ExamListItem => item !== null);
 
+  // Hidden rows go first, so a student who hides the section that is not
+  // theirs leaves one published section behind and stops being asked which of
+  // the two is theirs.
+  const visible = withoutHidden(items, new Set(hidden.map((h) => h.finalExamId)));
+
   // Before `groupExams` and before `mergeExams`: both count rows per course,
   // and they should count the student's own. `examCoverage` is unaffected -
   // this never empties a course that had an exam, so a course still on the
   // page is never named as having no final.
-  return filterToOwnSection(items, lectureSectionByCourse).sort(compareItems);
+  return filterToOwnSection(visible, lectureSectionByCourse).sort(compareItems);
 }
 
-/** Shape `syllabusExamRowsForUser` assembles by hand - `Syllabus.courseId` is
- *  a raw FK (same convention as `FinalExamRow` above), so the course/subject
- *  join happens in JS. */
-type SyllabusAssessmentRow = {
-  id: string;
-  title: string;
-  kind: string; // 'midterm' | 'final' | 'assignment' | 'quiz'
-  date: Date | null;
-  startTime: string | null;
-  editedByUser: boolean;
-};
-
-/** Every confirmed midterm/final a student has this term, from their saved
- *  `SyllabusAssessment` rows. `assignment`/`quiz` rows don't belong on the
- *  exam page and are dropped. */
-export async function syllabusExamRowsForUser(userId: string, termId: string): Promise<ExamListItem[]> {
-  const syllabi = await db.syllabus.findMany({
-    where: { userId, termId },
-    include: { assessments: true },
+/**
+ * What this student has hidden, as exam rows - so the page can list them and
+ * offer each one back. Deliberately not run through `filterToOwnSection`:
+ * these are the rows the student removed by hand, and every one of them has
+ * to be findable again, including the other section's exam they hid on
+ * purpose.
+ */
+export async function hiddenExamRowsForUser(userId: string, termId: string): Promise<ExamListItem[]> {
+  const hidden = await db.hiddenFinalExam.findMany({
+    where: { userId },
+    select: { finalExamId: true },
   });
-  if (syllabi.length === 0) return [];
+  if (hidden.length === 0) return [];
+
+  const exams = await db.finalExam.findMany({
+    where: { id: { in: hidden.map((h) => h.finalExamId) }, termId },
+  });
+  if (exams.length === 0) return [];
 
   const courses = await db.course.findMany({
-    where: { id: { in: [...new Set(syllabi.map((s) => s.courseId))] } },
+    where: { id: { in: [...new Set(exams.map((e) => e.courseId))] } },
     include: { subject: true },
   });
   const courseById = new Map(courses.map((c) => [c.id, c]));
 
-  const items: ExamListItem[] = [];
-  for (const syllabus of syllabi) {
-    const course = courseById.get(syllabus.courseId);
-    if (!course) continue;
-    const code = course.subject.code?.replace(/_[A-Z]$/, '') ?? '';
-    const courseLabel = `${code} ${course.number}`;
+  return exams
+    .flatMap((exam) => {
+      const course = courseById.get(exam.courseId);
+      return course ? [toExamListItem({ ...exam, course })] : [];
+    })
+    .sort(compareItems);
+}
 
-    for (const a of syllabus.assessments as SyllabusAssessmentRow[]) {
-      if (a.kind !== 'midterm' && a.kind !== 'final') continue;
-      items.push({
+/**
+ * Every confirmed midterm/final a student has this term, from their saved
+ * `SyllabusAssessment` rows - both the ones read out of a syllabus and the
+ * ones they typed into the exam view, which have no syllabus at all.
+ *
+ * Asked of the assessment rows directly rather than through `Syllabus`, which
+ * is what a standalone row makes possible: the student, course and term are on
+ * the row itself now. `assignment`/`quiz` rows don't belong on the exam page
+ * and are dropped. `courseId` is a raw FK (same convention as `FinalExamRow`
+ * above), so the course/subject join happens in JS.
+ */
+export async function syllabusExamRowsForUser(userId: string, termId: string): Promise<ExamListItem[]> {
+  const rows = await db.syllabusAssessment.findMany({
+    where: { userId, termId, kind: { in: ['midterm', 'final'] } },
+  });
+  if (rows.length === 0) return [];
+
+  const courses = await db.course.findMany({
+    where: { id: { in: [...new Set(rows.map((r) => r.courseId))] } },
+    include: { subject: true },
+  });
+  const courseById = new Map(courses.map((c) => [c.id, c]));
+
+  return rows
+    .flatMap((a): ExamListItem[] => {
+      const course = courseById.get(a.courseId);
+      if (!course) return [];
+      return [{
         id: a.id,
-        courseLabel,
+        courseLabel: courseLabelOf(course),
         sectionCode: '', // a syllabus assessment isn't tied to a section
         date: a.date,
         startTime: a.startTime,
-        location: null,
+        location: a.location,
         alphaSplit: null,
         notes: a.title,
         cancelled: false,
         source: 'syllabus',
         editedByUser: a.editedByUser,
-        kind: a.kind,
-      });
-    }
-  }
-
-  return items.sort(compareItems);
+        kind: a.kind as 'midterm' | 'final',
+      }];
+    })
+    .sort(compareItems);
 }
 
 /**

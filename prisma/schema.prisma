@@ -168,6 +168,8 @@ model User {
   reviewVotes ReviewVote[]
   transferCredits TransferCredit[]
   syllabi Syllabus[]
+  assessments SyllabusAssessment[]
+  hiddenFinalExams HiddenFinalExam[]
 }
 
 model Enrollment {
@@ -580,8 +582,19 @@ model Syllabus {
  */
 model SyllabusAssessment {
   id         String   @id @default(cuid())
-  syllabusId String
-  syllabus   Syllabus @relation(fields: [syllabusId], references: [id], onDelete: Cascade)
+  /// Null on a row the student added straight from the exam view, for a course
+  /// they never recorded a syllabus for. Set on everything that came off a
+  /// syllabus, which still deletes with it.
+  syllabusId String?
+  syllabus   Syllabus? @relation(fields: [syllabusId], references: [id], onDelete: Cascade)
+  /// Whose row this is. The syllabus used to be the only path back to the
+  /// student, which meant an exam could not exist without one. These three
+  /// are set on every row, syllabus-derived or not, so the exam views can ask
+  /// for a student's term directly and a standalone row has a real owner.
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId   String
+  termId     String
   title      String
   /// "midterm" | "final" | "assignment" | "quiz"
   kind       String
@@ -589,6 +602,9 @@ model SyllabusAssessment {
   startTime  String?
   /// Percent of the final grade, when the syllabus states one.
   weight     Float?
+  /// Where it is written, verbatim, on a row the student typed. A syllabus
+  /// extraction never fills this in: the model reports no location.
+  location   String?
   /// Verbatim syllabus text the model based this row on, shown to the student
   /// on the confirm screen. An extracted row is never saved without a human
   /// seeing this.
@@ -614,6 +630,31 @@ model SyllabusAssessment {
   editedByUser Boolean @default(false)
 
   @@index([syllabusId])
+  /// The exam views ask for one student's term, with no syllabus to join
+  /// through - a standalone row has none.
+  @@index([userId, termId])
+}
+
+/**
+ * "Don't show me this one." A FinalExam row is scraped from UBC's public table
+ * and shared by everyone in the course, so removing one from a student's exam
+ * view cannot delete it - that would take the exam off every classmate's page
+ * too. This marks it hidden for ONE student instead.
+ *
+ * Reversible by deleting the row, which is the whole reason it is a marker
+ * rather than a delete: a student who hides their real final by accident has
+ * to be able to bring it back, and the exam view lists what they have hidden.
+ *
+ * finalExamId is a raw FK with no Prisma relation, the same convention
+ * FinalExam's own courseId/termId use.
+ */
+model HiddenFinalExam {
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  finalExamId String
+  createdAt   DateTime @default(now())
+
+  @@id([userId, finalExamId])
 }
 
 /// One table for every emailed single-use link, discriminated by `purpose`.

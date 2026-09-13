@@ -64,6 +64,9 @@ export async function POST(
 
   // Wipe-and-replace: a Save is the confirmed state of this syllabus's
   // assessment list, not a merge with whatever an earlier extraction saved.
+  // Scoped to `syllabusId`, so the exams this student typed into the exam view
+  // for the same course - standalone rows, syllabusId null - are not part of
+  // what a syllabus save replaces.
   // The payload is the whole list the student was just looking at (their
   // saved rows when they opened the editor, the proposals when they ran an
   // extraction), so replacing is what they asked for. The one case where that
@@ -72,7 +75,16 @@ export async function POST(
   await db.$transaction([
     db.syllabusAssessment.deleteMany({ where: { syllabusId: id } }),
     db.syllabusAssessment.createMany({
-      data: clean.map((c) => ({ ...c, syllabusId: id })),
+      // Owner, course and term are copied onto every row from the syllabus
+      // it came off: a row carries its own now, so nothing has to join back
+      // through here to find out whose it is.
+      data: clean.map((c) => ({
+        ...c,
+        syllabusId: id,
+        userId: syllabus.userId,
+        courseId: syllabus.courseId,
+        termId: syllabus.termId,
+      })),
     }),
     db.syllabus.update({ where: { id }, data: { extractedAt: new Date() } }),
   ]);

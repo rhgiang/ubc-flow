@@ -32,11 +32,11 @@ model Course {
   campus      String
   prereqText  String?
   coreqText   String?
-  /** Requirement tree parsed from prereqText — see src/prereqs/parse.ts. */
+  /** Requirement tree parsed from prereqText - see src/prereqs/parse.ts. */
   prereqTree  Json?
-  /** Requirement tree parsed from coreqText — same shape as prereqTree. */
+  /** Requirement tree parsed from coreqText - same shape as prereqTree. */
   coreqTree   Json?
-  /** Resolved-or-not course refs from "Equivalency:" clauses — see
+  /** Resolved-or-not course refs from "Equivalency:" clauses - see
     * src/prereqs/parse.ts:extractAntireqCodes. Same array shape a flat
     * Requirement course list would use: {code, courseId}[]. */
   antireqCodes Json?
@@ -141,10 +141,10 @@ model User {
   failedLogins  Int      @default(0)
   lockedUntil   DateTime?
   /// Chosen sky/theme mode, so it follows the account across devices.
-  /// Null means never chosen — the app falls back to campus weather.
+  /// Null means never chosen - the app falls back to campus weather.
   themeMode     String?
   /// Fixed-window counter for the syllabus-extraction cost guard (see
-  /// src/app/api/syllabus/extract/route.ts) — resets once
+  /// src/app/api/syllabus/extract/route.ts) - resets once
   /// extractionWindowStart is more than 24h old. Fixed, not sliding: the
   /// window starts at whichever request lands first after expiry, so e.g. 8
   /// calls at t+23:59 and 8 more at t+24:01 is possible. Bounded, and not
@@ -184,7 +184,7 @@ model Enrollment {
   source   String
   verified Boolean @default(false)
   /**
-   * The grade as Workday reported it — a percentage, a letter, "CR", "TR".
+   * The grade as Workday reported it - a percentage, a letter, "CR", "TR".
    * Kept verbatim rather than normalised, because the meanings differ by
    * grading basis and the raw value is what a student recognises.
    */
@@ -195,7 +195,7 @@ model Enrollment {
    *
    * Registration alone never implied completion, but with no grade column
    * there was nothing better to go on, so guidance inferred "passed" from the
-   * term having finished — and told anyone who failed or withdrew that they
+   * term having finished - and told anyone who failed or withdrew that they
    * were done. Defaults to "registered" so existing rows keep their old,
    * honest meaning instead of being silently promoted.
    */
@@ -206,7 +206,7 @@ model Enrollment {
 
 /**
  * One row per meeting pattern parsed straight from a Workday export's
- * "Meeting Patterns" cell (see src/upload/parse-workday.ts) — the real
+ * "Meeting Patterns" cell (see src/upload/parse-workday.ts) - the real
  * weekly day/time data Enrollment itself doesn't carry. A course with a
  * lecture + lab produces two rows; re-uploading replaces a (user, course,
  * term)'s rows wholesale rather than merging, since a dropped/changed
@@ -216,13 +216,13 @@ model Enrollment {
  * Credit earned at another institution.
  *
  * It cannot live in Enrollment, which is keyed on a UBC term: transfer credit
- * has no term, and often no course either — a Workday record lists rows like
+ * has no term, and often no course either - a Workday record lists rows like
  * "PHYS_V 1ST", unassigned first-year credit in a subject rather than a
  * specific course. Those still count toward a degree's credit total, so
  * `courseId` is optional and `raw` always holds what Workday actually said.
  *
  * Stored, counted toward degree progress, and never a basis for reviewing
- * UBC's version of the course — the review gate reads Enrollment, which these
+ * UBC's version of the course - the review gate reads Enrollment, which these
  * rows are deliberately not part of.
  */
 model TransferCredit {
@@ -256,9 +256,9 @@ model EnrollmentMeeting {
   days        String[]
   startTime   String?
   endTime     String?
-  /** Blank on most lab/tutorial rows — Workday only names the lecture's instructor. */
+  /** Blank on most lab/tutorial rows - Workday only names the lecture's instructor. */
   instructor  String?
-  /** The section's own Start/End Date columns — spans every meeting block. */
+  /** The section's own Start/End Date columns - spans every meeting block. */
   startDate   DateTime?
   endDate     DateTime?
 
@@ -302,8 +302,8 @@ model InstructorReview {
  * same sense reviews are: the row records who so a vote can be taken back and
  * counted once, and nothing but the total is ever rendered.
  *
- * reviewId points at either CourseReview.id or InstructorReview.id — cuids, so
- * unique across both — with `kind` naming which, following the raw-FK
+ * reviewId points at either CourseReview.id or InstructorReview.id - cuids, so
+ * unique across both - with `kind` naming which, following the raw-FK
  * convention the rest of the cross-domain joins use.
  */
 model ReviewVote {
@@ -328,7 +328,7 @@ model SavedSchedule {
   sections ScheduleSection[]
   token    CalendarToken?
   /**
-   * Read-only web sharing. Null means not shared, which is the default —
+   * Read-only web sharing. Null means not shared, which is the default -
    * sharing is something you turn on, never a side effect of saving.
    *
    * Deliberately NOT the CalendarToken: that one is subscribed inside someone
@@ -347,7 +347,7 @@ model ScheduleSection {
   sectionId  String
   /**
    * Where the class actually meets. Kept HERE rather than read back from the
-   * section, because the catalogue has no room at all — UBC's course API
+   * section, because the catalogue has no room at all - UBC's course API
    * exposes no location (see upload/match-schedule), so a student's own
    * Workday export is the only source there has ever been. Without these the
    * import's rooms survived only until the schedule was saved, and reloading
@@ -371,7 +371,7 @@ model CalendarToken {
 
 /**
  * Capability for the live ICS feed of a student's Workday-imported courses in
- * one term — the enrollment counterpart to CalendarToken, which is scoped to a
+ * one term - the enrollment counterpart to CalendarToken, which is scoped to a
  * SavedSchedule. One token per (user, term) so a student can subscribe each
  * term separately and the URL stays stable across re-uploads.
  */
@@ -387,7 +387,7 @@ model EnrollmentCalendarToken {
 }
 
 /**
- * Read-only web sharing for one term's Workday-imported calendar — the
+ * Read-only web sharing for one term's Workday-imported calendar - the
  * enrollment counterpart to SavedSchedule.shareToken. A separate token from
  * EnrollmentCalendarToken for the same reason that one is separate from
  * CalendarToken: the web page and the subscribed feed revoke independently.
@@ -411,14 +411,14 @@ model GradeDistribution {
   /**
    * NOT NULL via a string default, since Prisma rejects a nullable field in
    * a compound-key where clause. The ingest job always sets this explicitly
-   * — the real Term id when one matches (year, session, campus), or
+   * - the real Term id when one matches (year, session, campus), or
    * "unmatched-<year><session>" when our Term catalogue doesn't cover that
-   * period (it only tracks current/near-term periods, not history) — never
+   * period (it only tracks current/near-term periods, not history) - never
    * this bare "" default, which exists only as the column's safety net.
    */
   termId       String  @default("")
   sectionCode  String
-  /** "" when the source's Detail column is blank — see note above. */
+  /** "" when the source's Detail column is blank - see note above. */
   detail       String  @default("")
   average      Float?
   median       Float?
@@ -433,7 +433,7 @@ model GradeDistribution {
   @@index([courseId])
 }
 
-// A section has ONE distribution but may be CO-TAUGHT — verified in real data
+// A section has ONE distribution but may be CO-TAUGHT - verified in real data
 // (7 of 127 CPSC 2025W rows list several professors). Duplicating the
 // distribution per instructor would inflate every course average.
 model GradeDistributionInstructor {
@@ -459,7 +459,7 @@ model CourseHistoricalGrades {
 
 // One row per term the course was offered, average computed from
 // ubcgrades.com's per-term grade-bucket distribution (a different endpoint
-// and bucket format than CourseHistoricalGrades' summary stats above — see
+// and bucket format than CourseHistoricalGrades' summary stats above - see
 // src/grades/jobs/ingest-historical.ts). Powers the course page's grade
 // timeline chart.
 model CourseHistoricalGradesByTerm {
@@ -495,21 +495,21 @@ model FinalExam {
   /// "901" from "AMNE_V 101.901", "B_941" from "FNH_V 497.B_941". Not numeric.
   sectionCode String
   /// Null ONLY on a cancelled exam, which the table publishes with empty date,
-  /// time and location cells — see §4. Never null on a live exam.
+  /// time and location cells - see §4. Never null on a live exam.
   date        DateTime?
-  /// "08:30". The published table gives a start only — see §4 on duration.
+  /// "08:30". The published table gives a start only - see §4 on duration.
   startTime   String?
   /// Surname range, e.g. "ADI-SUN". Empty for most exams; when UBC splits a
   /// course across rooms it is the ONLY thing distinguishing two rows, which
   /// is why it is part of the unique key rather than a display detail.
   alphaSplit  String?
-  /// Null for "SEE PROF" and other non-room sentinels — see §4.
+  /// Null for "SEE PROF" and other non-room sentinels - see §4.
   building    String?
   room        String?
   /// Registrar annotations, verbatim: "Late Request", "Location Change (was
   /// DMP 201)", "Cancelled: August 17 2026, 3:30pm". Always displayed as-is.
   notes       String?
-  /// Derived from `notes` beginning with "Cancelled" — see §4. A cancelled
+  /// Derived from `notes` beginning with "Cancelled" - see §4. A cancelled
   /// exam is kept, never deleted: a student who remembers seeing it needs to
   /// be told it is off, and a row that vanishes tells them nothing.
   cancelled   Boolean  @default(false)
@@ -561,7 +561,7 @@ model Syllabus {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   /// Null until a student has confirmed and saved an extraction at least
-  /// once (set by the save route, not the extract route — see
+  /// once (set by the save route, not the extract route - see
   /// src/app/api/syllabus/[id]/assessments/route.ts). Doubles as "not yet
   /// read, offer a retry" in the UI when extraction has failed or never run.
   extractedAt DateTime?
@@ -574,7 +574,7 @@ model Syllabus {
  * One graded item read out of a Syllabus by src/syllabus/extract.ts, shown to
  * the student on the confirm screen before anything is saved (see
  * src/components/AssessmentConfirm.tsx). `quote`/`page` are the verbatim
- * evidence the student checks against the PDF — the only verification this
+ * evidence the student checks against the PDF - the only verification this
  * design has, so both stay visible wherever a row is shown.
  */
 model SyllabusAssessment {
@@ -609,8 +609,8 @@ model SyllabusAssessment {
 /// One table for every emailed single-use link, discriminated by `purpose`.
 ///
 /// The discriminator is a security control, not bookkeeping. Without it a
-/// signup verification link — 24 hours long, and printed to the server console
-/// by the current mail transport — could be pasted into /reset and used to set
+/// signup verification link - 24 hours long, and printed to the server console
+/// by the current mail transport - could be pasted into /reset and used to set
 /// a new password on that account. Every consumer must pass the purpose it
 /// expects; see consumeToken in src/lib/mail.ts.
 model VerificationToken {

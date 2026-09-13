@@ -165,6 +165,18 @@ export async function POST(req: Request) {
     // why, which is how a missing BLOB_READ_WRITE_TOKEN looks exactly like a
     // transient failure.
     console.error('syllabus save failed:', e instanceof Error ? e.message : e);
+
+    // Give the quota unit back. The cap is reserved BEFORE the write so that
+    // concurrent requests cannot all pass the same check, but the thing it
+    // exists to bound is billed blob writes, and a write that never happened
+    // costs nothing. Without this refund our own failures spend the student's
+    // allowance: a missing blob token burned all ten of one account's uploads
+    // without a single file being stored, and the only way out was tomorrow.
+    // Best effort on purpose, a failed refund must not replace the real error.
+    await db.user
+      .updateMany({ where: { id: userId, uploadCount: { gt: 0 } }, data: { uploadCount: { decrement: 1 } } })
+      .catch(() => {});
+
     return NextResponse.json({ error: 'Could not upload that file. Try again in a moment.' }, { status: 500 });
   }
 }

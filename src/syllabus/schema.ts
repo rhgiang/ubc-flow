@@ -1,6 +1,12 @@
 import type Anthropic from '@anthropic-ai/sdk';
 
 export const ASSESSMENT_KINDS = ['midterm', 'final', 'assignment', 'quiz'] as const;
+
+/** The most rows one syllabus save may carry. A real syllabus lists a dozen;
+ *  this is far past any honest one and keeps a scripted client from writing
+ *  an unbounded table. Shared by the save route and the confirm table so the
+ *  Save button can say why before the request is made. */
+export const MAX_ASSESSMENT_ROWS = 100;
 export type AssessmentKind = (typeof ASSESSMENT_KINDS)[number];
 
 export type ExtractedAssessment = {

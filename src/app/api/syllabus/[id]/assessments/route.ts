@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { normalizeSavedAssessment } from '@/syllabus/schema';
+import { MAX_ASSESSMENT_ROWS, normalizeSavedAssessment } from '@/syllabus/schema';
 
 /**
  * The confirm screen's Save action - the only place a SyllabusAssessment row
@@ -15,8 +15,6 @@ import { normalizeSavedAssessment } from '@/syllabus/schema';
  * hand-rolled duplicate - with the `edited` flag and date coercion layered
  * on top of what it returns.
  */
-const MAX_ASSESSMENT_ROWS = 100;
-
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -37,14 +35,19 @@ export async function POST(
   if (!Array.isArray(rows)) {
     return NextResponse.json({ error: 'Missing assessments.' }, { status: 400 });
   }
+  // Rejected, not truncated: a save that silently kept the first 100 and
+  // dropped the rest would report ok for a list the student never saw.
+  if (rows.length > MAX_ASSESSMENT_ROWS) {
+    return NextResponse.json(
+      { error: `That is more than ${MAX_ASSESSMENT_ROWS} assessments, which is the most one syllabus can hold.` },
+      { status: 400 },
+    );
+  }
 
   // Validated one row at a time, so each surviving row can be paired with its
   // own flags with no index bookkeeping: a list where a bad row is dropped
   // mid-array would desync any mapping done by position.
-  // Authenticated, but still caller-supplied and headed straight into a bulk
-  // insert. A real syllabus lists a dozen assessments; 100 is far past any
-  // honest one and keeps a scripted client from writing an unbounded table.
-  const clean = rows.slice(0, MAX_ASSESSMENT_ROWS).flatMap((raw) => {
+  const clean = rows.flatMap((raw) => {
     const a = normalizeSavedAssessment(raw);
     if (!a) return [];
     return [{

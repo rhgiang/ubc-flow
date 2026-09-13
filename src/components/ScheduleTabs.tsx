@@ -289,7 +289,7 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
   const [selected, setSelected] = useState<ExamListItem[] | null>(null);
   // Same removal the overlay offers, reached from the hover x on a card or
   // a chip without opening it first.
-  const { remove: removeExam } = useRemoveExam();
+  const { remove: removeExam, dialog: removeDialog } = useRemoveExam();
 
   if (!exams) {
     return (
@@ -367,6 +367,8 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
       <ExamCoverageNote coverage={exams.coverage} />
 
       <ExamDetailOverlay group={selected} onClose={() => setSelected(null)} />
+      {/* The confirm behind the hover x on a card or a chip; the overlay carries its own. */}
+      {removeDialog}
 
       {/* Closed by default and phrased as the answer to "where are my
           midterms?" - a syllabus upload is the means, not a place to go. */}

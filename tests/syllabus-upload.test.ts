@@ -279,17 +279,25 @@ describe('the other syllabus routes enforce the same ownership guard', () => {
     expect(res.status).toBe(200);
   });
 
-  // Unbounded authenticated input into createMany.
-  it('caps how many assessment rows one save can insert', async () => {
+  // Unbounded authenticated input into createMany. Flipped: this used to
+  // expect the first 100 kept and an ok, which reported success for a list
+  // the student never saw. The cap now rejects and names itself.
+  it('rejects a save above the row cap instead of silently truncating it', async () => {
     mockedAuth.mockResolvedValue({ user: { id: ownerId } });
     const row = { title: 'Midterm', kind: 'midterm', date: '2026-10-14', startTime: '18:00',
       weight: 10, quote: 'q', page: 1 };
-    const req = new Request(`http://localhost/api/syllabus/${syllabusId}/assessments`, {
-      method: 'POST',
-      body: JSON.stringify({ assessments: Array.from({ length: 250 }, () => row) }),
-    });
-    const res = await SAVE_ASSESSMENTS(req, { params: params() });
-    expect(await res.json()).toMatchObject({ count: 100 });
+    const save = (length: number) => SAVE_ASSESSMENTS(
+      new Request(`http://localhost/api/syllabus/${syllabusId}/assessments`, {
+        method: 'POST',
+        body: JSON.stringify({ assessments: Array.from({ length }, () => row) }),
+      }),
+      { params: params() },
+    );
+    const res = await save(250);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/100/);
+    // Exactly the cap still saves in full.
+    expect(await (await save(100)).json()).toMatchObject({ count: 100 });
   });
 });
 

@@ -31,7 +31,7 @@ export default function ExamDetailOverlay({
   // The group is the exam, so removing it removes every row of it: a final
   // split across four rooms by surname is one exam, not four. Shared with the
   // hover x on the list card and the calendar chip.
-  const { remove, removing, error } = useRemoveExam(onClose);
+  const { remove, removing, error, dialog } = useRemoveExam(onClose);
 
   // Escape closes, matching CourseInfoOverlay and the auth overlay.
   useEffect(() => {
@@ -179,9 +179,9 @@ export default function ExamDetailOverlay({
               ? 'UBC publishes this exam for everyone in the course, so it cannot be deleted. Hiding it changes your view only, and Hidden exams under the list brings it back.'
               : 'This one is yours. Removing it deletes it from your exams.'}
           </p>
-          {/* ponytail: no confirm step. The scraped one is reversible from the
-              list, and the student typed the other one. Add a confirm if
-              anyone actually reports losing an exam to a stray click. */}
+          {/* Hiding a scraped row is one click: it is reversible from the
+              hidden list. Deleting the student's own row asks first, inside
+              useRemoveExam, so every remove control asks the same way. */}
           <button
             type="button"
             disabled={removing}
@@ -196,6 +196,7 @@ export default function ExamDetailOverlay({
           </button>
         </div>
       </div>
+      {dialog}
     </div>
   );
 }

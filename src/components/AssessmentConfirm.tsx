@@ -4,6 +4,7 @@ import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import {
   ASSESSMENT_KINDS,
+  MAX_ASSESSMENT_ROWS,
   type AssessmentKind,
   type ExtractedAssessment,
   type SavedAssessment,
@@ -147,6 +148,12 @@ export default function AssessmentConfirm({
     // avoid. Caught here instead, while it can still be typed in.
     if (rows.some((r) => r.title.trim() === '')) {
       setError('Give every assessment a title before saving.');
+      return;
+    }
+    // The route rejects this too; said here so the reason is on screen before
+    // a request that can only fail.
+    if (rows.length > MAX_ASSESSMENT_ROWS) {
+      setError(`That is more than ${MAX_ASSESSMENT_ROWS} assessments, which is the most one syllabus can hold. Remove some before saving.`);
       return;
     }
     setStatus('saving');

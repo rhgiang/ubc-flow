@@ -279,7 +279,7 @@ export default function ExamCalendar({
             These have no date to sit on - a cancelled exam, or one UBC hasn&apos;t
             scheduled yet.
           </p>
-          <ExamList items={unscheduled.flat()} onSelect={onSelect} />
+          <ExamList items={unscheduled.flat()} onSelect={onSelect} onRemove={onRemove} />
         </div>
       )}
     </div>

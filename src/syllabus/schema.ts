@@ -158,3 +158,27 @@ export function normalizeSavedAssessment(raw: unknown): SavedAssessmentRow | nul
   const base = normalizeFields(raw);
   return base ? { ...base, quote: null, page: null, editedByUser: true } : null;
 }
+
+/** What an exam added from the exam view is called, when the student named no
+ *  title: the form asks for a kind, not a name. */
+function examTitle(kind: unknown): string {
+  return kind === 'final' ? 'Final exam' : 'Midterm';
+}
+
+/**
+ * One exam typed straight into the exam view. The manual path through
+ * `normalizeSavedAssessment` - no quote, no page, `editedByUser` true, because
+ * the student is the evidence - narrowed to the two kinds that belong on an
+ * exam page, and titled from the kind since that form asks for no name.
+ *
+ * `location` is this origin's alone: an extraction never reports one.
+ */
+export function normalizeManualExam(raw: unknown): (SavedAssessmentRow & { location: string | null }) | null {
+  const r = raw as Record<string, unknown>;
+  const row = normalizeSavedAssessment({ ...r, manual: true, title: examTitle(r?.kind) });
+  if (!row || (row.kind !== 'midterm' && row.kind !== 'final')) return null;
+  const location = typeof r?.location === 'string' && r.location.trim() !== ''
+    ? r.location.trim().slice(0, 120)
+    : null;
+  return { ...row, location };
+}

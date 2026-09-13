@@ -217,3 +217,40 @@ export function mergeExams(scraped: ExamListItem[], fromSyllabus: ExamListItem[]
 
   return [...keptScraped, ...keptSyllabus].sort(compareItems);
 }
+
+/**
+ * What the exam page can honestly say about a student's courses that have no
+ * exam on it. Today it says nothing, and a student with six courses and four
+ * exams cannot tell whether a course has NO final or whether its final simply
+ * hasn't been published — opposite meanings rendered as the same blank space.
+ *
+ * The signal: UBC publishes a term's whole final exam schedule at once,
+ * partway through term. So ONE `FinalExam` row anywhere in the term — any
+ * course, not just this student's — proves the schedule is out, and an
+ * enrolled course still missing from it has no registrar-scheduled final.
+ * Before that first row nothing is known, and naming a course as having no
+ * final would be the kind of lie that makes someone miss one.
+ */
+export type ExamCoverage =
+  | { published: false }
+  | { published: true; noFinal: string[] };
+
+export function examCoverage(
+  items: ExamListItem[],
+  enrolledLabels: string[],
+  termHasAnyExam: boolean,
+): ExamCoverage {
+  if (!termHasAnyExam) return { published: false };
+  // A syllabus final counts as covered: the student has told us there IS one,
+  // and naming the course below a card announcing it would contradict itself.
+  // A cancelled row counts too — the registrar scheduled it and then pulled
+  // it, which the struck-through card says better than this note could.
+  // Midterms never count: they say nothing about whether a final exists.
+  const withFinal = new Set(
+    items.filter((i) => i.kind === 'final').map((i) => i.courseLabel),
+  );
+  return {
+    published: true,
+    noFinal: [...new Set(enrolledLabels)].filter((l) => !withFinal.has(l)).sort(),
+  };
+}

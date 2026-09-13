@@ -20,10 +20,15 @@ function rowChanged(a: ExtractedAssessment, b: ExtractedAssessment): boolean {
 export default function AssessmentConfirm({
   syllabusId,
   alreadyExtracted,
+  readable,
   onSaved,
 }: {
   syllabusId: string;
   alreadyExtracted: boolean;
+  /** False for a link-only syllabus: a bookmark is never fetched, so there is
+   *  nothing to read. Said outright instead of offering a button that can
+   *  only fail, or an empty list that looks like a syllabus with no exams. */
+  readable: boolean;
   onSaved: () => void;
 }) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'review' | 'saving'>('idle');
@@ -92,6 +97,15 @@ export default function AssessmentConfirm({
       setError('Could not save. Check your connection and try again.');
       setStatus('review');
     }
+  }
+
+  if (!readable) {
+    return (
+      <p className="mt-3 text-sm text-text-secondary">
+        We can&apos;t read a link, it&apos;s only a bookmark. Open it, select the whole page,
+        and paste the text in below to get the midterm dates.
+      </p>
+    );
   }
 
   if (status === 'idle') {

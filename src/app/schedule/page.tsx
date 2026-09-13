@@ -72,7 +72,14 @@ async function examsTabData(
           courseId: c.id,
           courseLabel: courseLabel(c),
           syllabus: s
-            ? { id: s.id, filename: s.filename, size: s.size, extractedAt: s.extractedAt?.toISOString() ?? null }
+            ? {
+                id: s.id,
+                filename: s.filename,
+                size: s.size,
+                url: s.url,
+                sourceText: s.sourceText,
+                extractedAt: s.extractedAt?.toISOString() ?? null,
+              }
             : null,
         };
       })

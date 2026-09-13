@@ -8,7 +8,18 @@ import AssessmentConfirm from '@/components/AssessmentConfirm';
 export type SyllabusListItem = {
   courseId: string;
   courseLabel: string;
-  syllabus: { id: string; filename: string; size: number; extractedAt: string | null } | null;
+  syllabus: {
+    id: string;
+    /** All three null together when there is no uploaded PDF on this row. */
+    filename: string | null;
+    size: number | null;
+    url: string | null;
+    /** ponytail: sent inline rather than behind a fetch route. Capped at
+     *  MAX_SYLLABUS_TEXT_CHARS and a real syllabus is a fraction of that; if
+     *  these payloads ever get heavy, serve it from a route like the PDF. */
+    sourceText: string | null;
+    extractedAt: string | null;
+  } | null;
 };
 
 function formatSize(bytes: number): string {
@@ -16,10 +27,11 @@ function formatSize(bytes: number): string {
 }
 
 /**
- * One row per enrolled course this term: either the syllabus already on file
- * (with a toggleable in-app viewer and a delete action) or an upload form.
- * The viewer is an <embed> pointed at our own streaming route, never a blob
- * URL - see src/app/api/syllabus/[id]/file/route.ts for why.
+ * One row per enrolled course this term: whatever the student has recorded so
+ * far (any of an uploaded PDF, a link, and the pasted text, with a toggleable
+ * viewer and a delete action) plus the form to add another. The PDF viewer is
+ * an <embed> pointed at our own streaming route, never a blob URL - see
+ * src/app/api/syllabus/[id]/file/route.ts for why.
  */
 export default function SyllabusList({ termId, items }: { termId: string; items: SyllabusListItem[] }) {
   const router = useRouter();
@@ -77,20 +89,63 @@ export default function SyllabusList({ termId, items }: { termId: string; items:
           {item.syllabus ? (
             <>
               <p className="mt-1 text-sm text-text-secondary">
-                {item.syllabus.filename} · {formatSize(item.syllabus.size)}
+                {[
+                  item.syllabus.filename && item.syllabus.size !== null
+                    ? `${item.syllabus.filename} · ${formatSize(item.syllabus.size)}`
+                    : null,
+                  item.syllabus.url ? 'link' : null,
+                  item.syllabus.sourceText ? 'pasted text' : null,
+                ].filter(Boolean).join(' · ')}
               </p>
+
               {openId === item.syllabus.id && (
-                <embed
-                  src={`/api/syllabus/${item.syllabus.id}/file`}
-                  type="application/pdf"
-                  className="mt-4 h-[37.5rem] w-full rounded-input border border-border"
-                />
+                <div className="mt-4 space-y-3">
+                  {item.syllabus.url && (
+                    // Outbound and untrusted: the student typed this. rel
+                    // stops the opened page reaching back through
+                    // window.opener, and the scheme was checked on write.
+                    <a
+                      href={item.syllabus.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block break-all text-sm font-medium text-brand-accent hover:underline"
+                    >
+                      {item.syllabus.url}
+                    </a>
+                  )}
+                  {item.syllabus.filename && (
+                    <embed
+                      src={`/api/syllabus/${item.syllabus.id}/file`}
+                      type="application/pdf"
+                      className="h-[37.5rem] w-full rounded-input border border-border"
+                    />
+                  )}
+                  {item.syllabus.sourceText && (
+                    <pre className="max-h-[25rem] overflow-auto whitespace-pre-wrap rounded-input border border-border bg-surface-muted p-3 text-sm text-text-secondary">
+                      {item.syllabus.sourceText}
+                    </pre>
+                  )}
+                </div>
               )}
+
               <AssessmentConfirm
                 syllabusId={item.syllabus.id}
                 alreadyExtracted={item.syllabus.extractedAt !== null}
+                // A link is a bookmark: we never fetch it, so there is
+                // nothing to read until a PDF or the pasted text arrives.
+                readable={item.syllabus.filename !== null || item.syllabus.sourceText !== null}
                 onSaved={() => router.refresh()}
               />
+
+              <details
+                className="mt-3"
+                open={item.syllabus.filename === null && item.syllabus.sourceText === null}
+              >
+                <summary className="cursor-pointer text-sm font-medium text-foreground">
+                  Add a PDF, a link, or the syllabus text
+                </summary>
+                <SyllabusUpload courseId={item.courseId} termId={termId} onUploaded={() => router.refresh()} />
+              </details>
             </>
           ) : (
             <SyllabusUpload courseId={item.courseId} termId={termId} onUploaded={() => router.refresh()} />

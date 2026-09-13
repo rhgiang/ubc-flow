@@ -167,44 +167,65 @@ describe('examEvent', () => {
   // UBC publishes no end time. The event still needs one, so it is ours.
   it('ends an exam a default duration after it starts', () => {
     expect(EXAM_DEFAULT_MINUTES).toBe(150);
-    expect(examEvent(base)!.endTime).toBe('14:30');
+    expect(examEvent([base])!.endTime).toBe('14:30');
   });
 
   it('rolls the default duration over an hour boundary correctly', () => {
-    expect(examEvent({ ...base, startTime: '15:30' })!.endTime).toBe('18:00');
+    expect(examEvent([{ ...base, startTime: '15:30' }])!.endTime).toBe('18:00');
   });
 
   // Spec §6: the end time is our assumption, so the event has to say so.
   it('discloses the assumed end time in the event description', () => {
-    const ics = buildIcs('Exams', [examEvent(base)!]);
+    const ics = buildIcs('Exams', [examEvent([base])!]);
     expect(ics).toMatch(/DESCRIPTION:.*UBC publishes a start time only/);
   });
 
   it('drops a cancelled exam from the feed', () => {
-    expect(examEvent({ ...base, cancelled: true })).toBeNull();
+    expect(examEvent([{ ...base, cancelled: true }])).toBeNull();
   });
 
   it('drops a dateless exam rather than guessing', () => {
-    expect(examEvent({ ...base, date: null, startTime: null })).toBeNull();
+    expect(examEvent([{ ...base, date: null, startTime: null }])).toBeNull();
   });
 
   // The feed carries syllabus midterms too (spec S1). Titling one "Final
   // Exam" would be a lie sitting on the student's phone.
   it('titles a midterm a midterm, not a final exam', () => {
-    const ev = examEvent({ ...base, kind: 'midterm', source: 'syllabus', id: 'syl-1' })!;
+    const ev = examEvent([{ ...base, kind: 'midterm', source: 'syllabus', id: 'syl-1' }])!;
     expect(ev.title).toBe('BIOC 302 Midterm');
-    expect(examEvent(base)!.title).toBe('BIOC 302 Final Exam');
+    expect(examEvent([base])!.title).toBe('BIOC 302 Final Exam');
   });
 
   it('says a syllabus-derived event came from the uploaded syllabus', () => {
-    const ev = examEvent({ ...base, kind: 'midterm', source: 'syllabus', id: 'syl-1' })!;
+    const ev = examEvent([{ ...base, kind: 'midterm', source: 'syllabus', id: 'syl-1' }])!;
     expect(ev.description).toMatch(/syllabus you uploaded/);
     expect(ev.description).toMatch(/double-check/i);
   });
 
   it('still drops a cancelled or dateless syllabus row', () => {
     const syl = { ...base, kind: 'midterm' as const, source: 'syllabus' as const };
-    expect(examEvent({ ...syl, cancelled: true })).toBeNull();
-    expect(examEvent({ ...syl, date: null })).toBeNull();
+    expect(examEvent([{ ...syl, cancelled: true }])).toBeNull();
+    expect(examEvent([{ ...syl, date: null }])).toBeNull();
+  });
+
+  // Every other surface goes through groupExams; the feed did not. CHEM 123
+  // (ADI-SUN in IRC 2, TAZ-ZHU in IRC 6) was two identical events at the same
+  // time, each carrying one room and no surname range.
+  it('makes one event of an exam split across rooms, with every room and its surnames', () => {
+    const adi = { ...base, id: 'adi', courseLabel: 'CHEM 123', alphaSplit: 'ADI-SUN', location: 'IRC 2' };
+    const taz = { ...adi, id: 'taz', alphaSplit: 'TAZ-ZHU', location: 'IRC 6' };
+    const ev = examEvent([adi, taz])!;
+    expect(ev.location).toBe('ADI-SUN: IRC 2; TAZ-ZHU: IRC 6');
+    const ics = buildIcs('Exams', [ev]);
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1);
+    expect(ics).toContain(String.raw`LOCATION:ADI-SUN: IRC 2\; TAZ-ZHU: IRC 6`);
+  });
+
+  it('keeps a single-room exam\'s plain location', () => {
+    expect(examEvent([base])!.location).toBe('BIOL 1000');
+  });
+
+  it('emits nothing for an empty group', () => {
+    expect(examEvent([])).toBeNull();
   });
 });

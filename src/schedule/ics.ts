@@ -193,18 +193,25 @@ function addMinutes(time: string, minutes: number): string | null {
 }
 
 /**
- * One merged exam row (scraped final OR syllabus-derived midterm/final) into
- * a one-off calendar event. Returns null for exactly the two cases that must
- * never reach a phone: cancelled (would ring an alarm for a test that isn't
- * happening) and dateless (nothing to place it on). Both are still shown on
- * /exams - this only guards the calendar feed.
+ * One exam, as `groupExams` hands it over (several rows when UBC splits it
+ * across rooms by surname), into ONE one-off calendar event. Returns null for
+ * exactly the two cases that must never reach a phone: cancelled (would ring
+ * an alarm for a test that isn't happening) and dateless (nothing to place it
+ * on). Both are still shown on the exams tab - this only guards the feed.
+ *
+ * It takes the group rather than a row so the feed cannot emit CHEM 123 twice
+ * at the same time with one room each. LOCATION carries every room against
+ * its surname range ("ADI-SUN: IRC 2; TAZ-ZHU: IRC 6"), which is the part a
+ * student reads off their phone on the way in; a single-room exam keeps its
+ * plain location.
  *
  * The title comes from `item.kind`, not a hardcoded "Final Exam": the feed
  * carries midterms too (spec §1), and titling one "Final Exam" would be a
  * lie on the student's phone.
  */
-export function examEvent(item: ExamListItem): IcsEvent | null {
-  if (item.cancelled || !item.date || !item.startTime) return null;
+export function examEvent(group: ExamListItem[]): IcsEvent | null {
+  const item = group[0];
+  if (!item || item.cancelled || !item.date || !item.startTime) return null;
   const endTime = addMinutes(item.startTime, EXAM_DEFAULT_MINUTES);
   if (!endTime) return null;
 
@@ -234,7 +241,11 @@ export function examEvent(item: ExamListItem): IcsEvent | null {
     endTime,
     startDate: item.date,
     endDate: item.date,
-    location: item.location,
+    location: group.length === 1
+      ? item.location
+      : group
+          .map((r) => `${r.alphaSplit ? `${r.alphaSplit}: ` : ''}${r.location ?? 'Location TBA'}`)
+          .join('; '),
     description: description + sectionNote,
   };
 }

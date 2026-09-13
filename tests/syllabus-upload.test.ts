@@ -19,7 +19,7 @@ describe('validateSyllabusFile', () => {
     })).toMatch(/too large/i);
   });
 
-  it('caps at 4MB, not 10MB — a Vercel Function request body over ~4.5MB never reaches this code', () => {
+  it('caps at 4MB, not 10MB - a Vercel Function request body over ~4.5MB never reaches this code', () => {
     expect(MAX_SYLLABUS_BYTES).toBe(4 * 1024 * 1024);
   });
 
@@ -32,7 +32,7 @@ describe('validateSyllabusFile', () => {
 // Exercises the actual GET handler (not a re-implementation of the check it
 // runs) with auth() mocked, so the test would fail if the ownership guard in
 // src/app/api/syllabus/[id]/file/route.ts were ever removed. @vercel/blob's
-// get() is mocked too — there is no real Blob store on this machine, and the
+// get() is mocked too - there is no real Blob store on this machine, and the
 // point here is the ownership gate, not exercising the network call.
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }));
 vi.mock('@vercel/blob', () => ({
@@ -118,7 +118,7 @@ describe('the syllabus file route ownership guard', () => {
     expect(res.status).toBe(401);
   });
 
-  it('404s for a signed-in user who is not the owner — never 403, never confirms the id is real', async () => {
+  it('404s for a signed-in user who is not the owner - never 403, never confirms the id is real', async () => {
     mockedAuth.mockResolvedValue({ user: { id: otherId } });
     const res = await GET(request(), { params: params() });
     expect(res.status).toBe(404);

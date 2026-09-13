@@ -15,7 +15,7 @@ const ACTIVE = 'border-brand bg-brand text-brand-foreground';
 // The menu rows are their own shape: full width, no pill, and tall enough to
 // be a real touch target. 44px is the floor both Apple and Google publish, so
 // the row sits exactly on it (min-h-11, no vertical padding) rather than the
-// 48 it used to be — the menu shrinks by way of smaller text and a narrower
+// 48 it used to be - the menu shrinks by way of smaller text and a narrower
 // panel, never by taking the target under the line.
 const ROW =
   'flex min-h-11 w-full items-center rounded-xl px-3 text-left text-sm font-medium';
@@ -30,7 +30,7 @@ export default function NavLinks() {
   const [menuOpen, setMenuOpen] = useState(false);
   // Resolved in the browser rather than passed from the server: the nav is on
   // every page, and a server-side auth() read forced the WHOLE site into
-  // per-request rendering — no page could be served from the CDN. The button
+  // per-request rendering - no page could be served from the CDN. The button
   // says "Account" in both states, so nothing flashes while this loads.
   const loggedIn = useSignedIn();
 
@@ -39,11 +39,11 @@ export default function NavLinks() {
     { href: '/explore', label: 'Explore' },
     // /schedule itself handles signed-out visitors (browse freely; building
     // or importing prompts sign-in), so this is a plain link either way.
-    // This replaced an older login gate here — the page owns that decision
+    // This replaced an older login gate here - the page owns that decision
     // now, and the nav should not second-guess it.
     // Exams and Syllabus used to sit here as two more pills. An exam schedule
-    // answers the same question a timetable does — when and where am I
-    // supposed to be — so it is a tab inside /schedule now; and uploading a
+    // answers the same question a timetable does - when and where am I
+    // supposed to be - so it is a tab inside /schedule now; and uploading a
     // syllabus is the means by which midterms appear on that tab, not a
     // destination, so it hangs off the exam list rather than the nav.
     { href: '/schedule', label: 'Schedules' },
@@ -58,8 +58,8 @@ export default function NavLinks() {
           label: 'Account',
           onClick: async () => {
             // Ask every time; never trust the cached answer. loggedIn is read
-            // once in a mount effect, so for anyone who has signed in since —
-            // through the very overlay this button opens — it still says
+            // once in a mount effect, so for anyone who has signed in since -
+            // through the very overlay this button opens - it still says
             // "signed out". `loggedIn ?? fetch` then short-circuited on that
             // stale false and never re-checked at all, so Account reopened the
             // login form for someone already signed in: the exact thing this
@@ -124,7 +124,7 @@ export default function NavLinks() {
     <>
       {/*
         Five pills plus the wordmark need 602px and a phone gives 390. They
-        did not wrap or scroll — they overflowed the document, which made
+        did not wrap or scroll - they overflowed the document, which made
         EVERY page on the site horizontally scrollable and pushed the Account
         pill, the one control a signed-out visitor needs, off the right edge.
         Below sm: the same five live in a menu instead.

@@ -6,7 +6,7 @@ import { AmbiguousSectionNote, formatAlphaSplit, formatDate, sourceLabel } from 
 import type { ExamListItem } from '@/schedule/exams';
 
 /**
- * One exam's full detail, as an overlay rather than a navigation — the same
+ * One exam's full detail, as an overlay rather than a navigation - the same
  * chrome, backdrop, Escape handling and close button as CourseInfoOverlay, so
  * the two read as the same app.
  *
@@ -15,7 +15,7 @@ import type { ExamListItem } from '@/schedule/exams';
  * while building a schedule, which an exam has no equivalent of, so this is
  * its own component rather than a widened version of that one.
  *
- * `group` is one exam — several rows when UBC splits it across rooms by
+ * `group` is one exam - several rows when UBC splits it across rooms by
  * surname (see `groupExams`). The list and the calendar both hand over the
  * same grouped shape.
  */
@@ -39,7 +39,7 @@ export default function ExamDetailOverlay({
   }, [group, onClose]);
 
   // Focus moves into the dialog on open and back to whatever opened it on
-  // close — the trigger is a chip in a month grid, and dropping focus on
+  // close - the trigger is a chip in a month grid, and dropping focus on
   // <body> would send the next Tab to the top of the page.
   useEffect(() => {
     if (!group) return;
@@ -111,7 +111,7 @@ export default function ExamDetailOverlay({
           </p>
         )}
 
-        {/* A cancelled exam keeps every detail on screen, struck through — the
+        {/* A cancelled exam keeps every detail on screen, struck through - the
             same treatment its card gets in the list. Hiding the date of an
             exam that was pulled is how someone shows up for it anyway. */}
         <dl className={`mt-4 space-y-3 ${item.cancelled ? 'line-through decoration-2 opacity-70' : ''}`}>
@@ -122,11 +122,11 @@ export default function ExamDetailOverlay({
 
           <div>
             <dt className="text-xs text-text-tertiary">
-              {group.length > 1 ? 'Where — find your surname' : 'Where'}
+              {group.length > 1 ? 'Where to go, by surname' : 'Where'}
             </dt>
             {group.length === 1 ? (
               <dd className="text-sm text-foreground">
-                {item.location ?? 'Location TBA — check with your instructor'}
+                {item.location ?? 'Location TBA. Check with your instructor.'}
                 {item.alphaSplit ? ` · ${formatAlphaSplit(item.alphaSplit)}` : ''}
               </dd>
             ) : (

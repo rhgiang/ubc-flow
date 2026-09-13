@@ -42,7 +42,7 @@ describe('toExamListItem', () => {
 
 // Exam dates are stored as UTC midnight. Without an explicit timeZone this
 // formats in the server's zone, and every date west of Greenwich renders a
-// day early — "Mon, Aug 17" for a Tuesday exam.
+// day early - "Mon, Aug 17" for a Tuesday exam.
 describe('formatDate', () => {
   it('reads a UTC-midnight date back in UTC, not the server zone', () => {
     expect(formatDate(new Date('2026-08-18T00:00:00Z'))).toBe('Tue, Aug 18');

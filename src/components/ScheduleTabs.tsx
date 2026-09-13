@@ -33,13 +33,13 @@ export type CalendarTermGroup = {
 };
 
 /**
- * Everything the Exams tab needs, or null for a signed-out visitor — an exam
+ * Everything the Exams tab needs, or null for a signed-out visitor - an exam
  * list is per-student, and this page lets signed-out people look around the
  * rest of it.
  *
  * Exams live here rather than at /exams because they answer the same question
  * a timetable does: when and where am I supposed to be. The syllabus rows come
- * along for the same reason — uploading a syllabus is not a destination, it is
+ * along for the same reason - uploading a syllabus is not a destination, it is
  * how midterms get onto this view, so it hangs off the gap in the exam list
  * instead of owning a tab or a nav pill.
  */
@@ -51,7 +51,7 @@ export type ExamsTabData = {
    *  courses are missing from it once it is out. */
   coverage: ExamCoverage;
   syllabi: SyllabusListItem[];
-  /** Existing share token for this term — the same one the Calendar tab uses,
+  /** Existing share token for this term - the same one the Calendar tab uses,
    *  since it is the same term's schedule either tab shares. */
   shareToken: string | null;
 };
@@ -64,7 +64,7 @@ type Tab = 'upcoming' | 'past' | 'calendar' | 'map' | 'exams';
 /**
  * `short` is what a phone gets. The full set of labels needs 568px of strip in
  * a 334px viewport, which put View Calendar 46px past the right edge of the
- * screen and Map further still — reachable only by discovering that a hairline
+ * screen and Map further still - reachable only by discovering that a hairline
  * strip scrolls sideways, which nobody does. "Saved Schedules" is also the
  * heading directly above, so the phone loses only a word it already read.
  */
@@ -147,7 +147,7 @@ function TermTable({ group, first }: { group: TermGroup; first: boolean }) {
         {/*
           A phone is too narrow for three columns. At a third of ~340px the
           name column ran "2026-27 Winter Term 2 (UBC-V)" down four lines while
-          the sections beside it were squeezed to ellipses — every cell losing
+          the sections beside it were squeezed to ellipses - every cell losing
           at once. Below sm: the table stops being a table and each row becomes
           a card: name across the top, sections full width beneath it, actions
           pinned to the corner. The headers go with it, since a stacked row has
@@ -190,8 +190,8 @@ function TermTable({ group, first }: { group: TermGroup; first: boolean }) {
   );
 }
 
-// The calendar is drawn from Workday enrollment data, so every fix for it —
-// nothing imported yet, or a schedule that changed since the last import —
+// The calendar is drawn from Workday enrollment data, so every fix for it -
+// nothing imported yet, or a schedule that changed since the last import -
 // is the same upload form on the Account page.
 function UploadLink({ children, primary }: { children: string; primary?: boolean }) {
   return (
@@ -279,7 +279,7 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
   // tab rather than a sixth tab in the strip above. TabButton is reused so it
   // reads as the same control, one level down.
   const [view, setView] = useState<'list' | 'calendar'>('list');
-  // The clicked exam, as the grouped rows both views hand over — one exam
+  // The clicked exam, as the grouped rows both views hand over - one exam
   // split across rooms by surname is one selection, same as it is one card.
   const [selected, setSelected] = useState<ExamListItem[] | null>(null);
 
@@ -308,7 +308,7 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
         </div>
         {/* The same two controls the Calendar tab carries, on the same term's
             data: exams are already in that ICS feed, and the shared page shows
-            them. Syllabus midterms and the uploaded PDFs are not in either —
+            them. Syllabus midterms and the uploaded PDFs are not in either -
             they stay on this page, behind the student's own session. */}
         {termId && (
           <div className="flex items-center gap-2 pb-2">
@@ -340,20 +340,20 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
       </div>
 
       {/* Under the exams rather than over them: it is the footnote to the list
-          — what ISN'T on it and why — not the headline. */}
+          - what ISN'T on it and why - not the headline. */}
       <ExamCoverageNote coverage={exams.coverage} />
 
       <ExamDetailOverlay group={selected} onClose={() => setSelected(null)} />
 
       {/* Closed by default and phrased as the answer to "where are my
-          midterms?" — a syllabus upload is the means, not a place to go. */}
+          midterms?" - a syllabus upload is the means, not a place to go. */}
       <details className="mt-6 rounded-card border border-border bg-surface p-4">
         <summary className="cursor-pointer text-sm font-medium text-foreground">
           Midterms missing? They come from your syllabus.
         </summary>
         <p className="mt-2 text-sm text-text-secondary">
           UBC only publishes finals. Upload a course syllabus and we&apos;ll read the
-          midterm dates out of it — you confirm them before anything lands above. Your
+          midterm dates out of it - you confirm them before anything lands above. Your
           files stay private to you.
         </p>
         {!exams.termId ? (
@@ -421,7 +421,7 @@ export default function ScheduleTabs({
         <TabButton active={tab === 'calendar'} onClick={() => setTab('calendar')} short="Calendar">
           View Calendar
         </TabButton>
-        {/* One word already, like Map — nothing to shorten for a phone. */}
+        {/* One word already, like Map - nothing to shorten for a phone. */}
         <TabButton active={tab === 'exams'} onClick={() => setTab('exams')}>
           Exams
         </TabButton>
@@ -434,7 +434,7 @@ export default function ScheduleTabs({
         {tab === 'exams' ? (
           <ExamsTab exams={exams} />
         ) : tab === 'map' ? (
-          // Same enrollment groups the calendar tab draws — the map is the
+          // Same enrollment groups the calendar tab draws - the map is the
           // "where" view of the identical data.
           calendar.every((g) => g.entries.length === 0) ? (
             <div>

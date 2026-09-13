@@ -18,7 +18,7 @@ export function formatDate(date: Date): string {
   });
 }
 
-/** "Surnames ADI–SUN" — an en dash, not the hyphen UBC's table uses. */
+/** "Surnames ADI–SUN" - an en dash, not the hyphen UBC's table uses. */
 export function formatAlphaSplit(alphaSplit: string): string {
   return `Surnames ${alphaSplit.replace('-', '–')}`;
 }
@@ -27,17 +27,17 @@ export function formatAlphaSplit(alphaSplit: string): string {
 export function sourceLabel(item: ExamListItem): string {
   return item.source === 'ubc'
     ? 'UBC exam schedule'
-    : 'From your syllabus — double-check this date';
+    : 'From your syllabus. Double-check this date.';
 }
 
 /**
  * UBC splits a big exam across rooms by surname, publishing one row per room.
  * Those rows are the SAME exam, and rendering them as separate cards reads as
- * "you have two BIOL 121 exams" — which is how the first person to see this
+ * "you have two BIOL 121 exams" - which is how the first person to see this
  * page read it. Group them so one exam is one card, listing each room against
  * the surnames that go to it.
  *
- * The key deliberately excludes alphaSplit, building and room — those are what
+ * The key deliberately excludes alphaSplit, building and room - those are what
  * differ WITHIN a group. Two genuinely separate exams for one course (a
  * midterm and a final, or two midterms) differ by kind or date and stay apart.
  */
@@ -73,7 +73,7 @@ export function AmbiguousSectionNote() {
   return (
     <p className="mt-1 rounded-input border border-border bg-surface-muted px-2 py-1 text-xs text-text-secondary">
       UBC scheduled more than one section of this course, and we don&apos;t know which
-      one is yours — check your section code, only one of these is your exam.
+      one is yours - check your section code, only one of these is your exam.
     </p>
   );
 }
@@ -82,10 +82,10 @@ export function AmbiguousSectionNote() {
 export type SelectExam = (group: ExamListItem[]) => void;
 
 /**
- * One exam's card — which may be several published rows when the exam is split
+ * One exam's card - which may be several published rows when the exam is split
  * across rooms. Matches the visual language of EnrolledCourseCard: same
  * rounded-card/border/surface shell, same accent-on-code + secondary-title
- * header pattern — but the accent is the COURSE's colour, the same slot
+ * header pattern - but the accent is the COURSE's colour, the same slot
  * ScheduleCalendar paints its blocks with, so an exam reads as the same course
  * it is everywhere else in the app.
  */
@@ -100,7 +100,7 @@ function ExamRow({ group, onSelect }: { group: ExamListItem[]; onSelect?: Select
       </p>
       {group.length === 1 ? (
         <p className="mt-1 text-sm text-text-secondary">
-          {item.location ?? 'Location TBA — check with your instructor'}
+          {item.location ?? 'Location TBA. Check with your instructor.'}
           {item.alphaSplit ? ` · ${formatAlphaSplit(item.alphaSplit)}` : ''}
         </p>
       ) : (
@@ -175,7 +175,7 @@ export default function ExamList({
 }) {
   if (items.length === 0) {
     // Whether UBC has published this term's schedule is ExamCoverageNote's
-    // job, directly below — repeating it here said it twice on an empty tab.
+    // job, directly below - repeating it here said it twice on an empty tab.
     return (
       <p className="text-sm text-text-secondary">
         Nothing here yet. Midterms show up once you upload a syllabus.
@@ -194,7 +194,7 @@ export default function ExamList({
 
 /**
  * The difference between "this course has no final" and "UBC hasn't said yet",
- * which the page otherwise renders as the same blank space — and which mean
+ * which the page otherwise renders as the same blank space - and which mean
  * opposite things to someone deciding whether to keep a December flight.
  *
  * See `examCoverage` for how that call is made. Deliberately small and below
@@ -204,7 +204,7 @@ export function ExamCoverageNote({ coverage }: { coverage: ExamCoverage }) {
   if (!coverage.published) {
     return (
       <p className="mt-4 rounded-card border border-border bg-surface-muted px-3 py-2 text-xs text-text-secondary">
-        UBC hasn&apos;t published this term&apos;s final exam schedule yet — it usually
+        UBC hasn&apos;t published this term&apos;s final exam schedule yet - it usually
         appears partway through term. Until it does, we can&apos;t tell you which of your
         courses have a final.
       </p>
@@ -223,7 +223,7 @@ export function ExamCoverageNote({ coverage }: { coverage: ExamCoverage }) {
             <span className="font-medium text-foreground">{label}</span>
           </span>
         ))}{' '}
-        {coverage.noFinal.length === 1 ? 'is' : 'are'} not in it — no registrar-scheduled
+        {coverage.noFinal.length === 1 ? 'is' : 'are'} not in it. No registrar-scheduled
         final exam.
       </p>
       {/* The honest caveat: the registrar's table only covers sit-down exams it

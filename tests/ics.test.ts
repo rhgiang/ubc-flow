@@ -199,7 +199,7 @@ describe('examEvent', () => {
   it('says a syllabus-derived event came from the uploaded syllabus', () => {
     const ev = examEvent({ ...base, kind: 'midterm', source: 'syllabus', id: 'syl-1' })!;
     expect(ev.description).toMatch(/syllabus you uploaded/);
-    expect(ev.description).toMatch(/double-check/);
+    expect(ev.description).toMatch(/double-check/i);
   });
 
   it('still drops a cancelled or dateless syllabus row', () => {

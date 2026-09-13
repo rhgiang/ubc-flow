@@ -4,13 +4,13 @@ import { db } from '@/lib/db';
 import { normalizeAssessments } from '@/syllabus/schema';
 
 /**
- * The confirm screen's Save action — the only place a SyllabusAssessment row
+ * The confirm screen's Save action - the only place a SyllabusAssessment row
  * is ever written. The extract route (src/app/api/syllabus/extract/route.ts)
  * only proposes rows; nothing is persisted until a student accepts them here.
  *
  * Re-validated server-side by running the client's payload back through
- * normalizeAssessments (schema.ts) — one copy of those rules, not a
- * hand-rolled duplicate — with the `edited` flag and date coercion layered
+ * normalizeAssessments (schema.ts) - one copy of those rules, not a
+ * hand-rolled duplicate - with the `edited` flag and date coercion layered
  * on top of what it returns.
  */
 const MAX_ASSESSMENT_ROWS = 100;
@@ -38,8 +38,8 @@ export async function POST(
 
   // normalizeAssessments drops invalid rows, so mapping its output back onto
   // `rows` by index would desync as soon as anything mid-array gets dropped.
-  // Run it one row at a time instead — still the single source of truth for
-  // the validation rules, just called N times — so each surviving row can be
+  // Run it one row at a time instead - still the single source of truth for
+  // the validation rules, just called N times - so each surviving row can be
   // paired with its own `edited` flag with no index bookkeeping.
   // Authenticated, but still caller-supplied and headed straight into a bulk
   // insert. A real syllabus lists a dozen assessments; 100 is far past any

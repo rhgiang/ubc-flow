@@ -11,7 +11,7 @@ function rowChanged(a: ExtractedAssessment, b: ExtractedAssessment): boolean {
 }
 
 /**
- * The confirm screen from the design doc's §8 "human in the loop" — extracted
+ * The confirm screen from the design doc's §8 "human in the loop" - extracted
  * rows are proposals only. Every row keeps its verbatim `quote` and `page`
  * visible beside it: that quote is the only way to check the model against
  * the actual PDF, so it is never hidden behind a toggle or dropped.

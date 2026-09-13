@@ -17,7 +17,7 @@ export type IcsEvent = {
 
 const TZID = 'America/Vancouver';
 
-/** The EnrollmentMeeting fields an ICS event needs — see schema.prisma. */
+/** The EnrollmentMeeting fields an ICS event needs - see schema.prisma. */
 export type MeetingLike = {
   id: string;
   sectionCode: string | null;
@@ -78,7 +78,7 @@ function dateStamp(d: Date): string {
 
 /**
  * The first occurrence on or after the section's start date. A section
- * starting Wednesday with Monday meetings first meets the following Monday —
+ * starting Wednesday with Monday meetings first meets the following Monday -
  * anchoring DTSTART to the start date itself would place it on the wrong day.
  */
 function firstOccurrence(startDate: Date, dayIndex: number): Date {
@@ -102,7 +102,7 @@ export function buildIcs(calendarName: string, events: IcsEvent[]): string {
   for (const e of events) {
     if (!e.startTime || !e.endTime || !e.startDate) continue;
 
-    // A null day is a single occurrence — an exam, not a weekly meeting.
+    // A null day is a single occurrence - an exam, not a weekly meeting.
     if (e.day === null) {
       const stamp = dateStamp(e.startDate);
       lines.push(
@@ -197,7 +197,7 @@ function addMinutes(time: string, minutes: number): string | null {
  * a one-off calendar event. Returns null for exactly the two cases that must
  * never reach a phone: cancelled (would ring an alarm for a test that isn't
  * happening) and dateless (nothing to place it on). Both are still shown on
- * /exams — this only guards the calendar feed.
+ * /exams - this only guards the calendar feed.
  *
  * The title comes from `item.kind`, not a hardcoded "Final Exam": the feed
  * carries midterms too (spec §1), and titling one "Final Exam" would be a
@@ -209,20 +209,20 @@ export function examEvent(item: ExamListItem): IcsEvent | null {
   if (!endTime) return null;
 
   // A syllabus row is a model's reading of a PDF the student confirmed, not
-  // UBC's published schedule — the event has to say which it is, because
+  // UBC's published schedule - the event has to say which it is, because
   // that's what decides whether it's worth double-checking.
   const description =
     item.source === 'syllabus'
-      ? `From the syllabus you uploaded, not UBC's exam schedule — double-check the date `
+      ? `From the syllabus you uploaded, not UBC's exam schedule. Double-check the date `
         + `and time with your instructor. The ${endTime} end time is an estimate.`
-      : `The ${endTime} end time is an estimate — UBC publishes a start time only. `
+      : `The ${endTime} end time is an estimate - UBC publishes a start time only. `
         + `Confirm with your instructor.`;
 
   // Several sections of this course have exams and we don't know which is the
-  // student's, so the feed carries all of them — the calendar has no card to
+  // student's, so the feed carries all of them - the calendar has no card to
   // read the caveat off, so the event says it itself.
   const sectionNote = item.ambiguousSection
-    ? ` UBC scheduled more than one section of this course — this is section ${item.sectionCode}, `
+    ? ` UBC scheduled more than one section of this course - this is section ${item.sectionCode}, `
       + `which may not be yours.`
     : '';
 

@@ -8,7 +8,7 @@ import ExamList from '@/components/ExamList';
 import { examRowsForUser } from '@/schedule/exams';
 
 /**
- * A term's Workday-imported calendar, read-only, for anyone holding the link —
+ * A term's Workday-imported calendar, read-only, for anyone holding the link -
  * the enrollment sibling of /shared/[token], under the same rules: the token
  * IS the capability, no session is read, and nothing about the owner renders.
  * Data loads exactly the way /api/calendar/enrolled builds its ICS feed.
@@ -28,7 +28,7 @@ async function load(token: string) {
     }),
     db.term.findUnique({ where: { id: record.termId }, select: { name: true } }),
     // UBC's own published finals for the sections this page already names, in
-    // the student's own section (examRowsForUser filters them) — the exam tab
+    // the student's own section (examRowsForUser filters them) - the exam tab
     // shares this link, and a shared "schedule" without them is half a term.
     // Deliberately NOT the merged list: a syllabus-derived midterm comes out
     // of a PDF the student uploaded and is theirs alone, so it never leaves
@@ -77,7 +77,7 @@ export async function generateMetadata({
   params: Promise<{ token: string }>;
 }): Promise<Metadata> {
   const data = await load((await params).token);
-  // Pasted into group chats, so it gets a real preview — but noindex, because
+  // Pasted into group chats, so it gets a real preview - but noindex, because
   // these are personal and should never turn up in search.
   return {
     title: data ? `${data.termName} · shared calendar` : 'Shared calendar',

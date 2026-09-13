@@ -9,13 +9,13 @@ import ExamList, { formatDate, type SelectExam } from '@/components/ExamList';
 /** Sunday-first, matching the grid `examCalendar` builds. */
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-/** Which square is today, resolved after mount — the server's zone need not be
+/** Which square is today, resolved after mount - the server's zone need not be
  *  the viewer's, so deriving it during render would hydrate-mismatch. Same
  *  reason ScheduleCalendar resolves its now-indicator in an effect. */
 type Today = { key: string; day: number };
 
 /**
- * One exam in a day square, painted in the course's own colour — the same slot
+ * One exam in a day square, painted in the course's own colour - the same slot
  * ScheduleCalendar gives that course in the weekly grid, so BIOL 121 is the
  * same colour wherever a student meets it.
  *
@@ -43,21 +43,21 @@ function ExamChip({ group, onSelect }: { group: ExamListItem[]; onSelect: Select
       type="button"
       onClick={() => onSelect(group)}
       // The date is in the aria-label because the day number that carries it
-      // is in a different element — a screen reader reaching this button
+      // is in a different element - a screen reader reaching this button
       // linearly would otherwise hear a course code and a time with no day.
       aria-label={`${item.courseLabel}${item.date ? `, ${formatDate(item.date)}` : ''}${
         item.startTime ? ` at ${item.startTime}` : ''
       }${fromSyllabus ? ', from your syllabus' : ''}`}
       title={
         fromSyllabus
-          ? `${item.courseLabel} — from your syllabus, double-check this date`
-          : `${item.courseLabel} — UBC exam schedule`
+          ? `${item.courseLabel} - from your syllabus, double-check this date`
+          : `${item.courseLabel} - UBC exam schedule`
       }
       style={{
         background: `var(--course-${slot}-bg)`,
         boxShadow: `inset 3px 0 0 0 var(--course-${slot}-accent)`,
         // A dashed outline is the syllabus marker. Drawn as an inset outline
-        // rather than a border so it costs the chip no width — the squares are
+        // rather than a border so it costs the chip no width - the squares are
         // ~48px on a phone and a course code needs all of them.
         outline: fromSyllabus ? `1px dashed var(--course-${slot}-accent)` : undefined,
         outlineOffset: '-1px',
@@ -66,7 +66,7 @@ function ExamChip({ group, onSelect }: { group: ExamListItem[]; onSelect: Select
     >
       {/*
         A day square is ~45px wide on a phone. "BIOL 121" cannot fit, and the
-        9px truncated "BIOL…" it used to render was unreadable — so the number
+        9px truncated "BIOL…" it used to render was unreadable - so the number
         carries the identity on mobile and the colour carries the subject.
         Number rather than subject code because a CS student taking CPSC 110
         and CPSC 210 would see "CPSC" twice; 110 and 210 stay distinct. The
@@ -100,7 +100,7 @@ function DayCell({
     return <div className="min-h-[3.5rem] bg-surface-muted sm:min-h-[5rem]" />;
   }
   return (
-    // A fixed minimum keeps an empty week from collapsing into a hairline —
+    // A fixed minimum keeps an empty week from collapsing into a hairline -
     // the whole point of this view is seeing that three exams land in two days,
     // which only reads against evenly sized squares.
     <div className="min-h-[3.5rem] space-y-0.5 bg-surface p-1 sm:min-h-[5rem] sm:p-1.5">
@@ -167,7 +167,7 @@ function MonthGrid({
 /**
  * A month grid per month the student actually has exams in, plus whatever
  * couldn't be placed on a grid at all. Cancelled and dateless exams have no
- * day to sit on, so they are re-rendered through `ExamList` below the grid —
+ * day to sit on, so they are re-rendered through `ExamList` below the grid -
  * same cards, same strikethrough, same "Date TBA" as the list view, for free.
  */
 export default function ExamCalendar({
@@ -215,7 +215,7 @@ export default function ExamCalendar({
         <div>
           <h3 className="text-sm font-medium text-foreground">Not on the calendar</h3>
           <p className="mb-2 text-xs text-text-tertiary">
-            These have no date to sit on — a cancelled exam, or one UBC hasn&apos;t
+            These have no date to sit on - a cancelled exam, or one UBC hasn&apos;t
             scheduled yet.
           </p>
           <ExamList items={unscheduled.flat()} onSelect={onSelect} />

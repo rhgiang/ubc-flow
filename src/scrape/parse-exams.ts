@@ -7,7 +7,7 @@ export type ExamRow = {
   sectionCode: string;
   /** ISO date. Null only on a cancelled exam, which UBC publishes dateless. */
   date: string | null;
-  /** 24-hour "HH:MM". The table gives a start only — there is no end time. */
+  /** 24-hour "HH:MM". The table gives a start only - there is no end time. */
   startTime: string | null;
   alphaSplit: string | null;
   building: string | null;
@@ -113,8 +113,8 @@ export function parseExamSchedule(html: string): ParsedExams {
 
 /**
  * One published table covers one exam period, so the term is derived once for
- * the whole run. Per-row inference would leave every cancelled row — which has
- * no date cell at all — stranded with no term.
+ * the whole run. Per-row inference would leave every cancelled row - which has
+ * no date cell at all - stranded with no term.
  */
 function majorityTerm(rows: ExamRow[]): ParsedExams['term'] {
   const counts = new Map<string, { term: NonNullable<ParsedExams['term']>; n: number }>();

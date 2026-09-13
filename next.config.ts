@@ -3,11 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Unchanged by default. Set NEXT_DIST_DIR to give a second server its own
   // build directory, so `next dev` can run against a working copy while a
-  // `next start` keeps serving .next — otherwise the two fight over it and
+  // `next start` keeps serving .next - otherwise the two fight over it and
   // the running server gets its chunks swapped out underneath it.
   distDir: process.env.NEXT_DIST_DIR ?? '.next',
   // /exams and /syllabus were their own pages and their own nav pills. Both
-  // are now the Exams tab on /schedule, but people bookmarked them — so the
+  // are now the Exams tab on /schedule, but people bookmarked them - so the
   // paths stay alive and land on that tab. A config redirect rather than two
   // stub pages: nothing is left to rot, and it's one place to read.
   async redirects() {
@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
       {
         // The syllabus viewer embeds this route in an <embed> on the same
         // origin. The blanket DENY/'none' above blocks that in every real
-        // browser, same-origin included — this entry, being LAST in the
+        // browser, same-origin included - this entry, being LAST in the
         // array, wins on these two keys for this path only (Next.js: last
         // matching header wins on key conflicts). Every other route keeps
         // the strict global rule.

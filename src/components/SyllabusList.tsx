@@ -19,7 +19,7 @@ function formatSize(bytes: number): string {
  * One row per enrolled course this term: either the syllabus already on file
  * (with a toggleable in-app viewer and a delete action) or an upload form.
  * The viewer is an <embed> pointed at our own streaming route, never a blob
- * URL — see src/app/api/syllabus/[id]/file/route.ts for why.
+ * URL - see src/app/api/syllabus/[id]/file/route.ts for why.
  */
 export default function SyllabusList({ termId, items }: { termId: string; items: SyllabusListItem[] }) {
   const router = useRouter();

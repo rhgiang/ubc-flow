@@ -23,7 +23,7 @@ function sectionKey(m: { courseId: string; termId: string; sectionCode: string |
 }
 
 /** Everything the Exams tab renders, for a signed-in student. Null for a
- *  signed-out visitor — the rest of this page is browsable without an account,
+ *  signed-out visitor - the rest of this page is browsable without an account,
  *  and the tab says so rather than the whole page redirecting to /login. */
 async function examsTabData(
   userId: string,
@@ -53,7 +53,7 @@ async function examsTabData(
       ])
     : [[], []];
   const syllabusByCourse = new Map(syllabi.map((s) => [s.courseId, s]));
-  // Same spelling `toExamListItem` builds — "CPSC 110", no campus suffix — so
+  // Same spelling `toExamListItem` builds - "CPSC 110", no campus suffix - so
   // the coverage check can match an enrolled course against an exam row.
   const courseLabel = (c: (typeof courses)[number]) =>
     `${c.subject.code?.replace(/_[A-Z]$/, '') ?? ''} ${c.number}`.trim();
@@ -97,14 +97,14 @@ export default async function SchedulePage({
       ? db.savedSchedule.findMany({ where: { userId }, include: { sections: true } })
       : Promise.resolve([]),
     // SavedSchedule.termId is a raw FK (same cross-domain convention as
-    // ScheduleSection.sectionId) — no Prisma relation, so terms are fetched
+    // ScheduleSection.sectionId) - no Prisma relation, so terms are fetched
     // separately and joined in JS.
     db.term.findMany({
       where: { campus: 'V' },
       orderBy: [{ year: 'desc' }, { termNumber: 'desc' }],
     }),
     // Meeting patterns parsed straight from the student's Workday export
-    // (see src/upload/import.ts) — the real day/time data behind "View
+    // (see src/upload/import.ts) - the real day/time data behind "View
     // Calendar", independent of anything saved in the schedule builder.
     userId ? db.enrollmentMeeting.findMany({ where: { userId } }) : Promise.resolve([]),
     // Existing share links per term, so the Share menu opens knowing its state.
@@ -116,7 +116,7 @@ export default async function SchedulePage({
   const plannableTerms = terms.filter(isPlannableTerm);
 
   // Course-section labels for every schedule, batched in two queries rather
-  // than N+1 — schedule.sections is a raw-FK join table (see above), and
+  // than N+1 - schedule.sections is a raw-FK join table (see above), and
   // Section itself has no back-relation to it either.
   const sectionIds = [...new Set(schedules.flatMap((s) => s.sections.map((ss) => ss.sectionId)))];
   const sectionRows = sectionIds.length
@@ -156,7 +156,7 @@ export default async function SchedulePage({
     bucket.set(s.termId, group);
   }
 
-  // "View Calendar" — real weekly grids for the upcoming plannable terms,
+  // "View Calendar" - real weekly grids for the upcoming plannable terms,
   // built from the Workday-parsed meeting patterns rather than anything
   // saved in the schedule builder.
   // Our catalogue's own view of these sections, for the instructor Workday
@@ -223,7 +223,7 @@ export default async function SchedulePage({
         sectionId: m.id,
         label,
         // Keyed on the same value ScheduleBuilder uses (SectionHit.code, e.g.
-        // "CPSC 110") — no campus suffix — so a course gets the same colour
+        // "CPSC 110") - no campus suffix - so a course gets the same colour
         // slot in both consumers.
         courseCode: `${course.subject.code} ${course.number}`,
         courseId: m.courseId,
@@ -248,7 +248,7 @@ export default async function SchedulePage({
         <CreateScheduleModal terms={plannableTerms} loggedIn={userId !== undefined} />
       </div>
 
-      {/* Tabs and their contents sit on one solid panel — term headings and
+      {/* Tabs and their contents sit on one solid panel - term headings and
           section labels are small secondary text the sky washes out. */}
       {/* p-3 on phones: the panel and the page were charging 96px of the 390px
           screen in padding, which came straight out of the calendar's five day

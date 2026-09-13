@@ -78,7 +78,7 @@ describe('mergeExams', () => {
   });
 
   // examRowsForUser sorts cancelled/dateless rows last, so a per-course key
-  // let the cancelled row land last and erase the live one — the student's
+  // let the cancelled row land last and erase the live one - the student's
   // real exam replaced by a struck-through "cancelled" card.
   it('never lets a cancelled scraped final replace a live one for the same course', () => {
     const live: ExamListItem = { ...scrapedFinal, id: 'ubc-live', sectionCode: '921' };
@@ -93,7 +93,7 @@ describe('mergeExams', () => {
 
   // An edited syllabus final wins over THE scraped final (spec §9: "when the
   // same exam appears twice"). A sibling alpha-split row is not the same exam,
-  // so correcting a date on the confirm screen — ordinary use — must not take
+  // so correcting a date on the confirm screen - ordinary use - must not take
   // both of the course's rooms off the page.
   it('keeps both alpha-split finals even when the student edited a syllabus final', () => {
     const adi: ExamListItem = {

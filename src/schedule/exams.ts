@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 
 /**
  * One exam on the /exams page. Declared as a union from the start (`source`)
- * so Task 7 — which merges scraped finals with syllabus-derived midterms —
+ * so Task 7 - which merges scraped finals with syllabus-derived midterms -
  * widens no types.
  */
 export type ExamListItem = {
@@ -22,12 +22,12 @@ export type ExamListItem = {
    *  midterms and dedupes per course+kind, so this field is load-bearing. */
   kind: 'final' | 'midterm';
   /** Set when the course published several exam sections and we could not tell
-   *  which one is the student's — see `filterToOwnSection`. Every section is
+   *  which one is the student's - see `filterToOwnSection`. Every section is
    *  shown, and the flag is what stops that reading as "you have two exams". */
   ambiguousSection?: boolean;
 };
 
-/** Shape `examRowsForUser` assembles by hand — `FinalExam` has no Prisma
+/** Shape `examRowsForUser` assembles by hand - `FinalExam` has no Prisma
  *  relation to `Course` (raw FK, same convention as the rest of this schema),
  *  so the join happens in JS rather than via `include`. */
 type FinalExamRow = {
@@ -43,14 +43,14 @@ type FinalExamRow = {
   course: { number: string; subject: { code: string | null } };
 };
 
-/** "BIOC 302" — the campus-suffixed catalogue spelling ("BIOC_V") is not what
+/** "BIOC 302" - the campus-suffixed catalogue spelling ("BIOC_V") is not what
  *  a student reads, and every consumer keys on this one. */
 function courseLabelOf(course: { number: string; subject: { code: string | null } }): string {
   return `${course.subject.code?.replace(/_[A-Z]$/, '') ?? ''} ${course.number}`;
 }
 
 /** Pure: a scraped `FinalExam` row (joined with its course/subject) into the
- *  shape the exam view renders. Every row this produces is `kind: 'final'` —
+ *  shape the exam view renders. Every row this produces is `kind: 'final'` -
  *  syllabus-derived midterms are a later task. */
 export function toExamListItem(row: FinalExamRow): ExamListItem {
   return {
@@ -91,17 +91,17 @@ function sameSection(a: string): string {
  * Drops the other sections' exams.
  *
  * `Enrollment` carries no section, so the course+term join brings back every
- * published section of a course — and 8 of the 108 courses in UBC's table
+ * published section of a course - and 8 of the 108 courses in UBC's table
  * publish more than one (PHIL_V 347 001/002, ENGL_V 110 JL1/JL2, LAW_V 505
  * 98A/98B). A student in one of them was shown both exams, at different times
  * in different buildings, with nothing saying which was theirs.
  *
  * `lectureSectionByCourse` is their own section per course label, from their
- * Workday import — the LECTURE one only. A lab's "L1U" or a tutorial's "T2M"
+ * Workday import - the LECTURE one only. A lab's "L1U" or a tutorial's "T2M"
  * is not an exam section and would match nothing.
  *
  * Three cases, in order of how much we know:
- *   - One published section: nothing to choose between. Untouched — this is
+ *   - One published section: nothing to choose between. Untouched - this is
  *     the overwhelming majority, and it stays a no-op.
  *   - Several, and their lecture section is one of them: only that one.
  *   - Several, and we don't know theirs (never imported Workday) or it matches
@@ -110,7 +110,7 @@ function sameSection(a: string): string {
  *     worth saving them a glance at a label.
  *
  * `alphaSplit` is a different axis: rows sharing a `sectionCode` are ONE exam
- * in several rooms, and they pass through together — grouping them is
+ * in several rooms, and they pass through together - grouping them is
  * `groupExams`' job, downstream of this.
  */
 export function filterToOwnSection(
@@ -182,13 +182,13 @@ export async function examRowsForUser(userId: string, termId: string): Promise<E
     .filter((item): item is ExamListItem => item !== null);
 
   // Before `groupExams` and before `mergeExams`: both count rows per course,
-  // and they should count the student's own. `examCoverage` is unaffected —
+  // and they should count the student's own. `examCoverage` is unaffected -
   // this never empties a course that had an exam, so a course still on the
   // page is never named as having no final.
   return filterToOwnSection(items, lectureSectionByCourse).sort(compareItems);
 }
 
-/** Shape `syllabusExamRowsForUser` assembles by hand — `Syllabus.courseId` is
+/** Shape `syllabusExamRowsForUser` assembles by hand - `Syllabus.courseId` is
  *  a raw FK (same convention as `FinalExamRow` above), so the course/subject
  *  join happens in JS. */
 type SyllabusAssessmentRow = {
@@ -250,26 +250,26 @@ export async function syllabusExamRowsForUser(userId: string, termId: string): P
  *
  * Nothing is deduped BETWEEN scraped rows. `examRowsForUser` joins on
  * courseId only (Enrollment carries no section), so one course routinely
- * returns several `FinalExam` rows — alpha splits (CHEM 123: ADI–SUN in
+ * returns several `FinalExam` rows - alpha splits (CHEM 123: ADI–SUN in
  * IRC 2, TAZ–ZHU in IRC 6) and every published section. Keying them per
  * course would keep whichever came last: half the class sent to the wrong
- * room, and — because `examRowsForUser` sorts cancelled/dateless rows last —
+ * room, and - because `examRowsForUser` sorts cancelled/dateless rows last -
  * a cancelled section overwriting the student's real exam. Spec §4 put
  * `alphaSplit` in the unique key for exactly this reason; collapsing here
  * would undo it. So every scraped row passes through untouched.
  *
  * The only drop is a syllabus-derived one, in two cases, matching spec §9:
  *   1. A syllabus `final` when UBC already publishes a final for that course
- *      — UBC's own schedule is authoritative over a syllabus saying "final
+ *      - UBC's own schedule is authoritative over a syllabus saying "final
  *      exam, scheduled by the registrar".
  *   2. Unless the student edited that row (`editedByUser`), which wins over
- *      everything — then the scraped final for that course goes instead.
+ *      everything - then the scraped final for that course goes instead.
  *
  * Case 2 applies only when the course has EXACTLY ONE scraped final. Spec §9
  * scopes that precedence to "when the same exam appears twice", and a sibling
  * alpha-split row is not the same exam: correcting a CHEM 123 final's date on
  * the confirm screen is ordinary use, and letting it displace a whole course's
- * scraped finals would take IRC 2 and IRC 6 off the page — the very failure
+ * scraped finals would take IRC 2 and IRC 6 off the page - the very failure
  * this function exists to prevent. With two or more, everything stays and the
  * source label on each card says which is which; one extra row beats a hidden
  * exam room.
@@ -306,11 +306,11 @@ export function mergeExams(scraped: ExamListItem[], fromSyllabus: ExamListItem[]
  * What the exam page can honestly say about a student's courses that have no
  * exam on it. Today it says nothing, and a student with six courses and four
  * exams cannot tell whether a course has NO final or whether its final simply
- * hasn't been published — opposite meanings rendered as the same blank space.
+ * hasn't been published - opposite meanings rendered as the same blank space.
  *
  * The signal: UBC publishes a term's whole final exam schedule at once,
- * partway through term. So ONE `FinalExam` row anywhere in the term — any
- * course, not just this student's — proves the schedule is out, and an
+ * partway through term. So ONE `FinalExam` row anywhere in the term - any
+ * course, not just this student's - proves the schedule is out, and an
  * enrolled course still missing from it has no registrar-scheduled final.
  * Before that first row nothing is known, and naming a course as having no
  * final would be the kind of lie that makes someone miss one.
@@ -327,7 +327,7 @@ export function examCoverage(
   if (!termHasAnyExam) return { published: false };
   // A syllabus final counts as covered: the student has told us there IS one,
   // and naming the course below a card announcing it would contradict itself.
-  // A cancelled row counts too — the registrar scheduled it and then pulled
+  // A cancelled row counts too - the registrar scheduled it and then pulled
   // it, which the struck-through card says better than this note could.
   // Midterms never count: they say nothing about whether a final exists.
   const withFinal = new Set(

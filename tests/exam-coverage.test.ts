@@ -43,7 +43,7 @@ describe('examCoverage', () => {
   });
 
   it('counts a course covered even when its exam rows are all for other students’ courses', () => {
-    // One row anywhere in the term publishes the schedule — the student may
+    // One row anywhere in the term publishes the schedule - the student may
     // legitimately have no exams at all, and every course is then reportable.
     const coverage = examCoverage([], ['CRWR 200'], true);
     expect(coverage).toEqual({ published: true, noFinal: ['CRWR 200'] });
@@ -61,7 +61,7 @@ describe('examCoverage', () => {
     expect(coverage).toEqual({ published: true, noFinal: [] });
   });
 
-  it('counts a cancelled final as covered — the struck-through card says it better', () => {
+  it('counts a cancelled final as covered - the struck-through card says it better', () => {
     const coverage = examCoverage(
       [exam({ id: 'a', courseLabel: 'ENGL 230', cancelled: true, date: null })],
       ['ENGL 230'],

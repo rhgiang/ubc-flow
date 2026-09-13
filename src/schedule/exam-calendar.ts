@@ -2,7 +2,7 @@ import type { ExamListItem } from '@/schedule/exams';
 import { groupExams } from '@/components/ExamList';
 
 /**
- * A month grid of the exam period — the "how bad is this week" view a list
+ * A month grid of the exam period - the "how bad is this week" view a list
  * can't give you. Deliberately NOT a weekly time-grid: `layoutDayColumns`
  * exists to lay overlapping recurring classes side by side within a day, and
  * exams are one-off, spread over ~2 weeks, and almost never overlap. A month
@@ -18,7 +18,7 @@ import { groupExams } from '@/components/ExamList';
 export type ExamDayCell = { day: number | null; groups: ExamListItem[][] };
 
 export type ExamMonth = {
-  /** "2026-12" — stable React key and sort key. */
+  /** "2026-12" - stable React key and sort key. */
   key: string;
   /** "December 2026" */
   label: string;
@@ -28,7 +28,7 @@ export type ExamMonth = {
 
 export type ExamCalendar = {
   months: ExamMonth[];
-  /** Groups that cannot occupy a day cell — cancelled exams (their date is
+  /** Groups that cannot occupy a day cell - cancelled exams (their date is
    *  NULL) and syllabus finals with no date yet. Spec guarantees both stay
    *  visible, so they are handed back rather than dropped. */
   unscheduled: ExamListItem[][];
@@ -53,7 +53,7 @@ function byStartTime(a: ExamListItem[], b: ExamListItem[]): number {
 
 /**
  * Buckets exams into month grids. Only the months that actually contain an
- * exam are returned — December is not special, a Summer-session student's
+ * exam are returned - December is not special, a Summer-session student's
  * finals are in August, and `FinalExam.date` is the only thing that decides.
  *
  * Grouping goes through `groupExams`, the same function the list uses, so one

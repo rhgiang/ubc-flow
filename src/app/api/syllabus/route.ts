@@ -7,8 +7,8 @@ import { validateSyllabusFile, sanitizeFilename } from '@/syllabus/validate';
 // The enrollment gate and the (userId, courseId, termId) upsert bound stored
 // BYTES to one blob per enrolled course, but not billed write OPERATIONS:
 // re-POSTing the same course, or DELETE-then-POST, loops put() forever. 10 a
-// day is several times more than any honest student — you upload a syllabus
-// once per course, and a handful more if you re-upload a corrected PDF —
+// day is several times more than any honest student - you upload a syllabus
+// once per course, and a handful more if you re-upload a corrected PDF -
 // while capping what a compromised or scripted account can bill.
 // Same fixed-window shape and same atomic conditional-updateMany as
 // src/app/api/syllabus/extract/route.ts; see the long comment there for why
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Missing file, courseId, or termId.' }, { status: 400 });
   }
 
-  // Validated BEFORE any blob write — a rejected file must never reach put().
+  // Validated BEFORE any blob write - a rejected file must never reach put().
   const validationError = validateSyllabusFile(file);
   if (validationError) {
     return NextResponse.json({ error: validationError }, { status: 400 });
@@ -124,14 +124,14 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'Missing id.' }, { status: 400 });
   }
 
-  // Scoped to the signed-in user — never someone else's row, and a
+  // Scoped to the signed-in user - never someone else's row, and a
   // non-existent/foreign id gets the same 404 as a missing one.
   const syllabus = await db.syllabus.findFirst({ where: { id, userId: session.user.id } });
   if (!syllabus) {
     return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   }
 
-  // A student who deletes a syllabus has asked for the file to be gone —
+  // A student who deletes a syllabus has asked for the file to be gone -
   // both the blob and the row go, not just the row. If the blob delete
   // fails, the row is left in place rather than silently orphaning a
   // private file the UI would then claim doesn't exist.

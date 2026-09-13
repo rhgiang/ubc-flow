@@ -4,7 +4,7 @@ import { groupExams } from '@/components/ExamList';
 
 /**
  * `Enrollment` carries no section, so joining it to `FinalExam` on course+term
- * brings back EVERY published section — and 8 of the 108 courses in UBC's real
+ * brings back EVERY published section - and 8 of the 108 courses in UBC's real
  * table publish more than one (PHIL_V 347 001/002, ENGL_V 110 JL1/JL2, LAW_V
  * 505 98A/98B, BUSI_V 393 951/971). A student in one section was shown both
  * exams, at different times in different buildings.
@@ -50,7 +50,7 @@ describe('filterToOwnSection', () => {
     expect(kept.every((r) => r.ambiguousSection)).toBe(true);
   });
 
-  // Never hide a real exam because our matching failed — a stale import, a
+  // Never hide a real exam because our matching failed - a stale import, a
   // section code UBC spells differently, anything.
   it('falls back to all sections, flagged, when the known section matches none', () => {
     const rows = [exam({ id: 'a', sectionCode: 'JL1' }), exam({ id: 'b', sectionCode: 'JL2' })];

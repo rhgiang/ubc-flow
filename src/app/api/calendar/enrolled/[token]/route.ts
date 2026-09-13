@@ -44,7 +44,7 @@ export async function GET(
     events.push(...meetingEvents(`${course.subject.code} ${course.number}`, m));
   }
 
-  // The same merged list /exams renders, not just the scraped finals — spec
+  // The same merged list /exams renders, not just the scraped finals - spec
   // §1 wants syllabus midterms in the subscribed calendar too, and one source
   // of truth for precedence beats two.
   const [scraped, fromSyllabus] = await Promise.all([

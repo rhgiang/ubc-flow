@@ -25,7 +25,7 @@ function cellFor(cells: ExamDayCell[], day: number): ExamDayCell {
 
 describe('examCalendar', () => {
   it('puts an exam in the day cell its UTC date names', () => {
-    // 2026-12-10T00:00:00Z is midnight UTC — a local-time read in Vancouver
+    // 2026-12-10T00:00:00Z is midnight UTC - a local-time read in Vancouver
     // would call this Dec 9. It must land on 10.
     const { months } = examCalendar([exam({ id: 'a' })]);
     expect(months).toHaveLength(1);
@@ -34,7 +34,7 @@ describe('examCalendar', () => {
   });
 
   // Weeks with no exam are trimmed off the top and bottom (see trimEmptyWeeks),
-  // so the grid no longer necessarily starts at day 1 — but whatever weeks
+  // so the grid no longer necessarily starts at day 1 - but whatever weeks
   // survive must still sit under the right weekday headers. That is the part
   // that matters, so assert it directly rather than via the leading padding.
   it('keeps every day under its real weekday column', () => {
@@ -48,7 +48,7 @@ describe('examCalendar', () => {
     }
   });
 
-  it('shows only the months exams fall in, in order — December is not special', () => {
+  it('shows only the months exams fall in, in order - December is not special', () => {
     const { months } = examCalendar([
       exam({ id: 'a', date: new Date('2026-08-18T00:00:00Z') }),
       exam({ id: 'b', date: new Date('2026-04-02T00:00:00Z') }),

@@ -60,7 +60,7 @@ export async function ingestExams(html: string) {
     // night before finals is not.
     //
     // Not db.finalExam.upsert(): this Prisma version rejects `null` inside a
-    // compound-unique `where`, and alphaSplit is null on most rows — the
+    // compound-unique `where`, and alphaSplit is null on most rows - the
     // upsert's own unique-key lookup would throw on exactly the common case.
     const existing = await db.finalExam.findFirst({
       where: {

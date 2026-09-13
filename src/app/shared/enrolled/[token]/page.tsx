@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/ScheduleCalendar';
+import ExamList from '@/components/ExamList';
+import { examRowsForUser } from '@/schedule/exams';
 
 /**
  * A term's Workday-imported calendar, read-only, for anyone holding the link —
@@ -20,11 +22,18 @@ async function load(token: string) {
   });
   if (!record) return null;
 
-  const [meetings, term] = await Promise.all([
+  const [meetings, term, exams] = await Promise.all([
     db.enrollmentMeeting.findMany({
       where: { userId: record.userId, termId: record.termId },
     }),
     db.term.findUnique({ where: { id: record.termId }, select: { name: true } }),
+    // UBC's own published finals for the sections this page already names, in
+    // the student's own section (examRowsForUser filters them) — the exam tab
+    // shares this link, and a shared "schedule" without them is half a term.
+    // Deliberately NOT the merged list: a syllabus-derived midterm comes out
+    // of a PDF the student uploaded and is theirs alone, so it never leaves
+    // their own account. Nothing here is more than UBC already publishes.
+    examRowsForUser(record.userId, record.termId),
   ]);
   if (!term) return null;
 
@@ -59,7 +68,7 @@ async function load(token: string) {
       });
     });
   }
-  return { termName: term.name, entries };
+  return { termName: term.name, entries, exams };
 }
 
 export async function generateMetadata({
@@ -102,6 +111,15 @@ export default async function SharedEnrolledPage({
           <ScheduleCalendar entries={data.entries} />
         )}
       </div>
+
+      {data.exams.length > 0 && (
+        <div className="sky-panel mt-6 p-3 sm:p-6">
+          <h2 className="mb-3 text-sm font-medium text-foreground">Final exams</h2>
+          {/* No onSelect: the detail overlay is a client component and there is
+              nothing here it would show that the cards don't. */}
+          <ExamList items={data.exams} />
+        </div>
+      )}
 
       <p className="sky-hero mt-6 text-sm">
         <Link href="/schedule" className="font-medium underline underline-offset-4">

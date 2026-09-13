@@ -25,8 +25,14 @@ function sectionKey(m: { courseId: string; termId: string; sectionCode: string |
 /** Everything the Exams tab renders, for a signed-in student. Null for a
  *  signed-out visitor — the rest of this page is browsable without an account,
  *  and the tab says so rather than the whole page redirecting to /login. */
-async function examsTabData(userId: string, currentTermId: string | null): Promise<ExamsTabData> {
-  if (!currentTermId) return { items: [], termId: null, coverage: { published: false }, syllabi: [] };
+async function examsTabData(
+  userId: string,
+  currentTermId: string | null,
+  shareToken: string | null,
+): Promise<ExamsTabData> {
+  if (!currentTermId) {
+    return { items: [], termId: null, coverage: { published: false }, syllabi: [], shareToken: null };
+  }
 
   const [scraped, fromSyllabus, enrollments, anyExamThisTerm] = await Promise.all([
     examRowsForUser(userId, currentTermId),
@@ -57,6 +63,7 @@ async function examsTabData(userId: string, currentTermId: string | null): Promi
   return {
     items,
     termId: currentTermId,
+    shareToken,
     coverage: examCoverage(items, courses.map(courseLabel), anyExamThisTerm !== null),
     syllabi: courses
       .map((c): SyllabusListItem => {
@@ -187,7 +194,9 @@ export default async function SchedulePage({
   const courseById = new Map(meetingCourses.map((c) => [c.id, c]));
 
   const currentTermId = getCurrentAndNextTerm(terms).current?.id ?? null;
-  const exams = userId ? await examsTabData(userId, currentTermId) : null;
+  const exams = userId
+    ? await examsTabData(userId, currentTermId, currentTermId ? shareByTerm.get(currentTermId) ?? null : null)
+    : null;
 
   const calendarByTerm = new Map<string, CalendarTermGroup>(
     [...plannableTerms]

@@ -51,6 +51,9 @@ export type ExamsTabData = {
    *  courses are missing from it once it is out. */
   coverage: ExamCoverage;
   syllabi: SyllabusListItem[];
+  /** Existing share token for this term — the same one the Calendar tab uses,
+   *  since it is the same term's schedule either tab shares. */
+  shareToken: string | null;
 };
 
 const VISIBLE_SECTIONS = 3;
@@ -235,7 +238,7 @@ function CalendarTerm({
                 pathFor={(t) => `/shared/enrolled/${t}`}
                 enable={() => enableEnrollmentSharing(group.termId)}
                 disable={() => disableEnrollmentSharing(group.termId)}
-                description="Creates a link that shows this term's calendar to anyone who opens it, without signing in. It doesn't show your name or email."
+                description="Creates a link that shows this term's calendar and UBC's published finals to anyone who opens it, without signing in. It doesn't show your name or email."
               />
               <CalendarSubscribeMenu
                 align="left"
@@ -288,15 +291,44 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
     );
   }
 
+  // Narrowed once into a const so the callbacks below close over a string
+  // rather than a possibly-null property.
+  const termId = exams.termId;
+
   return (
     <div>
-      <div className="flex gap-5 border-b border-border sm:gap-6">
-        <TabButton active={view === 'list'} onClick={() => setView('list')}>
-          List
-        </TabButton>
-        <TabButton active={view === 'calendar'} onClick={() => setView('calendar')}>
-          Calendar
-        </TabButton>
+      <div className="flex items-end justify-between gap-3 border-b border-border">
+        <div className="flex gap-5 sm:gap-6">
+          <TabButton active={view === 'list'} onClick={() => setView('list')}>
+            List
+          </TabButton>
+          <TabButton active={view === 'calendar'} onClick={() => setView('calendar')}>
+            Calendar
+          </TabButton>
+        </div>
+        {/* The same two controls the Calendar tab carries, on the same term's
+            data: exams are already in that ICS feed, and the shared page shows
+            them. Syllabus midterms and the uploaded PDFs are not in either —
+            they stay on this page, behind the student's own session. */}
+        {termId && (
+          <div className="flex items-center gap-2 pb-2">
+            <ShareLinkMenu
+              initialToken={exams.shareToken}
+              pathFor={(t) => `/shared/enrolled/${t}`}
+              enable={() => enableEnrollmentSharing(termId)}
+              disable={() => disableEnrollmentSharing(termId)}
+              description="Creates a link that shows this term's calendar and UBC's published finals to anyone who opens it. Your syllabus uploads, and the midterms read out of them, are never shared."
+            />
+            <CalendarSubscribeMenu
+              getUrl={async () => {
+                const result = await getEnrolledSubscribeUrl(termId);
+                return result.ok
+                  ? `${window.location.origin}/api/calendar/enrolled/${result.token}`
+                  : null;
+              }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="mt-4">

@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "Syllabus" ADD COLUMN     "sourceText" TEXT,
+ADD COLUMN     "url" TEXT,
+ALTER COLUMN "pathname" DROP NOT NULL,
+ALTER COLUMN "filename" DROP NOT NULL,
+ALTER COLUMN "size" DROP NOT NULL;

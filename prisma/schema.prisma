@@ -519,12 +519,19 @@ model FinalExam {
 }
 
 /**
- * A student's own uploaded syllabus PDF for one course in one term, stored
- * privately in Vercel Blob (see src/app/api/syllabus/route.ts). `pathname`
- * is the blob's pathname, never a URL — the store is private, so there is no
- * directly-fetchable URL. The only reader is the authenticated streaming
- * route at src/app/api/syllabus/[id]/file/route.ts, which re-checks
- * ownership before calling get().
+ * A student's own syllabus for one course in one term, recorded any of three
+ * ways, which are NOT mutually exclusive: an uploaded PDF, a link, or the
+ * syllabus pasted as plain text. A row always carries at least one of the
+ * three; the upload route refuses to create an empty one.
+ *
+ * Some UBC syllabi live on a Canvas page behind login and have no file to
+ * upload at all, which is why the last two exist: the link is a bookmark,
+ * and the pasted text is what makes extraction possible for those courses.
+ *
+ * `pathname` is the blob's pathname, never a URL, the store is private, so
+ * there is no directly-fetchable URL. The only reader is the authenticated
+ * streaming route at src/app/api/syllabus/[id]/file/route.ts, which
+ * re-checks ownership before calling get().
  *
  * courseId/termId are raw FKs with no Prisma relation, same convention as
  * FinalExam above.
@@ -535,9 +542,22 @@ model Syllabus {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   courseId  String
   termId    String
-  pathname  String
-  filename  String
-  size      Int
+  /// The three file fields move together: all set when there is an uploaded
+  /// PDF, all null when the syllabus was recorded as a link or pasted text.
+  pathname  String?
+  filename  String?
+  size      Int?
+  /// Where the syllabus lives when it is not downloadable, typically a Canvas
+  /// page. A BOOKMARK ONLY: this is never fetched server-side (it would
+  /// return a login page for anything on Canvas, and fetching arbitrary
+  /// user-supplied URLs from our server is not something we do). Validated
+  /// http/https only by validateSyllabusUrl in src/syllabus/validate.ts.
+  url       String?
+  /// The syllabus pasted as plain text, for a course whose syllabus cannot be
+  /// downloaded. This is the only thing that makes extraction work for those
+  /// courses; a url alone cannot be extracted. Length-capped on write, see
+  /// MAX_SYLLABUS_TEXT_CHARS.
+  sourceText String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   /// Null until a student has confirmed and saved an extraction at least

@@ -54,16 +54,27 @@ function ExamChip({ group, onSelect }: { group: ExamListItem[]; onSelect: Select
           ? `${item.courseLabel} - from your syllabus, double-check this date`
           : `${item.courseLabel} - UBC exam schedule`
       }
-      style={{
-        background: `var(--course-${slot}-bg)`,
-        boxShadow: `inset 3px 0 0 0 var(--course-${slot}-accent)`,
-        // A dashed outline is the syllabus marker. Drawn as an inset outline
-        // rather than a border so it costs the chip no width - the squares are
-        // ~48px on a phone and a course code needs all of them.
-        outline: fromSyllabus ? `1px dashed var(--course-${slot}-accent)` : undefined,
-        outlineOffset: '-1px',
-      }}
-      className="block w-full overflow-hidden rounded-md py-0.5 pl-1.5 pr-1 text-left leading-[1.15] transition-opacity hover:opacity-80 sm:pl-2"
+      style={
+        {
+          background: `var(--course-${slot}-bg)`,
+          // Handed to CSS as a variable so the accent bar below can be a
+          // responsive Tailwind class: the slot is dynamic, so it cannot be
+          // written into a class name directly.
+          '--chip-accent': `var(--course-${slot}-accent)`,
+          // A dashed outline is the syllabus marker. Drawn as an inset outline
+          // rather than a border so it costs the chip no width - the squares
+          // are ~45px on a phone and a course code needs all of them.
+          outline: fromSyllabus ? `1px dashed var(--course-${slot}-accent)` : undefined,
+          outlineOffset: '-1px',
+        } as React.CSSProperties
+      }
+      // The 3px accent bar and the padding that cleared it are dropped on
+      // mobile, which is about 10px of a 45px square. That is the difference
+      // between "MATH" fitting and rendering as "MA...": M, A, C and P are
+      // wide glyphs, so MATH and CPSC overflow at a width where the narrower
+      // BIOL and DSCI still fit. The chip's background already carries the
+      // course colour, so the bar is redundant at that size rather than lost.
+      className="block w-full overflow-hidden rounded-md py-0.5 pl-1 pr-0.5 text-left leading-[1.15] tracking-tight transition-opacity hover:opacity-80 sm:pl-2 sm:pr-1 sm:tracking-normal sm:shadow-[inset_3px_0_0_0_var(--chip-accent)]"
     >
       {/*
         A day square is about 45px wide on a phone, so "MATH 200" on one line
@@ -113,7 +124,7 @@ function DayCell({
     // A fixed minimum keeps an empty week from collapsing into a hairline -
     // the whole point of this view is seeing that three exams land in two days,
     // which only reads against evenly sized squares.
-    <div className="min-h-[4.5rem] space-y-0.5 bg-surface p-1 sm:min-h-[5rem] sm:p-1.5">
+    <div className="min-h-[4.5rem] space-y-0.5 bg-surface p-0.5 sm:min-h-[5rem] sm:p-1.5">
       <div
         className={`px-0.5 text-[0.625rem] sm:text-[0.6875rem] ${
           isToday ? 'font-semibold text-brand-accent' : 'text-text-tertiary'

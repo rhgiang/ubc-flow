@@ -22,6 +22,17 @@ type Today = { key: string; day: number };
  * There is no room here for rooms and surname splits; that is what the overlay
  * is for, and the whole chip is the button that opens it.
  */
+/**
+ * "BIOL 121" -> "121". The trailing number of a course label, which is what a
+ * phone-width day square has room for. Falls back to the whole label when it
+ * does not split, so an unexpected shape degrades to today's behaviour rather
+ * than rendering blank.
+ */
+export function courseNumber(courseLabel: string): string {
+  const parts = courseLabel.trim().split(/\s+/);
+  return parts.length > 1 ? parts[parts.length - 1] : courseLabel;
+}
+
 function ExamChip({ group, onSelect }: { group: ExamListItem[]; onSelect: SelectExam }) {
   const item = group[0];
   const slot = courseColorIndex(item.courseLabel);
@@ -53,7 +64,18 @@ function ExamChip({ group, onSelect }: { group: ExamListItem[]; onSelect: Select
       }}
       className="block w-full overflow-hidden rounded-md py-0.5 pl-1.5 pr-1 text-left leading-[1.15] transition-opacity hover:opacity-80 sm:pl-2"
     >
-      <span className="block truncate text-[0.5625rem] font-medium text-foreground sm:text-[0.6875rem]">
+      {/*
+        A day square is ~45px wide on a phone. "BIOL 121" cannot fit, and the
+        9px truncated "BIOL…" it used to render was unreadable — so the number
+        carries the identity on mobile and the colour carries the subject.
+        Number rather than subject code because a CS student taking CPSC 110
+        and CPSC 210 would see "CPSC" twice; 110 and 210 stay distinct. The
+        full label is one tap away in the overlay, and in the aria-label above.
+      */}
+      <span className="block truncate text-[0.6875rem] font-medium text-foreground sm:hidden">
+        {courseNumber(item.courseLabel)}
+      </span>
+      <span className="hidden truncate text-[0.6875rem] font-medium text-foreground sm:block">
         {item.courseLabel}
       </span>
       {item.startTime && (

@@ -158,7 +158,13 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ id: syllabus.id, filename: syllabus.filename, size: syllabus.size });
-  } catch {
+  } catch (e) {
+    // The message only, never the file, the URL, the pasted text or who sent
+    // it: the same rule src/app/api/upload/route.ts follows. Without this the
+    // student sees "try again in a moment" and the server keeps no record of
+    // why, which is how a missing BLOB_READ_WRITE_TOKEN looks exactly like a
+    // transient failure.
+    console.error('syllabus save failed:', e instanceof Error ? e.message : e);
     return NextResponse.json({ error: 'Could not upload that file. Try again in a moment.' }, { status: 500 });
   }
 }

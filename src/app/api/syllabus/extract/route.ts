@@ -119,7 +119,12 @@ export async function POST(req: Request) {
       : syllabus.sourceText!;
     const assessments = await extractAssessments(source);
     return NextResponse.json({ assessments });
-  } catch {
+  } catch (e) {
+    // The message only, never the syllabus content or who sent it. A missing
+    // ANTHROPIC_API_KEY, a rate limit and a model outage are three different
+    // problems that all reach the student as the same sentence; the server
+    // needs to be able to tell them apart.
+    console.error('syllabus extraction failed:', e instanceof Error ? e.message : e);
     return NextResponse.json(
       { error: 'Could not read this syllabus right now. Try again in a moment.' },
       { status: 500 },

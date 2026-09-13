@@ -17,7 +17,7 @@
     "scrape:courses": "tsx src/scrape/jobs/catalogue-courses.run.ts",
     "guidance:verify": "tsx src/guidance/jobs/verify.run.ts",
     "enrich:prereqs": "tsx src/prereqs/jobs/build.run.ts",
-    "scrape:all": "npm run scrape:catalog && npm run scrape:sections && npm run scrape:descriptions && npm run enrich:prereqs",
+    "scrape:all": "npm run scrape:catalog && npm run scrape:sections && npm run scrape:descriptions && npm run enrich:prereqs && npm run scrape:exams",
     "ingest:grades": "tsx src/grades/jobs/ingest.run.ts",
     "ingest:historical-grades": "tsx src/grades/jobs/ingest-historical.run.ts",
     "postinstall": "prisma generate"

@@ -10,7 +10,13 @@ import ScheduleTabs, {
 } from '@/components/ScheduleTabs';
 import type { CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 import type { SyllabusListItem } from '@/components/SyllabusList';
-import { examRowsForUser, syllabusExamRowsForUser, mergeExams, examCoverage } from '@/schedule/exams';
+import {
+  examRowsForUser,
+  syllabusExamRowsForUser,
+  hiddenExamRowsForUser,
+  mergeExams,
+  examCoverage,
+} from '@/schedule/exams';
 import { toSavedAssessmentRow } from '@/syllabus/schema';
 import { isPlannableTerm, isUpcomingTerm, getCurrentAndNextTerm } from '@/schedule/terms';
 
@@ -32,12 +38,16 @@ async function examsTabData(
   shareToken: string | null,
 ): Promise<ExamsTabData> {
   if (!currentTermId) {
-    return { items: [], termId: null, coverage: { published: false }, syllabi: [], shareToken: null };
+    return {
+      items: [], termId: null, coverage: { published: false }, hidden: [],
+      syllabi: [], shareToken: null,
+    };
   }
 
-  const [scraped, fromSyllabus, enrollments, anyExamThisTerm] = await Promise.all([
+  const [scraped, fromSyllabus, hidden, enrollments, anyExamThisTerm] = await Promise.all([
     examRowsForUser(userId, currentTermId),
     syllabusExamRowsForUser(userId, currentTermId),
+    hiddenExamRowsForUser(userId, currentTermId),
     db.enrollment.findMany({ where: { userId, termId: currentTermId }, select: { courseId: true } }),
     // Deliberately NOT scoped to this student: one published row anywhere in
     // the term means the whole schedule is out (see `examCoverage`). Scoping
@@ -70,6 +80,7 @@ async function examsTabData(
     items,
     termId: currentTermId,
     shareToken,
+    hidden,
     coverage: examCoverage(items, courses.map(courseLabel), anyExamThisTerm !== null),
     syllabi: courses
       .map((c): SyllabusListItem => {

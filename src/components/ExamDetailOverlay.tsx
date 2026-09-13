@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { courseColorIndex } from '@/schedule/colors';
 import { AmbiguousSectionNote, formatAlphaSplit, formatDate, sourceLabel } from '@/components/ExamList';
 import type { ExamListItem } from '@/schedule/exams';
@@ -27,6 +28,9 @@ export default function ExamDetailOverlay({
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const [removing, setRemoving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Escape closes, matching CourseInfoOverlay and the auth overlay.
   useEffect(() => {
@@ -47,6 +51,30 @@ export default function ExamDetailOverlay({
     dialogRef.current?.focus();
     return () => trigger?.focus();
   }, [group]);
+
+  // The group is the exam, so removing it removes every row of it - a final
+  // split across four rooms by surname is one exam, not four.
+  async function remove(rows: ExamListItem[]) {
+    setRemoving(true);
+    setError(null);
+    try {
+      const ids = rows.map((r) => r.id).join(',');
+      const res = await fetch(`/api/exams?source=${rows[0].source}&ids=${encodeURIComponent(ids)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.error ?? 'Could not remove that exam.');
+        return;
+      }
+      onClose();
+      router.refresh();
+    } catch {
+      setError('Could not remove that exam. Check your connection and try again.');
+    } finally {
+      setRemoving(false);
+    }
+  }
 
   if (!group) return null;
 
@@ -156,9 +184,39 @@ export default function ExamDetailOverlay({
           )}
         </dl>
 
-        <p className="mt-4 border-t border-border-hairline pt-3 text-xs text-text-tertiary">
-          {sourceLabel(item)}
-        </p>
+        <div className="mt-4 border-t border-border-hairline pt-3">
+          <p className="text-xs text-text-tertiary">{sourceLabel(item)}</p>
+
+          {error && (
+            <p role="alert" className="mt-2 text-sm text-danger">
+              {error}
+            </p>
+          )}
+
+          {/* Remove lives here because this overlay is the one place both
+              views already lead to: a card in the list and a chip in the
+              calendar open the same dialog on the same exam. */}
+          <p className="mt-3 text-xs text-text-tertiary">
+            {item.source === 'ubc'
+              ? 'UBC publishes this exam for everyone in the course, so it cannot be deleted. Hiding it changes your view only, and Hidden exams under the list brings it back.'
+              : 'This one is yours. Removing it deletes it from your exams.'}
+          </p>
+          {/* ponytail: no confirm step. The scraped one is reversible from the
+              list, and the student typed the other one. Add a confirm if
+              anyone actually reports losing an exam to a stray click. */}
+          <button
+            type="button"
+            disabled={removing}
+            onClick={() => remove(group)}
+            className="mt-2 text-sm font-medium text-danger hover:underline disabled:opacity-50"
+          >
+            {removing
+              ? 'Removing…'
+              : item.source === 'ubc'
+                ? 'Hide this exam'
+                : 'Remove this exam'}
+          </button>
+        </div>
       </div>
     </div>
   );

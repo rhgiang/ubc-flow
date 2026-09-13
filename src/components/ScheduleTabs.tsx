@@ -11,6 +11,7 @@ import CampusMap from '@/components/CampusMap';
 import ExamList, { ExamCoverageNote } from '@/components/ExamList';
 import ExamCalendar from '@/components/ExamCalendar';
 import ExamDetailOverlay from '@/components/ExamDetailOverlay';
+import { AddExamButton, HiddenExams } from '@/components/ExamActions';
 import SyllabusList, { type SyllabusListItem } from '@/components/SyllabusList';
 import type { ExamCoverage, ExamListItem } from '@/schedule/exams';
 import {
@@ -50,6 +51,9 @@ export type ExamsTabData = {
   /** Whether UBC has published this term's schedule, and which enrolled
    *  courses are missing from it once it is out. */
   coverage: ExamCoverage;
+  /** The scraped exams this student has hidden, so the view can offer each one
+   *  back. A hidden exam nobody can find again is a missed exam. */
+  hidden: ExamListItem[];
   syllabi: SyllabusListItem[];
   /** Existing share token for this term - the same one the Calendar tab uses,
    *  since it is the same term's schedule either tab shares. */
@@ -331,6 +335,18 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
         )}
       </div>
 
+      {/* Above both views rather than inside either: adding an exam belongs to
+          the tab, not to the list. Removing one is in the detail overlay,
+          which a card and a calendar chip both open. */}
+      {termId && (
+        <div className="mt-3">
+          <AddExamButton
+            termId={termId}
+            courses={exams.syllabi.map((s) => ({ id: s.courseId, label: s.courseLabel }))}
+          />
+        </div>
+      )}
+
       <div className="mt-4">
         {view === 'list' ? (
           <ExamList items={exams.items} onSelect={setSelected} />
@@ -338,6 +354,9 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
           <ExamCalendar items={exams.items} onSelect={setSelected} />
         )}
       </div>
+
+      {/* The way back from a removal that was a mistake. */}
+      <HiddenExams items={exams.hidden} />
 
       {/* Under the exams rather than over them: it is the footnote to the list
           - what ISN'T on it and why - not the headline. */}

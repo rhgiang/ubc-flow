@@ -16,7 +16,8 @@ export type ExamListItem = {
   notes: string | null;
   cancelled: boolean;
   source: 'ubc' | 'syllabus';
-  /** Set only on syllabus rows a student edited; drives Task 7 precedence. */
+  /** Set on syllabus rows a student edited or typed by hand. `mergeExams`
+   *  keeps such a final beside UBC's instead of dropping it. */
   editedByUser?: boolean;
   /** Which kind of exam this is. Task 7 merges scraped finals with syllabus
    *  midterms and dedupes per course+kind, so this field is load-bearing. */
@@ -327,31 +328,27 @@ export async function syllabusExamRowsForUser(userId: string, termId: string): P
 /**
  * Merges scraped finals with syllabus-derived rows into one list.
  *
- * Nothing is deduped BETWEEN scraped rows. `examRowsForUser` joins on
- * courseId only (Enrollment carries no section), so one course routinely
- * returns several `FinalExam` rows - alpha splits (CHEM 123: ADI–SUN in
- * IRC 2, TAZ–ZHU in IRC 6) and every published section. Keying them per
- * course would keep whichever came last: half the class sent to the wrong
- * room, and - because `examRowsForUser` sorts cancelled/dateless rows last -
- * a cancelled section overwriting the student's real exam. Spec §4 put
- * `alphaSplit` in the unique key for exactly this reason; collapsing here
- * would undo it. So every scraped row passes through untouched.
+ * NOTHING EVER DISPLACES A SCRAPED ROW. Every `FinalExam` row passes through
+ * untouched, whatever the syllabus rows say. Two rules that guessed otherwise
+ * each produced a hidden real exam on this branch:
+ *   - keying scraped rows per course kept whichever came last, so an alpha
+ *     split (CHEM 123: ADI-SUN in IRC 2, TAZ-ZHU in IRC 6) lost a room and a
+ *     cancelled section overwrote the live one;
+ *   - letting an edited or hand-typed syllabus final replace the scraped one
+ *     meant a student who typed "CPSC 110 final, date TBA" in September never
+ *     saw the row UBC published in November. The page said "Date TBA", the
+ *     feed carried nothing, and nothing on screen said UBC disagreed. The same
+ *     rule swallowed a cancellation notice.
+ * When a syllabus or manual final sits beside a scraped final for the same
+ * course, BOTH render, each labelled with its source, and the student can hide
+ * UBC's if they truly disagree. One extra card beats a hidden exam.
  *
- * The only drop is a syllabus-derived one, in two cases, matching spec §9:
- *   1. A syllabus `final` when UBC already publishes a final for that course
- *      - UBC's own schedule is authoritative over a syllabus saying "final
- *      exam, scheduled by the registrar".
- *   2. Unless the student edited that row (`editedByUser`), which wins over
- *      everything - then the scraped final for that course goes instead.
- *
- * Case 2 applies only when the course has EXACTLY ONE scraped final. Spec §9
- * scopes that precedence to "when the same exam appears twice", and a sibling
- * alpha-split row is not the same exam: correcting a CHEM 123 final's date on
- * the confirm screen is ordinary use, and letting it displace a whole course's
- * scraped finals would take IRC 2 and IRC 6 off the page - the very failure
- * this function exists to prevent. With two or more, everything stays and the
- * source label on each card says which is which; one extra row beats a hidden
- * exam room.
+ * The only drop is in the other direction: a syllabus final the student did
+ * NOT edit is dropped when UBC publishes a final for that course. That row is
+ * the model reading "final exam, scheduled by the registrar" off a PDF, with
+ * no date, and UBC's own schedule is authoritative over it. An edited or
+ * hand-typed final (`editedByUser`) is kept: the student put that date there
+ * on purpose, so it stays until they remove it.
  *
  * `kind: 'midterm'` rows only ever come from syllabi, there's nothing for
  * them to collide with, and a course usually has more than one, so every
@@ -360,25 +357,13 @@ export async function syllabusExamRowsForUser(userId: string, termId: string): P
  * Reuses `compareItems` for the final sort rather than a second ordering.
  */
 export function mergeExams(scraped: ExamListItem[], fromSyllabus: ExamListItem[]): ExamListItem[] {
-  const scrapedFinalsPerCourse = new Map<string, number>();
-  for (const i of scraped) {
-    if (i.kind !== 'final') continue;
-    scrapedFinalsPerCourse.set(i.courseLabel, (scrapedFinalsPerCourse.get(i.courseLabel) ?? 0) + 1);
-  }
-  const coursesWithEditedFinal = new Set(
-    fromSyllabus.filter((i) => i.kind === 'final' && i.editedByUser).map((i) => i.courseLabel),
-  );
-
-  const keptScraped = scraped.filter(
-    (i) => i.kind !== 'final'
-      || scrapedFinalsPerCourse.get(i.courseLabel) !== 1
-      || !coursesWithEditedFinal.has(i.courseLabel),
+  const coursesWithScrapedFinal = new Set(
+    scraped.filter((i) => i.kind === 'final').map((i) => i.courseLabel),
   );
   const keptSyllabus = fromSyllabus.filter(
-    (i) => i.kind !== 'final' || i.editedByUser || !scrapedFinalsPerCourse.has(i.courseLabel),
+    (i) => i.kind !== 'final' || i.editedByUser || !coursesWithScrapedFinal.has(i.courseLabel),
   );
-
-  return [...keptScraped, ...keptSyllabus].sort(compareItems);
+  return [...scraped, ...keptSyllabus].sort(compareItems);
 }
 
 /**

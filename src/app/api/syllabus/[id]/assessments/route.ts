@@ -57,7 +57,8 @@ export async function POST(
       page: a.page,
       // Decided by normalizeSavedAssessment, not by the client alone: a row
       // the student typed is their work by definition. mergeExams
-      // (src/schedule/exams.ts) reads this to let it beat a scraped row.
+      // (src/schedule/exams.ts) reads this to keep an edited final on the
+      // page beside UBC's, where an untouched one would be dropped.
       editedByUser: a.editedByUser,
     }];
   });

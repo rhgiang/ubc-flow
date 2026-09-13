@@ -617,7 +617,9 @@ model SyllabusAssessment {
   page       Int?
   /// True once the student has edited the row, and always true on a row they
   /// added by hand. Read by mergeExams (src/schedule/exams.ts), where it
-  /// makes the row win over a scraped FinalExam for the same course.
+  /// keeps a final on the page beside UBC's scraped FinalExam for the same
+  /// course; an untouched syllabus final is dropped in favour of UBC's.
+  /// Nothing ever displaces the scraped row.
   ///
   /// It does NOT survive a re-extraction: saving
   /// (src/app/api/syllabus/[id]/assessments/route.ts) deletes every row for

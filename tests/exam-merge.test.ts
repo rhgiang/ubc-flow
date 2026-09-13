@@ -32,12 +32,44 @@ describe('mergeExams', () => {
     expect(out).toHaveLength(2);
   });
 
-  it('lets a student-edited row win over the scraped one', () => {
+  // Flipped: this used to expect the edited row to REPLACE the scraped one.
+  // Nothing displaces a scraped row any more; both stay, each labelled.
+  it('keeps a student-edited final beside the scraped one, never instead of it', () => {
     const edited = { ...syllabusFinal, editedByUser: true,
       date: new Date('2026-12-16T00:00:00Z') };
     const out = mergeExams([scrapedFinal], [edited]);
-    expect(out).toHaveLength(1);
-    expect(out[0].source).toBe('syllabus');
+    expect(out.map((e) => e.id).sort()).toEqual(['syl-1', 'ubc-1']);
+    expect(out.find((e) => e.id === 'ubc-1')).toEqual(scrapedFinal);
+  });
+
+  // The C1 scenario. September: the student types "CPSC 110 / Final exam"
+  // with no date (every manual row is editedByUser). November: scrape:exams
+  // writes UBC's row. The old rule dropped UBC's row for a course with one
+  // scraped final, so the page said "Date TBA" and the feed carried nothing.
+  it('never lets a hand-typed dateless final hide the final UBC published', () => {
+    const typed: ExamListItem = {
+      ...syllabusFinal, id: 'manual-1', courseLabel: 'CPSC 110', editedByUser: true,
+      notes: 'Final exam',
+    };
+    const published: ExamListItem = {
+      ...scrapedFinal, id: 'ubc-cpsc', courseLabel: 'CPSC 110', sectionCode: '101',
+      date: new Date('2026-12-12T00:00:00Z'), startTime: '15:30', location: 'ESB 1013',
+    };
+    const out = mergeExams([published], [typed]);
+    expect(out.map((e) => e.id)).toEqual(['ubc-cpsc', 'manual-1']);
+    expect(out[0]).toEqual(published);
+  });
+
+  // Same rule, worse consequence: the scraped row was a cancellation notice.
+  it('never lets a hand-typed final swallow a cancelled scraped final', () => {
+    const typed: ExamListItem = { ...syllabusFinal, id: 'manual-1', editedByUser: true };
+    const cancelled: ExamListItem = {
+      ...scrapedFinal, id: 'ubc-cancelled', cancelled: true, date: null, startTime: null,
+      location: null, notes: 'Cancelled: December 15 2026, 12:00pm',
+    };
+    const out = mergeExams([cancelled], [typed]);
+    expect(out.map((e) => e.id).sort()).toEqual(['manual-1', 'ubc-cancelled']);
+    expect(out.find((e) => e.id === 'ubc-cancelled')?.cancelled).toBe(true);
   });
 
   it('sorts by date with dateless entries last', () => {
@@ -91,10 +123,8 @@ describe('mergeExams', () => {
     expect(out[0].cancelled).toBe(false);
   });
 
-  // An edited syllabus final wins over THE scraped final (spec §9: "when the
-  // same exam appears twice"). A sibling alpha-split row is not the same exam,
-  // so correcting a date on the confirm screen - ordinary use - must not take
-  // both of the course's rooms off the page.
+  // Correcting a date on the confirm screen is ordinary use, and it must not
+  // take either of the course's rooms off the page.
   it('keeps both alpha-split finals even when the student edited a syllabus final', () => {
     const adi: ExamListItem = {
       ...scrapedFinal, id: 'ubc-adi', courseLabel: 'CHEM 123', sectionCode: '921',

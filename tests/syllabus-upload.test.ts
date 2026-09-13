@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { db } from '@/lib/db';
-import { validateSyllabusFile, MAX_SYLLABUS_BYTES } from '@/syllabus/validate';
+import {
+  validateSyllabusFile,
+  validateSyllabusUrl,
+  validateSyllabusText,
+  MAX_SYLLABUS_BYTES,
+  MAX_SYLLABUS_TEXT_CHARS,
+  MAX_SYLLABUS_URL_CHARS,
+} from '@/syllabus/validate';
 
 describe('validateSyllabusFile', () => {
   it('accepts a normal PDF', () => {
@@ -26,6 +33,63 @@ describe('validateSyllabusFile', () => {
   it('rejects an empty file', () => {
     expect(validateSyllabusFile({ type: 'application/pdf', size: 0, name: 'e.pdf' }))
       .toMatch(/empty/i);
+  });
+});
+
+describe('validateSyllabusUrl', () => {
+  it('accepts the http and https links a student would actually paste', () => {
+    expect(validateSyllabusUrl('https://canvas.ubc.ca/courses/1234/assignments/syllabus'))
+      .toBeNull();
+    expect(validateSyllabusUrl('http://www.students.ubc.ca/x?y=1&z=2#frag')).toBeNull();
+  });
+
+  // The whole reason this parses rather than prefix-matches: the value ends
+  // up in an href, so a scheme that executes must never survive.
+  it.each([
+    'javascript:alert(document.cookie)',
+    'JavaScript:alert(1)',
+    'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
+    'file:///etc/passwd',
+    'vbscript:msgbox(1)',
+    'blob:https://canvas.ubc.ca/abc',
+    'ftp://example.com/syllabus.pdf',
+  ])('rejects %s', (bad) => {
+    expect(validateSyllabusUrl(bad)).toMatch(/http/i);
+  });
+
+  it('rejects something that is not a link at all', () => {
+    expect(validateSyllabusUrl('canvas.ubc.ca/courses/1')).toMatch(/link/i);
+  });
+
+  it('rejects empty and whitespace-only', () => {
+    expect(validateSyllabusUrl('')).not.toBeNull();
+    expect(validateSyllabusUrl('   \n ')).not.toBeNull();
+  });
+
+  it('caps the length, so nobody parks a document in the column', () => {
+    expect(validateSyllabusUrl(`https://x.ca/${'a'.repeat(MAX_SYLLABUS_URL_CHARS)}`))
+      .toMatch(/too long/i);
+  });
+});
+
+describe('validateSyllabusText', () => {
+  it('accepts a pasted syllabus', () => {
+    expect(validateSyllabusText('CPSC 221\nMidterm 1: Oct 14, 20%')).toBeNull();
+  });
+
+  it('rejects empty and whitespace-only', () => {
+    expect(validateSyllabusText('')).not.toBeNull();
+    expect(validateSyllabusText('  \t\n  ')).not.toBeNull();
+  });
+
+  // Straight into a paid model as input tokens: uncapped is an unbounded bill.
+  it('rejects a paste over the cap, before anything could be sent', () => {
+    expect(validateSyllabusText('x'.repeat(MAX_SYLLABUS_TEXT_CHARS + 1))).toMatch(/too long/i);
+    expect(validateSyllabusText('x'.repeat(MAX_SYLLABUS_TEXT_CHARS))).toBeNull();
+  });
+
+  it('caps well above a real syllabus and well below a runaway paste', () => {
+    expect(MAX_SYLLABUS_TEXT_CHARS).toBe(100_000);
   });
 });
 
@@ -65,6 +129,7 @@ const { auth } = await import('@/lib/auth');
 const { GET } = await import('@/app/api/syllabus/[id]/file/route');
 const { POST: EXTRACT } = await import('@/app/api/syllabus/extract/route');
 const { POST: SAVE_ASSESSMENTS } = await import('@/app/api/syllabus/[id]/assessments/route');
+const { extractAssessments } = await import('@/syllabus/extract');
 
 // `auth` is overloaded (it also doubles as Next middleware), which makes
 // `vi.mocked(auth)` resolve to the wrong overload for mockResolvedValue.
@@ -165,7 +230,6 @@ describe('the other syllabus routes enforce the same ownership guard', () => {
   afterAll(async () => {
     await db.syllabus.deleteMany({ where: { userId: { in: [ownerId, otherId] } } });
     await db.user.deleteMany({ where: { email: { in: [OWNER, OTHER] } } });
-    await db.$disconnect();
   });
 
   function extractRequest() {
@@ -226,5 +290,68 @@ describe('the other syllabus routes enforce the same ownership guard', () => {
     });
     const res = await SAVE_ASSESSMENTS(req, { params: params() });
     expect(await res.json()).toMatchObject({ count: 100 });
+  });
+});
+
+// A syllabus can be a PDF, a link, or pasted text, and only two of those can
+// be read. The link case is the one that matters: we never fetch it, so it
+// must be refused out loud rather than returning an empty assessment list,
+// which is indistinguishable from a syllabus with no exams in it.
+describe('which syllabus sources the extract route can read', () => {
+  const OWNER = 'zz-syllabus-sources@example.com';
+  let ownerId: string;
+  let courseIds: string[];
+  let termId: string;
+
+  beforeAll(async () => {
+    await db.user.deleteMany({ where: { email: OWNER } });
+    ownerId = (await db.user.create({ data: { email: OWNER } })).id;
+    const courses = await db.course.findMany({ take: 3, select: { id: true } });
+    courseIds = courses.map((c) => c.id);
+    termId = (await db.term.findFirstOrThrow({ select: { id: true } })).id;
+  });
+
+  afterAll(async () => {
+    await db.syllabus.deleteMany({ where: { userId: ownerId } });
+    await db.user.deleteMany({ where: { email: OWNER } });
+    await db.$disconnect();
+  });
+
+  async function extract(data: {
+    pathname?: string; filename?: string; size?: number; url?: string; sourceText?: string;
+  }, courseIndex: number) {
+    const { id } = await db.syllabus.upsert({
+      where: {
+        userId_courseId_termId: { userId: ownerId, courseId: courseIds[courseIndex], termId },
+      },
+      create: { userId: ownerId, courseId: courseIds[courseIndex], termId, ...data },
+      update: data,
+    });
+    mockedAuth.mockResolvedValue({ user: { id: ownerId } });
+    return EXTRACT(new Request('http://localhost/api/syllabus/extract', {
+      method: 'POST',
+      body: JSON.stringify({ syllabusId: id }),
+    }));
+  }
+
+  it('refuses a link-only syllabus and names the paste box as the fix', async () => {
+    const res = await extract({ url: 'https://canvas.ubc.ca/courses/1' }, 0);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/paste/i);
+  });
+
+  it('reads a pasted syllabus, sending the text itself', async () => {
+    const res = await extract({ sourceText: 'Midterm 1: Oct 14 (20%)' }, 1);
+    expect(res.status).toBe(200);
+    expect(extractAssessments).toHaveBeenLastCalledWith('Midterm 1: Oct 14 (20%)');
+  });
+
+  it('reads an uploaded PDF, sending bytes rather than text', async () => {
+    const res = await extract(
+      { pathname: 'syllabi/zz-sources.pdf', filename: 'zz.pdf', size: 10 },
+      2,
+    );
+    expect(res.status).toBe(200);
+    expect(vi.mocked(extractAssessments).mock.lastCall?.[0]).toBeInstanceOf(Buffer);
   });
 });

@@ -44,18 +44,37 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   }
 
-  let blob;
-  try {
-    blob = await get(syllabus.pathname, { access: 'private' });
-  } catch {
-    return NextResponse.json({ error: 'Could not read that file.' }, { status: 500 });
-  }
-  if (!blob || blob.statusCode !== 200) {
-    return NextResponse.json({ error: 'Not found.' }, { status: 404 });
+  // A link is a bookmark, not a document: we never fetch it (it would return
+  // a Canvas login page, which the model would happily invent midterms from),
+  // so a row carrying only a url has nothing to read. Said plainly, with the
+  // fix, rather than returning an empty assessment list - "no assessments
+  // found" is indistinguishable from a real empty result.
+  if (!syllabus.pathname && !syllabus.sourceText) {
+    return NextResponse.json(
+      {
+        error: 'A link on its own is just a bookmark, we can\'t read it. Open the syllabus, '
+          + 'select all, and paste the text in to get the midterm dates.',
+      },
+      { status: 400 },
+    );
   }
 
-  // Cap enforced here: after we know there's a real file to send (a missing
-  // or corrupt blob shouldn't cost a quota unit), before the paid Anthropic
+  // The PDF wins when a course has both: it carries page numbers and survives
+  // tables that a copy-paste flattens.
+  let blob = null;
+  if (syllabus.pathname) {
+    try {
+      blob = await get(syllabus.pathname, { access: 'private' });
+    } catch {
+      return NextResponse.json({ error: 'Could not read that file.' }, { status: 500 });
+    }
+    if (!blob || blob.statusCode !== 200) {
+      return NextResponse.json({ error: 'Not found.' }, { status: 404 });
+    }
+  }
+
+  // Cap enforced here: after we know there's a real file or paste to send (a
+  // missing or corrupt blob shouldn't cost a quota unit), before the paid Anthropic
   // call. Atomic increment-with-cap-check: each branch's `where` re-encodes
   // the condition it depends on (not just `id`), so Postgres re-evaluates it
   // against the latest committed row when two concurrent requests contend
@@ -95,8 +114,10 @@ export async function POST(req: Request) {
   // Failure here must never touch the Syllabus row - it stays stored and
   // viewable, just not yet read (extractedAt stays null), with a retry.
   try {
-    const pdf = Buffer.from(await new Response(blob.stream).arrayBuffer());
-    const assessments = await extractAssessments(pdf);
+    const source = blob
+      ? Buffer.from(await new Response(blob.stream).arrayBuffer())
+      : syllabus.sourceText!;
+    const assessments = await extractAssessments(source);
     return NextResponse.json({ assessments });
   } catch {
     return NextResponse.json(

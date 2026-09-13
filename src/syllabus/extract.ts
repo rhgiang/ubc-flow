@@ -1,14 +1,29 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { ASSESSMENT_TOOL, normalizeAssessments, type ExtractedAssessment } from './schema';
+import { MAX_SYLLABUS_TEXT_CHARS } from './validate';
 
 const client = new Anthropic();
 
 const SYSTEM = `You read UBC course syllabi and list every graded assessment.
 Report only what the syllabus actually states. If a date is not given, leave it
 null - do not infer one from the term calendar. Every assessment must include a
-verbatim quote from the syllabus and the page it appears on.`;
+verbatim quote from the syllabus and the page it appears on. If the syllabus
+was pasted as plain text it has no pages, so report page 1 for every row.`;
 
-export async function extractAssessments(pdf: Buffer): Promise<ExtractedAssessment[]> {
+/**
+ * `source` is the uploaded PDF's bytes, or the syllabus pasted as plain text
+ * for a course whose syllabus is not downloadable. One branch, one model call:
+ * the tool, the strict schema, the effort and the forced tool_choice are the
+ * same either way, so the two sources cannot drift apart.
+ */
+export async function extractAssessments(source: Buffer | string): Promise<ExtractedAssessment[]> {
+  // Last line before a paid call, and the only chokepoint both sources pass
+  // through: pasted text is capped here as well as on write, so no stored row
+  // can bill for more than MAX_SYLLABUS_TEXT_CHARS of input.
+  if (typeof source === 'string' && source.length > MAX_SYLLABUS_TEXT_CHARS) {
+    throw new Error('Syllabus text is longer than the extraction cap.');
+  }
+
   const response = await client.messages.create({
     model: 'claude-opus-5',
     max_tokens: 16000,
@@ -26,10 +41,16 @@ export async function extractAssessments(pdf: Buffer): Promise<ExtractedAssessme
     messages: [{
       role: 'user',
       content: [
-        {
-          type: 'document',
-          source: { type: 'base64', media_type: 'application/pdf', data: pdf.toString('base64') },
-        },
+        typeof source === 'string'
+          ? { type: 'text' as const, text: source }
+          : {
+              type: 'document' as const,
+              source: {
+                type: 'base64' as const,
+                media_type: 'application/pdf' as const,
+                data: source.toString('base64'),
+              },
+            },
         { type: 'text', text: 'List every graded assessment in this syllabus.' },
       ],
     }],

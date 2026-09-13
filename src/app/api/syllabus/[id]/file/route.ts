@@ -21,7 +21,9 @@ export async function GET(
 
   // Same 404 whether the id doesn't exist or belongs to someone else - never
   // confirm to a caller that another student's syllabus id is real.
-  if (!syllabus || syllabus.userId !== session.user.id) {
+  // A link-only or text-only syllabus has no file behind it, and this route
+  // only ever serves files.
+  if (!syllabus || syllabus.userId !== session.user.id || !syllabus.pathname) {
     return new Response('Not found.', { status: 404 });
   }
 
@@ -38,7 +40,7 @@ export async function GET(
   // Sanitized again here (not just on write): a row written before this
   // check existed could still carry an unsafe filename, and this header
   // value must never carry one through unescaped.
-  const safeName = sanitizeFilename(syllabus.filename);
+  const safeName = sanitizeFilename(syllabus.filename ?? 'syllabus.pdf');
 
   return new Response(blob.stream, {
     headers: {

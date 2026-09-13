@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server';
 import { put, del } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { validateSyllabusFile, sanitizeFilename } from '@/syllabus/validate';
+import {
+  validateSyllabusFile,
+  validateSyllabusUrl,
+  validateSyllabusText,
+  sanitizeFilename,
+} from '@/syllabus/validate';
 
 // The enrollment gate and the (userId, courseId, termId) upsert bound stored
 // BYTES to one blob per enrolled course, but not billed write OPERATIONS:
@@ -24,15 +29,40 @@ export async function POST(req: Request) {
   const userId = session.user.id;
 
   const form = await req.formData();
-  const file = form.get('file');
   const courseId = form.get('courseId');
   const termId = form.get('termId');
-  if (!(file instanceof File) || typeof courseId !== 'string' || typeof termId !== 'string' || !courseId || !termId) {
-    return NextResponse.json({ error: 'Missing file, courseId, or termId.' }, { status: 400 });
+  if (typeof courseId !== 'string' || typeof termId !== 'string' || !courseId || !termId) {
+    return NextResponse.json({ error: 'Missing courseId or termId.' }, { status: 400 });
   }
 
-  // Validated BEFORE any blob write - a rejected file must never reach put().
-  const validationError = validateSyllabusFile(file);
+  // Exactly one source per request, because each one is a separate action in
+  // the UI. The three are not mutually exclusive on the ROW: a link posted
+  // for a course that already has a PDF adds the link and leaves the file
+  // alone, which is why the update below only ever touches its own fields.
+  const rawFile = form.get('file');
+  const file = rawFile instanceof File && rawFile.size > 0 ? rawFile : null;
+  const rawUrl = form.get('url');
+  const url = typeof rawUrl === 'string' && rawUrl.trim() !== '' ? rawUrl.trim() : null;
+  const rawText = form.get('sourceText');
+  const sourceText = typeof rawText === 'string' && rawText.trim() !== '' ? rawText.trim() : null;
+
+  // A row with none of the three would be an empty syllabus, which the model
+  // in prisma/schema.prisma says cannot exist. Postgres cannot express that
+  // as a constraint through Prisma, so this route (the only writer) is where
+  // it is enforced.
+  if (!file && !url && !sourceText) {
+    return NextResponse.json(
+      { error: 'Add a PDF, a link, or the syllabus text.' },
+      { status: 400 },
+    );
+  }
+
+  // Validated BEFORE any write - a rejected file must never reach put(), and
+  // a rejected url or paste must never reach the database. Empty and
+  // whitespace-only values were already dropped to null above.
+  const validationError = (file && validateSyllabusFile(file))
+    || (url && validateSyllabusUrl(url))
+    || (sourceText && validateSyllabusText(sourceText));
   if (validationError) {
     return NextResponse.json({ error: validationError }, { status: 400 });
   }
@@ -48,6 +78,26 @@ export async function POST(req: Request) {
   });
   if (!enrollment) {
     return NextResponse.json({ error: "You're not enrolled in that course this term." }, { status: 403 });
+  }
+
+  // A link or a paste writes one row and no blob. The upload cap exists to
+  // bound billed put() calls, and the enrollment gate plus the
+  // (userId, courseId, termId) unique key already bound these to one row per
+  // enrolled course, with the two columns length-capped above. So the quota
+  // stays on the thing that costs money: file uploads only.
+  if (!file) {
+    const syllabus = await db.syllabus.upsert({
+      where: { userId_courseId_termId: { userId, courseId, termId } },
+      create: { userId, courseId, termId, url, sourceText },
+      // Only the field this request carried: adding a link must not wipe a
+      // paste, and vice versa.
+      update: { ...(url ? { url } : {}), ...(sourceText ? { sourceText } : {}) },
+    });
+    return NextResponse.json({
+      id: syllabus.id,
+      url: syllabus.url,
+      hasText: syllabus.sourceText !== null,
+    });
   }
 
   // Charged here: after the file and the enrollment have both checked out (a
@@ -100,7 +150,7 @@ export async function POST(req: Request) {
       update: { pathname: blob.pathname, filename: safeName, size: file.size },
     });
 
-    if (existing && existing.pathname !== blob.pathname) {
+    if (existing?.pathname && existing.pathname !== blob.pathname) {
       // Best-effort: the upload already succeeded and is recorded, so a
       // failure to clean up the superseded blob is a leaked file, not a
       // reason to fail the request the student is waiting on.
@@ -134,11 +184,14 @@ export async function DELETE(req: Request) {
   // A student who deletes a syllabus has asked for the file to be gone -
   // both the blob and the row go, not just the row. If the blob delete
   // fails, the row is left in place rather than silently orphaning a
-  // private file the UI would then claim doesn't exist.
-  try {
-    await del(syllabus.pathname);
-  } catch {
-    return NextResponse.json({ error: 'Could not delete that file. Try again in a moment.' }, { status: 500 });
+  // private file the UI would then claim doesn't exist. A link-only or
+  // text-only row has no blob to remove, so it skips straight to the row.
+  if (syllabus.pathname) {
+    try {
+      await del(syllabus.pathname);
+    } catch {
+      return NextResponse.json({ error: 'Could not delete that file. Try again in a moment.' }, { status: 500 });
+    }
   }
   await db.syllabus.delete({ where: { id: syllabus.id } });
 

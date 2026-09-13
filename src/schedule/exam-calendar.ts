@@ -60,31 +60,6 @@ function byStartTime(a: ExamListItem[], b: ExamListItem[]): number {
  * exam split across rooms by surname (BIOL 121 in IRC 2 and IRC 6) is one
  * chip in one cell rather than two.
  */
-/**
- * Drops whole weeks off the top and bottom of a month that contain no exam.
- *
- * A December grid is five rows, but an exam period is about two: rendering
- * Dec 1-5 and Dec 27-31 as empty squares spent half the grid's height saying
- * nothing, and on a phone that height is what forces the chips down to an
- * unreadable size. Only whole weeks are removed, so the columns stay aligned
- * under the S/M/T/W/T/F/S header.
- *
- * Never returns nothing: a month with no exams at all keeps its first week,
- * so the caller always has a grid to render.
- */
-function trimEmptyWeeks(cells: ExamDayCell[]): ExamDayCell[] {
-  const weeks: ExamDayCell[][] = [];
-  for (let i = 0; i < cells.length; i += WEEK) weeks.push(cells.slice(i, i + WEEK));
-
-  const hasExam = (week: ExamDayCell[]) => week.some((c) => c.groups.length > 0);
-  let first = weeks.findIndex(hasExam);
-  if (first === -1) return weeks[0] ?? [];
-  let last = weeks.length - 1;
-  while (last > first && !hasExam(weeks[last])) last--;
-
-  return weeks.slice(first, last + 1).flat();
-}
-
 export function examCalendar(items: ExamListItem[]): ExamCalendar {
   const byMonth = new Map<string, Map<number, ExamListItem[][]>>();
   const unscheduled: ExamListItem[][] = [];
@@ -116,7 +91,7 @@ export function examCalendar(items: ExamListItem[]): ExamCalendar {
     }
     while (cells.length % WEEK !== 0) cells.push({ day: null, groups: [] });
 
-    return { key, label: monthLabel(year, month1), cells: trimEmptyWeeks(cells) };
+    return { key, label: monthLabel(year, month1), cells };
   });
 
   return { months, unscheduled };

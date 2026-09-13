@@ -33,19 +33,15 @@ describe('examCalendar', () => {
     expect(cellFor(months[0].cells, 9).groups).toHaveLength(0);
   });
 
-  // Weeks with no exam are trimmed off the top and bottom (see trimEmptyWeeks),
-  // so the grid no longer necessarily starts at day 1 - but whatever weeks
-  // survive must still sit under the right weekday headers. That is the part
-  // that matters, so assert it directly rather than via the leading padding.
-  it('keeps every day under its real weekday column', () => {
+  it('pads the first week so day 1 sits under its real weekday', () => {
+    // Dec 1 2026 is a Tuesday, so two blanks (Sun, Mon) precede it.
     const { months } = examCalendar([exam({ id: 'a' })]);
     const cells = months[0].cells;
+    expect(cells.slice(0, 2).every((c) => c.day === null)).toBe(true);
+    expect(cells[2].day).toBe(1);
     expect(cells.length % 7).toBe(0);
-    for (const [i, cell] of cells.entries()) {
-      if (cell.day === null) continue;
-      const weekday = new Date(Date.UTC(2026, 11, cell.day)).getUTCDay();
-      expect(i % 7).toBe(weekday);
-    }
+    // December has 31 days; the last one must still be there.
+    expect(cellFor(cells, 31)).toBeDefined();
   });
 
   it('shows only the months exams fall in, in order - December is not special', () => {
@@ -113,36 +109,5 @@ describe('examCalendar', () => {
 
   it('returns nothing at all for a student with no exams', () => {
     expect(examCalendar([])).toEqual({ months: [], unscheduled: [] });
-  });
-});
-
-// A December grid is five rows but an exam period is about two. The empty
-// leading and trailing weeks were half the grid's height, which is what forced
-// the mobile chips down to an unreadable 9px.
-describe('trimming empty weeks', () => {
-  const exam = (day: number, label = 'BIOL 121') => ({
-    id: `e${day}${label}`, courseLabel: label, sectionCode: '201',
-    kind: 'final' as const, date: new Date(Date.UTC(2026, 11, day)),
-    startTime: '12:00', location: 'IRC 2', alphaSplit: null, notes: null,
-    cancelled: false, source: 'ubc' as const,
-  });
-
-  it('drops leading and trailing weeks with no exams', () => {
-    // Dec 2026: Dec 1 is a Tuesday, so the full grid is 5 weeks / 35 cells.
-    const full = examCalendar([exam(12), exam(21)]);
-    expect(full.months[0].cells.length).toBeLessThan(35);
-    // Whole weeks only, so the columns stay under the right weekday headers.
-    expect(full.months[0].cells.length % 7).toBe(0);
-  });
-
-  it('keeps every week between the first and last exam, even empty ones', () => {
-    const spread = examCalendar([exam(1), exam(31)]);
-    expect(spread.months[0].cells).toHaveLength(35);
-  });
-
-  it('keeps the days of the exams it trims around', () => {
-    const cal = examCalendar([exam(12), exam(21)]);
-    const days = cal.months[0].cells.filter((c) => c.groups.length > 0).map((c) => c.day);
-    expect(days).toEqual([12, 21]);
   });
 });

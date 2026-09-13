@@ -125,6 +125,35 @@ describe('filterToOwnSection', () => {
     expect(filterToOwnSection(rows, new Map()).map((r) => r.id)).toEqual(['a', 'b']);
   });
 
+  // withoutHidden used to run BEFORE this, so the "how many sections did UBC
+  // publish" count came from the post-hide rows. PHIL 347 publishes 001 and
+  // 002; the student is in 001 and hides it by accident. Next load, 002 was
+  // the only published section, so it showed unflagged as theirs - a
+  // stranger's exam surfaced by a hide.
+  it('hiding your own section never surfaces another section\'s exam', () => {
+    const mine = exam({ id: 'a', sectionCode: '001' });
+    const theirs = exam({ id: 'b', sectionCode: '002', location: 'SWNG 222' });
+    const known = new Map([['PHIL 347', '001']]);
+
+    expect(filterToOwnSection([mine, theirs], known, new Set(['a']))).toEqual([]);
+    // And hiding the other section, which was never shown, changes nothing.
+    expect(filterToOwnSection([mine, theirs], known, new Set(['b']))).toEqual([mine]);
+  });
+
+  it('drops a hidden row whatever else is going on', () => {
+    const only = [exam({ id: 'a', courseLabel: 'MATH 200', sectionCode: '103' })];
+    expect(filterToOwnSection(only, new Map(), new Set(['a']))).toEqual([]);
+  });
+
+  // Section unknown: the count is of what is VISIBLE, so hiding the section
+  // that is not theirs is how such a student stops being asked which is which.
+  it('with the section unknown, hiding one of two sections clears the flag on the other', () => {
+    const rows = [exam({ id: 'a', sectionCode: '001' }), exam({ id: 'b', sectionCode: '002' })];
+    const kept = filterToOwnSection(rows, new Map(), new Set(['b']));
+    expect(kept.map((r) => r.id)).toEqual(['a']);
+    expect(kept[0].ambiguousSection).toBeUndefined();
+  });
+
   // The coverage note names courses with NO registrar-scheduled final. Section
   // filtering must never empty a course that had one, or the page would claim
   // a course the student has an exam for has none.

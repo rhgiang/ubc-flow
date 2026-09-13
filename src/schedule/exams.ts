@@ -120,8 +120,19 @@ export function groupExams(items: ExamListItem[]): ExamListItem[][] {
   return [...groups.values()];
 }
 
+/** Section codes published per course, compared through `sameSection`. */
+function sectionsByCourse(items: ExamListItem[]): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  for (const i of items) {
+    const seen = out.get(i.courseLabel) ?? new Set<string>();
+    seen.add(sameSection(i.sectionCode));
+    out.set(i.courseLabel, seen);
+  }
+  return out;
+}
+
 /**
- * Drops the other sections' exams.
+ * Drops the other sections' exams, and the rows this student has hidden.
  *
  * `Enrollment` carries no section, so the course+term join brings back every
  * published section of a course - and 8 of the 108 courses in UBC's table
@@ -134,13 +145,22 @@ export function groupExams(items: ExamListItem[]): ExamListItem[][] {
  * is not an exam section and would match nothing.
  *
  * Three cases, in order of how much we know:
- *   - One published section: nothing to choose between. Untouched - this is
- *     the overwhelming majority, and it stays a no-op.
- *   - Several, and their lecture section is one of them: only that one.
- *   - Several, and we don't know theirs (never imported Workday) or it matches
- *     none of them: ALL of them, flagged `ambiguousSection`. Guessing sends
- *     someone to the wrong room; hiding one loses a real exam. Neither is
- *     worth saving them a glance at a label.
+ *   - Their lecture section is one UBC published for the course: only that
+ *     one. Judged against what UBC PUBLISHED, hidden rows included: hiding
+ *     removes rows from view, it never changes what counts as published. The
+ *     bug this guards: a student in 001 hides 001 by accident; if the count
+ *     came from the post-hide rows, 002 would be the course's only section
+ *     and show unflagged as theirs, when before the hide it was filtered out.
+ *     Now hiding your own section leaves the course empty (it is still in
+ *     the hidden list, and still counts as covered).
+ *   - One visible section, theirs unknown: nothing to choose between.
+ *     Untouched - the overwhelming majority, and a no-op. Counted AFTER
+ *     hiding on purpose, so a student who cannot tell us their section and
+ *     hides the one that is not theirs stops being asked which is which.
+ *   - Several visible, and we don't know theirs (never imported Workday) or
+ *     it matches none of them: ALL of them, flagged `ambiguousSection`.
+ *     Guessing sends someone to the wrong room; hiding one loses a real exam.
+ *     Neither is worth saving them a glance at a label.
  *
  * `alphaSplit` is a different axis: rows sharing a `sectionCode` are ONE exam
  * in several rooms, and they pass through together - grouping them is
@@ -149,23 +169,19 @@ export function groupExams(items: ExamListItem[]): ExamListItem[][] {
 export function filterToOwnSection(
   items: ExamListItem[],
   lectureSectionByCourse: Map<string, string>,
+  hiddenIds: Set<string> = new Set(),
 ): ExamListItem[] {
-  const publishedByCourse = new Map<string, Set<string>>();
-  for (const i of items) {
-    const seen = publishedByCourse.get(i.courseLabel) ?? new Set<string>();
-    seen.add(sameSection(i.sectionCode));
-    publishedByCourse.set(i.courseLabel, seen);
-  }
+  const published = sectionsByCourse(items);
+  const visible = withoutHidden(items, hiddenIds);
+  const visibleSections = sectionsByCourse(visible);
 
-  return items.flatMap((item) => {
-    const published = publishedByCourse.get(item.courseLabel)!;
-    if (published.size < 2) return [item];
-
+  return visible.flatMap((item) => {
     const mine = lectureSectionByCourse.get(item.courseLabel);
     const mineCode = mine ? sameSection(mine) : null;
-    if (mineCode && published.has(mineCode)) {
+    if (mineCode && published.get(item.courseLabel)!.has(mineCode)) {
       return sameSection(item.sectionCode) === mineCode ? [item] : [];
     }
+    if (visibleSections.get(item.courseLabel)!.size < 2) return [item];
     return [{ ...item, ambiguousSection: true }];
   });
 }
@@ -176,8 +192,9 @@ export function filterToOwnSection(
  * A `FinalExam` is global - one row per published exam, read by every student
  * in the course - so "remove this from my exams" is a per-user marker
  * (`HiddenFinalExam`), never a delete. This is where the marker is applied,
- * and it is applied in `examRowsForUser` so that every consumer gets it: the
- * page, the shared page, and the subscribed ICS feed.
+ * and it is applied inside `filterToOwnSection` from `examRowsForUser`, so
+ * that every consumer gets it: the page, the shared page, and the subscribed
+ * ICS feed.
  *
  * Syllabus rows are never in this set: those belong to the student and are
  * deleted outright, so there is nothing to hide.
@@ -235,16 +252,17 @@ export async function examRowsForUser(userId: string, termId: string): Promise<E
     })
     .filter((item): item is ExamListItem => item !== null);
 
-  // Hidden rows go first, so a student who hides the section that is not
-  // theirs leaves one published section behind and stops being asked which of
-  // the two is theirs.
-  const visible = withoutHidden(items, new Set(hidden.map((h) => h.finalExamId)));
-
-  // Before `groupExams` and before `mergeExams`: both count rows per course,
-  // and they should count the student's own. `examCoverage` is unaffected -
-  // this never empties a course that had an exam, so a course still on the
-  // page is never named as having no final.
-  return filterToOwnSection(visible, lectureSectionByCourse).sort(compareItems);
+  // Hiding and section filtering happen together: the hidden rows still count
+  // towards what UBC published (see `filterToOwnSection`). Before `groupExams`
+  // and before `mergeExams`: both count rows per course, and they should count
+  // the student's own. `examCoverage` on the page includes the hidden rows,
+  // so a course whose only visible section was hidden is still covered and is
+  // never named as having no final.
+  return filterToOwnSection(
+    items,
+    lectureSectionByCourse,
+    new Set(hidden.map((h) => h.finalExamId)),
+  ).sort(compareItems);
 }
 
 /**

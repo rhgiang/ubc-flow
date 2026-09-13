@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { examCalendar, type ExamDayCell } from '@/schedule/exam-calendar';
+import { splitCourseLabel } from '@/components/ExamCalendar';
 import type { ExamListItem } from '@/schedule/exams';
 
 function exam(over: Partial<ExamListItem> & { id: string }): ExamListItem {
@@ -109,5 +110,35 @@ describe('examCalendar', () => {
 
   it('returns nothing at all for a student with no exams', () => {
     expect(examCalendar([])).toEqual({ months: [], unscheduled: [] });
+  });
+});
+
+// A phone-width day square is about 45px, so a course label only fits stacked:
+//   MATH
+//   200
+describe('splitCourseLabel', () => {
+  it('splits a normal label into subject and number', () => {
+    expect(splitCourseLabel('MATH 200')).toEqual(['MATH', '200']);
+    expect(splitCourseLabel('BIOL 121')).toEqual(['BIOL', '121']);
+  });
+
+  // Both halves are kept: CPSC 110 and CPSC 210 need the number to tell them
+  // apart, and MATH 200 against BIOL 121 reads by subject.
+  it('keeps both halves so same-subject courses stay distinguishable', () => {
+    expect(splitCourseLabel('CPSC 110')).toEqual(['CPSC', '110']);
+    expect(splitCourseLabel('CPSC 210')).toEqual(['CPSC', '210']);
+  });
+
+  it('splits on the last space so a multi-word subject stays together', () => {
+    expect(splitCourseLabel('LAW 505')).toEqual(['LAW', '505']);
+    expect(splitCourseLabel('FNH B 497')).toEqual(['FNH B', '497']);
+  });
+
+  it('returns a single part for a label with no space', () => {
+    expect(splitCourseLabel('MATH200')).toEqual(['MATH200']);
+  });
+
+  it('ignores surrounding whitespace', () => {
+    expect(splitCourseLabel('  MATH 200  ')).toEqual(['MATH', '200']);
   });
 });

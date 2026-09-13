@@ -15,6 +15,18 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 type Today = { key: string; day: number };
 
 /**
+ * "MATH 200" -> ["MATH", "200"], for stacking a course label in a phone-width
+ * day square. Splits on the LAST space, so a multi-word subject keeps its
+ * words together on the first line. A label with no space comes back as one
+ * part, which stacks to the single line it already was.
+ */
+export function splitCourseLabel(courseLabel: string): string[] {
+  const label = courseLabel.trim();
+  const cut = label.lastIndexOf(' ');
+  return cut === -1 ? [label] : [label.slice(0, cut), label.slice(cut + 1)];
+}
+
+/**
  * One exam in a day square, painted in the course's own colour - the same slot
  * ScheduleCalendar gives that course in the weekly grid, so BIOL 121 is the
  * same colour wherever a student meets it.
@@ -53,7 +65,27 @@ function ExamChip({ group, onSelect }: { group: ExamListItem[]; onSelect: Select
       }}
       className="block w-full overflow-hidden rounded-md py-0.5 pl-1.5 pr-1 text-left leading-[1.15] transition-opacity hover:opacity-80 sm:pl-2"
     >
-      <span className="block truncate text-[0.5625rem] font-medium text-foreground sm:text-[0.6875rem]">
+      {/*
+        A day square is about 45px wide on a phone, so "MATH 200" on one line
+        could only ever render truncated at a size nobody can read. Stacked, it
+        fits at a normal size with the whole label visible:
+
+          MATH
+          200
+
+        Both halves are shown rather than just one, because a student taking
+        CPSC 110 and CPSC 210 needs the number, and one taking MATH 200 and
+        BIOL 121 reads the subject first. Larger screens have room for the
+        label on one line and get that instead.
+      */}
+      <span className="block sm:hidden">
+        {splitCourseLabel(item.courseLabel).map((part) => (
+          <span key={part} className="block truncate text-[0.6875rem] font-medium text-foreground">
+            {part}
+          </span>
+        ))}
+      </span>
+      <span className="hidden truncate text-[0.6875rem] font-medium text-foreground sm:block">
         {item.courseLabel}
       </span>
       {item.startTime && (
@@ -75,13 +107,13 @@ function DayCell({
   onSelect: SelectExam;
 }) {
   if (cell.day === null) {
-    return <div className="min-h-[3.5rem] bg-surface-muted sm:min-h-[5rem]" />;
+    return <div className="min-h-[4.5rem] bg-surface-muted sm:min-h-[5rem]" />;
   }
   return (
     // A fixed minimum keeps an empty week from collapsing into a hairline -
     // the whole point of this view is seeing that three exams land in two days,
     // which only reads against evenly sized squares.
-    <div className="min-h-[3.5rem] space-y-0.5 bg-surface p-1 sm:min-h-[5rem] sm:p-1.5">
+    <div className="min-h-[4.5rem] space-y-0.5 bg-surface p-1 sm:min-h-[5rem] sm:p-1.5">
       <div
         className={`px-0.5 text-[0.625rem] sm:text-[0.6875rem] ${
           isToday ? 'font-semibold text-brand-accent' : 'text-text-tertiary'

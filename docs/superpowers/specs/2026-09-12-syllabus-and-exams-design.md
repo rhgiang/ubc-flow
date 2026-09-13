@@ -259,7 +259,7 @@ still lands on the content. The tab answers the same question the Calendar
 tab does ("when do I have to be somewhere for this course") and shares its
 term, its share link and its calendar subscription.
 
-Data comes from `src/schedule/exams.ts`, which every surface (the tab, the
+Data comes from `src/schedule/exam-queries.ts`, which every surface (the tab, the
 shared page, the ICS feed) reads through, so there is one place hiding and
 section filtering happen:
 

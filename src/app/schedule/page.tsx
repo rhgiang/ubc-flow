@@ -81,7 +81,10 @@ async function examsTabData(
     termId: currentTermId,
     shareToken,
     hidden,
-    coverage: examCoverage(items, courses.map(courseLabel), anyExamThisTerm !== null),
+    // Hidden exams count as covered. They are still in UBC's schedule - the
+    // student only took them off their own page - and a course whose final is
+    // hidden must never be named below as having no final.
+    coverage: examCoverage([...items, ...hidden], courses.map(courseLabel), anyExamThisTerm !== null),
     syllabi: courses
       .map((c): SyllabusListItem => {
         const s = syllabusByCourse.get(c.id);

@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { unstable_cache } from "next/cache";
 import type { CourseRef } from "@/guidance/rules";
 import type { Completion } from "@/guidance/progress";
 import { type PlanTerm, tightenNotes } from "@/guidance/solver";
@@ -11,18 +12,72 @@ import { isUpcomingTerm, compareTerms } from "@/schedule/terms";
  * The engine itself stays free of Prisma types so it can be tested without one.
  */
 
+/**
+ * The campus-wide reads below are cached on the same terms as the explore and
+ * course pages: a day, busted early by review writes. None of it is per-user,
+ * and before this every /guidance hit ran all four queries against Neon and
+ * then the solver: the most expensive request in the app, and crawlable.
+ *
+ * Only raw rows go in the cache. unstable_cache serialises through JSON, which
+ * turns a Map or a Set into `{}`, so the shapes the solver wants are built
+ * outside it on every call. That is cheap; the database round trip was the
+ * cost. Argument lists are sorted so a key does not depend on the order a
+ * rule set happened to mention things in.
+ */
+const CATALOGUE_CACHE = { revalidate: 86400, tags: ["catalogue"] };
+
+const cachedCourseRows = unstable_cache(
+  (subjects: string[]) =>
+    db.course.findMany({
+      where: { campus: "V", subject: { code: { in: subjects } } },
+      select: {
+        id: true,
+        number: true,
+        credits: true,
+        subject: { select: { code: true, faculty: true } },
+      },
+    }),
+  ["guidance-catalogue"],
+  CATALOGUE_CACHE,
+);
+
+const cachedPrereqRows = unstable_cache(
+  (ids: string[]) =>
+    db.course.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, prereqTree: true },
+    }),
+  ["guidance-prereqs"],
+  CATALOGUE_CACHE,
+);
+
+const cachedSectionTerms = unstable_cache(
+  (courseIds: string[]) =>
+    db.section.findMany({
+      where: { courseId: { in: courseIds } },
+      select: { courseId: true, termId: true },
+      distinct: ["courseId", "termId"],
+    }),
+  ["guidance-offerings"],
+  CATALOGUE_CACHE,
+);
+
+const cachedTermRows = unstable_cache(
+  () =>
+    db.term.findMany({
+      where: { campus: "V" },
+      // Only what the ordinal helpers and the labels read. Term also carries
+      // two DateTime columns, and a Date does not survive the JSON round trip.
+      select: { id: true, name: true, year: true, session: true, termNumber: true },
+    }),
+  ["guidance-terms"],
+  CATALOGUE_CACHE,
+);
+
 /** The subjects a program can draw on. Loading all 7,336 courses to plan one
  *  degree is waste, so callers pass the subjects their rules actually mention. */
 export async function loadCatalogue(subjects: string[]): Promise<CourseRef[]> {
-  const rows = await db.course.findMany({
-    where: { campus: "V", subject: { code: { in: subjects } } },
-    select: {
-      id: true,
-      number: true,
-      credits: true,
-      subject: { select: { code: true, faculty: true } },
-    },
-  });
+  const rows = await cachedCourseRows([...subjects].sort());
   return rows
     .filter((r) => r.subject.code)
     .map((r) => ({
@@ -46,10 +101,7 @@ export async function loadCatalogue(subjects: string[]): Promise<CourseRef[]> {
 export async function loadPrereqs(
   catalogue: CourseRef[],
 ): Promise<Map<string, Requirement | null>> {
-  const rows = await db.course.findMany({
-    where: { id: { in: catalogue.map((c) => c.id) } },
-    select: { id: true, prereqTree: true },
-  });
+  const rows = await cachedPrereqRows(catalogue.map((c) => c.id).sort());
   // Codes the loaded catalogue can resolve. A prereq naming a subject outside
   // the program (DSCI, CPEN) resolves to nothing and drops out of a tightened
   // note, which is what keeps that heuristic from over-blocking.
@@ -72,11 +124,7 @@ export async function loadPrereqs(
 export async function loadOfferings(
   courseIds: string[],
 ): Promise<Map<string, Set<string>>> {
-  const sections = await db.section.findMany({
-    where: { courseId: { in: courseIds } },
-    select: { courseId: true, termId: true },
-    distinct: ["courseId", "termId"],
-  });
+  const sections = await cachedSectionTerms([...courseIds].sort());
   const map = new Map<string, Set<string>>();
   for (const s of sections) {
     const set = map.get(s.courseId) ?? new Set<string>();
@@ -102,7 +150,7 @@ export async function loadOfferings(
 // how far ahead we had bothered to look. Projected terms cost nothing — the
 // solver stops as soon as the degree is done.
 export async function loadTerms(years = 7): Promise<PlanTerm[]> {
-  const terms = await db.term.findMany({ where: { campus: "V" } });
+  const terms = await cachedTermRows();
   const real = terms
     .filter(isUpcomingTerm)
     .sort(compareTerms)

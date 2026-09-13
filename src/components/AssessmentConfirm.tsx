@@ -1,29 +1,59 @@
 'use client';
 
 import { useState } from 'react';
-import { ASSESSMENT_KINDS, type AssessmentKind, type ExtractedAssessment } from '@/syllabus/schema';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import {
+  ASSESSMENT_KINDS,
+  type AssessmentKind,
+  type ExtractedAssessment,
+  type SavedAssessment,
+  type SavedAssessmentRow,
+} from '@/syllabus/schema';
 
-type Row = ExtractedAssessment & { edited: boolean };
+/** The fields the table can change. `quote` and `page` are not among them:
+ *  evidence is whatever the syllabus said, or nothing at all. */
+type EditableFields = Partial<Omit<ExtractedAssessment, 'quote' | 'page'>>;
 
-function rowChanged(a: ExtractedAssessment, b: ExtractedAssessment): boolean {
+type Row = SavedAssessment & {
+  /** Typed by the student, so it has no quote and never will. */
+  manual: boolean;
+  /** Already flagged editedByUser when this row was loaded. Editing a row and
+   *  putting it back cannot un-edit a correction saved days ago. */
+  wasEdited: boolean;
+  edited: boolean;
+};
+
+function rowChanged(a: SavedAssessment, b: SavedAssessment): boolean {
   return a.title !== b.title || a.kind !== b.kind || a.date !== b.date
     || a.startTime !== b.startTime || a.weight !== b.weight;
 }
 
+function toRow(a: SavedAssessmentRow): Row {
+  return { ...a, manual: a.quote === null, wasEdited: a.editedByUser, edited: a.editedByUser };
+}
+
 /**
  * The confirm screen from the design doc's §8 "human in the loop" - extracted
- * rows are proposals only. Every row keeps its verbatim `quote` and `page`
- * visible beside it: that quote is the only way to check the model against
- * the actual PDF, so it is never hidden behind a toggle or dropped.
+ * rows are proposals only. Every extracted row keeps its verbatim `quote` and
+ * `page` visible beside it: that quote is the only way to check the model
+ * against the actual PDF, so it is never hidden behind a toggle or dropped.
  * Nothing is written until Save.
+ *
+ * The same table is also the editor for rows already saved ("Edit dates"),
+ * which is why it takes `saved`: correcting a date the model got wrong, or
+ * adding an assessment it missed, must not cost another extraction call. That
+ * path never touches /api/syllabus/extract.
  */
 export default function AssessmentConfirm({
   syllabusId,
+  saved,
   alreadyExtracted,
   readable,
   onSaved,
 }: {
   syllabusId: string;
+  /** Rows already saved for this syllabus, newest save wins. */
+  saved: SavedAssessmentRow[];
   alreadyExtracted: boolean;
   /** False for a link-only syllabus: a bookmark is never fetched, so there is
    *  nothing to read. Said outright instead of offering a button that can
@@ -32,12 +62,18 @@ export default function AssessmentConfirm({
   onSaved: () => void;
 }) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'review' | 'saving'>('idle');
+  const [mode, setMode] = useState<'extract' | 'edit'>('extract');
   const [error, setError] = useState<string | null>(null);
-  const [original, setOriginal] = useState<ExtractedAssessment[]>([]);
+  const [original, setOriginal] = useState<SavedAssessment[]>([]);
   const [rows, setRows] = useState<Row[]>([]);
+  const [confirmReExtract, setConfirmReExtract] = useState(false);
+
+  const editedCount = saved.filter((a) => a.editedByUser).length;
 
   async function runExtraction() {
+    setConfirmReExtract(false);
     setStatus('loading');
+    setMode('extract');
     setError(null);
     try {
       const res = await fetch('/api/syllabus/extract', {
@@ -51,9 +87,9 @@ export default function AssessmentConfirm({
         setStatus('idle');
         return;
       }
-      const extracted: ExtractedAssessment[] = data.assessments ?? [];
+      const extracted: SavedAssessment[] = data.assessments ?? [];
       setOriginal(extracted);
-      setRows(extracted.map((a) => ({ ...a, edited: false })));
+      setRows(extracted.map((a) => ({ ...a, manual: false, wasEdited: false, edited: false })));
       setStatus('review');
     } catch {
       setError('Could not read this syllabus. Check your connection and try again.');
@@ -61,12 +97,36 @@ export default function AssessmentConfirm({
     }
   }
 
-  function updateRow(i: number, patch: Partial<ExtractedAssessment>) {
+  function startEditing() {
+    setMode('edit');
+    setError(null);
+    setOriginal(saved);
+    setRows(saved.map(toRow));
+    setStatus('review');
+  }
+
+  function updateRow(i: number, patch: EditableFields) {
     setRows((prev) => prev.map((row, idx) => {
       if (idx !== i) return row;
-      const next = { ...row, ...patch };
-      return { ...next, edited: rowChanged(next, original[i]) };
+      const next: Row = { ...row, ...patch };
+      const before = original[i];
+      return { ...next, edited: row.wasEdited || !before || rowChanged(next, before) };
     }));
+  }
+
+  function addRow() {
+    setRows((prev) => [...prev, {
+      title: 'Midterm',
+      kind: 'midterm',
+      date: null,
+      startTime: null,
+      weight: null,
+      quote: null,
+      page: null,
+      manual: true,
+      wasEdited: true,
+      edited: true,
+    }]);
   }
 
   function removeRow(i: number) {
@@ -74,7 +134,21 @@ export default function AssessmentConfirm({
     setOriginal((prev) => prev.filter((_, idx) => idx !== i));
   }
 
+  function close() {
+    setStatus('idle');
+    setRows([]);
+    setOriginal([]);
+    setError(null);
+  }
+
   async function save() {
+    // A blank title fails validation server-side and the row would vanish
+    // without a word, which is the exact surprise this whole screen exists to
+    // avoid. Caught here instead, while it can still be typed in.
+    if (rows.some((r) => r.title.trim() === '')) {
+      setError('Give every assessment a title before saving.');
+      return;
+    }
     setStatus('saving');
     setError(null);
     try {
@@ -89,9 +163,7 @@ export default function AssessmentConfirm({
         setStatus('review');
         return;
       }
-      setStatus('idle');
-      setRows([]);
-      setOriginal([]);
+      close();
       onSaved();
     } catch {
       setError('Could not save. Check your connection and try again.');
@@ -99,7 +171,7 @@ export default function AssessmentConfirm({
     }
   }
 
-  if (!readable) {
+  if (!readable && saved.length === 0) {
     return (
       <p className="mt-3 text-sm text-text-secondary">
         We can&apos;t read a link, it&apos;s only a bookmark. Open it, select the whole page,
@@ -110,15 +182,40 @@ export default function AssessmentConfirm({
 
   if (status === 'idle') {
     return (
-      <div className="mt-3">
-        <button
-          type="button"
-          onClick={runExtraction}
-          className="rounded-pill bg-surface-muted px-4 py-1.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] active:scale-100"
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {saved.length > 0 && (
+          <button
+            type="button"
+            onClick={startEditing}
+            className="rounded-pill bg-surface-muted px-4 py-1.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] active:scale-100"
+          >
+            Edit {saved.length} saved {saved.length === 1 ? 'assessment' : 'assessments'}
+          </button>
+        )}
+        {readable && (
+          <button
+            type="button"
+            onClick={() => (editedCount > 0 ? setConfirmReExtract(true) : runExtraction())}
+            className="rounded-pill bg-surface-muted px-4 py-1.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] active:scale-100"
+          >
+            {alreadyExtracted ? 'Re-read assessments' : 'Read assessments from this syllabus'}
+          </button>
+        )}
+        {error && <p role="alert" className="w-full text-sm text-danger">{error}</p>}
+        <ConfirmDialog
+          open={confirmReExtract}
+          title="This replaces your corrections"
+          confirmLabel="Read it again"
+          destructive
+          onConfirm={runExtraction}
+          onCancel={() => setConfirmReExtract(false)}
         >
-          {alreadyExtracted ? 'Re-read assessments' : 'Read assessments from this syllabus'}
-        </button>
-        {error && <p role="alert" className="mt-2 text-sm text-danger">{error}</p>}
+          You&apos;ve corrected {editedCount} {editedCount === 1 ? 'row' : 'rows'} on this
+          syllabus. Reading it again starts from what the model finds, and saving that
+          list replaces your corrections. To fix a date without re-reading, use
+          &ldquo;Edit {saved.length} saved {saved.length === 1 ? 'assessment' : 'assessments'}&rdquo;
+          instead.
+        </ConfirmDialog>
       </div>
     );
   }
@@ -134,10 +231,14 @@ export default function AssessmentConfirm({
   return (
     <div className="mt-4 space-y-3">
       <p className="text-sm text-text-secondary">
-        Check each row against its quote before saving &mdash; that&apos;s the only check here.
+        {mode === 'extract'
+          ? 'Check each row against its quote before saving, that’s the only check here.'
+          : 'Fix a date, add an assessment we missed, or remove one that was cancelled. No re-reading needed.'}
       </p>
       {rows.length === 0 && (
-        <p className="text-sm text-text-secondary">No graded assessments found.</p>
+        <p className="text-sm text-text-secondary">
+          {mode === 'extract' ? 'No graded assessments found.' : 'Nothing here yet.'}
+        </p>
       )}
       {rows.map((row, i) => (
         <div key={i} className="rounded-input border border-border p-3">
@@ -190,14 +291,20 @@ export default function AssessmentConfirm({
               Remove
             </button>
           </div>
-          <p className="mt-2 text-sm italic text-text-secondary">
-            &ldquo;{row.quote}&rdquo; &mdash; page {row.page}
-          </p>
+          {row.quote !== null ? (
+            <p className="mt-2 text-sm italic text-text-secondary">
+              &ldquo;{row.quote}&rdquo; (page {row.page})
+            </p>
+          ) : (
+            <p className="mt-2 text-sm text-text-secondary">
+              You added this one, so there&apos;s no syllabus quote to check it against.
+            </p>
+          )}
           {row.edited && <p className="mt-1 text-sm text-brand-accent">Edited</p>}
         </div>
       ))}
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <button
           type="button"
           disabled={status === 'saving'}
@@ -208,7 +315,14 @@ export default function AssessmentConfirm({
         </button>
         <button
           type="button"
-          onClick={() => { setStatus('idle'); setRows([]); setOriginal([]); }}
+          onClick={addRow}
+          className="rounded-pill bg-surface-muted px-4 py-1.5 text-sm font-medium text-foreground transition duration-150 ease-out hover:scale-[1.02] active:scale-100"
+        >
+          Add an assessment
+        </button>
+        <button
+          type="button"
+          onClick={close}
           className="rounded-pill bg-surface-muted px-4 py-1.5 text-sm font-medium text-foreground"
         >
           Cancel

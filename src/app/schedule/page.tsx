@@ -11,6 +11,7 @@ import ScheduleTabs, {
 import type { CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 import type { SyllabusListItem } from '@/components/SyllabusList';
 import { examRowsForUser, syllabusExamRowsForUser, mergeExams, examCoverage } from '@/schedule/exams';
+import { toSavedAssessmentRow } from '@/syllabus/schema';
 import { isPlannableTerm, isUpcomingTerm, getCurrentAndNextTerm } from '@/schedule/terms';
 
 function courseHref(subjectCode: string, number: string): string {
@@ -49,7 +50,12 @@ async function examsTabData(
   const [courses, syllabi] = courseIds.length
     ? await Promise.all([
         db.course.findMany({ where: { id: { in: courseIds } }, include: { subject: true } }),
-        db.syllabus.findMany({ where: { userId, termId: currentTermId, courseId: { in: courseIds } } }),
+        db.syllabus.findMany({
+          where: { userId, termId: currentTermId, courseId: { in: courseIds } },
+          // The saved rows go down to the confirm table so a wrong date can be
+          // corrected there, with no second extraction call.
+          include: { assessments: true },
+        }),
       ])
     : [[], []];
   const syllabusByCourse = new Map(syllabi.map((s) => [s.courseId, s]));
@@ -79,6 +85,9 @@ async function examsTabData(
                 url: s.url,
                 sourceText: s.sourceText,
                 extractedAt: s.extractedAt?.toISOString() ?? null,
+                assessments: s.assessments
+                  .map(toSavedAssessmentRow)
+                  .filter((a) => a !== null),
               }
             : null,
         };

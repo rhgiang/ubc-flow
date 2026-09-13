@@ -571,11 +571,12 @@ model Syllabus {
 }
 
 /**
- * One graded item read out of a Syllabus by src/syllabus/extract.ts, shown to
- * the student on the confirm screen before anything is saved (see
- * src/components/AssessmentConfirm.tsx). `quote`/`page` are the verbatim
- * evidence the student checks against the PDF - the only verification this
- * design has, so both stay visible wherever a row is shown.
+ * One graded item, either read out of a Syllabus by src/syllabus/extract.ts
+ * or typed in by the student, shown on the confirm screen before anything is
+ * saved (see src/components/AssessmentConfirm.tsx). On an extracted row
+ * `quote`/`page` are the verbatim evidence the student checks against the PDF
+ * - the only verification this design has, so both stay visible wherever such
+ * a row is shown.
  */
 model SyllabusAssessment {
   id         String   @id @default(cuid())
@@ -589,18 +590,27 @@ model SyllabusAssessment {
   /// Percent of the final grade, when the syllabus states one.
   weight     Float?
   /// Verbatim syllabus text the model based this row on, shown to the student
-  /// on the confirm screen. The row is never saved without a human seeing this.
+  /// on the confirm screen. An extracted row is never saved without a human
+  /// seeing this.
+  ///
+  /// NULL, with a NULL page, on a row the student typed in themselves: there
+  /// is no syllabus sentence to quote, and the student is the evidence. Only
+  /// that origin may leave it null; normalizeSavedAssessment
+  /// (src/syllabus/schema.ts) still requires a quote of everything else.
   quote      String?
   page       Int?
-  /// True once the student has edited the row. Read by mergeExams
-  /// (src/schedule/exams.ts), where it makes the row win over a scraped
-  /// FinalExam for the same course.
+  /// True once the student has edited the row, and always true on a row they
+  /// added by hand. Read by mergeExams (src/schedule/exams.ts), where it
+  /// makes the row win over a scraped FinalExam for the same course.
   ///
   /// It does NOT survive a re-extraction: saving
   /// (src/app/api/syllabus/[id]/assessments/route.ts) deletes every row for
   /// the syllabus and recreates them from the payload, so re-running the
-  /// extract and saving replaces an edited row with the model's version and
-  /// the flag with whatever the client sent. Known gap, not yet fixed.
+  /// extract and saving replaces an edited row with the model's version.
+  /// That is no longer silent: the confirm screen
+  /// (src/components/AssessmentConfirm.tsx) counts the edited rows and asks
+  /// before it re-reads, and offers editing the saved rows in place instead,
+  /// which is the path that costs no extraction call.
   editedByUser Boolean @default(false)
 
   @@index([syllabusId])

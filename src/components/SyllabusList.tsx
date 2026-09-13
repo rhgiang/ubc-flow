@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SyllabusUpload from '@/components/SyllabusUpload';
 import AssessmentConfirm from '@/components/AssessmentConfirm';
+import type { SavedAssessmentRow } from '@/syllabus/schema';
 
 export type SyllabusListItem = {
   courseId: string;
@@ -19,6 +20,9 @@ export type SyllabusListItem = {
      *  these payloads ever get heavy, serve it from a route like the PDF. */
     sourceText: string | null;
     extractedAt: string | null;
+    /** Already saved, so they can be reopened in the confirm table and
+     *  corrected without paying for another extraction. */
+    assessments: SavedAssessmentRow[];
   } | null;
 };
 
@@ -130,6 +134,7 @@ export default function SyllabusList({ termId, items }: { termId: string; items:
 
               <AssessmentConfirm
                 syllabusId={item.syllabus.id}
+                saved={item.syllabus.assessments}
                 alreadyExtracted={item.syllabus.extractedAt !== null}
                 // A link is a bookmark: we never fetch it, so there is
                 // nothing to read until a PDF or the pasted text arrives.

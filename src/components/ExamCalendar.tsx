@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react';
 import type { ExamListItem } from '@/schedule/exams';
 import { examCalendar, type ExamDayCell, type ExamMonth } from '@/schedule/exam-calendar';
 import { courseColorIndex } from '@/schedule/colors';
-import ExamList, { formatDate, type SelectExam } from '@/components/ExamList';
+import ExamList, {
+  RemoveExamButton,
+  formatDate,
+  type RemoveExam,
+  type SelectExam,
+} from '@/components/ExamList';
 
 /** Sunday-first, matching the grid `examCalendar` builds. */
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -34,12 +39,26 @@ export function splitCourseLabel(courseLabel: string): string[] {
  * There is no room here for rooms and surname splits; that is what the overlay
  * is for, and the whole chip is the button that opens it.
  */
-function ExamChip({ group, onSelect }: { group: ExamListItem[]; onSelect: SelectExam }) {
+function ExamChip({
+  group,
+  onSelect,
+  onRemove,
+}: {
+  group: ExamListItem[];
+  onSelect: SelectExam;
+  onRemove?: RemoveExam;
+}) {
   const item = group[0];
   const slot = courseColorIndex(item.courseLabel);
   const fromSyllabus = item.source === 'syllabus';
 
   return (
+    // The x is a sibling of the chip, not a child: a button inside a button
+    // is invalid and breaks keyboard order. Only from sm up, because a day
+    // square is about 45px wide on a phone and an x would eat the label the
+    // stacked course code just barely fits into. Touch keeps the overlay,
+    // which offers remove with room to explain what it does.
+    <div className="group/chip relative">
     <button
       type="button"
       onClick={() => onSelect(group)}
@@ -105,6 +124,14 @@ function ExamChip({ group, onSelect }: { group: ExamListItem[]; onSelect: Select
         </span>
       )}
     </button>
+    {onRemove && (
+      <RemoveExamButton
+        group={group}
+        onRemove={onRemove}
+        className="right-0.5 top-0.5 hidden h-4 w-4 text-[0.625rem] leading-none sm:grid sm:opacity-0 sm:group-hover/chip:opacity-100 sm:group-focus-within/chip:opacity-100"
+      />
+    )}
+    </div>
   );
 }
 
@@ -112,10 +139,12 @@ function DayCell({
   cell,
   isToday,
   onSelect,
+  onRemove,
 }: {
   cell: ExamDayCell;
   isToday: boolean;
   onSelect: SelectExam;
+  onRemove?: RemoveExam;
 }) {
   if (cell.day === null) {
     return <div className="min-h-[4.5rem] bg-surface-muted sm:min-h-[5rem]" />;
@@ -133,7 +162,7 @@ function DayCell({
         {cell.day}
       </div>
       {cell.groups.map((g) => (
-        <ExamChip key={g[0].id} group={g} onSelect={onSelect} />
+        <ExamChip key={g[0].id} group={g} onSelect={onSelect} onRemove={onRemove} />
       ))}
     </div>
   );
@@ -143,10 +172,12 @@ function MonthGrid({
   month,
   today,
   onSelect,
+  onRemove,
 }: {
   month: ExamMonth;
   today: Today | null;
   onSelect: SelectExam;
+  onRemove?: RemoveExam;
 }) {
   const count = month.cells.reduce((n, c) => n + c.groups.length, 0);
 
@@ -178,6 +209,7 @@ function MonthGrid({
             cell={cell}
             isToday={today !== null && today.key === month.key && today.day === cell.day}
             onSelect={onSelect}
+            onRemove={onRemove}
           />
         ))}
       </div>
@@ -194,9 +226,11 @@ function MonthGrid({
 export default function ExamCalendar({
   items,
   onSelect,
+  onRemove,
 }: {
   items: ExamListItem[];
   onSelect: SelectExam;
+  onRemove?: RemoveExam;
 }) {
   const { months, unscheduled } = examCalendar(items);
   const [today, setToday] = useState<Today | null>(null);
@@ -223,7 +257,13 @@ export default function ExamCalendar({
   return (
     <div className="space-y-6">
       {months.map((month) => (
-        <MonthGrid key={month.key} month={month} today={today} onSelect={onSelect} />
+        <MonthGrid
+          key={month.key}
+          month={month}
+          today={today}
+          onSelect={onSelect}
+          onRemove={onRemove}
+        />
       ))}
 
       {hasSyllabusExam && (

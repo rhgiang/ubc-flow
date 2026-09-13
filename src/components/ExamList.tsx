@@ -81,6 +81,45 @@ export function AmbiguousSectionNote() {
 /** Click target for an exam, shared by the list and the calendar. */
 export type SelectExam = (group: ExamListItem[]) => void;
 
+/** Remove target, same shape. Absent when removing is not offered. */
+export type RemoveExam = (group: ExamListItem[]) => void;
+
+/**
+ * The hover x that removes an exam without opening the detail overlay.
+ *
+ * Hidden until hover or keyboard focus on pointer devices, always visible on
+ * touch, which has no hover at all: an affordance that only appears on hover
+ * does not exist on a phone. It is a real button with a label rather than a
+ * glyph, and it sits ABOVE the card's own click target so the two do not
+ * fight, which is also why the card is no longer a <button> wrapping its
+ * content. A button inside a button is invalid and breaks keyboard order.
+ */
+export function RemoveExamButton({
+  group,
+  onRemove,
+  className = '',
+}: {
+  group: ExamListItem[];
+  onRemove: RemoveExam;
+  className?: string;
+}) {
+  const scraped = group[0].source === 'ubc';
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onRemove(group);
+      }}
+      aria-label={`${scraped ? 'Hide' : 'Remove'} ${group[0].courseLabel}`}
+      title={scraped ? 'Hide this exam' : 'Remove this exam'}
+      className={`absolute z-20 grid place-items-center rounded-full bg-surface-muted text-text-tertiary opacity-100 transition hover:bg-danger hover:text-brand-foreground focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 ${className}`}
+    >
+      <span aria-hidden="true">x</span>
+    </button>
+  );
+}
+
 /**
  * One exam's card - which may be several published rows when the exam is split
  * across rooms. Matches the visual language of EnrolledCourseCard: same
@@ -89,7 +128,15 @@ export type SelectExam = (group: ExamListItem[]) => void;
  * ScheduleCalendar paints its blocks with, so an exam reads as the same course
  * it is everywhere else in the app.
  */
-function ExamRow({ group, onSelect }: { group: ExamListItem[]; onSelect?: SelectExam }) {
+function ExamRow({
+  group,
+  onSelect,
+  onRemove,
+}: {
+  group: ExamListItem[];
+  onSelect?: SelectExam;
+  onRemove?: RemoveExam;
+}) {
   const item = group[0];
   const slot = courseColorIndex(item.courseLabel);
   const body = (
@@ -146,7 +193,7 @@ function ExamRow({ group, onSelect }: { group: ExamListItem[]; onSelect?: Select
   const shell = 'rounded-card border border-border bg-surface p-4';
   const bar = { boxShadow: `inset 3px 0 0 0 var(--course-${slot}-accent)` };
 
-  if (!onSelect) {
+  if (!onSelect && !onRemove) {
     return (
       <div className={shell} style={bar}>
         {card}
@@ -155,23 +202,32 @@ function ExamRow({ group, onSelect }: { group: ExamListItem[]; onSelect?: Select
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(group)}
-      style={bar}
-      className={`${shell} block w-full text-left transition-colors hover:bg-surface-muted`}
-    >
-      {card}
-    </button>
+    <div className={`${shell} group relative`} style={bar}>
+      {/* The card's own click target is a stretched button UNDER the content
+          rather than a button wrapping it, so the x can sit above it as its
+          own control. The content is inert so clicks fall through. */}
+      {onSelect && (
+        <button
+          type="button"
+          onClick={() => onSelect(group)}
+          aria-label={`${group[0].courseLabel} exam details`}
+          className="absolute inset-0 z-0 rounded-card transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted"
+        />
+      )}
+      <div className="pointer-events-none relative z-10">{card}</div>
+      {onRemove && <RemoveExamButton group={group} onRemove={onRemove} className="right-2 top-2 h-6 w-6 text-sm" />}
+    </div>
   );
 }
 
 export default function ExamList({
   items,
   onSelect,
+  onRemove,
 }: {
   items: ExamListItem[];
   onSelect?: SelectExam;
+  onRemove?: RemoveExam;
 }) {
   if (items.length === 0) {
     // Whether UBC has published this term's schedule is ExamCoverageNote's
@@ -186,7 +242,7 @@ export default function ExamList({
   return (
     <div className="space-y-3">
       {groupExams(items).map((group) => (
-        <ExamRow key={group[0].id} group={group} onSelect={onSelect} />
+        <ExamRow key={group[0].id} group={group} onSelect={onSelect} onRemove={onRemove} />
       ))}
     </div>
   );

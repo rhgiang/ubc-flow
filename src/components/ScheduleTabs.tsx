@@ -11,6 +11,7 @@ import CampusMap from '@/components/CampusMap';
 import ExamList, { ExamCoverageNote } from '@/components/ExamList';
 import ExamCalendar from '@/components/ExamCalendar';
 import ExamDetailOverlay from '@/components/ExamDetailOverlay';
+import { useRemoveExam } from '@/components/use-remove-exam';
 import { AddExamButton, HiddenExams } from '@/components/ExamActions';
 import SyllabusList, { type SyllabusListItem } from '@/components/SyllabusList';
 import type { ExamCoverage, ExamListItem } from '@/schedule/exams';
@@ -286,6 +287,9 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
   // The clicked exam, as the grouped rows both views hand over - one exam
   // split across rooms by surname is one selection, same as it is one card.
   const [selected, setSelected] = useState<ExamListItem[] | null>(null);
+  // Same removal the overlay offers, reached from the hover x on a card or
+  // a chip without opening it first.
+  const { remove: removeExam } = useRemoveExam();
 
   if (!exams) {
     return (
@@ -349,9 +353,9 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
 
       <div className="mt-4">
         {view === 'list' ? (
-          <ExamList items={exams.items} onSelect={setSelected} />
+          <ExamList items={exams.items} onSelect={setSelected} onRemove={removeExam} />
         ) : (
-          <ExamCalendar items={exams.items} onSelect={setSelected} />
+          <ExamCalendar items={exams.items} onSelect={setSelected} onRemove={removeExam} />
         )}
       </div>
 

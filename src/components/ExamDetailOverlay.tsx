@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 import { courseColorIndex } from '@/schedule/colors';
 import { AmbiguousSectionNote, formatAlphaSplit, formatDate, sourceLabel } from '@/components/ExamList';
+import { useRemoveExam } from '@/components/use-remove-exam';
 import type { ExamListItem } from '@/schedule/exams';
 
 /**
@@ -28,9 +28,10 @@ export default function ExamDetailOverlay({
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-  const [removing, setRemoving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // The group is the exam, so removing it removes every row of it: a final
+  // split across four rooms by surname is one exam, not four. Shared with the
+  // hover x on the list card and the calendar chip.
+  const { remove, removing, error } = useRemoveExam(onClose);
 
   // Escape closes, matching CourseInfoOverlay and the auth overlay.
   useEffect(() => {
@@ -52,29 +53,6 @@ export default function ExamDetailOverlay({
     return () => trigger?.focus();
   }, [group]);
 
-  // The group is the exam, so removing it removes every row of it - a final
-  // split across four rooms by surname is one exam, not four.
-  async function remove(rows: ExamListItem[]) {
-    setRemoving(true);
-    setError(null);
-    try {
-      const ids = rows.map((r) => r.id).join(',');
-      const res = await fetch(`/api/exams?source=${rows[0].source}&ids=${encodeURIComponent(ids)}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setError(data?.error ?? 'Could not remove that exam.');
-        return;
-      }
-      onClose();
-      router.refresh();
-    } catch {
-      setError('Could not remove that exam. Check your connection and try again.');
-    } finally {
-      setRemoving(false);
-    }
-  }
 
   if (!group) return null;
 

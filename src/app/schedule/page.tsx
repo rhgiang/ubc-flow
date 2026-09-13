@@ -10,7 +10,7 @@ import ScheduleTabs, {
 } from '@/components/ScheduleTabs';
 import type { CalendarEntry } from '@/components/schedule/ScheduleCalendar';
 import type { SyllabusListItem } from '@/components/SyllabusList';
-import { examRowsForUser, syllabusExamRowsForUser, mergeExams } from '@/schedule/exams';
+import { examRowsForUser, syllabusExamRowsForUser, mergeExams, examCoverage } from '@/schedule/exams';
 import { isPlannableTerm, isUpcomingTerm, getCurrentAndNextTerm } from '@/schedule/terms';
 
 function courseHref(subjectCode: string, number: string): string {
@@ -26,12 +26,17 @@ function sectionKey(m: { courseId: string; termId: string; sectionCode: string |
  *  signed-out visitor — the rest of this page is browsable without an account,
  *  and the tab says so rather than the whole page redirecting to /login. */
 async function examsTabData(userId: string, currentTermId: string | null): Promise<ExamsTabData> {
-  if (!currentTermId) return { items: [], termId: null, syllabi: [] };
+  if (!currentTermId) return { items: [], termId: null, coverage: { published: false }, syllabi: [] };
 
-  const [scraped, fromSyllabus, enrollments] = await Promise.all([
+  const [scraped, fromSyllabus, enrollments, anyExamThisTerm] = await Promise.all([
     examRowsForUser(userId, currentTermId),
     syllabusExamRowsForUser(userId, currentTermId),
     db.enrollment.findMany({ where: { userId, termId: currentTermId }, select: { courseId: true } }),
+    // Deliberately NOT scoped to this student: one published row anywhere in
+    // the term means the whole schedule is out (see `examCoverage`). Scoping
+    // it to their courses would make "no exams for me" indistinguishable from
+    // "UBC hasn't published anything yet", which is the bug this answers.
+    db.finalExam.findFirst({ where: { termId: currentTermId }, select: { id: true } }),
   ]);
 
   const courseIds = [...new Set(enrollments.map((e) => e.courseId))];
@@ -42,16 +47,23 @@ async function examsTabData(userId: string, currentTermId: string | null): Promi
       ])
     : [[], []];
   const syllabusByCourse = new Map(syllabi.map((s) => [s.courseId, s]));
+  // Same spelling `toExamListItem` builds — "CPSC 110", no campus suffix — so
+  // the coverage check can match an enrolled course against an exam row.
+  const courseLabel = (c: (typeof courses)[number]) =>
+    `${c.subject.code?.replace(/_[A-Z]$/, '') ?? ''} ${c.number}`.trim();
+
+  const items = mergeExams(scraped, fromSyllabus);
 
   return {
-    items: mergeExams(scraped, fromSyllabus),
+    items,
     termId: currentTermId,
+    coverage: examCoverage(items, courses.map(courseLabel), anyExamThisTerm !== null),
     syllabi: courses
       .map((c): SyllabusListItem => {
         const s = syllabusByCourse.get(c.id);
         return {
           courseId: c.id,
-          courseLabel: `${c.subject.code?.replace(/_[A-Z]$/, '') ?? ''} ${c.number}`.trim(),
+          courseLabel: courseLabel(c),
           syllabus: s
             ? { id: s.id, filename: s.filename, size: s.size, extractedAt: s.extractedAt?.toISOString() ?? null }
             : null,

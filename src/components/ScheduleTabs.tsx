@@ -8,10 +8,11 @@ import CourseInfoOverlay from '@/components/schedule/CourseInfoOverlay';
 import CalendarSubscribeMenu from '@/components/schedule/CalendarSubscribeMenu';
 import ShareLinkMenu from '@/components/schedule/ShareLinkMenu';
 import CampusMap from '@/components/CampusMap';
-import ExamList from '@/components/ExamList';
+import ExamList, { ExamCoverageNote } from '@/components/ExamList';
 import ExamCalendar from '@/components/ExamCalendar';
+import ExamDetailOverlay from '@/components/ExamDetailOverlay';
 import SyllabusList, { type SyllabusListItem } from '@/components/SyllabusList';
-import type { ExamListItem } from '@/schedule/exams';
+import type { ExamCoverage, ExamListItem } from '@/schedule/exams';
 import {
   getEnrolledSubscribeUrl,
   enableEnrollmentSharing,
@@ -46,6 +47,9 @@ export type ExamsTabData = {
   items: ExamListItem[];
   /** Null when we can't work out the current term; the syllabus form needs it. */
   termId: string | null;
+  /** Whether UBC has published this term's schedule, and which enrolled
+   *  courses are missing from it once it is out. */
+  coverage: ExamCoverage;
   syllabi: SyllabusListItem[];
 };
 
@@ -272,6 +276,9 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
   // tab rather than a sixth tab in the strip above. TabButton is reused so it
   // reads as the same control, one level down.
   const [view, setView] = useState<'list' | 'calendar'>('list');
+  // The clicked exam, as the grouped rows both views hand over — one exam
+  // split across rooms by surname is one selection, same as it is one card.
+  const [selected, setSelected] = useState<ExamListItem[] | null>(null);
 
   if (!exams) {
     return (
@@ -294,11 +301,17 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
 
       <div className="mt-4">
         {view === 'list' ? (
-          <ExamList items={exams.items} />
+          <ExamList items={exams.items} onSelect={setSelected} />
         ) : (
-          <ExamCalendar items={exams.items} />
+          <ExamCalendar items={exams.items} onSelect={setSelected} />
         )}
       </div>
+
+      {/* Under the exams rather than over them: it is the footnote to the list
+          — what ISN'T on it and why — not the headline. */}
+      <ExamCoverageNote coverage={exams.coverage} />
+
+      <ExamDetailOverlay group={selected} onClose={() => setSelected(null)} />
 
       {/* Closed by default and phrased as the answer to "where are my
           midterms?" — a syllabus upload is the means, not a place to go. */}

@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { normalizeAssessments } from '@/syllabus/schema';
+import { normalizeSavedAssessment } from '@/syllabus/schema';
 
 /**
  * The confirm screen's Save action - the only place a SyllabusAssessment row
- * is ever written. The extract route (src/app/api/syllabus/extract/route.ts)
- * only proposes rows; nothing is persisted until a student accepts them here.
+ * is ever written, whether the rows came from an extraction the student just
+ * accepted or from the student reopening their saved rows and correcting one.
+ * The extract route (src/app/api/syllabus/extract/route.ts) only proposes
+ * rows; nothing is persisted until a student accepts them here.
  *
  * Re-validated server-side by running the client's payload back through
- * normalizeAssessments (schema.ts) - one copy of those rules, not a
+ * normalizeSavedAssessment (schema.ts) - one copy of those rules, not a
  * hand-rolled duplicate - with the `edited` flag and date coercion layered
  * on top of what it returns.
  */
@@ -36,16 +38,14 @@ export async function POST(
     return NextResponse.json({ error: 'Missing assessments.' }, { status: 400 });
   }
 
-  // normalizeAssessments drops invalid rows, so mapping its output back onto
-  // `rows` by index would desync as soon as anything mid-array gets dropped.
-  // Run it one row at a time instead - still the single source of truth for
-  // the validation rules, just called N times - so each surviving row can be
-  // paired with its own `edited` flag with no index bookkeeping.
+  // Validated one row at a time, so each surviving row can be paired with its
+  // own flags with no index bookkeeping: a list where a bad row is dropped
+  // mid-array would desync any mapping done by position.
   // Authenticated, but still caller-supplied and headed straight into a bulk
   // insert. A real syllabus lists a dozen assessments; 100 is far past any
   // honest one and keeps a scripted client from writing an unbounded table.
   const clean = rows.slice(0, MAX_ASSESSMENT_ROWS).flatMap((raw) => {
-    const [a] = normalizeAssessments({ assessments: [raw] });
+    const a = normalizeSavedAssessment(raw);
     if (!a) return [];
     return [{
       title: a.title,
@@ -55,12 +55,20 @@ export async function POST(
       weight: a.weight,
       quote: a.quote,
       page: a.page,
-      editedByUser: (raw as Record<string, unknown>)?.edited === true,
+      // Decided by normalizeSavedAssessment, not by the client alone: a row
+      // the student typed is their work by definition. mergeExams
+      // (src/schedule/exams.ts) reads this to let it beat a scraped row.
+      editedByUser: a.editedByUser,
     }];
   });
 
   // Wipe-and-replace: a Save is the confirmed state of this syllabus's
   // assessment list, not a merge with whatever an earlier extraction saved.
+  // The payload is the whole list the student was just looking at (their
+  // saved rows when they opened the editor, the proposals when they ran an
+  // extraction), so replacing is what they asked for. The one case where that
+  // costs them something - re-extracting over rows they had corrected - is
+  // warned about before the extraction runs, in AssessmentConfirm.
   await db.$transaction([
     db.syllabusAssessment.deleteMany({ where: { syllabusId: id } }),
     db.syllabusAssessment.createMany({

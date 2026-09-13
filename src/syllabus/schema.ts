@@ -13,6 +13,24 @@ export type ExtractedAssessment = {
   page: number;
 };
 
+/**
+ * A row the student typed in themselves, for an assessment the extraction
+ * missed or never had a syllabus sentence for. It carries no quote and no
+ * page because there is nothing to quote: the student saying so IS the
+ * evidence, which is exactly what a model's row can never be.
+ */
+export type ManualAssessment = Omit<ExtractedAssessment, 'quote' | 'page'> & {
+  quote: null;
+  page: null;
+};
+
+/** Either origin, as the confirm screen saves them. */
+export type SavedAssessment = ExtractedAssessment | ManualAssessment;
+
+/** One saved row on its way back out to the editor. `kind` is a plain String
+ *  column, narrowed here because the save route is its only writer. */
+export type SavedAssessmentRow = SavedAssessment & { editedByUser: boolean };
+
 const assessment = {
   type: 'object',
   additionalProperties: false,
@@ -44,9 +62,31 @@ export const ASSESSMENT_TOOL: Anthropic.Tool = {
 };
 
 /**
- * Defensive on purpose: a row that cannot be checked is not offered. Every
- * saved assessment is shown to a student beside its quote, so a row with no
- * quote has nothing to verify against and is dropped rather than displayed.
+ * The rules that hold for every row whatever wrote it: a real title, and a
+ * `kind` this app knows. Neither origin is exempt, so neither gets its own
+ * copy of these.
+ */
+function normalizeFields(raw: unknown): Omit<ExtractedAssessment, 'quote' | 'page'> | null {
+  const r = raw as Record<string, unknown>;
+  if (typeof r?.title !== 'string' || r.title.trim() === '') return null;
+  if (!ASSESSMENT_KINDS.includes(r.kind as AssessmentKind)) return null;
+
+  return {
+    title: r.title.trim(),
+    kind: r.kind as AssessmentKind,
+    date: typeof r.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : null,
+    startTime: typeof r.startTime === 'string' && /^\d{2}:\d{2}$/.test(r.startTime)
+      ? r.startTime : null,
+    weight: typeof r.weight === 'number' && Number.isFinite(r.weight) ? r.weight : null,
+  };
+}
+
+/**
+ * Model output. Defensive on purpose: a row that cannot be checked is not
+ * offered. Every extracted assessment is shown to a student beside its quote,
+ * so a row with no quote has nothing to verify against and is dropped rather
+ * than displayed. That rule is about the MODEL, not about the student, and it
+ * does not loosen: see normalizeSavedAssessment for the other origin.
  */
 export function normalizeAssessments(input: unknown): ExtractedAssessment[] {
   const list = (input as { assessments?: unknown })?.assessments;
@@ -54,22 +94,67 @@ export function normalizeAssessments(input: unknown): ExtractedAssessment[] {
 
   const out: ExtractedAssessment[] = [];
   for (const raw of list) {
+    const base = normalizeFields(raw);
+    if (!base) continue;
     const r = raw as Record<string, unknown>;
-    if (typeof r?.title !== 'string' || r.title.trim() === '') continue;
-    if (!ASSESSMENT_KINDS.includes(r.kind as AssessmentKind)) continue;
     if (typeof r.quote !== 'string' || r.quote.trim() === '') continue;
     if (!Number.isInteger(r.page) || (r.page as number) <= 0) continue;
 
-    out.push({
-      title: r.title.trim(),
-      kind: r.kind as AssessmentKind,
-      date: typeof r.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : null,
-      startTime: typeof r.startTime === 'string' && /^\d{2}:\d{2}$/.test(r.startTime)
-        ? r.startTime : null,
-      weight: typeof r.weight === 'number' && Number.isFinite(r.weight) ? r.weight : null,
-      quote: r.quote.trim(),
-      page: r.page as number,
-    });
+    out.push({ ...base, quote: r.quote.trim(), page: r.page as number });
   }
   return out;
+}
+
+/**
+ * A stored row on its way back out to the editor: `date` as the YYYY-MM-DD
+ * an <input type="date"> wants, and the evidence pair only when BOTH halves
+ * are there, since a quote nobody can find a page for cites nothing. `kind`
+ * is checked here too - it is a plain String column, and a row the editor
+ * cannot represent is not one to hand it.
+ */
+export function toSavedAssessmentRow(row: {
+  title: string;
+  kind: string;
+  date: Date | null;
+  startTime: string | null;
+  weight: number | null;
+  quote: string | null;
+  page: number | null;
+  editedByUser: boolean;
+}): SavedAssessmentRow | null {
+  if (!ASSESSMENT_KINDS.includes(row.kind as AssessmentKind)) return null;
+  const base = {
+    title: row.title,
+    kind: row.kind as AssessmentKind,
+    date: row.date ? row.date.toISOString().slice(0, 10) : null,
+    startTime: row.startTime,
+    weight: row.weight,
+    editedByUser: row.editedByUser,
+  };
+  return row.quote !== null && row.page !== null
+    ? { ...base, quote: row.quote, page: row.page }
+    : { ...base, quote: null, page: null };
+}
+
+/**
+ * One row off the confirm screen's Save, of either origin.
+ *
+ * `manual: true` is the student saying "I typed this one", and only then is a
+ * null quote allowed: the evidence for a hand-entered row is the student who
+ * entered it. Everything else is treated as model output and still has to
+ * carry the verbatim quote and page a human can check the PDF against, so
+ * re-saving an extracted list cannot quietly strip its evidence.
+ *
+ * `editedByUser` is settled here rather than at the call site, because origin
+ * is what decides it: a hand-typed row is the student's work whatever the
+ * client flagged, and an untouched extracted row is not.
+ */
+export function normalizeSavedAssessment(raw: unknown): SavedAssessmentRow | null {
+  const r = raw as Record<string, unknown>;
+  if (r?.manual !== true) {
+    const extracted = normalizeAssessments({ assessments: [raw] })[0];
+    return extracted ? { ...extracted, editedByUser: r?.edited === true } : null;
+  }
+  const base = normalizeFields(raw);
+  return base ? { ...base, quote: null, page: null, editedByUser: true } : null;
 }

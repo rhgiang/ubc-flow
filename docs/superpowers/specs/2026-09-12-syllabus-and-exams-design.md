@@ -1,7 +1,8 @@
 # UBC Flow - Syllabus Locker and Exam Schedule (Design)
 
 **Date:** 2026-09-12
-**Status:** Approved for planning
+**Status:** Shipped on `feat/syllabus-and-exams`; sections 3, 5, 7, 9 and 13
+describe what shipped, section 4 the scraper as designed and built
 **Depends on:** [Phase 2: Accounts + Workday Import](2026-08-19-phase-2-accounts-workday-import-design.md) (merged) - supplies `Enrollment`, which every query here starts from
 
 ## 1. Why this exists
@@ -54,88 +55,119 @@ scope.
 
 The schema already separates globally scraped data (`Section`, `MeetingTime`)
 from per-user data (`Enrollment`, `EnrollmentMeeting`). This follows that split
-exactly rather than inventing a new convention.
+exactly rather than inventing a new convention. What is below is what shipped,
+after six migrations (`final_exam`, `syllabus`, `syllabus_assessment`,
+`syllabus_upload_quota`, `syllabus_link_and_text`, `exam_add_remove`); the
+source of truth is `prisma/schema.prisma`.
 
 | Model | Scope | Written by |
 |---|---|---|
-| `FinalExam` | global - course + term + section | `scrape:exams` |
-| `Syllabus` | one per user + course + term | upload |
-| `SyllabusAssessment` | belongs to one `Syllabus` | extraction, then the student |
+| `FinalExam` | global - course + term + section + alpha split | `scrape:exams` only |
+| `Syllabus` | one per user + course + term | `POST /api/syllabus` |
+| `SyllabusAssessment` | one per user + course + term row, syllabus optional | the confirm-table save, or `POST /api/exams` |
+| `HiddenFinalExam` | one per user + `FinalExam` | `DELETE /api/exams` |
+| `User.extractionCount/WindowStart`, `uploadCount/WindowStart` | per user | the two quota routes |
+
+`FinalExam` is exactly as first designed and is still the one thing here that
+belongs to nobody. `courseId`/`termId` are raw FKs with no Prisma relation,
+the same cross-domain convention the rest of the schema uses, so every join
+to `Course` happens in JS.
 
 ```prisma
 model FinalExam {
   id          String   @id @default(cuid())
   courseId    String
   termId      String
-  /// "901" from "AMNE_V 101.901", "B_941" from "FNH_V 497.B_941". Not numeric.
-  sectionCode String
-  /// Null ONLY on a cancelled exam, which the table publishes with empty date,
-  /// time and location cells - see §4. Never null on a live exam.
-  date        DateTime?
-  /// "08:30". The published table gives a start only - see §4 on duration.
-  startTime   String?
-  /// Surname range, e.g. "ADI-SUN". Empty for most exams; when UBC splits a
-  /// course across rooms it is the ONLY thing distinguishing two rows, which
-  /// is why it is part of the unique key rather than a display detail.
-  alphaSplit  String?
-  /// Null for "SEE PROF" and other non-room sentinels - see §4.
-  building    String?
+  sectionCode String      // "901", "B_941", "98A" - not numeric
+  date        DateTime?   // null ONLY on a cancelled exam (section 4)
+  startTime   String?     // "08:30"; the table gives a start only
+  alphaSplit  String?     // "ADI-SUN"; part of the key, not a display detail
+  building    String?     // null for "SEE PROF" and other sentinels
   room        String?
-  /// Registrar annotations, verbatim: "Late Request", "Location Change (was
-  /// DMP 201)", "Cancelled: August 17 2026, 3:30pm". Always displayed as-is.
-  notes       String?
-  /// Derived from `notes` beginning with "Cancelled" - see §4. A cancelled
-  /// exam is kept, never deleted: a student who remembers seeing it needs to
-  /// be told it is off, and a row that vanishes tells them nothing.
-  cancelled   Boolean  @default(false)
+  notes       String?     // registrar annotations, verbatim, always shown
+  cancelled   Boolean  @default(false)  // notes begins with "Cancelled"
 
   @@unique([courseId, termId, sectionCode, alphaSplit])
   @@index([termId])
 }
+```
 
+`Syllabus` grew two ways a syllabus can be recorded besides a PDF, because
+some UBC syllabi live on a Canvas page behind login and have no file to
+upload. The three are not mutually exclusive on the row; a row always carries
+at least one, enforced by the upload route (the only writer), since Prisma
+cannot express that as a constraint.
+
+```prisma
 model Syllabus {
-  id         String   @id @default(cuid())
-  userId     String
-  courseId   String
-  termId     String
-  /// Vercel Blob URL. Private; served only to the owner.
-  blobUrl    String
-  filename   String
-  bytes      Int
-  uploadedAt DateTime @default(now())
-  /// Null until extraction has succeeded at least once.
-  extractedAt DateTime?
+  id          String   @id @default(cuid())
+  userId      String   // relation to User, onDelete: Cascade
+  courseId    String
+  termId      String
+  pathname    String?  // blob pathname, NEVER a URL: the store is private
+  filename    String?  // the three file fields move together
+  size        Int?
+  url         String?  // a bookmark only, never fetched server-side
+  sourceText  String?  // the syllabus pasted as text; what makes a Canvas syllabus readable
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  extractedAt DateTime? // set by the SAVE route, so "confirmed at least once"
   assessments SyllabusAssessment[]
 
   @@unique([userId, courseId, termId])
-  @@index([userId])
-}
-
-model SyllabusAssessment {
-  id         String   @id @default(cuid())
-  syllabusId String
-  syllabus   Syllabus @relation(fields: [syllabusId], references: [id], onDelete: Cascade)
-  title      String
-  /// "midterm" | "final" | "assignment" | "quiz"
-  kind       String
-  date       DateTime?
-  startTime  String?
-  /// Percent of the final grade, when the syllabus states one.
-  weight     Float?
-  /// Verbatim syllabus text the model based this row on, shown to the student
-  /// on the confirm screen. The row is never saved without a human seeing this.
-  quote      String?
-  page       Int?
-  /// True once the student has edited the row, which makes it win over any
-  /// later re-extraction or scraped value.
-  editedByUser Boolean @default(false)
-
-  @@index([syllabusId])
 }
 ```
 
-`Syllabus` is unique on `(userId, courseId, termId)` - re-uploading replaces,
-matching how `EnrollmentMeeting` already treats a re-import.
+`SyllabusAssessment` carries its own `userId`, `courseId` and `termId`, and
+`syllabusId` is optional. That is what lets a student add an exam straight
+from the exam view for a course they never recorded a syllabus for: a
+standalone row with a real owner, deleted outright when they remove it. Rows
+that came off a syllabus still cascade with it. `location` exists only for
+typed rows; the model never reports one.
+
+```prisma
+model SyllabusAssessment {
+  id           String    @id @default(cuid())
+  syllabusId   String?   // null on a row typed straight into the exam view
+  userId       String    // relation to User, onDelete: Cascade
+  courseId     String
+  termId       String
+  title        String
+  kind         String    // "midterm" | "final" | "assignment" | "quiz"
+  date         DateTime?
+  startTime    String?
+  weight       Float?
+  location     String?   // typed rows only
+  quote        String?   // verbatim evidence on an extracted row; null ONLY on a typed row
+  page         Int?
+  editedByUser Boolean   @default(false) // edited or typed; see section 9
+
+  @@index([syllabusId])
+  @@index([userId, termId])
+}
+```
+
+`HiddenFinalExam` is "don't show me this one" for a row that is everyone's.
+Removing a scraped final from a student's view cannot delete it, so it is a
+per-user marker, reversible by deleting the marker, and the exam tab lists
+what is hidden so a real final hidden by accident can always be found again.
+
+```prisma
+model HiddenFinalExam {
+  userId      String   // relation to User, onDelete: Cascade
+  finalExamId String   // raw FK, same convention as FinalExam's own
+  createdAt   DateTime @default(now())
+
+  @@id([userId, finalExamId])
+}
+```
+
+The two quota pairs on `User` are fixed-window counters for the two things
+that cost money: Anthropic calls (8 a day) and blob writes (10 a day). Two
+separate pairs so the quotas cannot consume each other. Both routes charge
+before the paid call and refund, best effort, when the call itself throws;
+a successful call that returned nothing is a real paid call and stays
+charged.
 
 ---
 
@@ -220,16 +252,43 @@ effect of failure.
 
 ## 5. Phase 2 - Exam view
 
-New page at `/exams`. Its own route rather than a tab inside `ScheduleTabs`,
-which keeps that component untouched.
+Shipped as the **Exams tab of `/schedule`**, not as its own route. `/exams`
+and `/syllabus` were their own pages briefly; both are now permanent
+redirects to `/schedule?tab=exams` (in `next.config.ts`), so an old bookmark
+still lands on the content. The tab answers the same question the Calendar
+tab does ("when do I have to be somewhere for this course") and shares its
+term, its share link and its calendar subscription.
 
-Query: the signed-in user's `Enrollment` rows for the current term, joined to
-`FinalExam` on course + term.
+Data comes from `src/schedule/exams.ts`, which every surface (the tab, the
+shared page, the ICS feed) reads through, so there is one place hiding and
+section filtering happen:
 
-**The empty state is a real state, not an error.** For the first half of term
-there are no published finals. The page says so plainly - that UBC has not
-released the schedule yet, and roughly when it does - rather than rendering a
-blank panel that reads as broken.
+- `examRowsForUser(userId, termId)`: the student's `Enrollment` rows for the
+  term joined to `FinalExam` on course + term, then `filterToOwnSection` with
+  the student's hidden ids. Every scraped row for the course comes back
+  (`Enrollment` carries no section) and the filter narrows to the student's
+  own lecture section from their Workday import when it can; when it cannot,
+  every section is shown flagged `ambiguousSection`. Hidden rows are removed
+  from view but still count toward what UBC published, so hiding your own
+  section never surfaces another section's exam as yours.
+- `syllabusExamRowsForUser`: the student's `midterm`/`final` assessment rows,
+  syllabus-derived and typed alike.
+- `mergeExams` (section 9) and `groupExams`: one exam UBC split across rooms
+  by surname is ONE entry everywhere, including the feed.
+
+The tab has a **List** view and a **month Calendar** view over the same
+data, a detail overlay either one opens, an **Add exam** form, a hover-x (and
+overlay button) that removes an exam, and a collapsed **hidden list** that
+restores a hidden scraped final. A cancelled exam is struck through with its
+note; a dateless one says "Date TBA" and is never dropped. Every date is
+rendered in UTC because every date is stored as UTC midnight.
+
+**The empty state is a real state, not an error.** Until UBC publishes the
+term's finals the page says so plainly. Once ONE `FinalExam` row exists for
+the term (any course, not just the student's) the schedule is out, and an
+enrolled course still missing from it is named as having no
+registrar-scheduled final (`examCoverage`). Hidden exams and syllabus finals
+count as covered.
 
 ---
 
@@ -262,19 +321,31 @@ description so a student reading it knows the end time is ours, not UBC's.
 
 ## 7. Phase 4 - Syllabus locker
 
-**Storage:** `@vercel/blob`. The app already deploys to Vercel; this is the
-platform's own object store, gives private signed URLs, and needs no server. It
-is the only new runtime dependency in this design.
+**Storage:** `@vercel/blob`, private. There is no fetchable URL for a
+syllabus: `Syllabus.pathname` is the blob pathname, and the only reader is
+`GET /api/syllabus/[id]/file`, which re-checks ownership on every request
+and streams the bytes through. The viewer is an `<embed>` pointed at that
+route. No `pdf.js`.
 
-**Upload route**, modelled on `src/app/api/upload/route.ts`: validate before
-writing. `application/pdf` only, 10 MB cap, signed-in users only, and the size
-check happens before any parse or blob write.
+**Three ways to record a syllabus**, all through `POST /api/syllabus`, one
+per request: a PDF, a link, or the syllabus pasted as text. The link is a
+bookmark only, never fetched (a Canvas link returns a login page); the paste
+is what makes a Canvas syllabus readable. Adding a link does not wipe a
+paste and vice versa.
 
-**Viewing** is `<embed>` pointed at a signed URL - the browser's own PDF viewer.
-No `pdf.js`, no custom renderer.
+**Validation before any write** (`src/syllabus/validate.ts`):
+`application/pdf` only and **4 MB**, not the 10 MB first planned, because a
+Vercel Function request body over about 4.5 MB never reaches the route at
+all; `http`/`https` links only, 2048 characters; pasted text 100,000
+characters, since it goes straight into a paid model as input tokens.
 
-**Deleting** removes the blob, not just the row. A student who deletes a
-syllabus has asked for the file to be gone.
+**Guards:** enrolled in that course this term, or 403; 10 uploads a day per
+account (blob writes are billed operations), charged before `put()` and
+refunded if `put()` throws. Links and pastes write one row and no blob, so
+they are not charged.
+
+**Deleting** removes the blob, then the row; if the blob delete fails the row
+stays so the UI never claims a file is gone while it is not.
 
 ---
 
@@ -324,14 +395,32 @@ produce.
 ## 9. Phase 6 - Merging the two sources
 
 The exam view unions `FinalExam` rows with `SyllabusAssessment` rows whose
-`kind` is `midterm` or `final`.
+`kind` is `midterm` or `final` (`mergeExams` in `src/schedule/exams.ts`).
 
-Precedence when the same exam appears twice:
+**Nothing ever displaces a scraped `FinalExam` row.** This replaces the
+original precedence list, which said an edited row "wins over everything".
+Two rules that guessed which of two finals was the real one each produced a
+hidden real exam on this branch: keying scraped rows per course lost half of
+an alpha split and let a cancelled section overwrite a live one; letting an
+edited or hand-typed final replace the scraped one meant a student who typed
+"final, date TBA" in September never saw the row UBC published in November,
+and never saw a cancellation notice either. So:
 
-1. A row the student edited (`editedByUser`) wins over everything.
-2. Otherwise a scraped `FinalExam` wins over a syllabus-derived final - UBC's
-   own schedule is authoritative over "TBD, scheduled by the registrar".
-3. Midterms only ever come from syllabi, so they never conflict.
+1. Every scraped row passes through untouched, alpha splits, every published
+   section, cancelled rows included. Section filtering and hiding happen
+   upstream, in `examRowsForUser`, and are the student's own choices.
+2. A syllabus final the student did NOT edit is dropped when UBC publishes a
+   final for that course. That row is the model reading "final exam,
+   scheduled by the registrar" off a PDF with no date; UBC's schedule is
+   authoritative over it.
+3. An edited or hand-typed final (`editedByUser`) is kept BESIDE the scraped
+   one, each card labelled with its source. If the student truly disagrees
+   with UBC they hide UBC's row, and the hidden list gives it back.
+4. Midterms only ever come from syllabi, so they never conflict and all pass
+   through.
+
+The merged list is sorted once: dated live exams ascending, cancelled and
+dateless rows last.
 
 ---
 
@@ -347,8 +436,9 @@ Vitest is already configured.
   dateless cancelled row.
 - `buildIcs` one-off events: an exam emits no `RRULE`; a weekly meeting still
   does.
-- The extraction tool schema validates, and the merge precedence in §9 is
-  exercised directly.
+- The extraction tool schema validates, and the merge rule in §9 is
+  exercised directly: a hand-typed dateless final beside a later scraped
+  final leaves both, with the scraped one intact.
 
 **No test calls the Anthropic API.** Extraction is tested against recorded tool
 output, so the suite stays free and deterministic.
@@ -379,3 +469,32 @@ Named here so they are decisions rather than omissions:
 - Assignment due dates as a deadline feed - the data will exist after Phase 5,
   but the view is its own feature
 - Okanagan campus exams; the scraper targets UBCV first
+
+---
+
+## 13. Added after the original plan
+
+Each of these shipped on the same branch and is described in the sections
+above as it exists, not as it was planned.
+
+- **Restructure into Schedules.** `/exams` and `/syllabus` folded into the
+  Exams tab of `/schedule`; both old paths are permanent redirects.
+- **Month calendar view.** A List/Calendar switch inside the tab; a month
+  grid per month with exams, cancelled and dateless exams listed under it.
+- **Section filtering.** `filterToOwnSection` narrows a multi-section
+  course to the student's lecture section from Workday, or shows every
+  section flagged when it cannot tell.
+- **Link and paste.** A syllabus can be a URL (bookmark only) or pasted
+  text, for Canvas syllabi with no file; pasted text is extractable.
+- **Manual edit, add and remove.** The confirm table doubles as the editor
+  for saved rows (no extraction call); an Add exam form writes a standalone
+  `SyllabusAssessment` with no syllabus; a hover x and the overlay remove an
+  exam, asking first when the removal is a delete.
+- **Hide.** Removing a scraped final writes a `HiddenFinalExam` marker, never
+  a delete; the hidden list restores it, and it stays out of the list,
+  calendar, feed and shared page until then.
+- **Share page and feed carry finals.** `/shared/enrolled/[token]` shows UBC's
+  published finals for the term; the subscribed ICS feed carries the merged
+  list, grouped, with syllabus rows marked as such in the description.
+- **Quota refunds.** Both the upload and extraction caps hand the unit back
+  when the paid call itself throws.

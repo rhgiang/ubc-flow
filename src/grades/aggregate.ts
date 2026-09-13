@@ -27,7 +27,7 @@ export function aggregateDistributions(rows: DistributionRow[]): GradeSummary {
   for (const r of rows) {
     if (r.count !== null && r.count !== undefined) studentCount += r.count;
 
-    // A suppressed average carries no information — skip rather than treat as 0.
+    // A suppressed average carries no information - skip rather than treat as 0.
     if (r.average !== null && r.count !== null && r.count !== undefined) {
       weighted += r.average * r.count;
       weight += r.count;

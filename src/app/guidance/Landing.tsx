@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { byDegree, fullLoadFor } from '@/guidance/registry';
 
 /**
- * The subject badge on a card — the first segment of the program code, which
+ * The subject badge on a card - the first segment of the program code, which
  * is the subject a student already thinks of the program by. "CPSC", not
  * "Computer Science Major".
  */
@@ -68,7 +68,7 @@ export default function Landing() {
             <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {group.programs.map((p) => (
                 <li key={p.code}>
-                  {/* The whole card is the link — a name plus two facts is not
+                  {/* The whole card is the link - a name plus two facts is not
                       enough content to justify a separate call to action. */}
                   <Link
                     href={`/guidance?program=${p.code}`}

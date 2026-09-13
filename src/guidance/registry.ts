@@ -75,7 +75,7 @@ const PROGRAMS: Program[] = [
   statMajor2026W,
 ];
 
-/** Programs a student can pick — faculty cores are building blocks, not choices. */
+/** Programs a student can pick - faculty cores are building blocks, not choices. */
 export const selectable = PROGRAMS.filter((p) => p.extends.length > 0 || p.code.includes('major'));
 
 export function getProgram(code: string): Program | null {
@@ -87,7 +87,7 @@ export function getProgram(code: string): Program | null {
  *
  * Faculty rules come first so that the per-major requirements are evaluated
  * against a student's courses only after the faculty-wide ones have taken
- * what they need — the progress engine spends each course once, and a broad
+ * what they need - the progress engine spends each course once, and a broad
  * "12 credits of Arts" bucket must not swallow a course a named major
  * requirement was going to use.
  */
@@ -106,7 +106,7 @@ export function effectiveRules(program: Program, seen: Set<string> = new Set()):
 /**
  * The credit load a program runs at, used when the student has not picked one.
  *
- * Fifteen credits is a standard term for a 120-credit degree — 30 a year, 120
+ * Fifteen credits is a standard term for a 120-credit degree - 30 a year, 120
  * over four years. Engineering is not that degree. A B.A.Sc. runs 148 to 158
  * credits, and at 15 a term it renders as a five-and-a-half-year plan when the
  * Calendar itself calls it four Winter Sessions at full credit load.
@@ -120,8 +120,8 @@ export function effectiveRules(program: Program, seen: Set<string> = new Set()):
  *
  * Applied only to oversized degrees, because a 120-credit program already
  * fits comfortably at 15 and has no reason to be rushed. It used to be capped
- * for a worse reason as well — above 21 the solver deadlocked and Statistics
- * returned a three-term plan with half the degree unplaced — but that was a
+ * for a worse reason as well - above 21 the solver deadlocked and Statistics
+ * returned a three-term plan with half the degree unplaced - but that was a
  * bug in how the current year was counted and is fixed; the cap is now just
  * the honest ceiling on what a student takes.
  *

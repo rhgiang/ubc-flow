@@ -36,7 +36,7 @@ export function resolveTermKey(
   terms: Map<string, { year: number; session: string }>,
 ): { year: number; session: string } | null {
   // The grade ingest encodes the period into a sentinel when our Term
-  // catalogue has no row for it — see src/grades/jobs/ingest.ts.
+  // catalogue has no row for it - see src/grades/jobs/ingest.ts.
   const sentinel = /^unmatched-(\d{4})([SW])$/.exec(termId);
   if (sentinel) return { year: Number(sentinel[1]), session: sentinel[2] };
   return terms.get(termId) ?? null;

@@ -8,7 +8,7 @@ import { useSignedIn } from '@/components/use-signed-in';
  * The home hero, with the signed-in check moved to the browser so the page
  * itself can be served statically (auth() in the server render made the
  * front door SSR on every hit). Until the session answer arrives the panel
- * is simply absent — which is also the signed-in layout, so a returning
+ * is simply absent - which is also the signed-in layout, so a returning
  * student sees no flash; a signed-out visitor gets the panel a beat after
  * the hero paints.
  */
@@ -26,7 +26,7 @@ export default function HomeHero() {
     <div
       className={`mx-auto w-full max-w-2xl text-center [zoom:1.1] ${
         // Signed in, the search field IS the page, so it should sit dead
-        // centre — but centring the BLOCK does not centre the field, because
+        // centre - but centring the BLOCK does not centre the field, because
         // the four-line heading above it carries the block's midpoint well
         // above the field's. Left alone the field lands at 61% down the
         // viewport; a bottom margin lifts the block until the FIELD is

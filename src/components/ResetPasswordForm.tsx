@@ -8,8 +8,8 @@ import { resetPassword } from '@/app/actions/password-reset';
  * The second half of a password reset. The token arrives in the URL, so this is
  * mounted by /reset rather than being another mode on AuthPanel.
  *
- * The token is not checked until submit. Validating it on load would burn it —
- * consuming is what proves it was unused — and would also turn every crawler
+ * The token is not checked until submit. Validating it on load would burn it -
+ * consuming is what proves it was unused - and would also turn every crawler
  * or link-preview fetch of the emailed URL into a spent reset.
  */
 export default function ResetPasswordForm({ token }: { token: string | null }) {

@@ -11,7 +11,7 @@ const MIN_RETAINED_FRACTION = 0.8;
 /**
  * Fill Subject.faculty from the Academic Calendar's course index.
  *
- * One index fetch plus one per faculty — roughly 25 requests, rate-limited to
+ * One index fetch plus one per faculty - roughly 25 requests, rate-limited to
  * one a second by fetchText. Not part of scrape:all: faculty membership
  * changes about once a year, unlike sections.
  *

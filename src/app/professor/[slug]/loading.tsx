@@ -1,4 +1,4 @@
-/** No `revalidate` here either — same cold-render cost as the course page. */
+/** No `revalidate` here either - same cold-render cost as the course page. */
 export default function Loading() {
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10" aria-busy="true" aria-label="Loading professor">

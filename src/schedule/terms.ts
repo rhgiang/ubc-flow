@@ -3,8 +3,8 @@ type TermLike = { year: number; session: string; termNumber: number | null };
 /**
  * A term's position in academic-year order: Summer < Winter T1 < Winter T2,
  * all within the same `year` (UBC's `year` field is the academic year the
- * term STARTS in — "2026-27 Winter Term 2" runs Jan-Apr 2027 but is stored
- * as year 2026, termNumber 2 — so ordinal = year*10 + phase sorts correctly).
+ * term STARTS in - "2026-27 Winter Term 2" runs Jan-Apr 2027 but is stored
+ * as year 2026, termNumber 2 - so ordinal = year*10 + phase sorts correctly).
  */
 function ordinal(t: TermLike): number {
   const phase = t.session === 'S' ? 0 : t.termNumber === 1 ? 1 : 2;
@@ -25,13 +25,13 @@ function currentOrdinal(): number {
   return now.getFullYear() * 10 + 1;
 }
 
-/** Term hasn't started (by the same coarse month-based "now" as currentOrdinal) — used to split saved schedules into Upcoming vs Past tabs, and by CourseScheduleBox to show only current/upcoming terms. */
+/** Term hasn't started (by the same coarse month-based "now" as currentOrdinal) - used to split saved schedules into Upcoming vs Past tabs, and by CourseScheduleBox to show only current/upcoming terms. */
 export function isUpcomingTerm<T extends TermLike>(term: T): boolean {
   return ordinal(term) >= currentOrdinal();
 }
 
 /**
- * A term is plannable once it hasn't finished yet — the term currently
+ * A term is plannable once it hasn't finished yet - the term currently
  * running and every term after it. `Term.year` is the academic year a term
  * STARTS in ("2026-27 Winter Term 2" runs Jan-Apr 2027 but is stored as
  * year: 2026), so a plain `year >= currentYear` check breaks from January
@@ -45,14 +45,14 @@ export function isPlannableTerm<T extends TermLike>(term: T): boolean {
 /**
  * Chronological order, Summer before Winter T1 before Winter T2. Exported so
  * callers listing several terms sort them the same way the pickers do, rather
- * than by `year` alone — which interleaves the two Winter terms wrongly.
+ * than by `year` alone - which interleaves the two Winter terms wrongly.
  */
 export function compareTerms(a: TermLike, b: TermLike): number {
   return ordinal(a) - ordinal(b);
 }
 
 /**
- * "This term" and "next term" — the two terms chronologically nearest to
+ * "This term" and "next term" - the two terms chronologically nearest to
  * today. A tighter pick than isPlannableTerm above, which permissively
  * includes every term from now onward.
  */

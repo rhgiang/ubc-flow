@@ -24,7 +24,7 @@ const ANONYMOUS: ViewerState = {
 };
 
 /**
- * Everything about the VIEWER that a course or professor page shows — their
+ * Everything about the VIEWER that a course or professor page shows - their
  * votes, whether they can review, their schedules for the add-to dropdown.
  *
  * Split out of those pages' server renders so the pages themselves can be

@@ -11,7 +11,7 @@ describe('courseColorIndex', () => {
     }
   });
 
-  it('is deterministic — the same code always gets the same slot', () => {
+  it('is deterministic - the same code always gets the same slot', () => {
     expect(courseColorIndex('CPSC 110')).toBe(courseColorIndex('CPSC 110'));
     expect(courseColorIndex('MATH 200')).toBe(courseColorIndex('MATH 200'));
   });
@@ -19,7 +19,7 @@ describe('courseColorIndex', () => {
   it('spreads a realistic course load across several slots', () => {
     const load = ['CPSC 110', 'MATH 200', 'BIOL 121', 'DSCI 100', 'STAT 201'];
     const slots = new Set(load.map(courseColorIndex));
-    // Not a uniqueness guarantee (collisions are legal in 8 slots) — just proof
+    // Not a uniqueness guarantee (collisions are legal in 8 slots) - just proof
     // it is not degenerate and mapping everything to one colour.
     expect(slots.size).toBeGreaterThan(1);
   });

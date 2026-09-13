@@ -9,20 +9,20 @@ import { roomDetailsUrl } from '@/lib/format';
 import { dayRoute } from '@/map/route';
 import { courseColorIndex } from '@/schedule/colors';
 
-// UBC-V's flagpole plaza — the opening view before pins load or when a term
+// UBC-V's flagpole plaza - the opening view before pins load or when a term
 // has nothing to pin.
 const CAMPUS_CENTER: [number, number] = [49.2606, -123.246];
 const CAMPUS_ZOOM = 15;
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;
 
-// The route line and its numbered stops are deliberately not a course colour —
+// The route line and its numbered stops are deliberately not a course colour -
 // a day's walk crosses several courses. UBC Blue reads on the pale tiles in
 // both themes (the map itself never goes dark). Hardcoded rather than read
 // from --brand, which sky-themed scopes override to white.
 const ROUTE_COLOR = '#002145';
 
-// "Room 1250 · Floor 1 · room details ↗" — where inside the building a class
+// "Room 1250 · Floor 1 · room details ↗" - where inside the building a class
 // is. UBC's own page for the room (photos, layout, capacity) is the closest
 // thing to an indoor map that actually exists for UBC.
 function whereLine(entry: CalendarEntry): string {
@@ -51,7 +51,7 @@ type Located = {
  *
  * Leaflet is imported dynamically inside the effect so its ~40KB only loads
  * for people who actually open a map. Markers are divIcons (styled spans),
- * because Leaflet's default marker images don't survive bundling — and a
+ * because Leaflet's default marker images don't survive bundling - and a
  * labeled dot in the course's calendar colour reads better anyway.
  */
 export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
@@ -60,11 +60,11 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
   const pinsRef = useRef<LayerGroup | null>(null);
   const [selected, setSelected] = useState<string | null>(null); // courseCode, null = all
   // A weekday selects the route view: that day's buildings in class order,
-  // walked. Mutually exclusive with the course filter — a route is all of a
+  // walked. Mutually exclusive with the course filter - a route is all of a
   // day, a course filter is a slice of the week, and composing them mostly
   // produces empty maps.
   const [day, setDay] = useState<(typeof DAYS)[number] | null>(null);
-  // Bumped once the map exists, so the marker effect re-runs — a ref changing
+  // Bumped once the map exists, so the marker effect re-runs - a ref changing
   // doesn't re-render on its own.
   const [ready, setReady] = useState(0);
 
@@ -135,7 +135,7 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
 
       // Route view: the day's buildings in class order, numbered, joined by a
       // dashed line, each leg labelled with the schedule gap against the walk
-      // it takes — the map answering "can I make it", not just "where is it".
+      // it takes - the map answering "can I make it", not just "where is it".
       if (route) {
         const seen = new Map<string, number>();
         const points: [number, number][] = [];
@@ -206,8 +206,8 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
             // Two stacked lines, not one long one: a wide pill can't sit on
             // the short leg between neighbouring buildings without swallowing
             // its pins; at half the width it tucks in beside any leg. Walk
-            // time leads in bold — it's the number being checked against the
-            // gap — with the gap as the muted subline.
+            // time leads in bold - it's the number being checked against the
+            // gap - with the gap as the muted subline.
             const label = `<b>~${leg.walkMin} min walk</b>${between}`;
             const at: [number, number] = [(aLat + bLat) / 2, (aLng + bLng) / 2];
             // The walk this leg is between: out of the last class at the stop
@@ -236,8 +236,8 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
         // describes: resolving a collision by sliding straight down left
         // "back-to-back" floating over empty blocks with nothing tying it to
         // its walk. So collisions are resolved by walking the label ALONG its
-        // own dashed line — midpoint first, then outward toward either stop,
-        // hugging the line above or below — and only when every spot on the
+        // own dashed line - midpoint first, then outward toward either stop,
+        // hugging the line above or below - and only when every spot on the
         // line is taken does it fall back to sliding down. Re-run on zoom,
         // the only thing that changes relative pixel distances.
         const spread = () => {
@@ -274,7 +274,7 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
               y2: y + h / 2,
             });
             // Midpoint first, then outward along the line, stepping
-            // PERPENDICULAR to the leg rather than straight down — a vertical
+            // PERPENDICULAR to the leg rather than straight down - a vertical
             // slide on a near-vertical leg walks along the line into its own
             // pins, while the normal always steps beside it. Close before far.
             const dxl = B.x - A.x;
@@ -282,7 +282,7 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
             const len = Math.hypot(dxl, dyl) || 1;
             const nxl = -dyl / len;
             const nyl = dxl / len;
-            // How much of this rect is already covered — the "least bad spot"
+            // How much of this rect is already covered - the "least bad spot"
             // metric when nothing near the leg is fully free.
             const overlapArea = (r: Rect) => {
               let area = 0;
@@ -368,7 +368,7 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
           })
           .join('');
         // Directions hand off to the native maps app. Neither URL names an
-        // origin, which both apps read as "from where I am now" — and both
+        // origin, which both apps read as "from where I am now" - and both
         // default to walking, since this is a campus. No SDK, no API key:
         // these are the documented universal-link forms.
         const dest = `${building.lat},${building.lng}`;
@@ -445,7 +445,7 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
           role="group"
           aria-label="Walk a day's route"
         >
-          {/* Just "Route:" at every size — the Mon–Fri chips beside it say
+          {/* Just "Route:" at every size - the Mon–Fri chips beside it say
               the rest, and one label beats a breakpoint-dependent pair. */}
           <span className="shrink-0 pr-1 text-xs text-text-secondary">Route:</span>
           {routeDays.map((d) => (
@@ -453,7 +453,7 @@ export default function CampusMap({ entries }: { entries: CalendarEntry[] }) {
               key={d}
               type="button"
               // A day is a route through all courses; a course chip is a slice
-              // of the week. One at a time — combined they mostly show nothing.
+              // of the week. One at a time - combined they mostly show nothing.
               onClick={() => {
                 setSelected(null);
                 setDay(day === d ? null : d);

@@ -1,22 +1,22 @@
-# UBC Flow Phase 4: Schedule Planner + Webcal — Implementation Plan
+# UBC Flow Phase 4: Schedule Planner + Webcal - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A student can build a hypothetical timetable from any scraped term, see it as a weekly grid with overlap warnings, and subscribe to it from a phone or Google Calendar via a URL that stays live — edits show up without any re-export.
+**Goal:** A student can build a hypothetical timetable from any scraped term, see it as a weekly grid with overlap warnings, and subscribe to it from a phone or Google Calendar via a URL that stays live - edits show up without any re-export.
 
-**Architecture:** Continues the Next.js + Prisma monolith. Conflict detection and ICS generation are **pure functions**, matching every prior phase. The calendar endpoint reads current state on every request with no caching — that single decision is what makes the feed live.
+**Architecture:** Continues the Next.js + Prisma monolith. Conflict detection and ICS generation are **pure functions**, matching every prior phase. The calendar endpoint reads current state on every request with no caching - that single decision is what makes the feed live.
 
-**Tech Stack:** Next.js 16 (App Router), TypeScript, Prisma 7 (driver adapter), Postgres, Tailwind, Vitest. **No new dependencies** — ICS is a simple line-based text format, hand-generated in ~40 lines rather than pulling in a library.
+**Tech Stack:** Next.js 16 (App Router), TypeScript, Prisma 7 (driver adapter), Postgres, Tailwind, Vitest. **No new dependencies** - ICS is a simple line-based text format, hand-generated in ~40 lines rather than pulling in a library.
 
 **Spec:** [`docs/superpowers/specs/2026-08-20-phase-4-schedule-planner-design.md`](../specs/2026-08-20-phase-4-schedule-planner-design.md)
 
 ## Global Constraints
 
 - **Node.js 20+**, npm. No bun, no pnpm.
-- **Ownership is enforced server-side** on every schedule mutation, against the session — never a client-supplied user id.
+- **Ownership is enforced server-side** on every schedule mutation, against the session - never a client-supplied user id.
 - **The calendar token is a capability credential.** Never log it, never render it outside the copyable subscribe URL.
 - **The `.ics` endpoint must not cache across requests.** The feature's entire value is that it doesn't go stale.
-- **Every `RRULE UNTIL` derives from the section's real `startDate`/`endDate`** — never approximated from the term's dates.
+- **Every `RRULE UNTIL` derives from the section's real `startDate`/`endDate`** - never approximated from the term's dates.
 - **Conflict warnings are advisory.** No code path may block or silently drop a section because of a suspected overlap.
 - Pure functions (`src/schedule/conflicts.ts`, `src/schedule/ics.ts`) do no I/O: no Prisma, no `fetch`, no `fs`.
 - Tests live in `tests/**/*.test.ts`.
@@ -27,7 +27,7 @@
 
 **1. No ICS library.** RFC 5545 for our needs is a handful of `BEGIN:`/`END:` lines
 and one `RRULE`. Adding `ics`/`ical-generator` would mean a dependency, its
-transitive tree, and its own API to learn — for less code than it saves. Hand-write
+transitive tree, and its own API to learn - for less code than it saves. Hand-write
 it, unit-test it against fixtures.
 
 **2. The date fix ships in Task 1, before anything consumes it.** Tasks 4-6 all
@@ -35,7 +35,7 @@ depend on real meeting dates existing. Doing the scraper fix and backfill first
 means the planner is built against correct data from the start rather than being
 retrofitted.
 
-**3. Server actions, not API routes, for mutations** — matching Phase 3. The one
+**3. Server actions, not API routes, for mutations** - matching Phase 3. The one
 exception is the `.ics` endpoint, which genuinely must be a GET route since
 external calendar apps fetch it.
 
@@ -44,19 +44,19 @@ external calendar apps fetch it.
 ## File Structure
 
 ```
-prisma/schema.prisma                  — CalendarToken: userId -> scheduleId
-src/scrape/parse-nodes.ts             — MODIFY: capture section start/end dates
-src/schedule/conflicts.ts             — PURE: overlapping meeting detection
-src/schedule/ics.ts                   — PURE: schedule -> ICS text
-src/app/actions/schedule.ts           — server actions (ownership-checked)
-src/app/schedule/page.tsx             — list my schedules
-src/app/schedule/[id]/page.tsx        — the planner
-src/app/api/calendar/[token]/route.ts — the live ICS endpoint
-src/components/Nav.tsx                — top navigation
-src/components/Button.tsx             — shared button
-src/components/WeekGrid.tsx           — weekly grid display
-src/app/layout.tsx                    — MODIFY: mount Nav
-src/app/course/[code]/page.tsx        — MODIFY: "add to schedule" affordance
+prisma/schema.prisma                  - CalendarToken: userId -> scheduleId
+src/scrape/parse-nodes.ts             - MODIFY: capture section start/end dates
+src/schedule/conflicts.ts             - PURE: overlapping meeting detection
+src/schedule/ics.ts                   - PURE: schedule -> ICS text
+src/app/actions/schedule.ts           - server actions (ownership-checked)
+src/app/schedule/page.tsx             - list my schedules
+src/app/schedule/[id]/page.tsx        - the planner
+src/app/api/calendar/[token]/route.ts - the live ICS endpoint
+src/components/Nav.tsx                - top navigation
+src/components/Button.tsx             - shared button
+src/components/WeekGrid.tsx           - weekly grid display
+src/app/layout.tsx                    - MODIFY: mount Nav
+src/app/course/[code]/page.tsx        - MODIFY: "add to schedule" affordance
 ```
 
 ---
@@ -76,7 +76,7 @@ against null dates and retrofitting would mean rewriting the ICS generator's who
 recurrence bound.
 
 **The gap:** `MeetingTime.startDate`/`endDate` have existed since Phase 2's migration
-but **nothing has ever written to them** — verified: `select count(*) from
+but **nothing has ever written to them** - verified: `select count(*) from
 "MeetingTime" where "startDate" is not null` returns `0`. The source data exists;
 `parseSectionNode` just never read it. Verified against UBC's live API:
 
@@ -85,7 +85,7 @@ but **nothing has ever written to them** — verified: `select count(*) from
 ```
 
 These live on the **section** node, not per meeting day. The same range therefore
-repeats across a section's Mon/Wed/Fri rows — correct, since they share one
+repeats across a section's Mon/Wed/Fri rows - correct, since they share one
 enrolment period.
 
 - [ ] **Step 1: Write the failing test**
@@ -113,7 +113,7 @@ Add to `tests/parse-nodes.test.ts`, inside the existing `parseSectionNode` descr
 
     const r = parseSectionNode(node as never, included);
     expect(r.meetings).toHaveLength(2);
-    // Same range on every day of the section — they share one enrolment period.
+    // Same range on every day of the section - they share one enrolment period.
     for (const m of r.meetings) {
       expect(m.startDate).toBe('2027-01-06');
       expect(m.endDate).toBe('2027-02-12');
@@ -145,7 +145,7 @@ Add to `tests/parse-nodes.test.ts`, inside the existing `parseSectionNode` descr
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `npm test -- parse-nodes`
-Expected: FAIL — `startDate` is undefined on the returned meetings.
+Expected: FAIL - `startDate` is undefined on the returned meetings.
 
 - [ ] **Step 3: Implement**
 
@@ -170,7 +170,7 @@ And in `parseSectionNode`, read the two fields and attach them to each meeting:
   const endTime = secondsToTime((a.field_end_time as number | null) ?? null);
 
   // Section-level, not per-day: one enrolment period shared by every meeting.
-  // Needed for a correct RRULE UNTIL — half-term sections are real and common.
+  // Needed for a correct RRULE UNTIL - half-term sections are real and common.
   const startDate = (a.field_start_date as string | null) ?? null;
   const endDate = (a.field_end_date as string | null) ?? null;
 
@@ -178,7 +178,7 @@ And in `parseSectionNode`, read the two fields and attach them to each meeting:
     day,
     startTime,
     endTime,
-    // The API exposes no location anywhere — confirmed during the Phase 1 spike.
+    // The API exposes no location anywhere - confirmed during the Phase 1 spike.
     building: null,
     room: null,
     startDate,
@@ -188,7 +188,7 @@ And in `parseSectionNode`, read the two fields and attach them to each meeting:
 
 The upsert path in `src/scrape/jobs/sections.ts` spreads meeting rows
 (`row.meetings.map((m) => ({ ...m, sectionId: section.id }))`), so the new fields
-flow to Prisma with **no change needed there** — Prisma will coerce the ISO date
+flow to Prisma with **no change needed there** - Prisma will coerce the ISO date
 strings into its `DateTime?` columns. Verify this rather than assuming it: if
 `createMany` rejects the string, convert with `new Date(...)` in the parser and
 change `RawMeeting`'s type to `Date | null`.
@@ -201,7 +201,7 @@ Expected: PASS, including the two new tests.
 - [ ] **Step 5: Backfill the real data**
 
 This re-runs the section scrape against UBC's live API. It takes roughly 10-15
-minutes at the 1 req/sec rate limit — expected, do not raise the rate.
+minutes at the 1 req/sec rate limit - expected, do not raise the rate.
 
 ```bash
 npm run scrape:sections
@@ -214,7 +214,7 @@ docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c \
   "select count(*) total, count(\"startDate\") with_dates from \"MeetingTime\";"
 ```
 
-`with_dates` must now be a large fraction of `total` (not all sections have dates —
+`with_dates` must now be a large fraction of `total` (not all sections have dates -
 unscheduled ones legitimately don't). Then confirm the half-term case that motivated
 this fix is real:
 
@@ -236,7 +236,7 @@ git commit -m "fix: capture section date ranges onto meeting times"
 
 ---
 
-### Task 2: Schema — per-schedule calendar tokens
+### Task 2: Schema - per-schedule calendar tokens
 
 **Files:**
 - Modify: `prisma/schema.prisma`
@@ -246,7 +246,7 @@ git commit -m "fix: capture section date ranges onto meeting times"
 
 **Migration environment note:** `npx prisma migrate dev` refuses to run in this
 non-interactive shell (Prisma 7 blocks it outside a TTY). Phases 2 and 3 both
-established the working sequence — reuse it:
+established the working sequence - reuse it:
 
 ```bash
 npx prisma migrate diff --from-config-datasource prisma.config.ts \
@@ -302,7 +302,7 @@ docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c \
   "select (select count(*) from \"SavedSchedule\") schedules, (select count(*) from \"CalendarToken\") tokens, (select count(*) from \"ScheduleSection\") sections;"
 ```
 
-All three must be `0`. If any is not, STOP and report — the plan's assumption that
+All three must be `0`. If any is not, STOP and report - the plan's assumption that
 these are untouched stubs is wrong, and dropping `CalendarToken.userId` would lose data.
 
 - [ ] **Step 3: Generate, inspect, apply**
@@ -418,7 +418,7 @@ describe('findConflicts', () => {
 
 - [ ] **Step 2: Run to verify failure, then implement**
 
-Run: `npm test -- conflicts` (FAIL — module missing).
+Run: `npm test -- conflicts` (FAIL - module missing).
 
 Create `src/schedule/conflicts.ts`:
 
@@ -441,7 +441,7 @@ function minutes(hhmm: string | null): number | null {
 }
 
 /**
- * Overlapping meetings on the same day. Advisory only — the caller warns, it
+ * Overlapping meetings on the same day. Advisory only - the caller warns, it
  * never blocks: UBC's meeting data can't always prove a conflict is real
  * (alternating-week patterns), so refusing an add would sometimes be wrong.
  */
@@ -459,7 +459,7 @@ export function findConflicts(entries: ScheduleEntry[]): ConflictPair[] {
       const aEnd = minutes(a.endTime);
       const bStart = minutes(b.startTime);
       const bEnd = minutes(b.endTime);
-      // An unscheduled meeting has nothing to conflict with — never guess.
+      // An unscheduled meeting has nothing to conflict with - never guess.
       if (aStart === null || aEnd === null || bStart === null || bEnd === null) continue;
 
       // Strict inequality: back-to-back classes are not a conflict.
@@ -541,7 +541,7 @@ describe('buildIcs', () => {
 
 - [ ] **Step 4: Run to verify failure, then implement**
 
-Run: `npm test -- ics` (FAIL — module missing).
+Run: `npm test -- ics` (FAIL - module missing).
 
 Create `src/schedule/ics.ts`:
 
@@ -583,7 +583,7 @@ function dateStamp(d: Date): string {
 
 /**
  * The first occurrence on or after the section's start date. A section
- * starting Wednesday with Monday meetings first meets the following Monday —
+ * starting Wednesday with Monday meetings first meets the following Monday -
  * anchoring DTSTART to the start date itself would place it on the wrong day.
  */
 function firstOccurrence(startDate: Date, dayIndex: number): Date {
@@ -670,7 +670,7 @@ git commit -m "feat: add pure conflict detection and ICS generation"
 
 **The split matters:** exported actions resolve the session then delegate to the
 inner `*For(userId, …)` functions. That is what makes ownership testable without
-faking a Next.js session — the same pattern Phase 3 used for `writeReviewForUser`.
+faking a Next.js session - the same pattern Phase 3 used for `writeReviewForUser`.
 
 **Ownership is the security property here.** The tests below assert the negative
 cases; a happy-path suite would pass while any user could edit any schedule.
@@ -799,7 +799,7 @@ describe('behaviour', () => {
 
 - [ ] **Step 2: Run to verify failure, then implement**
 
-Run: `npm test -- schedule-actions` (FAIL — module missing).
+Run: `npm test -- schedule-actions` (FAIL - module missing).
 
 Create `src/app/actions/schedule.ts`:
 
@@ -817,7 +817,7 @@ type TokenResult = { ok: true; token: string } | { ok: false; error: string };
 
 const NOT_YOURS = 'That schedule does not belong to you.';
 
-/** Ownership check — every mutation goes through this first. */
+/** Ownership check - every mutation goes through this first. */
 async function owns(userId: string, scheduleId: string): Promise<boolean> {
   const found = await db.savedSchedule.findFirst({
     where: { id: scheduleId, userId },
@@ -977,7 +977,7 @@ git commit -m "feat: add ownership-checked schedule actions"
 - Consumes: `buildIcs` (Task 3), `db`
 - Produces: `GET /api/calendar/<token>` serving `text/calendar`
 
-**No auth.** The token is the capability — this is how every webcal subscription
+**No auth.** The token is the capability - this is how every webcal subscription
 works, and it is what lets a calendar app fetch the URL unattended.
 
 **Must not cache.** The entire point of the feature is that the feed reflects
@@ -1071,7 +1071,7 @@ Confirm: `200`, `Content-Type: text/calendar`, body begins `BEGIN:VCALENDAR`, an
 contains a `BEGIN:VEVENT` with a real `RRULE` whose `UNTIL` matches the section's
 actual end date (not a term-wide guess).
 
-Then prove it is genuinely live — the feature's whole claim:
+Then prove it is genuinely live - the feature's whole claim:
 
 1. Fetch the URL, note the event count.
 2. Add another section to the same schedule.
@@ -1089,7 +1089,7 @@ git commit -m "feat: serve a live ICS feed per schedule"
 
 ---
 
-### Task 6: UI — nav, buttons, grid, and the planner pages
+### Task 6: UI - nav, buttons, grid, and the planner pages
 
 **Files:**
 - Create: `src/components/Nav.tsx`, `src/components/Button.tsx`, `src/components/WeekGrid.tsx`
@@ -1100,43 +1100,43 @@ git commit -m "feat: serve a live ICS feed per schedule"
 - Consumes: `findConflicts` (Task 3), the schedule actions (Task 4), `auth`, `db`
 
 **Scope discipline:** the user deferred general design-system work to their own
-later pass. Build exactly these three components — no modals, no dropdowns, no
+later pass. Build exactly these three components - no modals, no dropdowns, no
 chart library.
 
 - [ ] **Step 1: Shared components**
 
-`src/components/Button.tsx` — a small primitive replacing the repeated
+`src/components/Button.tsx` - a small primitive replacing the repeated
 `bg-blue-700 px-5 py-2 text-white` classes. Support `variant` (`primary` |
 `secondary` | `danger`) and pass through native button props.
 
-`src/components/Nav.tsx` — a server component reading `auth()`. Left: "UBC Flow"
+`src/components/Nav.tsx` - a server component reading `auth()`. Left: "UBC Flow"
 home link. Middle: Explore, My Schedules. Right: when signed in, a link to
 `/onboarding` plus a sign-out control; when signed out, Log in / Sign up. Keep it
 one row, `border-b`, matching the existing `mx-auto max-w-*` page width.
 
-`src/components/WeekGrid.tsx` — the weekly timetable. Columns Mon-Fri, rows by
+`src/components/WeekGrid.tsx` - the weekly timetable. Columns Mon-Fri, rows by
 hour across the range the schedule actually spans (do not hardcode 8am-10pm if
 nothing is scheduled then). Each entry is an absolutely-positioned block whose
 top/height derive from its start/end minutes. Blocks flagged by `findConflicts`
 render with a red border and a `title` explaining the overlap. **A conflicting
-block is still rendered** — warning, never hiding.
+block is still rendered** - warning, never hiding.
 
 - [ ] **Step 2: Mount the nav**
 
 In `src/app/layout.tsx`, render `<Nav />` above `{children}` inside `<body>`.
-This is the first navigation the app has had — flagged missing in Phase 1's final
+This is the first navigation the app has had - flagged missing in Phase 1's final
 review.
 
 - [ ] **Step 3: The schedule list page**
 
-`src/app/schedule/page.tsx` — requires sign-in (redirect to `/login` otherwise).
+`src/app/schedule/page.tsx` - requires sign-in (redirect to `/login` otherwise).
 Lists the user's schedules grouped by term with section counts, plus a form to
 create one (term picker sourced from `db.term.findMany` for Vancouver, newest
 first). Each row links to `/schedule/[id]`.
 
 - [ ] **Step 4: The planner page**
 
-`src/app/schedule/[id]/page.tsx` — server component. Loads the schedule with its
+`src/app/schedule/[id]/page.tsx` - server component. Loads the schedule with its
 sections, meeting times, and courses; **404s if it is not the signed-in user's**
 (ownership, same rule as the actions). Renders:
 
@@ -1147,7 +1147,7 @@ sections, meeting times, and courses; **404s if it is not the signed-in user's**
 - a "Subscribe in your calendar" control that calls `getSubscribeUrl` and shows
   the resulting URL in a read-only, selectable input for copying
 
-**The token appears only inside that copyable URL** — never logged, never in a
+**The token appears only inside that copyable URL** - never logged, never in a
 heading or link text.
 
 - [ ] **Step 5: "Add to schedule" on the course page**
@@ -1165,7 +1165,7 @@ Start the dev server. As a signed-in user:
 2. Create a schedule from `/schedule`.
 3. From a course page, add a section to it.
 4. The planner grid shows the section in the right day/time slot.
-5. Add a deliberately overlapping section — confirm **both** render and a conflict
+5. Add a deliberately overlapping section - confirm **both** render and a conflict
    warning appears.
 6. Remove a section; the grid updates.
 7. Subscribe: copy the URL, `curl` it, confirm the events match the grid.
@@ -1175,7 +1175,7 @@ Clean up test data and stop the dev server.
 
 - [ ] **Step 7: Full verification and commit**
 
-Run `npm test`, `npx tsc --noEmit`, `npx eslint .`, and `npm run build` — all clean.
+Run `npm test`, `npx tsc --noEmit`, `npx eslint .`, and `npm run build` - all clean.
 
 ```bash
 git add src/components src/app/schedule src/app/layout.tsx "src/app/course/[code]/page.tsx"

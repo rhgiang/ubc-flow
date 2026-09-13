@@ -24,7 +24,7 @@ import {
 
 // `credits`, not `load`. The control used to mean courses per term and the
 // parameter was called load; changing its meaning to credits while keeping the
-// name left every existing link and bookmark reading "4" as four CREDITS —
+// name left every existing link and bookmark reading "4" as four CREDITS -
 // one course a term, a twelve-term plan. A new name lets stale links fall
 // through to the default instead of silently meaning something else.
 type SP = { program?: string; credits?: string; summer?: string; coop?: string };
@@ -33,7 +33,7 @@ type SP = { program?: string; credits?: string; summer?: string; coop?: string }
 /** Course pages are keyed the way /explore links them: "cpsc-310". */
 const courseHref = (code: string) => `/course/${code.toLowerCase().replace(' ', '-')}`;
 
-/** Subjects any rule in the program mentions — what the catalogue query needs. */
+/** Subjects any rule in the program mentions - what the catalogue query needs. */
 function subjectsUsed(rules: Rule[]): string[] {
   const out = new Set<string>();
   walk(rules, (r) => {
@@ -62,7 +62,7 @@ function describeSet(set: CourseSet): string {
 
 /**
  * The sub-requirements behind a rule, for the expandable detail. Breadth is
- * the case that needs it — "any 6 of 7 categories" means nothing without the
+ * the case that needs it - "any 6 of 7 categories" means nothing without the
  * list of categories and what counts in each.
  */
 function breakdown(rule: Rule): { label: string; detail: string }[] {
@@ -90,7 +90,7 @@ const STATE_STYLE: Record<string, string> = {
   partial: 'border-border bg-surface-muted text-foreground',
   outstanding: 'border-border text-text-secondary',
   // A note is something to know, not something wrong. This used to carry the
-  // danger palette, which turned the whole sidebar red — the Arts core alone
+  // danger palette, which turned the whole sidebar red - the Arts core alone
   // contributes ten notes, and a B.A. showed eleven red blocks against seven
   // ordinary rows. Informational blue instead: a lighter relative of the
   // brand navy, so it belongs to the same family without borrowing brand
@@ -108,8 +108,8 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   if (!program) return <Landing />;
   const rules = effectiveRules(program);
   const coop = getCoopPattern(sp.coop);
-  // Co-op runs year-round — three of the four work terms in a standard
-  // sequence are summers — so it opens summer up rather than leaving that
+  // Co-op runs year-round - three of the four work terms in a standard
+  // sequence are summers - so it opens summer up rather than leaving that
   // to a separate toggle the student would have to find.
   const useSummer = sp.summer === '1' || coop !== null;
 
@@ -126,14 +126,14 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   const load = Math.min(24, Math.max(3, Number(sp.credits) || fullLoad));
   // The offered loads always include the program's own, so it is selectable
   // and visibly current. Fixed pills of 12/15/18 left engineering showing
-  // NOTHING highlighted — its default is 22 — which read as an unset control
+  // NOTHING highlighted - its default is 22 - which read as an unset control
   // where 18 looked like the maximum, and there was no way back to 22 once
   // you had clicked away. Commerce had it too, at 16.
   const loads = [...new Set([12, 15, 18, fullLoad])].sort((a, b) => a - b);
 
   // A signed-out visitor gets the public roadmap: the whole degree from a
   // standing start, which is what someone asking "what does this degree
-  // require?" wants. A signed-in one gets their own — the completions feed
+  // require?" wants. A signed-in one gets their own - the completions feed
   // BOTH the checklist and the solver, so the route is what is left rather
   // than a fresh four years.
   const session = await auth();
@@ -168,7 +168,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
     t.placements.flatMap((pl) => (pl.kind === 'course' ? [pl.course] : [])),
   );
   /**
-   * What the ticks are checked against — the whole difference between the two
+   * What the ticks are checked against - the whole difference between the two
    * modes.
    *
    * Tracking checks the person alone. Folding the plan's own courses in here
@@ -177,7 +177,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
    *
    * Without a record it checks the plan, because otherwise a rule met by a
    * required course would report "0 of 6" beside a route that schedules three
-   * of them — wrong about its own output.
+   * of them - wrong about its own output.
    */
   const checklist = progress(
     tracking
@@ -226,14 +226,14 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
   const metRules = trackable.filter((p) => p.state === 'satisfied').length;
   const degreeRules = checklist.filter((p) => p.rule.kind === 'note');
   // Work terms hold no coursework, so the solver never returns them. Merge
-  // them back in by calendar order — a plan that silently skipped them would
+  // them back in by calendar order - a plan that silently skipped them would
   // show co-op finishing in the same four years as everything else, which is
   // the opposite of what co-op does.
   const planned = new Map(plan.terms.map((t) => [t.term.id, t.placements]));
   const lastId = plan.terms.at(-1)?.term.id;
   // Runs to the last planned term OR the last work term, whichever is later.
   // Cutting at the coursework alone hid the whole sequence for a student who
-  // finishes their courses before the work terms begin — which is exactly the
+  // finishes their courses before the work terms begin - which is exactly the
   // case co-op exists to handle, and it reported "no work terms".
   const end = Math.max(
     lastId ? allTerms.findIndex((t) => t.id === lastId) : -1,
@@ -260,7 +260,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
       {/*
         The picker is a page of its own now. It used to be twenty-six pills
         wrapped across four lines here, above everything the page is actually
-        for — and switching from one carried the OLD program's credit load
+        for - and switching from one carried the OLD program's credit load
         with it, so arriving at a 155-credit B.A.Sc. from a 120-credit B.Sc.
         planned it at 15 a term and drew a ten-term degree. A plain link back
         cannot carry a load it should not.
@@ -286,7 +286,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                 {/*
                   Every rule here was transcribed by hand off one Calendar page,
                   and the Calendar is the authority whenever the two disagree.
-                  Linking it is the honest thing to do rather than a courtesy —
+                  Linking it is the honest thing to do rather than a courtesy -
                   a student checking a requirement should be one click from the
                   page it came from.
                 */}
@@ -303,7 +303,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                 The label sits ABOVE the pills on a phone rather than beside
                 them. Inline, four credit pills at touch size plus "Use summer"
                 could not fit one line, and the row wrapped wherever it ran out
-                — orphaning the selected value onto a line of its own, away
+                - orphaning the selected value onto a line of its own, away
                 from the three it belongs with.
               */}
               <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:items-center">
@@ -479,7 +479,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                                 {pl.alternatives.map((alt) => (
                                   <span key={alt} className="block">
                                     {alt.includes('+') ? (
-                                      // "CPSC 103 + CPSC 107" — a pair, not a
+                                      // "CPSC 103 + CPSC 107" - a pair, not a
                                       // single course, so it is not one link.
                                       <span className="block px-1 py-0.5 text-xs text-text-secondary">
                                         {alt}
@@ -522,7 +522,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                     {/*
                       The plan says WHAT to take; Flow Builder says WHEN. Only
                       terms the catalogue actually has sections for get the
-                      button — a projected term has nothing to arrange — and
+                      button - a projected term has nothing to arrange - and
                       only the concrete courses travel: a slot is a decision
                       the student still owns, so it cannot be auto-arranged.
                     */}
@@ -543,7 +543,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                         </Link>
                         {t.placements.some((pl) => pl.kind === 'slot') && (
                           <span className="text-xs text-text-tertiary">
-                            Electives aren&apos;t carried over — pick those in the builder.
+                            Electives aren&apos;t carried over. Pick those in the builder.
                           </span>
                         )}
                       </div>
@@ -573,14 +573,14 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
           {/*
             Two lists, because they answer different questions. Trackable
             rules are work to do and can be ticked off; degree rules are
-            conditions on how the whole degree is spent — residency, the
-            outside requirement, credit caps — which no amount of course
+            conditions on how the whole degree is spent - residency, the
+            outside requirement, credit caps - which no amount of course
             picking "completes". Mixing them made a B.A. look like it had
             thirty requirements when it has nineteen.
           */}
           {/*
-            One panel, two modes. A second list of the same requirements — one
-            for "the plan covers this" and one for "you have done this" — would
+            One panel, two modes. A second list of the same requirements - one
+            for "the plan covers this" and one for "you have done this" - would
             put the ambiguity in two places instead of removing it. What changes
             between modes is only what the ticks are checked AGAINST.
           */}
@@ -632,7 +632,7 @@ export default async function GuidancePage({ searchParams }: { searchParams: Pro
                   className={`rounded-card border px-3 py-2 text-xs ${STATE_STYLE[p.state]}`}
                 >
                   {parts.length > 0 ? (
-                    // A native disclosure — "any 6 of 7 categories" means
+                    // A native disclosure - "any 6 of 7 categories" means
                     // nothing without the categories and what counts in each.
                     <details>
                       <summary className="cursor-pointer list-none">

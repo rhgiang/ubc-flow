@@ -17,7 +17,7 @@ const course = (id: string, code: string): Rule => ({
 });
 
 /**
- * Biochemistry Major (BSc), 2026W — 120 credits.
+ * Biochemistry Major (BSc), 2026W - 120 credits.
  *
  * A four-year table like Physics, and the most chemistry-heavy program here:
  * five CHEM courses across the first two years alongside the BIOC core.

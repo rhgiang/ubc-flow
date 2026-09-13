@@ -6,7 +6,7 @@ const orNull = (s: string) => (s.length ? s : null);
 /**
  * Splits a course body into description / prerequisite / corequisite.
  * Prereq and coreq clauses run to the end of the text or to the start of the
- * next labelled clause — never to the first period, which appears inside them.
+ * next labelled clause - never to the first period, which appears inside them.
  */
 export function parseBody(html: string | null): {
   description: string | null;
@@ -20,7 +20,7 @@ export function parseBody(html: string | null): {
   const label = /\b(Prerequisite|Corequisite|Pre-req|Co-req)s?\s*:/gi;
   const marks: { name: string; start: number; bodyStart: number }[] = [];
   for (const m of text.matchAll(label)) {
-    // A label only counts as a clause boundary at the start of a sentence —
+    // A label only counts as a clause boundary at the start of a sentence -
     // mid-sentence mentions ("...take one of the following as a corequisite:
     // BIOL 234") are prose, not a new clause, so they must be rejected here
     // or the real clause gets truncated / its codes silently dropped.

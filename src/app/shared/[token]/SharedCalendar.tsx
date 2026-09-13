@@ -5,7 +5,7 @@ import type { SectionHit } from '@/lib/search';
 
 /**
  * The builder's calendar with every control left off. Passing no onRemove or
- * onSwap is what makes it read-only — the component already hides those when
+ * onSwap is what makes it read-only - the component already hides those when
  * they are absent, so this needs no read-only mode of its own.
  */
 export default function SharedCalendar({ sections }: { sections: SectionHit[] }) {

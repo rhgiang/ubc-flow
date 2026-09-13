@@ -3,7 +3,7 @@ import SearchBar from '@/components/SearchBar';
 
 /**
  * Replaces Next's default, which renders "This page could not be found" on a
- * bare white page — outside the layout, so no nav, no branding and no way
+ * bare white page - outside the layout, so no nav, no branding and no way
  * back. Course and professor URLs are guessable (/course/cpsc-110), so a
  * mistyped one is a page real people reach, and the thing they wanted is a
  * search away rather than a dead end.

@@ -41,7 +41,7 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
         body: new FormData(e.currentTarget),
       });
       // Parsed INSIDE the ok-check, because a failure is exactly when the body
-      // is least likely to be JSON — a proxy timeout or a crashed route hands
+      // is least likely to be JSON - a proxy timeout or a crashed route hands
       // back HTML, and parsing that first threw before anything could report
       // it, leaving the button on "Uploading…" for good.
       if (!res.ok) {
@@ -50,12 +50,12 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
         return;
       }
       setResult(await res.json());
-      // Ready for the next export — these are uploaded one at a time.
+      // Ready for the next export - these are uploaded one at a time.
       formRef.current?.reset();
       setFileName(null);
       // The Current/Past course lists above are rendered on the server from
       // Enrollment rows this upload just wrote. Without this they keep showing
-      // the pre-upload state until the student reloads by hand — the summary
+      // the pre-upload state until the student reloads by hand - the summary
       // says "Matched 12 courses" while the lists above show none of them.
       router.refresh();
     } catch {
@@ -66,7 +66,7 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
   }
 
   return (
-    // Linked to as /onboarding#upload from the calendar's "Update courses" —
+    // Linked to as /onboarding#upload from the calendar's "Update courses" -
     // scroll-mt keeps the heading clear of the sticky nav on landing.
     <section id="upload" className="scroll-mt-24">
       <h2 className="text-xl font-semibold text-foreground">
@@ -175,7 +175,7 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
             accept=".xlsx"
             // Cleared on every open, so re-picking the SAME file still fires
             // change. Without this a second upload of one file is silently
-            // ignored — the browser treats an identical selection as no change,
+            // ignored - the browser treats an identical selection as no change,
             // and the box goes on saying no file is chosen.
             onClick={(e) => {
               e.currentTarget.value = "";
@@ -199,7 +199,7 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
         <section className="mt-6 rounded-card border border-border p-5">
           {/*
             An academic record can be entirely transfer credit, and those are
-            deliberately not enrolments — so "Matched 0 courses" was the whole
+            deliberately not enrolments - so "Matched 0 courses" was the whole
             message for an upload that had in fact recorded everything in the
             file. The headline now says what happened rather than what did not.
           */}

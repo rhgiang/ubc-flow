@@ -1,7 +1,7 @@
 import { type CourseSet, type Program, type Rule, walk } from '@/guidance/rules';
 
 /**
- * Structural checks on a program file. Pure — no database, no network — so it
+ * Structural checks on a program file. Pure - no database, no network - so it
  * runs in the test suite and fails a build rather than a student's plan.
  *
  * These catch the mistakes a transcription actually makes: a duplicated rule
@@ -50,7 +50,7 @@ export function validateProgram(program: Program, known: Set<string>): Issue[] {
    * A choose-N branch almost never cites a page of its own, and it does not
    * need to: the choice above it cites the page that names the whole choice,
    * and the branch is one line of it. Warning per branch buried the real
-   * warnings — 237 of them across sixteen programs, every one a false alarm.
+   * warnings - 237 of them across sixteen programs, every one a false alarm.
    */
   const visit = (rules: Rule[], inheritedSource?: string) => {
     for (const rule of rules) {
@@ -97,8 +97,8 @@ export function validateProgram(program: Program, known: Set<string>): Issue[] {
       if (rule.n <= 0) {
         issues.push({ severity: 'error', ruleId: rule.id, message: `requires ${rule.n} credits` });
       }
-      // An elective is unconstrained by definition — that is what makes it
-      // free credit — so saying so for every one of them is noise, not a
+      // An elective is unconstrained by definition - that is what makes it
+      // free credit - so saying so for every one of them is noise, not a
       // finding. The warning is for a REQUIREMENT that plans as a bare slot,
       // which means its approved list has not been transcribed yet.
       if (setIsEmpty(rule.from) && !rule.elective) {

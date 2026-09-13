@@ -103,7 +103,7 @@ describe('parseRequirements', () => {
 
   it('bails out to a note on a grade-qualified list, never a plain OR', () => {
     // Real row: VISA 250. The real requirement is TWO of three WITH a grade
-    // floor; emitting an OR would say "any one of three" — materially wrong.
+    // floor; emitting an OR would say "any one of three" - materially wrong.
     const r = parseRequirements(
       'A score of 72% or higher in two of VISA 110, VISA 180, VISA 183.',
     )!;
@@ -125,7 +125,7 @@ describe('parseRequirements', () => {
   });
 
   it('keeps a parseable clause and notes an unparseable one from the same text', () => {
-    // Real row: MDIA 490 — a real requirement plus a program restriction.
+    // Real row: MDIA 490 - a real requirement plus a program restriction.
     const r = parseRequirements(
       'MDIA_V 350. Restricted to BMS students with 4th year standing.',
     )!;
@@ -140,7 +140,7 @@ describe('parseRequirements', () => {
   });
 
   it('parses corequisite text with the same machinery', () => {
-    // Real coreq row: SCIE 300 — an OR group plus a standing clause.
+    // Real coreq row: SCIE 300 - an OR group plus a standing clause.
     const r = parseRequirements(
       'One of BIOL_V 300, STAT_V 200, STAT_V 241 and 3rd or 4th year standing in Combined Major in Science.',
     )!;
@@ -170,7 +170,7 @@ describe('parseRequirements', () => {
   });
 
   it('bails to a note on a numeric quantifier ("Three of") instead of a hard AND', () => {
-    // Real row: VISA 401F. The real requirement is "any 3 of these 16" — the
+    // Real row: VISA 401F. The real requirement is "any 3 of these 16" - the
     // bare-list AND default must not claim all 16 are mandatory (Finding 1).
     const r = parseRequirements(
       'Three of VISA_V 310, VISA_V 311, VISA_V 320, VISA_V 321, VISA_V 330, VISA_V 331, VISA_V 340, VISA_V 341, VISA_V 350, VISA_V 351, VISA_V 352, VISA_V 360, VISA_V 361, VISA_V 370, VISA_V 375, VISA_V 390.',
@@ -181,7 +181,7 @@ describe('parseRequirements', () => {
   it('bails both clauses to notes on "Two of" plus its "Or" continuation', () => {
     // Real row: POLI 310. Real requirement is "any 2 of these 4"; the second
     // clause already correctly bailed before this fix, the first did not
-    // (Finding 1) — both must end up as notes, never a 4-way hard AND.
+    // (Finding 1) - both must end up as notes, never a 4-way hard AND.
     const r = parseRequirements(
       'Two of POLI 100, POLI 101, POLI 110, POLI 240. Or third-year standing or higher.',
     )!;
@@ -190,11 +190,11 @@ describe('parseRequirements', () => {
   });
 
   it('bails to a note rather than over-collapsing into a flat OR', () => {
-    // Real row: ELEC 391. Real requirement is "(one of 3) AND (two of 4)" —
+    // Real row: ELEC 391. Real requirement is "(one of 3) AND (two of 4)" -
     // before this fix, the OR-collapse heuristic (for "One of A, B and C")
     // wrongly fired on the "two of" segment and flattened all 7 codes into a
     // single OR, which would tell a student one course out of any of the 7
-    // satisfies the whole requirement (Finding 2 — over-permissive, worse
+    // satisfies the whole requirement (Finding 2 - over-permissive, worse
     // than Finding 1's over-restrictive AND). Catching "two of" in the
     // ambiguity guard makes the whole clause bail before that logic runs.
     const r = parseRequirements(
@@ -203,14 +203,14 @@ describe('parseRequirements', () => {
     expect(r.type).toBe('note');
   });
 
-  it('still parses "one of" normally — the quantifier guard must not catch it', () => {
+  it('still parses "one of" normally - the quantifier guard must not catch it', () => {
     const r = parseRequirements('One of FRST 201, NRES 201.')!;
     expect(r.type).toBe('or');
   });
 
   it('bails a whole clause to a note when one and-segment fails to parse', () => {
-    // Real row: BEST 201. A source typo — a stray space inside "BIOL _V 121"
-    // — breaks the course-code regex for that segment. Before this fix, the
+    // Real row: BEST 201. A source typo - a stray space inside "BIOL _V 121"
+    // - breaks the course-code regex for that segment. Before this fix, the
     // failed segment was silently dropped, leaving a bare `course` node for
     // BIOL 112 with BIOL 121 vanished and no indication anything was missing
     // (Finding 3). The whole clause must bail to a note instead.

@@ -41,7 +41,7 @@ export function AmbiguousSectionNote() {
   return (
     <p className="mt-1 rounded-input border border-border bg-surface-muted px-2 py-1 text-xs text-text-secondary">
       UBC scheduled more than one section of this course, and we don&apos;t know which
-      one is yours - check your section code, only one of these is your exam.
+      one is yours. Check your section code, only one of these is your exam.
     </p>
   );
 }

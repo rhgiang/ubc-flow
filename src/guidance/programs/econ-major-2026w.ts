@@ -15,7 +15,7 @@ const course = (id: string, code: string, year: number): Rule => ({
 });
 
 /**
- * Major in Economics (B.A.), 2026W — 42 ECON credits toward a 120-credit
+ * Major in Economics (B.A.), 2026W - 42 ECON credits toward a 120-credit
  * degree, plus the calculus needed to be admitted.
  *
  * The only Arts major here that does not live in the Faculty of Arts section

@@ -14,7 +14,7 @@ const MIN_RETAINED_FRACTION = 0.8;
  * The sections scraper creates a course only when it meets a section, so the
  * course table has been "courses offered in a term we scraped" rather than
  * the catalogue. Courses on hiatus, or running only in terms outside the
- * scraped window, were absent entirely — no Explore result, no course page,
+ * scraped window, were absent entirely - no Explore result, no course page,
  * no reviews, and a hole in the prerequisite graph wherever one was required.
  *
  * One request per subject, rate-limited to one a second by fetchText, so
@@ -23,7 +23,7 @@ const MIN_RETAINED_FRACTION = 0.8;
  * fresh database is scrape:catalog, scrape:faculties, scrape:courses,
  * scrape:sections, scrape:descriptions, enrich:prereqs.
  *
- * ponytail: a findUnique then an update or create per course — about 11,000
+ * ponytail: a findUnique then an update or create per course - about 11,000
  * round trips for a full run. Fine for a yearly job against localhost; batch
  * per subject with createMany + updateMany if this ever runs against a remote
  * database on a schedule.
@@ -57,7 +57,7 @@ export async function scrapeCatalogueCourses() {
         CAMPUS,
       );
     } catch {
-      // A subject with no Calendar page is normal — not every subject code in
+      // A subject with no Calendar page is normal - not every subject code in
       // the course-search dropdown has a description page.
       failed++;
       continue;
@@ -97,8 +97,8 @@ export async function scrapeCatalogueCourses() {
   );
 
   // The other scrapers refuse to write when a parse comes back suspiciously
-  // thin. This job cannot do the same — it only ever adds, so the count never
-  // falls — but it can say when a run found almost nothing, which is what a
+  // thin. This job cannot do the same - it only ever adds, so the count never
+  // falls - but it can say when a run found almost nothing, which is what a
   // markup change would look like from here.
   if (before > 0 && created + updated < before * MIN_RETAINED_FRACTION) {
     console.error(

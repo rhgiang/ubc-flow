@@ -33,7 +33,7 @@ const GRADE_DATA_SOURCE = 'https://github.com/DonneyF/ubc-pair-grade-data';
  * Served statically, re-rendered at most daily: the catalogue half is the
  * same for everyone and the nightly scrape is what changes it, while the
  * per-viewer half (votes, review rights, schedules) loads client-side via
- * ViewerProvider. A fresh review still appears immediately — review writes
+ * ViewerProvider. A fresh review still appears immediately - review writes
  * revalidate the 'catalogue' tag the loaders here cache under. Before this
  * the page rendered on every request: ~11,500 crawler-indexed URLs each
  * burning server CPU per hit.
@@ -296,7 +296,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
     ],
   }));
 
-  // Grouped under the professor they are about — a flat list never said which
+  // Grouped under the professor they are about - a flat list never said which
   // one any of them belonged to.
   const professorGroups: ProfessorGroup[] = [];
   const groupByInstructor = new Map<string, ProfessorGroup>();
@@ -330,7 +330,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
   }
   professorGroups.sort((a, b) => b.reviews.length - a.reviews.length || a.name.localeCompare(b.name));
 
-  // One server action per section, closing over its id — same mechanism the
+  // One server action per section, closing over its id - same mechanism the
   // old inline sections table used, just built ahead of the client
   // CourseScheduleBox so the actions can be passed down as props.
   const addToScheduleActions: Record<string, (formData: FormData) => Promise<void>> = {};
@@ -353,7 +353,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
           solid panel, so the background reads as a border around the content. */}
       {/* Identity and ratings side by side on the sky, above the panel: the
           two things you read first, read together. Centred against each other
-          rather than top-aligned — the title block is half the card's height,
+          rather than top-aligned - the title block is half the card's height,
           and hanging it from the top left an obvious hole under it. */}
       <div className="grid gap-8 lg:grid-cols-[1fr_32rem] lg:items-start">
         <div className="sky-hero min-w-0">
@@ -368,7 +368,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
           )}
 
           {/* Description belongs with the title, not buried at the top of the
-              panel below it — this is the block a student reads first. */}
+              panel below it - this is the block a student reads first. */}
           {course.description && (
             <p className="mt-4 leading-relaxed">{course.description}</p>
           )}
@@ -390,7 +390,7 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
             <RatingsBox
               tone="glass"
               action={
-                /* Whether the viewer can review is personal state — resolved
+                /* Whether the viewer can review is personal state - resolved
                    in the browser (ViewerProvider) so this page stays static. */
                 <CourseReviewCta code={code} />
               }

@@ -37,10 +37,10 @@ curl -A "UBCFlow/0.1 (course review site; +https://github.com/ryangiang/ubc-flow
 ```
 
 returns HTTP 200 with `Displaying 1 - 10 of 64 courses` and 10 fully server-rendered course
-cards (title, course code, campus, subject, credits, description) in the raw HTML — no
+cards (title, course code, campus, subject, credits, description) in the raw HTML - no
 Playwright needed for this part at all. This also worked against the older term 1449 (67
 courses). **Task 7 should filter by the numeric `subject` id, exactly as the task brief
-already mandates for the cold-database reason — and that turns out to be the form of the
+already mandates for the cold-database reason - and that turns out to be the form of the
 request that actually works via plain HTTP, which is a nice coincidence.**
 
 What plain HTTP GET does *not* give you: individual section rows. Each course card ships a
@@ -53,7 +53,7 @@ placeholder:
 ```
 
 This placeholder is filled in by a client-side "sections component" (React-ish, mounted
-against `data-course-id`), and — critically — the sections table itself is further gated
+against `data-course-id`), and - critically - the sections table itself is further gated
 behind a **"Show section details" button per course card**. The button must be clicked
 before the table appears in the DOM at all. This is the part that genuinely needs either a
 real browser or (better, see below) a direct call to the API the button ends up calling.
@@ -62,7 +62,7 @@ real browser or (better, see below) a direct call to the API the button ends up 
 
 Two plain, unauthenticated HTTP GETs. No cookies, no Playwright, no headless browser:
 
-**1. Course list** — plain HTML GET + cheerio, exactly as Task 6/7 already plan:
+**1. Course list** - plain HTML GET + cheerio, exactly as Task 6/7 already plan:
 
 ```
 GET https://courses.students.ubc.ca/course-search?campus=1&academic_period=<TERM_ID>&subject=<SUBJECT_ID>&page=<N>
@@ -71,7 +71,7 @@ GET https://courses.students.ubc.ca/course-search?campus=1&academic_period=<TERM
 Each course card (`li.my-6 article.ubc-card`) carries the course UUID needed for step 2 in
 `div.course-sections-root[data-course-id]`.
 
-**2. Sections for one course** — Drupal JSON:API, discovered by watching Playwright's
+**2. Sections for one course** - Drupal JSON:API, discovered by watching Playwright's
 network log when it clicked "Show section details":
 
 ```
@@ -116,7 +116,7 @@ lookup) to human names, e.g. delivery_mode 86 = "In person", instructional_metho
 
 `field_start_time`/`field_end_time` are seconds-since-midnight integers (e.g. `50400` /
 3600 = `14`, matching the `14:00` shown in the rendered UI for this same section). Verify
-timezone handling (local vs. UTC) when Task 7 implements this — not conclusively determined
+timezone handling (local vs. UTC) when Task 7 implements this - not conclusively determined
 in this spike.
 
 **Gotcha for whoever implements this:** JSON:API's `fields[node--section]` parameter
@@ -125,7 +125,7 @@ restricts *both* attributes and relationships for that resource type. If you omi
 relationship data silently disappears from the response even if you still pass them in
 `include=`. Always list every relationship you want in `fields[node--section]` too.
 
-**This means Task 7 does not need Playwright in production at all** — two chained,
+**This means Task 7 does not need Playwright in production at all** - two chained,
 rate-limited `fetch()` calls (course list page(s), then one JSON:API call per course UUID)
 cover everything the rendered UI shows, plus instructor name and status, which the rendered
 UI actually *hides* (see below). Playwright is still useful as a one-time verification tool
@@ -168,7 +168,7 @@ await page.waitForTimeout(1500); // settle any lagging fetches
 const html = await page.content();
 ```
 
-Notes on the wait strategy: `networkidle` alone is **not sufficient** — it resolves once
+Notes on the wait strategy: `networkidle` alone is **not sufficient** - it resolves once
 the initial page reload settles, but the section tables are still collapsed at that point
 (zero network activity, by design, since nothing loads until you click). The real
 "finished" signal is (a) the "Loading sections component..." placeholder text is gone
@@ -176,7 +176,7 @@ the initial page reload settles, but the section tables are still collapsed at t
 and their tables have appeared. `getByLabel('Vancouver')` from the brief's example did not
 need to be used since campus 1 (Vancouver) is checked by default; `#edit-campus-1` is the
 reliable selector if an explicit click is wanted. `#edit-subject-code` (free text) was
-deliberately **not** used — `#edit-subject` (numeric select, value `1810` for Computer
+deliberately **not** used - `#edit-subject` (numeric select, value `1810` for Computer
 Science Vancouver) was used instead, per the Task 7 cold-database requirement.
 
 ## DOM structure of one course card + its expanded section table (literal HTML)
@@ -249,7 +249,7 @@ Course: CPSC_V 100 "Computational Thinking", pulled from the committed fixture
 Selectors for Task 6's cheerio parser (once sections are expanded, e.g. from a saved
 Playwright-rendered page, or reconstructed from the JSON:API):
 - Course card: `li.my-6 article.ubc-card`
-- Course code: text of the `<div>` immediately after `<h3>`, format is `"Course Code: CPSC_V 100"` (note the `_V` campus suffix embedded in the code — not `"CPSC 100"`)
+- Course code: text of the `<div>` immediately after `<h3>`, format is `"Course Code: CPSC_V 100"` (note the `_V` campus suffix embedded in the code - not `"CPSC 100"`)
 - Course title: `h3 .field--name-title`
 - Course UUID (for JSON:API lookups): `.course-sections-root` `data-course-id` attribute
 - Section rows: `.course-sections-content table tbody tr`, columns in order: section code, delivery mode, instructional format ("activity"), start date, end date, start time, end time, days
@@ -267,7 +267,7 @@ Playwright-rendered page, or reconstructed from the JSON:API):
 | Meeting start/end time | Yes | Section table `Start Time`/`End Time` columns (`14:00`) |
 | **Status (Open/Full/Waitlisted)** | **NOT shown in the rendered UI table** | Available only via the JSON:API (`field_status` relationship), not visible anywhere in the HTML |
 | **Instructor name** | **NOT shown in the rendered UI table** | Available only via the JSON:API (`field_instructors` array), not visible anywhere in the HTML |
-| **Building / room** | **Not available anywhere** | Confirmed absent from both the rendered HTML and the full unfiltered JSON:API section resource (checked every attribute/relationship on a section node — no location/building/room field exists) |
+| **Building / room** | **Not available anywhere** | Confirmed absent from both the rendered HTML and the full unfiltered JSON:API section resource (checked every attribute/relationship on a section node - no location/building/room field exists) |
 
 This means the results page UI is strictly less informative than the underlying API: it
 hides instructor and enrollment status, and the source data has no room/building info at
@@ -301,16 +301,16 @@ sections so this is unlikely to matter.
 - Term: `1453` = "2026-27 Winter Term 1 (UBC-V)". Tried first per instructions since today
   is 2026-08-19; it had data (64 CPSC courses), so no fallback to 1449/1450 was needed.
 - Subject: `1810` = "Computer Science (Vancouver)", selected via `#edit-subject` (numeric),
-  not `#edit-subject-code` (free text) — per the Task 7 cold-database requirement, and
+  not `#edit-subject-code` (free text) - per the Task 7 cold-database requirement, and
   because the free-text filter appears broken/non-matching server-side anyway (see
   correction above).
 - Campus: `1` = Vancouver.
 
 ## Fixtures produced
 
-- `tests/fixtures/course-search-form.html` — plain `curl` GET of `/course-search`, 95,428
+- `tests/fixtures/course-search-form.html` - plain `curl` GET of `/course-search`, 95,428
   bytes. Contains `edit-academic-period` and `edit-subject`.
-- `tests/fixtures/course-search-cpsc.html` — Playwright-rendered `/course-search` for
+- `tests/fixtures/course-search-cpsc.html` - Playwright-rendered `/course-search` for
   campus 1, term 1453, subject 1810, with all 10 course cards on page 1 expanded (all
   "Show section details" buttons clicked), 198,188 bytes. Contains `CPSC_V 221` and
   multiple distinct section codes across the 10 expanded courses.

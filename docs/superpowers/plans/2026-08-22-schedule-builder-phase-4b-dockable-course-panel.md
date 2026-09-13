@@ -1,10 +1,10 @@
-# Schedule Builder — Phase 4b: Dockable Course Panel Implementation Plan
+# Schedule Builder - Phase 4b: Dockable Course Panel Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let a student pop the course-information overlay out of the modal and dock it beside the calendar, so they can keep reading a course while they build.
 
-**Architecture:** The overlay's body is extracted into a shared `CourseInfoContent`, and its fetch/cache into a `useCourseDetail` hook whose cache lives at module scope — so moving between the modal and the docked panel never refetches. Two thin shells wrap that content: the existing modal, and a new docked `<aside>` that becomes a third column in the builder. The calendar shrinks to make room rather than being covered.
+**Architecture:** The overlay's body is extracted into a shared `CourseInfoContent`, and its fetch/cache into a `useCourseDetail` hook whose cache lives at module scope - so moving between the modal and the docked panel never refetches. Two thin shells wrap that content: the existing modal, and a new docked `<aside>` that becomes a third column in the builder. The calendar shrinks to make room rather than being covered.
 
 **Tech Stack:** Next.js 16 (App Router), React client components, Tailwind v4 theme tokens, Vitest.
 
@@ -18,7 +18,7 @@
 
 - **No data or behaviour changes.** Same `getCourseDetail` call, same fields, same add/remove semantics. This is a presentation refactor plus one new shell.
 - **Moving between modal and docked must not refetch.** That is the point of hoisting the cache to module scope.
-- **Theme tokens only.** `foreground`, `background`, `text-secondary`, `text-tertiary`, `surface`, `surface-muted`, `border`, `border-hairline`, `brand`, `brand-accent`, `brand-foreground`, `danger`, and the `rounded-pill`/`rounded-card`/`rounded-input` radii. No raw `slate-*`/`blue-*`/`red-*`. **`brand` as a foreground is forbidden** — invisible in dark mode; use `brand-accent`.
+- **Theme tokens only.** `foreground`, `background`, `text-secondary`, `text-tertiary`, `surface`, `surface-muted`, `border`, `border-hairline`, `brand`, `brand-accent`, `brand-foreground`, `danger`, and the `rounded-pill`/`rounded-card`/`rounded-input` radii. No raw `slate-*`/`blue-*`/`red-*`. **`brand` as a foreground is forbidden** - invisible in dark mode; use `brand-accent`.
 - The docked panel is a **builder-only** affordance. The read-only "View Calendar" tab on `/schedule` must be untouched.
 - Every interactive control needs an accessible name.
 - Commit after every task. `npx tsc --noEmit` and `npx vitest run` clean before each commit (baseline: **321 tests passing**).
@@ -27,7 +27,7 @@
 
 ### Task 1: Extract the shared content and hoist the cache
 
-Pure refactor — no visible change. `CourseInfoOverlay` must look and behave exactly as it does now when this task is done.
+Pure refactor - no visible change. `CourseInfoOverlay` must look and behave exactly as it does now when this task is done.
 
 **Files:**
 - Create: `src/components/schedule/course-info/useCourseDetail.ts`
@@ -41,7 +41,7 @@ Pure refactor — no visible change. `CourseInfoOverlay` must look and behave ex
 
 - [ ] **Step 1: Create the hook**
 
-Move the fetch effect, the `cancelled` race guard, and the cache out of the overlay. **The cache moves to module scope** so it survives a shell swap — that is what makes docking free.
+Move the fetch effect, the `cancelled` race guard, and the cache out of the overlay. **The cache moves to module scope** so it survives a shell swap - that is what makes docking free.
 
 Create `src/components/schedule/course-info/useCourseDetail.ts`:
 
@@ -99,9 +99,9 @@ export function useCourseDetail(
 
 - [ ] **Step 2: Extract the content**
 
-Create `src/components/schedule/course-info/CourseInfoContent.tsx`. Move the body of the overlay's `{detail && (…)}` block into it **verbatim, minus the header row** (the `<h2>`/title/credits block and the close button) — each shell renders its own header, because their action buttons differ.
+Create `src/components/schedule/course-info/CourseInfoContent.tsx`. Move the body of the overlay's `{detail && (…)}` block into it **verbatim, minus the header row** (the `<h2>`/title/credits block and the close button) - each shell renders its own header, because their action buttons differ.
 
-So `CourseInfoContent` starts at the description and covers: description, "Sections this term", "Grades" (stats, `GradeChart`, historical stats, `HistoricalGradesTimeline`), "Requirements", and the "View full course page →" link. Move the `Stat`, `pct` and `toHit` helpers into this file too — they are only used by the content.
+So `CourseInfoContent` starts at the description and covers: description, "Sections this term", "Grades" (stats, `GradeChart`, historical stats, `HistoricalGradesTimeline`), "Requirements", and the "View full course page →" link. Move the `Stat`, `pct` and `toHit` helpers into this file too - they are only used by the content.
 
 Its props:
 
@@ -123,7 +123,7 @@ Do not change any markup inside. Do not change class names. This is a move, not 
 
 - [ ] **Step 3: Rewrite the overlay to use both**
 
-`CourseInfoOverlay` keeps its exact current props and its modal shell, but now: calls `useCourseDetail` instead of owning the fetch, renders its own header row (code, title, credits + close button), and renders `<CourseInfoContent …/>` for the rest. Delete the code it no longer owns — the cache ref, the fetch effect, `Stat`, `pct`, `toHit`.
+`CourseInfoOverlay` keeps its exact current props and its modal shell, but now: calls `useCourseDetail` instead of owning the fetch, renders its own header row (code, title, credits + close button), and renders `<CourseInfoContent …/>` for the rest. Delete the code it no longer owns - the cache ref, the fetch effect, `Stat`, `pct`, `toHit`.
 
 Keep the Escape handler, the backdrop click-outside, `role="dialog"`, `aria-modal`, and the `aria-label`.
 
@@ -135,7 +135,7 @@ npx vitest run
 grep -nE "slate-[0-9]|blue-[0-9]|red-[0-9]" src/components/schedule/course-info/*.tsx src/components/schedule/CourseInfoOverlay.tsx
 ```
 
-The grep must print nothing. Then confirm the overlay still works in the browser — a dev server is already running on http://localhost:3000, do NOT start another:
+The grep must print nothing. Then confirm the overlay still works in the browser - a dev server is already running on http://localhost:3000, do NOT start another:
 
 ```bash
 node -e "
@@ -180,7 +180,7 @@ git commit -m "refactor: extract shared course-info content and hoist its cache"
 
 ```ts
 {
-  courseId: string;          // never null — the builder unmounts the panel instead
+  courseId: string;          // never null - the builder unmounts the panel instead
   termId: string;
   addedSectionIds: Set<string>;
   onAddSection?: (hit: SectionHit) => void;
@@ -307,7 +307,7 @@ export default function CourseInfoPanel({
 }
 ```
 
-Note it is an `<aside>`, not a `role="dialog"` — it is not modal, does not trap anything, and must not be dismissed by Escape. That is deliberate: the whole point is that the builder stays usable behind it.
+Note it is an `<aside>`, not a `role="dialog"` - it is not modal, does not trap anything, and must not be dismissed by Escape. That is deliberate: the whole point is that the builder stays usable behind it.
 
 - [ ] **Step 3: Verify and commit**
 
@@ -356,7 +356,7 @@ Inside the `<div className="flex min-h-0 flex-1 flex-col lg:flex-row">` row, AFT
 
 Import it: `import CourseInfoPanel from '@/components/schedule/course-info/CourseInfoPanel';`
 
-The calendar column is already `min-w-0 flex-1`, so it shrinks to make room automatically — do not add a width to it.
+The calendar column is already `min-w-0 flex-1`, so it shrinks to make room automatically - do not add a width to it.
 
 - [ ] **Step 3: Make the modal and the panel mutually exclusive**
 
@@ -375,7 +375,7 @@ Add `onDock` to that element. Leave its other props as they are.
 
 - [ ] **Step 4: Opening a different course while docked keeps it docked**
 
-`setInfoCourseId` is already what the ⓘ buttons and calendar blocks call. Because the panel reads `infoCourseId` directly, clicking a different course while docked simply swaps the panel's content — which is the desired behaviour and needs no extra code. Confirm you have not broken it: the ⓘ handlers must still be plain `setInfoCourseId`, not something that also resets `infoDocked`.
+`setInfoCourseId` is already what the ⓘ buttons and calendar blocks call. Because the panel reads `infoCourseId` directly, clicking a different course while docked simply swaps the panel's content - which is the desired behaviour and needs no extra code. Confirm you have not broken it: the ⓘ handlers must still be plain `setInfoCourseId`, not something that also resets `infoDocked`.
 
 - [ ] **Step 5: Verify and commit**
 
@@ -402,7 +402,7 @@ The grep must print nothing.
 curl -sf http://localhost:3000 >/dev/null && echo UP
 ```
 
-Already running — do NOT start a second.
+Already running - do NOT start a second.
 
 - [ ] **Step 2: Write the smoke script**
 
@@ -472,13 +472,13 @@ try {
 Run: `node --env-file=.env _smoke_dock.mjs`
 Expected: `DOCKED OK`, `BUILDER STILL USABLE WHILE DOCKED: true`, `PANEL ON RIGHT: true | CALENDAR SHRANK: true`, `EXPAND BACK OK`, and `CONSOLE ERRORS: []`.
 
-If `CALENDAR SHRANK` is false the panel is covering the calendar rather than sitting beside it — that is a real failure of the requirement, report it rather than adjusting the assertion.
+If `CALENDAR SHRANK` is false the panel is covering the calendar rather than sitting beside it - that is a real failure of the requirement, report it rather than adjusting the assertion.
 
 - [ ] **Step 4: Look at both screenshots**
 
 Confirm by eye in `dock-light.png` and `dock-dark.png`:
 1. Three columns: the Saved/Find panel on the left, the calendar in the middle, the course info on the right.
-2. The calendar is fully visible — not clipped or covered by the panel.
+2. The calendar is fully visible - not clipped or covered by the panel.
 3. The panel shows the course code, title, sections and grades, and scrolls independently.
 4. Everything is readable in BOTH themes.
 
@@ -509,4 +509,4 @@ Expected: clean tree. Nothing to commit.
 - Remembering the docked state across reloads.
 - Docking more than one course at a time.
 - A resizable / draggable panel.
-- RateMyProfessors ratings — Phase 5, which adds them to the now-shared `CourseInfoContent`.
+- RateMyProfessors ratings - Phase 5, which adds them to the now-shared `CourseInfoContent`.

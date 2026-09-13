@@ -62,7 +62,7 @@ export default function AboutPage() {
             460. The round shape is CSS, so the file stays reusable if it ever
             changes.
 
-            Much larger than the 64px placeholder it replaces — the section is
+            Much larger than the 64px placeholder it replaces - the section is
             about a person, and at avatar size it read as a bullet point.
           */}
           <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-start sm:gap-8">

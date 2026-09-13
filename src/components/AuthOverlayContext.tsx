@@ -14,7 +14,7 @@ const AuthOverlayCtx = createContext<AuthOverlayState | null>(null);
 
 // Lets a nav click on ANY page (Account, or Schedules while logged out) show
 // the login/signup panel on top of wherever the visitor already is, instead
-// of navigating away — the overlay renders once at the root and any client
+// of navigating away - the overlay renders once at the root and any client
 // component can trigger it via useAuthOverlay(). The optional onSuccess lets
 // a caller (e.g. the guest schedule builder) resume its own action right
 // after the panel reports a successful login/signup.

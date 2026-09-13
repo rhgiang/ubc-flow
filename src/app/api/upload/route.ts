@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No file uploaded.' }, { status: 400 });
   }
 
-  // Size is checked BEFORE parsing — a zip bomb must never reach the parser.
+  // Size is checked BEFORE parsing - a zip bomb must never reach the parser.
   if (file.size > MAX_BYTES) {
     return NextResponse.json({ error: 'File is too large (max 2 MB).' }, { status: 413 });
   }
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Held in memory only — never written to disk, never logged.
+    // Held in memory only - never written to disk, never logged.
     const grid = await readWorkbookGrid(await file.arrayBuffer());
     const parsed = parseWorkdayExport(grid);
 

@@ -18,7 +18,7 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-// Wordmark only — see .nav-logo in globals.css. Inter still sets everything else.
+// Wordmark only - see .nav-logo in globals.css. Inter still sets everything else.
 // Stands in for Halyard Display (commercial, not redistributable); Outfit is the
 // closest geometric sans available to us.
 const outfit = Outfit({
@@ -30,7 +30,7 @@ const outfit = Outfit({
 const DESCRIPTION = "Find courses and professors at UBC.";
 
 // Same env var the verification and reset emails are built from (see
-// src/app/actions/auth.ts) — one answer to "where does this site live",
+// src/app/actions/auth.ts) - one answer to "where does this site live",
 // rather than a second constant to keep in sync. metadataBase is what lets
 // the generated OG image below be referenced by relative path.
 const SITE_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
@@ -53,12 +53,12 @@ export const metadata: Metadata = {
   },
 };
 
-// Runs before paint so the stored theme applies immediately — without this,
+// Runs before paint so the stored theme applies immediately - without this,
 // a dark-mode visitor would flash white on every load until React hydrates.
 // Weather mode guesses daylight from the clock here; ThemeToggle re-applies
 // with the real campus observation after hydration.
 //
-// localStorage only — reading the signed-in user's saved mode here would
+// localStorage only - reading the signed-in user's saved mode here would
 // need auth(), which forces every page in the site dynamic. ThemeToggle
 // fetches the account's choice after hydration and reconciles it into
 // localStorage, so across devices the two still converge; the cost is a
@@ -99,7 +99,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${outfit.variable} h-full antialiased`}
       // The inline script below sets data-theme before React hydrates, so
       // the server-rendered markup (which has none) will always "mismatch"
-      // this one attribute — intentional, and nothing in the tree reads
+      // this one attribute - intentional, and nothing in the tree reads
       // data-theme for rendering logic, only CSS attribute selectors do.
       suppressHydrationWarning
     >

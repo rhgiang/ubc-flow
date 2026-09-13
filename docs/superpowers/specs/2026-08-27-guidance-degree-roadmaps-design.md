@@ -38,7 +38,7 @@ development database, not assumed:
 |---|---|
 | Prereq graph | `CoursePrereqEdge`, 3,479 edges. CPSC/MATH/STAT parse at **100%** (57/57, 84/84, 23/23 of courses that have prereq text). The full core CPSC chain is machine-readable. |
 | Course credits | Populated on all 7,336 Vancouver courses. |
-| Term offerings | `Section` + `Term` — which courses actually run when. |
+| Term offerings | `Section` + `Term` - which courses actually run when. |
 | Requirement tree type | `Requirement` union in `src/prereqs/parse.ts` (`course`/`and`/`or`/`note`). |
 | Student history | `Enrollment` (user, course, term). |
 
@@ -46,7 +46,7 @@ Two gaps, both material:
 
 1. **`Enrollment` records registration, not completion.** No grade, no status. A
    failed course is indistinguishable from a passed one. The Workday export
-   *does* carry a grade column — `src/upload/parse-workday.ts` reads it today
+   *does* carry a grade column - `src/upload/parse-workday.ts` reads it today
    only to detect `TR` and discard transfer credits outright.
 2. **`Subject.faculty` is null for all 367 subjects.** The column exists and was
    never populated. Breadth requirements are defined in terms of faculty, so
@@ -100,7 +100,7 @@ merged with its own rules. `science-faculty-core-2026w` is an ordinary
 `Program` row with an empty `extends`.
 
 This exists from the start because it is expensive to retrofit. Majors within
-a faculty share their entire non-major requirement set — Communication, Arts,
+a faculty share their entire non-major requirement set - Communication, Arts,
 Science breadth, credit minimums. Without composition, program #2 means
 copy-pasting the Science core into a second file, and the two drift. With it,
 the expensive breadth modelling is written once per faculty and reused by every
@@ -125,8 +125,8 @@ The checked-in file remains the source of truth; the database is the query
 surface. If cross-program queries arrive later, normalising is a migration, not
 a redesign.
 
-`User.program` — an existing free-text `String?`, read in two places and never
-written — is left untouched. `programCode` is added beside it so this feature
+`User.program` - an existing free-text `String?`, read in two places and never
+written - is left untouched. `programCode` is added beside it so this feature
 does not silently change what those read sites see. The dead field is flagged
 for separate cleanup.
 
@@ -134,29 +134,29 @@ for separate cleanup.
 
 Each is independently testable and depends only on those above it.
 
-**`src/guidance/rules.ts`** — the rule language, and `resolveSet(CourseSet)`
+**`src/guidance/rules.ts`** - the rule language, and `resolveSet(CourseSet)`
 turning a set into concrete course IDs. Depends on `Course`, `Subject`.
 
-**`src/guidance/programs/*.ts`** — checked-in program data.
+**`src/guidance/programs/*.ts`** - checked-in program data.
 `science-faculty-core-2026w.ts` and `cpsc-major-2026w.ts`. Plain data, no logic.
 
-**`src/guidance/seed.ts`** — validates and loads program files into `Program`.
+**`src/guidance/seed.ts`** - validates and loads program files into `Program`.
 Validation asserts every `course` code resolves to a real course and every
 `pattern` matches at least one. A typo fails the seed rather than silently
 dropping a requirement.
 
-**`src/guidance/progress.ts`** — pure function
+**`src/guidance/progress.ts`** - pure function
 `(completed: CourseRef[], program: Program) => RuleProgress[]`, marking each
 rule satisfied, partial, or outstanding, and recording which course satisfied
 which rule. No I/O. This is where the correctness tests concentrate.
 
-**`src/guidance/solver.ts`** — pure function
+**`src/guidance/solver.ts`** - pure function
 `(outstanding: Rule[], graph, offerings, prefs) => Plan`. Assigns courses to
 terms respecting prerequisite depth, real term offerings, and the requested
 load. Reports infeasibility rather than silently producing a plan that cannot
 happen.
 
-**`src/app/guidance/`** — the page. Nav pill beside Schedules.
+**`src/app/guidance/`** - the page. Nav pill beside Schedules.
 
 ### Data flow
 
@@ -191,15 +191,15 @@ session."*
 
 `/guidance` is **public**. A signed-out visitor picks a program and sees the
 generic roadmap for a student starting fresh, which is genuinely useful and is
-the page's best advertisement. Personalisation — reading `Enrollment`, marking
-progress, saving a plan — requires signing in, consistent with Schedules.
+the page's best advertisement. Personalisation - reading `Enrollment`, marking
+progress, saving a plan - requires signing in, consistent with Schedules.
 
 ## Testing
 
 The engine is two pure functions, so the valuable tests need no database.
 
-- `progress.ts`: student fixtures — fresh, mid-degree, a failed course, transfer
-  credit, a partially satisfied credit-count rule — asserted against expected
+- `progress.ts`: student fixtures - fresh, mid-degree, a failed course, transfer
+  credit, a partially satisfied credit-count rule - asserted against expected
   rule states.
 - `solver.ts`: the invariant that matters is **a plan never violates a
   prerequisite and never places a course in a term it is not offered**. Asserted
@@ -229,7 +229,7 @@ implements them.
 constraint. Co-op students alternate study and work terms, so the solver must
 be able to mark a term unavailable for coursework and continue placing around
 it. This is a solver input (a per-term availability mask), not a new rule kind
-— the v1 solver should keep term availability as data rather than assuming
+- the v1 solver should keep term availability as data rather than assuming
 every term is placeable, so co-op does not require restructuring it.
 
 **Honours.** An honours variant is largely the major's requirements plus extra
@@ -237,7 +237,7 @@ rules and higher credit floors. The `extends` mechanism already models this:
 `cpsc-honours-bsc-2026w` extends both the Science core and the CPSC major, and
 adds its own rules. What it will additionally need is a **grade-floor rule kind**
 (honours typically demands a minimum average in the major), which v1 does not
-have. That is an additive rule kind, not a redesign — and it is a reason the
+have. That is an additive rule kind, not a redesign - and it is a reason the
 rule union should stay easy to extend.
 
 **Dual majors, minors, specialisations.** Composition covers the requirement
@@ -247,7 +247,7 @@ the one construct the current language genuinely cannot express.
 
 ## Risks
 
-**Data fidelity is the whole risk.** The engine is the easy part — the prereq
+**Data fidelity is the whole risk.** The engine is the easy part - the prereq
 graph is fully parsed for the subjects that matter and credits are populated
 everywhere. What can go wrong is a mis-transcribed requirement producing a
 confident, wrong graduation plan. Mitigations: per-rule `sourceUrl` and

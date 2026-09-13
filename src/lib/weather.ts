@@ -1,7 +1,7 @@
 /**
  * Live campus weather for the sky background's "weather" theme mode.
  *
- * Open-Meteo: free, no API key, no signup. Coordinates are UBC Vancouver —
+ * Open-Meteo: free, no API key, no signup. Coordinates are UBC Vancouver -
  * hardcoded rather than geolocated, because the sky should show campus
  * conditions, not the viewer's (and it avoids a permission prompt).
  */
@@ -39,7 +39,7 @@ const URL =
   'https://api.open-meteo.com/v1/forecast?latitude=49.2606&longitude=-123.246' +
   '&current=weather_code,cloud_cover,is_day';
 
-/** Null on any failure — the sky just falls back to its default clouds. */
+/** Null on any failure - the sky just falls back to its default clouds. */
 export async function getCampusWeather(): Promise<WeatherNow | null> {
   try {
     const res = await fetch(URL, { next: { revalidate: 1800 } });

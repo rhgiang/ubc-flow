@@ -66,17 +66,17 @@ export default function ScheduleBuilder({
   /** The student's other saved schedules, for the switcher beside the name. */
   schedules?: ScheduleOption[];
   openImport?: boolean;
-  /** Set by /schedule/new?fromImport=1 — consume the next term parked by a
+  /** Set by /schedule/new?fromImport=1 - consume the next term parked by a
    *  multi-term Workday import and open it as a fresh draft. */
   loadPendingImport?: boolean;
-  /** Courses to arrange before any section is picked — how a guidance plan
+  /** Courses to arrange before any section is picked - how a guidance plan
    *  hands a term to Flow Builder. Ignored once sections are chosen. */
   initialCourseIds?: string[];
   /** Open Flow Builder immediately (guidance's ?flow=1 handoff). */
   openGenerate?: boolean;
 }) {
   const [name, setName] = useState(initialName);
-  // On /schedule/new with no termId query param, initialTermId is '' — falling
+  // On /schedule/new with no termId query param, initialTermId is '' - falling
   // back to terms[0] must feed BOTH the initial state and the dirty
   // comparison, or a pristine page reports dirty against '' the instant terms
   // load and arms the beforeunload guard before the student has done anything.
@@ -91,7 +91,7 @@ export default function ScheduleBuilder({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [dismissedConflicts, setDismissedConflicts] = useState<string | null>(null);
   // Non-null while the conflict gate is open, holding the options `trySave`
-  // was originally called with — replayed verbatim (plus conflictsConfirmed)
+  // was originally called with - replayed verbatim (plus conflictsConfirmed)
   // when the student picks "Save anyway", so a gated save-and-switch still
   // switches instead of silently reverting to defaults.
   const [pendingSave, setPendingSave] = useState<{ redirectAfterCreate: boolean } | null>(null);
@@ -108,7 +108,7 @@ export default function ScheduleBuilder({
   const generateCourseIds =
     chosen.length > 0 ? [...new Set(chosen.map((s) => s.courseId))] : initialCourseIds;
   // A successful save moves the baseline immediately. router.refresh() is not
-  // awaited, so the refreshed initialSections prop lands later — without this,
+  // awaited, so the refreshed initialSections prop lands later - without this,
   // a quick second Save would send a stale baseline and be refused as stale.
   const [savedBaseline, setSavedBaseline] = useState<{ ids: string[]; name: string } | null>(null);
   // Terms from a multi-term Workday export that this schedule isn't holding.
@@ -144,7 +144,7 @@ export default function ScheduleBuilder({
     }
     setPendingTerms(parked);
     setOfferedTerm(parked[0]);
-    // Reading it is enough — the offer now lives in component state, and
+    // Reading it is enough - the offer now lives in component state, and
     // leaving it parked would re-offer it on every unrelated page load.
     writePendingTerms([]);
   }, [loadPendingImport, mode.kind]);
@@ -167,7 +167,7 @@ export default function ScheduleBuilder({
       chosen.map((c) => c.sectionId),
     );
     // Term is read-only for a saved schedule (its sections are term-scoped,
-    // so re-pointing termId would orphan them — Save never persists it), so
+    // so re-pointing termId would orphan them - Save never persists it), so
     // a term change there must never be reported as dirty. In draft mode
     // nothing is persisted yet, so termId still counts.
     return (
@@ -206,7 +206,7 @@ export default function ScheduleBuilder({
 
   /**
    * The single door out of the builder. router.push is a client-side
-   * navigation, which neither `beforeunload` nor the nav-link guard can see —
+   * navigation, which neither `beforeunload` nor the nav-link guard can see -
    * routing every in-builder jump through here is what stops an unsaved
    * import from vanishing.
    */
@@ -262,7 +262,7 @@ export default function ScheduleBuilder({
 
   /** Resolves true only when the schedule is persisted. `redirectAfterCreate`
    *  is false when a pending navigation supersedes the jump to the new
-   *  schedule — two router.push calls would otherwise race. */
+   *  schedule - two router.push calls would otherwise race. */
   async function trySave({
     redirectAfterCreate = true,
     conflictsConfirmed = false,
@@ -283,7 +283,7 @@ export default function ScheduleBuilder({
 
     // Second gate, same philosophy: a course whose lab or tutorial was never
     // added is usually an unregisterable schedule, but only Workday knows for
-    // sure — so ask, don't block. Checked server-side because the builder
+    // sure - so ask, don't block. Checked server-side because the builder
     // only holds the sections the student picked, not everything each course
     // offers. A failed check never blocks saving.
     if (!companionsConfirmed && sectionIds.length > 0) {
@@ -328,7 +328,7 @@ export default function ScheduleBuilder({
         return true;
       }
       if (result.needsAuth) {
-        // Carry the original call's options through login — otherwise
+        // Carry the original call's options through login - otherwise
         // conflictsConfirmed reverts to false and a guest who already
         // confirmed an overlap gets asked about the same overlap again
         // after signing in, and redirectAfterCreate is lost the same way.
@@ -378,7 +378,7 @@ export default function ScheduleBuilder({
   // A new or different overlap produces a new key, so the banner returns.
   const currentConflictKey = conflictKey(conflicts);
   // A dismissal must not outlive the overlaps it was for: once the set is
-  // empty, forget it — otherwise removing and re-adding the same pair would
+  // empty, forget it - otherwise removing and re-adding the same pair would
   // recompute the identical key and the banner would stay silently
   // suppressed. Render-time state update (not an effect): React re-renders
   // immediately without committing the stale intermediate frame, and this
@@ -439,7 +439,7 @@ export default function ScheduleBuilder({
       )}
 
       {/* Below lg the pinned split-pane gave the calendar only the leftovers
-          of a tall wrapped header — a ~150px sliver. Un-pin instead: this
+          of a tall wrapped header - a ~150px sliver. Un-pin instead: this
           column scrolls as one page, the calendar renders at its natural
           height, and the course panel stacks under it at full length. */}
       <div className="flex min-h-0 flex-1 flex-col max-lg:overflow-y-auto lg:flex-row">
@@ -499,7 +499,7 @@ export default function ScheduleBuilder({
               scrolling away from the conflict it describes. */}
           <div className="relative min-h-0 flex-1">
             {/* z-30 clears the calendar's sticky day-header row, which is z-20
-                and comes later in the DOM — at equal z the header won and
+                and comes later in the DOM - at equal z the header won and
                 covered the banner's heading and dismiss button. */}
             {showConflictBanner && (
               <div className="pointer-events-none absolute inset-x-4 top-3 z-30">
@@ -583,8 +583,8 @@ export default function ScheduleBuilder({
         conflicts={pendingSave ? conflicts : []}
         onCancel={() => setPendingSave(null)}
         onConfirm={async () => {
-          // Replay the save with the SAME options the gate captured — not
-          // trySave's defaults — so a gated "save and switch" still switches.
+          // Replay the save with the SAME options the gate captured - not
+          // trySave's defaults - so a gated "save and switch" still switches.
           const redirectAfterCreate = pendingSave?.redirectAfterCreate ?? true;
           setPendingSave(null);
           const saved = await trySave({ redirectAfterCreate, conflictsConfirmed: true });
@@ -659,7 +659,7 @@ export default function ScheduleBuilder({
             const saved = await trySave({ redirectAfterCreate: false });
             // `false` here means either a real failure (error banner is up)
             // or the conflict gate just opened ConflictSaveDialog on top of
-            // this one — either way, stay put rather than navigating away
+            // this one - either way, stay put rather than navigating away
             // from work that did not persist.
             if (!saved) return;
             const { go } = pendingNav;

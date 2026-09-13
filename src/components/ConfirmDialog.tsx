@@ -5,8 +5,8 @@ import { useEffect, useRef, type ReactNode } from 'react';
 /**
  * A yes/no question, asked inside the page.
  *
- * window.confirm() is stamped with "www.ubcflow.com says" by every browser —
- * deliberately, so a page cannot forge a system dialog — which means the most
+ * window.confirm() is stamped with "www.ubcflow.com says" by every browser -
+ * deliberately, so a page cannot forge a system dialog - which means the most
  * alarming sentences on the site (delete this, lose your edits) were the two
  * that looked least like it.
  *

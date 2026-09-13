@@ -8,7 +8,7 @@
  * All three take the course's own accent colour, so the buttons read as part
  * of the same colour code the calendar blocks use.
  *
- * These sit inside a <summary>, so every click must preventDefault — otherwise
+ * These sit inside a <summary>, so every click must preventDefault - otherwise
  * it toggles the <details> open as a side effect.
  */
 export default function CourseHeaderActions({
@@ -42,10 +42,10 @@ export default function CourseHeaderActions({
   // room: a 12px split-pane glyph at this stroke weight closes up into a blob.
   //
   // align-middle is load-bearing. These are inline-level boxes in the summary's
-  // text flow, and an inline-flex box takes its baseline from its own text —
+  // text flow, and an inline-flex box takes its baseline from its own text -
   // which the `i` button has and the icon button does not, so on the default
   // `baseline` they sit at visibly different heights.
-  // ponytail: 36px on touch — 20px was under half the tap-target floor and
+  // ponytail: 36px on touch - 20px was under half the tap-target floor and
   // near-misses collapsed the <details> instead; go 44px if misses persist.
   const button =
     'h-5 w-5 pointer-coarse:h-9 pointer-coarse:w-9 shrink-0 items-center justify-center rounded-full border align-middle transition-colors hover:bg-surface-muted';

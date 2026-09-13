@@ -8,7 +8,7 @@ const CREDIT =
 /**
  * The four Ways of Knowing breadth areas and the course codes in each.
  *
- * Unlike the Science Breadth categories, these lists are the Calendar's own —
+ * Unlike the Science Breadth categories, these lists are the Calendar's own -
  * it prints them verbatim, so they are `stated` rather than `inferred`. They
  * are carried as notes because the rule that uses them cannot be evaluated:
  * see the comment on the breadth slots below.
@@ -227,7 +227,7 @@ export const artsFacultyCore2026W: Program = {
       // size. A credits bucket only counts down when the solver slots FOR it;
       // courses placed for another rule never decrement it. Twelve credits of
       // Arts inside a B.Sc. is fine that way, because nothing else in a
-      // science degree was going to satisfy it anyway — but a B.A. major
+      // science degree was going to satisfy it anyway - but a B.A. major
       // delivers 42 Arts credits on its own, and the rule could not see them.
       // It scheduled all 72 on top, overran the 75-credit elective pool, and
       // pushed a 120-credit degree to 141 across ten terms.

@@ -8,7 +8,7 @@ import { useViewer } from '@/components/ViewerContext';
  * browser: which courses the viewer shared with this professor is personal
  * state, and reading it server-side kept every professor page dynamic.
  * Until it resolves (and for everyone signed out) the quiet sign-in sentence
- * shows — the same thing crawlers index.
+ * shows - the same thing crawlers index.
  */
 export default function ProfessorReviewCta({
   courses,
@@ -55,7 +55,7 @@ export default function ProfessorReviewCta({
     );
   }
 
-  /* Same quiet sentence the course page uses rather than a dead button — the
+  /* Same quiet sentence the course page uses rather than a dead button - the
      one person who could fix an empty review list should be told how. */
   return (
     <span className="text-xs text-text-tertiary">

@@ -20,7 +20,7 @@ const GRADE_DATA_SOURCE = 'https://github.com/DonneyF/ubc-pair-grade-data';
  * Served statically and re-rendered at most daily: everything on the page is
  * visitor-independent (per-viewer state loads client-side via ViewerProvider),
  * and the nightly scrape is the only thing that changes the data. A fresh
- * review still appears immediately — review writes revalidate the 'catalogue'
+ * review still appears immediately - review writes revalidate the 'catalogue'
  * tag these loaders cache under. Before this the page rendered on every
  * request, which burned server CPU for each of ~4,000 crawler-indexed URLs.
  */
@@ -179,7 +179,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
 
   const rmpHref = rmpSearchHref(instructor.name);
 
-  // Public totals only — which reviews THIS viewer voted on, and which
+  // Public totals only - which reviews THIS viewer voted on, and which
   // courses they shared with this professor, load client-side through
   // ViewerProvider so the page itself can be served statically.
   const reviewIds = reviews.map((r) => r.id);
@@ -236,7 +236,7 @@ export default async function ProfessorPage({ params }: { params: Promise<{ slug
             ]}
             action={
               /* Which of these courses the viewer shared with the professor
-                 is personal state — resolved in the browser (ViewerProvider)
+                 is personal state - resolved in the browser (ViewerProvider)
                  so this page stays a static render. */
               <ProfessorReviewCta
                 courses={courses.map((c) => ({

@@ -7,7 +7,7 @@ import Footer from '@/components/Footer';
 
 /**
  * Sky background for every route except the schedule builder
- * (/schedule/new, /schedule/[id]) — a builder page needs the ordinary
+ * (/schedule/new, /schedule/[id]) - a builder page needs the ordinary
  * light/dark surface to stay readable over a dense calendar grid, so it
  * opts out entirely.
  *
@@ -23,7 +23,7 @@ export default function PageBackground({
 }) {
   const pathname = usePathname();
 
-  // Home gets the full sky; every content page dims it to a backdrop — the
+  // Home gets the full sky; every content page dims it to a backdrop - the
   // shader and the veil both read this attribute.
   const dim = pathname !== '/';
   useEffect(() => {

@@ -7,14 +7,14 @@ type TokenResult = { ok: true; token: string } | { ok: false; error: string };
 type PlainResult = { ok: true } | { ok: false; error: string };
 
 /**
- * Turn something into a link anyone can open — a saved schedule or a term's
+ * Turn something into a link anyone can open - a saved schedule or a term's
  * imported calendar; the caller supplies the enable/revoke actions and the
  * public path, so this stays one component for both.
  *
  * Separate from the subscribe menu because the two do different things: that
  * one puts the schedule INSIDE someone's calendar app and keeps updating it,
  * this one is a page you send someone so they can look. They also revoke
- * independently — turning sharing off here leaves a subscribed feed working.
+ * independently - turning sharing off here leaves a subscribed feed working.
  */
 export default function ShareLinkMenu({
   initialToken,
@@ -90,7 +90,7 @@ export default function ShareLinkMenu({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      setError('Could not copy — select the link and copy it manually.');
+      setError('Could not copy - select the link and copy it manually.');
     }
   }
 
@@ -167,7 +167,7 @@ export default function ShareLinkMenu({
         </div>
       )}
 
-      {/* Destructive and not undoable — the old URL cannot be brought back,
+      {/* Destructive and not undoable - the old URL cannot be brought back,
           so anyone holding it loses access for good. Worth one question,
           asked in the site's own dialog rather than window.confirm's
           browser-stamped one. */}

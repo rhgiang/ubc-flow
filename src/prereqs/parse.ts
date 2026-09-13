@@ -4,12 +4,12 @@ export type Requirement =
   | { type: 'or'; items: Requirement[] }
   | { type: 'note'; text: string };
 
-/** SUBJ[_CAMPUS] NNN[letter] — e.g. CPSC 221, CHEM_V 121, MATH_O 200, FNEL 201A. */
+/** SUBJ[_CAMPUS] NNN[letter] - e.g. CPSC 221, CHEM_V 121, MATH_O 200, FNEL 201A. */
 const COURSE_CODE = /\b[A-Z]{2,5}(?:_[A-Z])?\s?\d{2,3}[A-Z]?\b/g;
 
 /**
  * Eligibility language. A clause containing any of this is NOT a course
- * dependency — it is standing, permission, a grade floor, or a program
+ * dependency - it is standing, permission, a grade floor, or a program
  * restriction. Parse nothing from it; keep the sentence verbatim.
  */
 const BAILOUT =
@@ -18,10 +18,10 @@ const BAILOUT =
 /**
  * Grouping we do not positively handle: lettered alternatives, "either", a
  * standalone "or", and a quantified "N of" (e.g. "two of", "3 of") where N is
- * not "one" — we have no way to express "any N of these" as a tree, so it must
+ * not "one" - we have no way to express "any N of these" as a tree, so it must
  * not fall through to the bare-list AND default. Checked BEFORE the One
  * of/All of rules, because real rows like KIN 211 open with "All of" and then
- * use (a)/(b) alternatives — reading that as a flat AND would tell a student
+ * use (a)/(b) alternatives - reading that as a flat AND would tell a student
  * to take every listed course. This same check also stops the OR-collapse
  * heuristic below from firing on a "two of ..." segment (real row: ELEC 391),
  * since the whole clause now bails before that logic ever runs.
@@ -38,7 +38,7 @@ function stripEquivalency(text: string): string {
  * Phrases where a course number does NOT name a course to take.
  *
  * "PHYS 100-level beyond PHYS_V 100" asks for any first-year physics EXCEPT
- * PHYS 100 — and reading it literally produced a requirement for the one
+ * PHYS 100 - and reading it literally produced a requirement for the one
  * course the sentence rules out, the remedial physics a qualified student
  * never takes. CAPS 205, 206, 305 and 310 were all unreachable for that
  * reason.
@@ -53,10 +53,10 @@ function stripNonRequirements(text: string): string {
 }
 
 /**
- * The codes inside an "Equivalency:" clause — captured, not discarded, the
+ * The codes inside an "Equivalency:" clause - captured, not discarded, the
  * way stripEquivalency (used by parseRequirements) throws them away. These
  * are credit exclusions, not prerequisites, so they never enter a
- * Requirement tree — they're a separate flat list (spec §4.1).
+ * Requirement tree - they're a separate flat list (spec §4.1).
  */
 export function extractAntireqCodes(text: string | null): string[] {
   if (!text) return [];
@@ -113,7 +113,7 @@ function parseClause(clause: string): Requirement | null {
   const text = clause.trim().replace(/[.\s]+$/, '');
   if (!text) return null;
 
-  // Order matters — see AMBIGUOUS above.
+  // Order matters - see AMBIGUOUS above.
   if (BAILOUT.test(text) || AMBIGUOUS.test(text)) return { type: 'note', text };
   if (extractCodes(text).length === 0) return { type: 'note', text };
 
@@ -139,7 +139,7 @@ function parseClause(clause: string): Requirement | null {
   const parsedSegments = segments.map(parseGroup);
   // If ANY and-segment fails to produce a node (e.g. a typo'd course code),
   // the whole clause bails to a note instead of silently proceeding with the
-  // segments that did parse — a group that looks complete but is missing
+  // segments that did parse - a group that looks complete but is missing
   // content is worse than an unparsed sentence (real row: BEST 201).
   if (parsedSegments.some((g) => g === null)) return { type: 'note', text };
   const groups = parsedSegments as Requirement[];

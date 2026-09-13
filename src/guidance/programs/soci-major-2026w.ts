@@ -15,13 +15,13 @@ const course = (id: string, code: string, year: number): Rule => ({
 });
 
 /**
- * Major in Sociology (B.A.), 2026W — 42 credits toward a 120-credit degree.
+ * Major in Sociology (B.A.), 2026W - 42 credits toward a 120-credit degree.
  *
  * 12 credits at the 100 and 200 level and 30 above it, which is the Faculty's
  * Major shape exactly. The theory requirements carry a wrinkle: SOCI 370 is a
  * single 6-credit course covering both classical and contemporary theory, and
  * so satisfies two of the rules below at once. It is left out of both choices
- * and recorded as a note, because a course is spent once here — offering it
+ * and recorded as a note, because a course is spent once here - offering it
  * in both places would have it fill one and leave the other looking
  * outstanding.
  */

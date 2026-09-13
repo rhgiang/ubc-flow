@@ -6,7 +6,7 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-// Prisma 7 requires an explicit driver adapter — `new PrismaClient()` with no
+// Prisma 7 requires an explicit driver adapter - `new PrismaClient()` with no
 // options throws at runtime. See https://pris.ly/d/driver-adapters
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 

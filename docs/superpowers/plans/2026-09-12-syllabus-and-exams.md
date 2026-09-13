@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Give a signed-in student one page showing every exam they have this term — finals scraped from UBC, midterms read out of syllabi they upload — and put those exams in the calendar they already subscribe to.
+**Goal:** Give a signed-in student one page showing every exam they have this term - finals scraped from UBC, midterms read out of syllabi they upload - and put those exams in the calendar they already subscribe to.
 
 **Architecture:** Two independent data sources feed one view. A scraper reads UBC's public exam table into a global `FinalExam` table keyed on course+term+section+alpha-split. Separately, students upload syllabus PDFs to Vercel Blob; Claude extracts an assessment list from each PDF, which the student confirms before anything is saved. The `/exams` page unions both.
 
@@ -14,9 +14,9 @@
 
 - **No `Co-Authored-By` trailers in commits.** Project-wide rule.
 - **Never `git add -A` or `git commit --amend`.** Another session often has this tree open; stage the exact paths each task names.
-- **All text sizes in `rem`, never `px`** — system font settings must scale the UI.
+- **All text sizes in `rem`, never `px`** - system font settings must scale the UI.
 - **`main` is the deploy.** Every task must leave the tree building and tests green.
-- Read `node_modules/next/dist/docs/` before writing Next.js code — this Next version differs from training data (see `AGENTS.md`).
+- Read `node_modules/next/dist/docs/` before writing Next.js code - this Next version differs from training data (see `AGENTS.md`).
 - Reuse `fetchText` from `src/scrape/http.ts` for all UBC requests; it rate-limits to 1 req/s and sends the identifying User-Agent that makes the exam page work at all.
 - New runtime dependencies are limited to exactly two: `@vercel/blob` (Task 5) and `@anthropic-ai/sdk` (Task 6).
 - Tests live flat in `tests/<name>.test.ts`, import source via the `@/` alias, and never call a live external API.
@@ -147,7 +147,7 @@ describe('parseExamSchedule', () => {
 - [ ] **Step 2: Run the test and confirm it fails**
 
 Run: `npx vitest run tests/parse-exams.test.ts`
-Expected: FAIL — cannot resolve `@/scrape/parse-exams`.
+Expected: FAIL - cannot resolve `@/scrape/parse-exams`.
 
 - [ ] **Step 3: Write the implementation**
 
@@ -162,7 +162,7 @@ export type ExamRow = {
   sectionCode: string;
   /** ISO date. Null only on a cancelled exam, which UBC publishes dateless. */
   date: string | null;
-  /** 24-hour "HH:MM". The table gives a start only — there is no end time. */
+  /** 24-hour "HH:MM". The table gives a start only - there is no end time. */
   startTime: string | null;
   alphaSplit: string | null;
   building: string | null;
@@ -268,8 +268,8 @@ export function parseExamSchedule(html: string): ParsedExams {
 
 /**
  * One published table covers one exam period, so the term is derived once for
- * the whole run. Per-row inference would leave every cancelled row — which has
- * no date cell at all — stranded with no term.
+ * the whole run. Per-row inference would leave every cancelled row - which has
+ * no date cell at all - stranded with no term.
  */
 function majorityTerm(rows: ExamRow[]): ParsedExams['term'] {
   const counts = new Map<string, { term: NonNullable<ParsedExams['term']>; n: number }>();
@@ -315,11 +315,11 @@ git commit -m "feat: parse UBC's published final exam table"
 
 **Interfaces:**
 - Consumes: `parseExamSchedule` (Task 1); `fetchText` from `@/scrape/http`.
-- Produces: `export async function ingestExams(html: string): Promise<{ written: number; skipped: string[] }>` — `skipped` holds `"SUBJ NUM"` labels for rows whose course or term is not in the catalogue.
+- Produces: `export async function ingestExams(html: string): Promise<{ written: number; skipped: string[] }>` - `skipped` holds `"SUBJ NUM"` labels for rows whose course or term is not in the catalogue.
 
 - [ ] **Step 1: Add the model to `prisma/schema.prisma`**
 
-Append exactly the `FinalExam` block from spec §3, including its doc comments. The unique key is `@@unique([courseId, termId, sectionCode, alphaSplit])` — without `alphaSplit`, `CHEM_V 123.921`'s two rooms collide and one is silently lost.
+Append exactly the `FinalExam` block from spec §3, including its doc comments. The unique key is `@@unique([courseId, termId, sectionCode, alphaSplit])` - without `alphaSplit`, `CHEM_V 123.921`'s two rooms collide and one is silently lost.
 
 - [ ] **Step 2: Generate and apply the migration**
 
@@ -358,7 +358,7 @@ describe('ingestExams', () => {
     const split = await db.finalExam.findMany({ where: { alphaSplit: { not: null } } });
     const rooms = split.map((e) => e.room).sort();
     // Either the course is absent from this database (nothing stored) or both
-    // halves are present — never exactly one, which is the collision bug.
+    // halves are present - never exactly one, which is the collision bug.
     expect([0, 2]).toContain(rooms.length);
   });
 });
@@ -367,7 +367,7 @@ describe('ingestExams', () => {
 - [ ] **Step 4: Run it and confirm it fails**
 
 Run: `npx vitest run tests/exams-job.test.ts`
-Expected: FAIL — cannot resolve `@/scrape/jobs/exams`.
+Expected: FAIL - cannot resolve `@/scrape/jobs/exams`.
 
 - [ ] **Step 5: Write the job**
 
@@ -562,7 +562,7 @@ describe('toExamListItem', () => {
 - [ ] **Step 2: Run it and confirm it fails**
 
 Run: `npx vitest run tests/exam-view.test.ts`
-Expected: FAIL — cannot resolve `@/schedule/exams`.
+Expected: FAIL - cannot resolve `@/schedule/exams`.
 
 - [ ] **Step 3: Implement the query module**
 
@@ -575,10 +575,10 @@ Create `src/schedule/exams.ts` with `toExamListItem` (pure, as tested) and `exam
 `src/app/exams/page.tsx` is a server component: `auth()`, redirect to login when signed out, resolve the current term, call `examRowsForUser`, render `<ExamList items={...} />`.
 
 `src/components/ExamList.tsx` renders each item. Required behaviours:
-- A cancelled exam renders **struck through with its note visible** — never as a normal exam, never omitted (spec §4).
-- `location: null` renders "Location TBA — check with your instructor", not an empty cell.
+- A cancelled exam renders **struck through with its note visible** - never as a normal exam, never omitted (spec §4).
+- `location: null` renders "Location TBA - check with your instructor", not an empty cell.
 - `alphaSplit` renders as "Surnames ADI–SUN" next to the room, since that is which room the student actually goes to.
-- Empty state: no exams found reads as "UBC hasn't published the final exam schedule for this term yet — it usually appears partway through term", not a blank panel.
+- Empty state: no exams found reads as "UBC hasn't published the final exam schedule for this term yet - it usually appears partway through term", not a blank panel.
 - All sizes in `rem`.
 
 Match the visual language of `src/components/EnrolledCourseCard.tsx`.
@@ -590,7 +590,7 @@ Add `/exams` labelled "Exams" to `src/components/NavLinks.tsx`, following the ex
 - [ ] **Step 6: Verify in the browser**
 
 Run: `npm run dev`, open `http://localhost:3000/exams` signed in.
-Expected: the list renders, or the empty-state copy shows. Confirm before committing — `main` is the deploy.
+Expected: the list renders, or the empty-state copy shows. Confirm before committing - `main` is the deploy.
 
 - [ ] **Step 7: Run the full suite**
 
@@ -684,7 +684,7 @@ describe('examEvent', () => {
 - [ ] **Step 2: Run them and confirm they fail**
 
 Run: `npx vitest run tests/ics.test.ts`
-Expected: FAIL — `examEvent` is not exported; the RRULE assertion fails.
+Expected: FAIL - `examEvent` is not exported; the RRULE assertion fails.
 
 - [ ] **Step 3: Change `IcsEvent.day` to `string | null` and branch in `buildIcs`**
 
@@ -694,7 +694,7 @@ In the event loop, replace the unconditional day lookup and the `RRULE` line:
 for (const e of events) {
   if (!e.startTime || !e.endTime || !e.startDate) continue;
 
-  // A null day is a single occurrence — an exam, not a weekly meeting.
+  // A null day is a single occurrence - an exam, not a weekly meeting.
   if (e.day === null) {
     const stamp = dateStamp(e.startDate);
     lines.push(
@@ -756,7 +756,7 @@ export function examEvent(item: ExamListItem): IcsEvent | null {
     endDate: item.date,
     location: item.location,
     description:
-      `Ends at ${endTime} is an estimate — UBC publishes a start time only. ` +
+      `Ends at ${endTime} is an estimate - UBC publishes a start time only. ` +
       `Confirm with your instructor.`,
   };
 }
@@ -765,7 +765,7 @@ export function examEvent(item: ExamListItem): IcsEvent | null {
 - [ ] **Step 5: Run the tests and confirm they pass**
 
 Run: `npx vitest run tests/ics.test.ts`
-Expected: PASS — the new tests plus every pre-existing one. If an existing test broke, the weekly path regressed; fix that rather than editing the old test.
+Expected: PASS - the new tests plus every pre-existing one. If an existing test broke, the weekly path regressed; fix that rather than editing the old test.
 
 - [ ] **Step 6: Feed exams into both calendar routes**
 
@@ -795,7 +795,7 @@ git commit -m "feat: put final exams in the calendar feed"
 - Test: `tests/syllabus-upload.test.ts`
 
 **Interfaces:**
-- Produces: `export function validateSyllabusFile(file: { type: string; size: number; name: string }): string | null` in `src/syllabus/validate.ts` — returns an error message, or `null` when acceptable.
+- Produces: `export function validateSyllabusFile(file: { type: string; size: number; name: string }): string | null` in `src/syllabus/validate.ts` - returns an error message, or `null` when acceptable.
 
 - [ ] **Step 1: Install the dependency**
 
@@ -839,7 +839,7 @@ describe('validateSyllabusFile', () => {
 - [ ] **Step 4: Run it and confirm it fails**
 
 Run: `npx vitest run tests/syllabus-upload.test.ts`
-Expected: FAIL — cannot resolve `@/syllabus/validate`.
+Expected: FAIL - cannot resolve `@/syllabus/validate`.
 
 - [ ] **Step 5: Implement validation and the upload route**
 
@@ -847,7 +847,7 @@ Expected: FAIL — cannot resolve `@/syllabus/validate`.
 
 `src/app/api/syllabus/route.ts` follows the shape of `src/app/api/upload/route.ts`:
 1. `auth()`; 401 when signed out.
-2. `validateSyllabusFile` **before** any blob write — the size check must never be reachable only after upload.
+2. `validateSyllabusFile` **before** any blob write - the size check must never be reachable only after upload.
 3. `put(...)` from `@vercel/blob` with `access: 'private'`, then upsert the `Syllabus` row on `(userId, courseId, termId)`.
 4. `DELETE` deletes the blob via `del(...)` **and** the row. A student who deletes a syllabus has asked for the file to be gone.
 
@@ -855,7 +855,7 @@ Add `BLOB_READ_WRITE_TOKEN=` to `.env.example`.
 
 - [ ] **Step 6: Build the page**
 
-`src/app/syllabus/page.tsx` lists the user's enrolled courses for the current term, each with either its uploaded syllabus or an upload control. Viewing is `<embed src={signedUrl} type="application/pdf">` — the browser's own viewer, no `pdf.js`. Sizes in `rem`.
+`src/app/syllabus/page.tsx` lists the user's enrolled courses for the current term, each with either its uploaded syllabus or an upload control. Viewing is `<embed src={signedUrl} type="application/pdf">` - the browser's own viewer, no `pdf.js`. Sizes in `rem`.
 
 - [ ] **Step 7: Verify in the browser**
 
@@ -968,11 +968,11 @@ describe('normalizeAssessments', () => {
 - [ ] **Step 3: Run it and confirm it fails**
 
 Run: `npx vitest run tests/syllabus-extract.test.ts`
-Expected: FAIL — cannot resolve `@/syllabus/schema`.
+Expected: FAIL - cannot resolve `@/syllabus/schema`.
 
 - [ ] **Step 4: Write `src/syllabus/schema.ts`**
 
-Strict mode requires `additionalProperties: false` **and** every property listed in `required` — nullable fields are expressed as a `["string", "null"]` type, not by omission from `required`. Getting this wrong is rejected at request time, not silently.
+Strict mode requires `additionalProperties: false` **and** every property listed in `required` - nullable fields are expressed as a `["string", "null"]` type, not by omission from `required`. Getting this wrong is rejected at request time, not silently.
 
 ```ts
 import type Anthropic from '@anthropic-ai/sdk';
@@ -1062,7 +1062,7 @@ const client = new Anthropic();
 
 const SYSTEM = `You read UBC course syllabi and list every graded assessment.
 Report only what the syllabus actually states. If a date is not given, leave it
-null — do not infer one from the term calendar. Every assessment must include a
+null - do not infer one from the term calendar. Every assessment must include a
 verbatim quote from the syllabus and the page it appears on.`;
 
 export async function extractAssessments(pdf: Buffer): Promise<ExtractedAssessment[]> {
@@ -1092,7 +1092,7 @@ export async function extractAssessments(pdf: Buffer): Promise<ExtractedAssessme
 
 `src/app/api/syllabus/extract/route.ts`: `auth()`, load the user's `Syllabus`, enforce a **per-user daily extraction cap** (count `Syllabus` rows with `extractedAt` inside the last 24h; reject over the cap with a clear message), fetch the blob, call `extractAssessments`.
 
-Return the assessments to the client **without saving them**. A failure returns an error but leaves the `Syllabus` row intact and readable — losing a student's upload because a model call timed out is the one outcome this must never produce.
+Return the assessments to the client **without saving them**. A failure returns an error but leaves the `Syllabus` row intact and readable - losing a student's upload because a model call timed out is the one outcome this must never produce.
 
 - [ ] **Step 7: Build the confirm screen**
 
@@ -1177,7 +1177,7 @@ describe('mergeExams', () => {
 - [ ] **Step 2: Run it and confirm it fails**
 
 Run: `npx vitest run tests/exam-merge.test.ts`
-Expected: FAIL — `mergeExams` is not exported.
+Expected: FAIL - `mergeExams` is not exported.
 
 - [ ] **Step 3: Implement `mergeExams`**
 
@@ -1190,7 +1190,7 @@ Then sort ascending by date, dateless last.
 
 - [ ] **Step 4: Show the source in the UI**
 
-`ExamList` labels each row's origin — "UBC exam schedule" or "From your syllabus" — so a student knows which dates are official and which came from a PDF. A syllabus row is the one they should double-check.
+`ExamList` labels each row's origin - "UBC exam schedule" or "From your syllabus" - so a student knows which dates are official and which came from a PDF. A syllabus row is the one they should double-check.
 
 - [ ] **Step 5: Run the tests and confirm they pass**
 
@@ -1215,7 +1215,7 @@ git commit -m "feat: show midterms and finals on one schedule"
 ## Notes for the executor
 
 **Stop and ask rather than working around:**
-- If the exam scrape returns zero rows, check whether UBC has published a schedule at all before assuming the parser broke — between exam periods the table is legitimately empty.
+- If the exam scrape returns zero rows, check whether UBC has published a schedule at all before assuming the parser broke - between exam periods the table is legitimately empty.
 - If `@vercel/blob` needs a paid plan on this account, stop. Do not substitute Postgres `bytea`; that decision belongs to the spec author.
 
 **The two rules with real consequences for students**, both in §4 of the spec, both easy to lose in a refactor:

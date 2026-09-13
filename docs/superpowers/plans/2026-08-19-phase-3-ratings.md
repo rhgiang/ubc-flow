@@ -1,8 +1,8 @@
-# UBC Flow Phase 3: Ratings and Reviews — Implementation Plan
+# UBC Flow Phase 3: Ratings and Reviews - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A verified student can rate a course they actually took and the instructors who taught it, in one form, then edit or delete that review — with aggregate ratings shown on course and professor pages and no reviewer identity visible anywhere.
+**Goal:** A verified student can rate a course they actually took and the instructors who taught it, in one form, then edit or delete that review - with aggregate ratings shown on course and professor pages and no reviewer identity visible anywhere.
 
 **Architecture:** Continues the Next.js + Prisma monolith. Phase 2's `canReview` stays the sole server-side authority on write permission. Aggregation is a **pure function** over already-fetched rows, following the pattern that kept Phases 1 and 2 testable offline. Writes go through server actions, not API routes, since there is no external consumer.
 
@@ -14,7 +14,7 @@
 
 - **Node.js 20+**, npm. No bun, no pnpm.
 - **Every review write calls `canReview(userId, courseId)` server-side.** UI visibility is never the control. A forged request to a server action must be rejected by the same check.
-- **Edit and delete verify ownership** — never trust a client-supplied review id alone.
+- **Edit and delete verify ownership** - never trust a client-supplied review id alone.
 - **`userId` never reaches a page, an API response, or a client prop** for a review being displayed. It exists only to support edit, delete, and one-review-per-course enforcement.
 - **`difficulty` increases with difficulty.** 0 = easiest, 4 = hardest. Never store or display it inverted.
 - **Scores are stored 0-4 and shown to users as 1-5.** Convert at the boundary; never store 1-5.
@@ -37,16 +37,16 @@
 ## File Structure
 
 ```
-prisma/schema.prisma            — drop CourseReview.instructorId (only schema change)
-src/reviews/aggregate.ts        — PURE: review rows -> aggregate stats
-src/reviews/validate.ts         — PURE: score/text/workload validation
-src/app/actions/reviews.ts      — server actions: submitReview, deleteReview
-src/app/course/[code]/page.tsx  — MODIFY: aggregates, review list, form entry
-src/app/course/[code]/review/page.tsx — the combined review form
-src/app/professor/[slug]/page.tsx     — MODIFY: aggregates + review list
+prisma/schema.prisma            - drop CourseReview.instructorId (only schema change)
+src/reviews/aggregate.ts        - PURE: review rows -> aggregate stats
+src/reviews/validate.ts         - PURE: score/text/workload validation
+src/app/actions/reviews.ts      - server actions: submitReview, deleteReview
+src/app/course/[code]/page.tsx  - MODIFY: aggregates, review list, form entry
+src/app/course/[code]/review/page.tsx - the combined review form
+src/app/professor/[slug]/page.tsx     - MODIFY: aggregates + review list
 tests/aggregate.test.ts
 tests/validate.test.ts
-tests/reviews-gate.test.ts      — the security tests (negative cases)
+tests/reviews-gate.test.ts      - the security tests (negative cases)
 ```
 
 ---
@@ -73,14 +73,14 @@ tests/reviews-gate.test.ts      — the security tests (negative cases)
 
 2. **Make `InstructorReview.courseId` required** (`String?` -> `String`). It is
    currently nullable, but it participates in `@@unique([userId, instructorId, courseId])`,
-   and **Prisma will not accept a nullable field inside a compound-key `where` clause** —
+   and **Prisma will not accept a nullable field inside a compound-key `where` clause** -
    so the `instructorReview.upsert({ where: { userId_instructorId_courseId: … } })` in
    Task 3 does not typecheck while it stays optional. It is semantically required here
    anyway: spec §3 only ever creates an instructor review in the context of a specific
    course review. The table is empty, so tightening it now costs nothing; discovering it
    mid-Task-3 would mean an unplanned migration on a branch with half-written code.
 
-**Migration note — this environment blocks `prisma migrate dev`.** Prisma 7 hard-blocks
+**Migration note - this environment blocks `prisma migrate dev`.** Prisma 7 hard-blocks
 it outside a TTY. Phase 2 established the working sequence; reuse it exactly:
 
 ```bash
@@ -93,7 +93,7 @@ npx prisma migrate diff \
 The actual procedure that worked in Phase 2: generate the SQL with
 `prisma migrate diff`, hand-place it in a timestamped folder under
 `prisma/migrations/`, run `npx prisma migrate deploy`, then `npx prisma generate`.
-Verify afterwards with `npx prisma migrate status` — it must report the schema is
+Verify afterwards with `npx prisma migrate status` - it must report the schema is
 up to date, proving the hand-placed migration and `schema.prisma` agree with no drift.
 
 - [ ] **Step 1: Apply both schema edits**
@@ -110,24 +110,24 @@ And in `model InstructorReview`, make `courseId` required:
   courseId     String     // was String?
 ```
 
-Leave every other field — including `CourseReview.termId` — untouched.
+Leave every other field - including `CourseReview.termId` - untouched.
 
 - [ ] **Step 2: Generate, place, and apply the migration**
 
 Follow the Phase 2 sequence above. The generated SQL should be exactly two
-statements — a `DROP COLUMN "instructorId"` on `CourseReview`, and a
-`SET NOT NULL` on `InstructorReview."courseId"`. Inspect it before applying — if it
+statements - a `DROP COLUMN "instructorId"` on `CourseReview`, and a
+`SET NOT NULL` on `InstructorReview."courseId"`. Inspect it before applying - if it
 contains anything else (especially any `DROP TABLE` or a drop on a column not named
 above), stop and report, because that means the schema drifted somewhere unexpected.
 
-The `SET NOT NULL` is only safe because the table is empty — confirm that first:
+The `SET NOT NULL` is only safe because the table is empty - confirm that first:
 
 ```bash
 docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c \
   "select count(*) from \"InstructorReview\";"
 ```
 
-It must be `0`. If it is not, stop — a `SET NOT NULL` against existing rows with
+It must be `0`. If it is not, stop - a `SET NOT NULL` against existing rows with
 nulls will fail, and the plan's assumption that these tables are untouched is wrong.
 
 Verify data safety (these tables are empty, but prove it rather than assume):
@@ -219,7 +219,7 @@ describe('validateInstructorRating', () => {
 - [ ] **Step 4: Run tests to verify they fail**
 
 Run: `npm test -- validate`
-Expected: FAIL — cannot resolve `@/reviews/validate`.
+Expected: FAIL - cannot resolve `@/reviews/validate`.
 
 - [ ] **Step 5: Implement validation**
 
@@ -319,13 +319,13 @@ git commit -m "feat: drop redundant review column and add rating validation"
 - Produces:
   - `aggregateCourseReviews(rows): CourseAggregate`
   - `aggregateInstructorReviews(rows): InstructorAggregate`
-  - `toDisplayScore(stored: number | null): number | null` — 0-4 storage to 1-5 display
-  - `toStoredScore(display: number | null): number | null` — 1-5 display to 0-4 storage
+  - `toDisplayScore(stored: number | null): number | null` - 0-4 storage to 1-5 display
+  - `toStoredScore(display: number | null): number | null` - 1-5 display to 0-4 storage
   - types `CourseAggregate`, `InstructorAggregate`
 
 **Display rules (spec §6.2):** scalar dimensions show a mean out of 5; `liked` shows
 as a percentage; counts always accompany aggregates; **no reviews shows an empty
-state, never `0/5`** — a zero would read as a terrible score rather than no data.
+state, never `0/5`** - a zero would read as a terrible score rather than no data.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -365,7 +365,7 @@ describe('aggregateCourseReviews', () => {
   it('returns an empty aggregate for no reviews', () => {
     const a = aggregateCourseReviews([]);
     expect(a.count).toBe(0);
-    // Never 0 — a zero would render as a terrible score rather than "no data".
+    // Never 0 - a zero would render as a terrible score rather than "no data".
     expect(a.useful).toBeNull();
     expect(a.difficulty).toBeNull();
     expect(a.likedPercent).toBeNull();
@@ -436,7 +436,7 @@ describe('aggregateInstructorReviews', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- aggregate`
-Expected: FAIL — cannot resolve `@/reviews/aggregate`.
+Expected: FAIL - cannot resolve `@/reviews/aggregate`.
 
 - [ ] **Step 3: Implement aggregation**
 
@@ -487,7 +487,7 @@ function meanOf(values: (number | null)[]): number | null {
   return present.reduce((a, b) => a + b, 0) / present.length;
 }
 
-/** Mean on the 1-5 display scale. Null stays null — never rendered as 0. */
+/** Mean on the 1-5 display scale. Null stays null - never rendered as 0. */
 function meanDisplay(values: (number | null)[]): number | null {
   const mean = meanOf(values);
   return mean === null ? null : mean + 1;
@@ -505,7 +505,7 @@ export function aggregateCourseReviews(rows: CourseReviewRow[]): CourseAggregate
     likedPercent: likedPercent(rows.map((r) => r.liked)),
     useful: meanDisplay(rows.map((r) => r.useful)),
     difficulty: meanDisplay(rows.map((r) => r.difficulty)),
-    // Workload is raw hours, not a 1-5 score — no display offset.
+    // Workload is raw hours, not a 1-5 score - no display offset.
     workloadHours: meanOf(rows.map((r) => r.workloadHours)),
   };
 }
@@ -542,7 +542,7 @@ git commit -m "feat: aggregate review scores with empty-state handling"
 
 ---
 
-### Task 3: Server actions — the security boundary
+### Task 3: Server actions - the security boundary
 
 **Files:**
 - Create: `src/app/actions/reviews.ts`
@@ -553,10 +553,10 @@ git commit -m "feat: aggregate review scores with empty-state handling"
 - Produces:
   - `submitReview(courseId, course, instructors): Promise<{ ok: true } | { ok: false; error: string }>`
   - `deleteReview(courseId): Promise<{ ok: true } | { ok: false; error: string }>`
-  - `getMyReview(courseId)` — loads the current user's review for pre-filling the form
+  - `getMyReview(courseId)` - loads the current user's review for pre-filling the form
 
 **This is the task where a mistake is expensive and quiet.** The tests below assert
-the NEGATIVE cases — a non-enrolled user rejected, another user's review untouchable.
+the NEGATIVE cases - a non-enrolled user rejected, another user's review untouchable.
 A happy-path-only test suite here would pass while the gate is wide open.
 
 - [ ] **Step 1: Write the failing security tests**
@@ -634,7 +634,7 @@ describe('the review gate', () => {
     expect(r.ok).toBe(false);
   });
 
-  it('is an upsert — a second submission edits rather than duplicating', async () => {
+  it('is an upsert - a second submission edits rather than duplicating', async () => {
     await writeReviewForUser(enrolledId, courseId, { ...rating, useful: 4 }, []);
     const rows = await db.courseReview.findMany({ where: { userId: enrolledId, courseId } });
     expect(rows).toHaveLength(1);
@@ -660,14 +660,14 @@ describe('delete', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- reviews-gate`
-Expected: FAIL — cannot resolve `@/app/actions/reviews`.
+Expected: FAIL - cannot resolve `@/app/actions/reviews`.
 
 - [ ] **Step 3: Implement the actions**
 
 Create `src/app/actions/reviews.ts`. Note the split: the exported server actions
 resolve the user from the session, then delegate to `writeReviewForUser` /
 `deleteReviewForUser`, which take an explicit `userId`. That split is what makes
-the gate testable without a live session — the tests above call the inner
+the gate testable without a live session - the tests above call the inner
 functions directly.
 
 ```ts
@@ -689,7 +689,7 @@ type ActionResult = { ok: true } | { ok: false; error: string };
 
 /**
  * The gate lives here, server-side. Hiding the form in the UI is a
- * convenience, not a control — a forged request lands in this function.
+ * convenience, not a control - a forged request lands in this function.
  */
 export async function writeReviewForUser(
   userId: string,
@@ -821,10 +821,10 @@ git commit -m "feat: add gate-checked review write and delete actions"
 
 **Behaviour:**
 - Server component loads the course, checks `canReview`, and redirects to the course
-  page if the gate fails — the form is never rendered to someone who cannot submit.
+  page if the gate fails - the form is never rendered to someone who cannot submit.
 - Loads any existing review and passes it to the client form for **pre-filling**.
 - Instructor dropdown lists every instructor who taught this course, from
-  `SectionInstructor` — de-duplicated, since one instructor teaches many sections.
+  `SectionInstructor` - de-duplicated, since one instructor teaches many sections.
 - Scores render as 1-5 and convert to 0-4 storage on submit (`toStoredScore`).
 
 - [ ] **Step 1: Build the server component**
@@ -857,7 +857,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ code: s
   if (!course) notFound();
 
   // The gate decides, server-side. Never render the form to someone who
-  // cannot submit — and the action re-checks anyway.
+  // cannot submit - and the action re-checks anyway.
   if (!(await canReview(session.user.id, course.id))) redirect(`/course/${code}`);
 
   // One instructor teaches many sections; show each once.
@@ -915,7 +915,7 @@ Requirements, all load-bearing:
 
 1. **Course section**: `liked` (yes/no toggle), `useful` and `difficulty` as 1-5
    button groups, `workloadHours` number input, `text` textarea.
-2. **Difficulty must be labelled so its direction is unambiguous** — e.g.
+2. **Difficulty must be labelled so its direction is unambiguous** - e.g.
    `1 = very easy` … `5 = very hard`. The spec's whole point about direction is
    defeated if the UI leaves users guessing.
 3. **Instructor section**: a checkbox per instructor from `instructors`; checking one
@@ -964,7 +964,7 @@ git commit -m "feat: add the combined course and instructor review form"
 - A "Write a review" link appears only when `canReview` passes; if the user already
   has a review, it reads "Edit your review".
 - **Empty state**: no reviews shows an explicit message, never `0/5`.
-- Review text renders as plain text — no `dangerouslySetInnerHTML`.
+- Review text renders as plain text - no `dangerouslySetInnerHTML`.
 
 - [ ] **Step 1: Add aggregates and the review list to the course page**
 
@@ -974,7 +974,7 @@ selecting only display-safe fields:
 ```ts
   const reviews = await db.courseReview.findMany({
     where: { courseId: course.id },
-    // userId is deliberately NOT selected — reviews are anonymous (spec 5).
+    // userId is deliberately NOT selected - reviews are anonymous (spec 5).
     select: {
       id: true,
       liked: true,
@@ -1034,7 +1034,7 @@ Start the dev server and, as a verified-enrolled user:
 
 - [ ] **Step 5: Full verification**
 
-Run `npm test`, `npx tsc --noEmit`, `npx eslint .`, and `npm run build` — all clean.
+Run `npm test`, `npx tsc --noEmit`, `npx eslint .`, and `npm run build` - all clean.
 Report totals.
 
 - [ ] **Step 6: Commit**

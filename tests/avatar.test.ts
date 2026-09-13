@@ -3,7 +3,7 @@ import { avatarFor } from '@/components/ReviewCard';
 import { GLYPHS } from '@/components/avatar-glyphs';
 
 // The avatar renders on the server and again on hydration, so the only thing
-// worth testing is that the same id always lands on the same pair — and that
+// worth testing is that the same id always lands on the same pair - and that
 // the pair is always a real one.
 describe('avatarFor', () => {
   const ids = Array.from({ length: 500 }, (_, i) => `cm${i.toString(36)}xq${i * 7}`);

@@ -51,7 +51,7 @@ type CourseStat = { count: number; useful: number | null; difficulty: number | n
 
 /**
  * Course averages: 0-4 stored, shown as 1-5 (same convention as the course
- * page). With almost no real reviews yet, most rows' stats are null/— —
+ * page). With almost no real reviews yet, most rows' stats are null/— -
  * this still queries for real rather than hardcoding blanks, so nothing
  * needs to change here as reviews accumulate.
  */
@@ -95,7 +95,7 @@ async function courseStats(courseIds: string[]): Promise<Map<string, CourseStat>
 /**
  * Prisma can't ORDER BY a related review-count aggregate directly, so
  * ranking happens in two steps: fetch every course matching the current
- * filters (a few thousand rows at most — cheap at this catalogue's scale),
+ * filters (a few thousand rows at most - cheap at this catalogue's scale),
  * rank the whole set, THEN slice the page window. Pagination after ranking
  * (not before) is what makes "page 2" continue the same ordering rather than
  * re-sorting each page in isolation.
@@ -110,7 +110,7 @@ export async function listCourses(
     campus: 'V',
     ...(filters.q ? buildSearchWhere(filters.q) : {}),
     ...(filters.subject ? { subject: { code: filters.subject } } : {}),
-    // A course has no degree of its own — degrees are programs. What a "BSc
+    // A course has no degree of its own - degrees are programs. What a "BSc
     // course" actually means is one whose subject belongs to Science, so the
     // filter is by faculty and the labels name the degree it maps to.
     ...(filters.faculty ? { subject: { faculty: filters.faculty } } : {}),
@@ -146,7 +146,7 @@ export async function listCourses(
       }
     }
     // Default, and the tiebreak for every other sort: most-reviewed first,
-    // then alphabetical — the only ranking that means anything while real
+    // then alphabetical - the only ranking that means anything while real
     // review coverage is still this sparse.
     const countDiff = (stats.get(b.id)?.count ?? 0) - (stats.get(a.id)?.count ?? 0);
     return countDiff !== 0 ? countDiff : codeCmp(a, b);

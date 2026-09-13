@@ -104,7 +104,7 @@ describe('generateSchedules', () => {
     const only = section('cpsc110', 'Lecture', [['Mon', '08:00', '09:00']]);
     const result = generateSchedules([only], prefs({ earliest: 600 }));
     expect(result.schedules[0].notes).toContain(
-      "Couldn't start after 10:00 — earliest is 8:00",
+      "Couldn't start after 10:00 - earliest is 8:00",
     );
   });
 

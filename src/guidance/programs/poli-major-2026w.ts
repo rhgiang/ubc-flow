@@ -8,7 +8,7 @@ const course = (id: string, code: string, year: number): Rule => ({
 });
 
 /**
- * Major in Political Science (B.A.), 2026W — 42 credits toward a 120-credit
+ * Major in Political Science (B.A.), 2026W - 42 credits toward a 120-credit
  * degree, 30 of them at the 300 level or above.
  *
  * The Calendar offers this major with or without an Area of Focus in

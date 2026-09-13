@@ -23,8 +23,8 @@ function label(row: EnrollmentRow): string {
 }
 
 /**
- * The catalogue carries no room at all — UBC's course API exposes no location
- * anywhere (see scrape/parse-nodes) — and lags on instructors, but the
+ * The catalogue carries no room at all - UBC's course API exposes no location
+ * anywhere (see scrape/parse-nodes) - and lags on instructors, but the
  * student's own Workday export has both. Fill only what the catalogue left
  * empty, so the catalogue stays authoritative wherever it has an answer.
  */
@@ -43,10 +43,10 @@ function withExportDetails(hit: SectionHit, row: EnrollmentRow): SectionHit {
 
 /**
  * Resolves parsed Workday registration rows to catalogue sections. Writes
- * nothing — this exists so a student can preview their real timetable in the
+ * nothing - this exists so a student can preview their real timetable in the
  * builder without the identity binding that /api/upload performs.
  *
- * A schedule covers ONE term, but a real export usually spans two — a student
+ * A schedule covers ONE term, but a real export usually spans two - a student
  * registered in both Winter terms exports both at once. Every term is
  * resolved and returned so the caller can offer a choice (and a schedule per
  * term); this used to keep only the term with the most rows and list the

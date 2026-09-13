@@ -1,15 +1,15 @@
-# UBC Flow — Phase 6: Prerequisite Trees (Design)
+# UBC Flow - Phase 6: Prerequisite Trees (Design)
 
 **Date:** 2026-08-21
 **Status:** Approved for planning
 **Phase:** 6 of 6
-**Depends on:** [Phase 1: Foundation](2026-08-19-ubc-flow-foundation-design.md) · [Phase 2: Accounts + Workday Import](2026-08-19-phase-2-accounts-workday-import-design.md) · [Phase 3: Ratings and Reviews](2026-08-19-phase-3-ratings-design.md) · [Phase 4: Schedule Planner](2026-08-20-phase-4-schedule-planner-design.md) · [Phase 5: Grade Distributions](2026-08-20-phase-5-grade-distributions-design.md) — all merged
+**Depends on:** [Phase 1: Foundation](2026-08-19-ubc-flow-foundation-design.md) · [Phase 2: Accounts + Workday Import](2026-08-19-phase-2-accounts-workday-import-design.md) · [Phase 3: Ratings and Reviews](2026-08-19-phase-3-ratings-design.md) · [Phase 4: Schedule Planner](2026-08-20-phase-4-schedule-planner-design.md) · [Phase 5: Grade Distributions](2026-08-20-phase-5-grade-distributions-design.md) - all merged
 
 ## 1. Why this phase exists
 
 Phase 1 scrapes prerequisite text into `Course.prereqText` and renders it as one
 flat sentence: *"One of CHEM_V 12, CHEM_V 100."* The course codes inside it are
-dead text — a student reading CPSC 221's page cannot click through to CPSC 210,
+dead text - a student reading CPSC 221's page cannot click through to CPSC 210,
 and cannot see at a glance whether two requirements are alternatives or both
 mandatory.
 
@@ -17,7 +17,7 @@ This phase turns that prose into structured AND/OR data and renders it as a
 navigable, linked requirement tree.
 
 **Done when:** a student opens a course and sees its prerequisites and
-corequisites as a structured list with working links to each required course —
+corequisites as a structured list with working links to each required course -
 and, where the text cannot be parsed safely, sees the original sentence
 unchanged rather than a guess.
 
@@ -61,7 +61,7 @@ otherwise.
 
 An LLM would read the messy third more gracefully. It was considered and
 rejected: it introduces an external dependency, an API key and per-run cost, and
-non-determinism — the same input could parse differently across runs, breaking
+non-determinism - the same input could parse differently across runs, breaking
 the pure/testable/idempotent pattern every prior phase holds to. A hand-rolled
 parser that falls back to verbatim text on anything it does not positively
 recognize is the lower-risk failure mode, and the fallback is already required
@@ -78,7 +78,7 @@ model Course {
   // ...existing fields
   prereqText  String?
   coreqText   String?
-  prereqTree  Json?    // NEW — Requirement, see below
+  prereqTree  Json?    // NEW - Requirement, see below
   coreqTree   Json?    // NEW
 }
 ```
@@ -101,7 +101,7 @@ to run.
 
 **`courseId` is resolved at build time, not read time.** Storing it denormalized
 means the course page renders links without an N+1 lookup per node.
-`courseId: null` is a legitimate, expected value (§5.2) — not an error state.
+`courseId: null` is a legitimate, expected value (§5.2) - not an error state.
 
 **No migration risk to existing data.** Both columns are nullable additions;
 every existing row keeps working, and a course whose tree is never built simply
@@ -120,7 +120,7 @@ export function parseRequirements(text: string | null): Requirement | null;
 ```
 
 Returns `null` for null/empty input (the course simply has no such requirement).
-Otherwise returns a top-level `and` whose items are the parsed clauses — because
+Otherwise returns a top-level `and` whose items are the parsed clauses - because
 UBC's convention is that separate sentences in a requirement are jointly
 required.
 
@@ -138,7 +138,7 @@ one item under the top-level `and`.
 
 ### 4.3 Per-clause rules, first match wins
 
-1. **Bail-out signal words** — a clause containing any of
+1. **Bail-out signal words** - a clause containing any of
    `standing|permission|restrict|credit|average|score|instructor|major|program|enrol|department|faculty|recommend`
    becomes a `note` leaf immediately, with **no boolean parsing attempted**.
 
@@ -148,7 +148,7 @@ one item under the top-level `and`.
    would materially understate it. Refusing to assert structure is the honest
    outcome.
 
-2. **Ambiguity guard** — a clause that survived rule 1 but contains a
+2. **Ambiguity guard** - a clause that survived rule 1 but contains a
    boolean/grouping token the rules below do not positively handle
    (`either`, standalone `or`, `any`, lettered alternatives like `(a)`/`(b)`)
    becomes a `note` leaf.
@@ -156,7 +156,7 @@ one item under the top-level `and`.
    This exists because of real rows like NURS 323's *"Either (a) all of NURS_V
    345, NURS_V 365 or (b) all of NURS_V 346, NURS_V 366…"*. Without this guard,
    rule 7's bare-list handling would flatten it into an `and` of all eight
-   courses — claiming a student must take every one, when in truth they need one
+   courses - claiming a student must take every one, when in truth they need one
    pair. **A wrong requirement is worse than an unparsed one**, because a
    student could plan a whole term around it.
 
@@ -164,7 +164,7 @@ one item under the top-level `and`.
 
 4. **`All of A, B, C`** → `and` of `course` nodes.
 
-5. **Mixed groups** — `A and one of B, C`, `one of A, B and one of C, D` →
+5. **Mixed groups** - `A and one of B, C`, `one of A, B and one of C, D` →
    `and` of sub-groups, splitting on an `and` that sits outside any comma list.
 
 6. **A single course code alone** → a bare `course` node.
@@ -180,7 +180,7 @@ one item under the top-level `and`.
 
 ### 4.4 Course code extraction
 
-Regex: `[A-Z]{2,5}(_[A-Z])?\s?\d{3}[A-Z]?` — subject code, optional `_V`/`_O`
+Regex: `[A-Z]{2,5}(_[A-Z])?\s?\d{3}[A-Z]?` - subject code, optional `_V`/`_O`
 campus suffix, three-digit number, optional trailing letter (`405Y`, `201A`).
 
 This step produces **code strings only**. Resolving them to real `Course.id`
@@ -200,7 +200,7 @@ pure local transform: read `prereqText`/`coreqText`, parse, resolve, write back.
 ### 5.1 Resolution
 
 For each `course` node, strip the `_V`/`_O` suffix and look up
-`Subject.code` + `Course.number`, filtered to `campus: 'V'` — matching the
+`Subject.code` + `Course.number`, filtered to `campus: 'V'` - matching the
 Vancouver-only scope Phase 5 established.
 
 ### 5.2 Unresolvable codes still render
@@ -215,7 +215,7 @@ reports a count of unresolved codes so the gap is visible rather than invisible.
 
 ### 5.3 Idempotency
 
-Trees are overwritten wholesale on each run — no upsert key, no accumulation, so
+Trees are overwritten wholesale on each run - no upsert key, no accumulation, so
 re-running is trivially safe. It should be re-run after any
 `scrape:descriptions`, and `scrape:all` is extended to chain it.
 
@@ -223,7 +223,7 @@ re-running is trivially safe. It should be re-run after any
 
 ## 6. Display
 
-`src/components/RequirementTree.tsx` — a recursive server component. Nested
+`src/components/RequirementTree.tsx` - a recursive server component. Nested
 `<ul>` elements with `One of:` / `All of:` group labels, course nodes rendered as
 links to `/course/[code]` using the same slug convention the page already uses
 for instructor links. No new dependency, consistent with Phase 5's hand-rolled
@@ -233,7 +233,7 @@ chart and Phase 4's dependency-free ICS generation.
 
 The tree renders **one course's own requirement**, at whatever AND/OR depth that
 requirement actually has (typically one or two levels). It does **not** recurse
-into a linked course's own prerequisites — clicking through does that, exactly
+into a linked course's own prerequisites - clicking through does that, exactly
 as normal browsing already works.
 
 Recursive expansion was considered and declined: it needs cycle-safety, produces
@@ -243,13 +243,13 @@ looking at one course at a time. The data model supports adding it later.
 ### 6.2 The original text always stays visible
 
 Beneath every rendered tree, the source sentence remains, in muted text, labelled
-as published in the calendar — **even when the tree parses perfectly**. The
+as published in the calendar - **even when the tree parses perfectly**. The
 parser is an interpretation; the calendar is the authority, and it stays one
 glance away rather than buried behind our reading of it.
 
 ### 6.3 Empty state
 
-A course with no `prereqText`/`coreqText` omits the section entirely — no
+A course with no `prereqText`/`coreqText` omits the section entirely - no
 placeholder. This matches how `credits` and `description` already behave when
 absent. Unlike Phase 5's suppressed buckets, an absent prerequisite is a
 structural non-applicability, not a data-coverage gap worth labelling.
@@ -261,13 +261,13 @@ structural non-applicability, not a data-coverage gap worth labelling.
 Continues the established monolith. No new services, no new dependencies.
 
 ```
-prisma/schema.prisma                — Course gains prereqTree / coreqTree
-src/prereqs/parse.ts                — PURE: text -> Requirement
-src/prereqs/jobs/build.ts           — resolve codes -> ids, write trees
-src/prereqs/jobs/build.run.ts       — CLI entrypoint (matches the *.run.ts pattern)
-src/components/RequirementTree.tsx  — recursive renderer
-src/app/course/[code]/page.tsx      — MODIFY: render trees + source text
-package.json                        — enrich:prereqs script, chained into scrape:all
+prisma/schema.prisma                - Course gains prereqTree / coreqTree
+src/prereqs/parse.ts                - PURE: text -> Requirement
+src/prereqs/jobs/build.ts           - resolve codes -> ids, write trees
+src/prereqs/jobs/build.run.ts       - CLI entrypoint (matches the *.run.ts pattern)
+src/components/RequirementTree.tsx  - recursive renderer
+src/app/course/[code]/page.tsx      - MODIFY: render trees + source text
+package.json                        - enrich:prereqs script, chained into scrape:all
 ```
 
 ---
@@ -289,7 +289,7 @@ package.json                        — enrich:prereqs script, chained into scra
 
 ## 9. Testing
 
-Fixtures are taken verbatim from the real rows sampled in §2.1 — the parser is
+Fixtures are taken verbatim from the real rows sampled in §2.1 - the parser is
 tested against the text it will actually meet, not invented examples.
 
 **`tests/parse-prereqs.test.ts`** (pure, no DB), one case per rule:
@@ -307,15 +307,15 @@ the tree; idempotency across two consecutive runs.
 
 ## 10. Out of scope
 
-- **Recursive multi-level expansion** and **graph/node-edge visualization** —
+- **Recursive multi-level expansion** and **graph/node-edge visualization** -
   both considered and declined (§6.1); the data model supports either later.
 - **"Am I eligible?" checking** against the user's Workday-imported transcript.
   Tempting, since Phase 2 has the completed-course data, but eligibility depends
   on the unparseable third (standing, program, GPA) and a confident wrong answer
   about a student's eligibility is the worst failure this app could produce.
 - **LLM-assisted parsing** of the messy third (§2.2).
-- **Corequisite-specific semantics** — coreqs are parsed and displayed with the
+- **Corequisite-specific semantics** - coreqs are parsed and displayed with the
   same machinery as prereqs; the distinction between "before" and "alongside" is
   carried by the label only.
 - UBC Okanagan courses as tree *targets* (they parse and display, but never
-  resolve to a link — the app is Vancouver-only).
+  resolve to a link - the app is Vancouver-only).

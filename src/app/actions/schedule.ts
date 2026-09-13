@@ -25,7 +25,7 @@ const NOT_YOURS = 'That schedule does not belong to you.';
 /**
  * Which chosen courses still lack a companion section (lab, tutorial,
  * discussion, seminar or the lecture itself) among what they offer this term.
- * Read-only over public catalogue data, so no auth — the builder calls it at
+ * Read-only over public catalogue data, so no auth - the builder calls it at
  * save time for guests and signed-in students alike.
  */
 export async function missingCompanionSections(
@@ -55,7 +55,7 @@ export async function missingCompanionSections(
   );
 }
 
-/** Ownership check — every mutation goes through this first. */
+/** Ownership check - every mutation goes through this first. */
 async function owns(userId: string, scheduleId: string): Promise<boolean> {
   const found = await db.savedSchedule.findFirst({
     where: { id: scheduleId, userId },
@@ -89,7 +89,7 @@ export async function createScheduleFor(
 }
 
 /**
- * Creates the schedule and all of its sections in one call — the guest
+ * Creates the schedule and all of its sections in one call - the guest
  * builder's save step, where sections were only ever held in client state
  * (never persisted per-add the way the logged-in-only /schedule/[id] editor
  * does), so there's one write instead of N.
@@ -285,7 +285,7 @@ export async function enableScheduleSharing(scheduleId: string): Promise<TokenRe
 }
 
 /**
- * Stop sharing. The link dies immediately and a new one is minted next time —
+ * Stop sharing. The link dies immediately and a new one is minted next time -
  * the old URL is not recoverable, which is the point of revoking it.
  *
  * Deliberately does not touch CalendarToken: someone may have this schedule
@@ -304,7 +304,7 @@ export async function disableScheduleSharing(scheduleId: string): Promise<Result
   return { ok: true };
 }
 
-/** The enrollment counterpart to enableScheduleSharing — one link per term. */
+/** The enrollment counterpart to enableScheduleSharing - one link per term. */
 export async function enableEnrollmentSharing(termId: string): Promise<TokenResult> {
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Sign in to share your calendar.' };
@@ -321,8 +321,8 @@ export async function enableEnrollmentSharing(termId: string): Promise<TokenResu
 }
 
 /**
- * Stop sharing a term's calendar. Deleting the row kills the URL for good —
- * enabling again mints a fresh token — and, as with schedules, deliberately
+ * Stop sharing a term's calendar. Deleting the row kills the URL for good -
+ * enabling again mints a fresh token - and, as with schedules, deliberately
  * leaves the subscribed ICS feed untouched. Idempotent: revoking a link that
  * is already gone is still "gone".
  */
@@ -335,7 +335,7 @@ export async function disableEnrollmentSharing(termId: string): Promise<Result> 
 }
 
 /**
- * Subscription capability for the Workday-imported courses in one term — the
+ * Subscription capability for the Workday-imported courses in one term - the
  * enrollment counterpart to getSubscribeUrl. Minted on first use, then stable,
  * so a re-upload updates what the same subscribed URL serves.
  */
@@ -345,7 +345,7 @@ export async function getEnrolledSubscribeUrl(termId: string): Promise<TokenResu
   return getEnrolledTokenFor(userId, termId);
 }
 
-/** The guest schedule builder's search box — term-scoped section lookup, callable directly from a client component. */
+/** The guest schedule builder's search box - term-scoped section lookup, callable directly from a client component. */
 export async function searchSections(query: string, termId: string): Promise<SectionHit[]> {
   return searchSectionsForTerm(query, termId);
 }
@@ -421,7 +421,7 @@ export async function replaceScheduleSectionsFor(
   // the class moved to, and a section that lost its room should lose it here.
   //
   // Only when the caller actually sent locations, though. Omitting them means
-  // "I have nothing to say about rooms" — a caller that saved a name change
+  // "I have nothing to say about rooms" - a caller that saved a name change
   // must not wipe every room in the schedule on its way past.
   const kept = locations === undefined ? [] : ids.filter((id) => !added.includes(id));
 

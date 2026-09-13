@@ -28,7 +28,7 @@ export default function AuthOverlay() {
     <div
       // overflow-y-auto + m-auto on the panel: centred while it fits, and
       // scrollable once the phone keyboard leaves less height than the
-      // sign-up form needs — items-center alone clips both ends unreachably.
+      // sign-up form needs - items-center alone clips both ends unreachably.
       className="fixed inset-0 z-[60] flex overflow-y-auto bg-black/50 px-6 py-10 backdrop-blur-sm"
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) close();

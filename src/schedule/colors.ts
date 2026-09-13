@@ -10,7 +10,7 @@ export const COURSE_COLOR_COUNT = 8;
  * hash in ReviewCard, but with multiplier 33 rather than 31: overall collision
  * rates between the two multipliers are comparable (with only 8 slots, some
  * collisions are expected regardless), but 31 specifically collides "CPSC 110"
- * and "CPSC 121" into the same slot 6 — exactly the pair a student sees side
+ * and "CPSC 121" into the same slot 6 - exactly the pair a student sees side
  * by side, and the pair the test below pins.
  */
 export function courseColorIndex(code: string): number {

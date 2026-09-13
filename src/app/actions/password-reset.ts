@@ -22,7 +22,7 @@ function resetLink(token: string): string {
  * bad password; a reset form that happily confirms "no account with that email"
  * would hand back the enumeration this codebase is otherwise careful to deny.
  *
- * The cooldown is silent for the same reason — a rejected repeat looks exactly
+ * The cooldown is silent for the same reason - a rejected repeat looks exactly
  * like an accepted one.
  */
 export async function requestPasswordReset(email: string): Promise<{ ok: true }> {
@@ -59,7 +59,7 @@ export async function requestPasswordReset(email: string): Promise<{ ok: true }>
  * probe how an account was created.
  *
  * ponytail: sessions are JWTs with no server-side record, so a reset cannot
- * revoke a session already issued — someone signed in stays signed in. Fixing
+ * revoke a session already issued - someone signed in stays signed in. Fixing
  * that needs a token-version column on User checked in the jwt callback, which
  * costs a database read on every request; worth it if account takeover becomes
  * a real concern rather than a theoretical one.

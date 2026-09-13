@@ -8,13 +8,13 @@ import { layoutDayColumns } from '@/schedule/layout';
 export type CalendarEntry = ScheduleEntry & {
   id: string;
   location?: string | null;
-  /** Blank on most lab/tutorial rows — Workday only names the lecture's. */
+  /** Blank on most lab/tutorial rows - Workday only names the lecture's. */
   instructor?: string | null;
   /** Colour is keyed on this when present, else on `label`. */
   courseCode?: string | null;
   /** Set when the block should be clickable to open the course overlay. */
   courseId?: string | null;
-  /** Raw building code and room, for the campus map — `location` above is the
+  /** Raw building code and room, for the campus map - `location` above is the
    *  same data pre-joined for display, which a map can't take apart again. */
   building?: string | null;
   room?: string | null;
@@ -25,8 +25,8 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;
 // phones can shorten it without this component knowing the viewport.
 //
 // The fallback is not decoration. Every row height and block position below is
-// a multiple of --hour, so if the variable is ever missing — a stale cached
-// stylesheet against fresh JS is how that happens — calc() turns invalid, the
+// a multiple of --hour, so if the variable is ever missing - a stale cached
+// stylesheet against fresh JS is how that happens - calc() turns invalid, the
 // heights resolve to auto, and the grid collapses to a strip showing no classes
 // at all. Missing has to degrade to the desktop hour, never to zero.
 const hours = (n: number) => `calc(var(--hour, 76px) * ${n})`;
@@ -35,7 +35,7 @@ const hours = (n: number) => `calc(var(--hour, 76px) * ${n})`;
 // place too.
 const HOUR_PX_FALLBACK = 76;
 // The grid always covers the whole day and scrolls, the way Workday's and
-// Google's do — rather than resizing itself to whatever the current selection
+// Google's do - rather than resizing itself to whatever the current selection
 // happens to span, which made the rows jump whenever a section was added.
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 // Opening scroll position. A day's classes live roughly 8 AM-5 PM, so the
@@ -83,7 +83,7 @@ function nowMinutesOnWeekday(): number | null {
  * per-course pastel blocks with a saturated left accent bar, and a
  * current-time indicator.
  *
- * The grid renders all 24 hours and scrolls, opening at 8 AM — so no meeting
+ * The grid renders all 24 hours and scrolls, opening at 8 AM - so no meeting
  * can ever be out of reach, and the rows stay a fixed reference frame instead
  * of resizing as sections are added. Day headers stick to the top while the
  * hours scroll under them.
@@ -110,7 +110,7 @@ export default function ScheduleCalendar({
   /** `label` is the clicked block's own label ("MATH 200-103"), so the
    *  overlay can say which of the course's sections is this student's. */
   onSelectCourse?: (courseId: string, label?: string) => void;
-  /** Take the full height of a flex column instead of capping at 680px — for
+  /** Take the full height of a flex column instead of capping at 680px - for
    *  the builder, where the calendar IS the page and a fixed cap left a dead
    *  band under the grid on tall monitors. Stacked contexts (the /schedule
    *  tabs, shared pages) keep the cap so five calendars stay navigable. */
@@ -118,7 +118,7 @@ export default function ScheduleCalendar({
 }) {
   // Both the indicator position AND which column counts as "today" are
   // resolved only after mount. The server's clock and timezone need not match
-  // the viewer's, so deriving either during render would hydrate-mismatch —
+  // the viewer's, so deriving either during render would hydrate-mismatch -
   // including the day-header highlight, which is easy to overlook.
   const scrollRef = useRef<HTMLDivElement>(null);
   // Open on the earliest class rather than on midnight, so a term that starts
@@ -298,7 +298,7 @@ export default function ScheduleCalendar({
           //
           // 460px on a phone, not 680: at the shorter mobile hour that is
           // still about 8 hours, a whole class day, and /schedule stacks a
-          // calendar per term — two 680px grids is most of a phone screen
+          // calendar per term - two 680px grids is most of a phone screen
           // spent scrolling past one term to reach the next.
           fill
             ? 'max-h-[460px] sm:max-h-[680px] lg:max-h-none lg:min-h-0 lg:flex-1'
@@ -315,7 +315,7 @@ export default function ScheduleCalendar({
                 style={{ height: 'var(--hour, 76px)' }}
               >
                 {/* The topmost label would straddle the container edge and clip,
-                    so it is omitted — the same thing Google Calendar does. */}
+                    so it is omitted - the same thing Google Calendar does. */}
                 {h !== 0 && (
                   <span
                     className={`absolute -top-2 text-text-tertiary ${
@@ -369,7 +369,7 @@ export default function ScheduleCalendar({
                 {(() => {
                   const dayEntries = timed.filter((e) => e.day === day);
                   // Side-by-side columns for overlapping classes, as Google
-                  // Calendar and Notion Calendar do — without this the lower
+                  // Calendar and Notion Calendar do - without this the lower
                   // block is completely hidden behind the upper one.
                   const columns = columnsByDay.get(day)!;
 
@@ -398,7 +398,7 @@ export default function ScheduleCalendar({
                         // Tighter padding and leading on phones buy the third
                         // line. Three lines at leading-tight in py-1.5 need
                         // 47px, which does not fit the 44px of a one-hour
-                        // class — the most common block on the grid, and the
+                        // class - the most common block on the grid, and the
                         // one whose room was therefore never shown.
                         className={`group absolute overflow-hidden rounded-md py-1 leading-[1.15] sm:py-1.5 sm:leading-tight ${
                           expanded ? 'pl-2 pr-1 text-[0.6875rem]' : 'pl-1 pr-0 text-[0.5625rem] sm:pl-2 sm:pr-1 sm:text-[0.6875rem]'
@@ -423,7 +423,7 @@ export default function ScheduleCalendar({
                         onKeyDown={
                           onSelectCourse && e.courseId
                             ? (ev) => {
-                                // Only when the BLOCK itself is focused — a keydown
+                                // Only when the BLOCK itself is focused - a keydown
                                 // bubbling up from the nested remove button must not
                                 // also open the overlay (click and keydown are
                                 // independent events, so the button's onClick
@@ -467,7 +467,7 @@ export default function ScheduleCalendar({
                         {/* A fitted phone column is ~60px: the section code,
                             time and room don't fit, but "CPSC 110" does, and a
                             block with no text at all leaves the calendar's one
-                            question — which class is this — to a legend above
+                            question - which class is this - to a legend above
                             the grid. Split columns fall back to the number
                             alone. Tapping still opens everything. */}
                         {!expanded && (
@@ -495,7 +495,7 @@ export default function ScheduleCalendar({
                             )}
                             {/* Where to actually go. From one hour up, which
                                 is where the third line fits once the padding
-                                and leading are tightened above — and a full
+                                and leading are tightened above - and a full
                                 hour is the commonest block on the grid, so
                                 gating any higher hid the room on most of a
                                 week's classes. */}

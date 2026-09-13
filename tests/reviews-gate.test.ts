@@ -68,7 +68,7 @@ describe('the review gate', () => {
     expect(r.ok).toBe(false);
   });
 
-  it('is an upsert — a second submission edits rather than duplicating', async () => {
+  it('is an upsert - a second submission edits rather than duplicating', async () => {
     await writeReviewForUser(enrolledId, courseId, { ...rating, useful: 4 }, []);
     const rows = await db.courseReview.findMany({ where: { userId: enrolledId, courseId } });
     expect(rows).toHaveLength(1);

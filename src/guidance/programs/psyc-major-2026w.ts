@@ -27,7 +27,7 @@ const course = (id: string, code: string): Rule => ({
 });
 
 /**
- * Major in Psychology (B.A.), 2026W — 42 credits toward a 120-credit degree.
+ * Major in Psychology (B.A.), 2026W - 42 credits toward a 120-credit degree.
  *
  * 6 credits of introductory psychology, 6 of quantitative methods, and 30 at
  * the 300 and 400 level, which is what the Faculty's summary table wants from
@@ -52,7 +52,7 @@ export const psycMajor2026W: Program = {
       sourceUrl: SOURCE,
       items: [
         {
-          // "either PSYC_V 100; or PSYC_V 101 and PSYC_V 102" — a choice
+          // "either PSYC_V 100; or PSYC_V 101 and PSYC_V 102" - a choice
           // between one 6-credit course and a pair of 3-credit ones, so the
           // second branch is a group and the plan takes both halves or
           // neither.
@@ -89,7 +89,7 @@ export const psycMajor2026W: Program = {
       label: '6 credits from Behavioural Neuroscience or Cognitive Science',
       n: 6,
       year: 3,
-      // "At least 6 credits from the following two lists" — the two lists are
+      // "At least 6 credits from the following two lists" - the two lists are
       // read together, not 6 credits from each.
       from: { kind: 'codes', codes: [...BEHAVIOURAL_NEUROSCIENCE, ...COGNITIVE_SCIENCE] },
       sourceUrl: SOURCE,

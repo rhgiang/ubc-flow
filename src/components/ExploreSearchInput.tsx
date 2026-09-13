@@ -13,7 +13,7 @@ export default function ExploreSearchInput() {
   const urlQuery = searchParams.get('q') ?? '';
 
   const [value, setValue] = useState(urlQuery);
-  // Tracks the URL value the input was last synced to — lets the render
+  // Tracks the URL value the input was last synced to - lets the render
   // below detect an EXTERNAL change (Clear filter, back/forward) and reset
   // local state, without the effect-cascade of syncing inside a useEffect.
   const [syncedQuery, setSyncedQuery] = useState(urlQuery);
@@ -28,7 +28,7 @@ export default function ExploreSearchInput() {
       const params = new URLSearchParams(searchParams);
       if (value.trim()) params.set('q', value);
       else params.delete('q');
-      // A new query is a new result set — page 4 of the old one would go stale.
+      // A new query is a new result set - page 4 of the old one would go stale.
       params.delete('page');
       router.replace(`${pathname}?${params.toString()}`);
     }, DEBOUNCE_MS);

@@ -9,7 +9,7 @@ const V2_BASE = `${REPO}/tableau-dashboard-v2/UBCV`;
 
 /**
  * The pre-2021 export. Its columns differ slightly from the current one
- * (Enrolled/Std dev rather than Reported/Median) — parseGradeCsv looks
+ * (Enrolled/Std dev rather than Reported/Median) - parseGradeCsv looks
  * columns up by header name and handles both.
  *
  * Stops at 2020W even though the directory also holds 2021S and 2021W:
@@ -22,7 +22,7 @@ export const V1_SESSIONS = [
   '2017W', '2018S', '2018W', '2019S', '2019W', '2020S', '2020W',
 ] as const;
 
-/** Sessions available in the current format — verified 2026-08-20. */
+/** Sessions available in the current format - verified 2026-08-20. */
 export const V2_SESSIONS = [
   '2021S', '2021W', '2022S', '2022W', '2023S',
   '2023W', '2024S', '2024W', '2025S', '2025W',
@@ -62,7 +62,7 @@ export async function ingestRows(rows: RawGradeRow[]): Promise<IngestResult> {
       select: { id: true },
     });
 
-    // Reported, never silently dropped — a gap here means our catalogue is
+    // Reported, never silently dropped - a gap here means our catalogue is
     // missing something, which is worth knowing.
     if (!course) {
       skippedNoCourse += 1;
@@ -125,7 +125,7 @@ export async function ingestRows(rows: RawGradeRow[]): Promise<IngestResult> {
     });
 
     // One row can name the same person twice under spelling variants that
-    // normalize to a single slug — real 2015S data lists both
+    // normalize to a single slug - real 2015S data lists both
     // "Brianne Orr Alvarez" and "Brianne Orr-Alvarez" on SPAN 102. Linking
     // twice violates GradeDistributionInstructor's (distributionId,
     // instructorId) primary key and aborts the whole ingest.
@@ -173,7 +173,7 @@ export async function ingestGrades() {
       try {
         csv = await fetchText(gradeCsvUrl(session, code!));
       } catch {
-        // Not every subject exists in every session — a 404 is normal here.
+        // Not every subject exists in every session - a 404 is normal here.
         continue;
       }
 

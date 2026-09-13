@@ -28,7 +28,7 @@ const upperPhys = (id: string, label: string, n: number, exclude: string[] = [])
 });
 
 /**
- * Physics Major (BSc), 2026W — 120 credits.
+ * Physics Major (BSc), 2026W - 120 credits.
  *
  * The first program here whose Calendar table separates third and fourth year
  * rather than merging them, so its rules carry years 1 through 4.
@@ -88,7 +88,7 @@ export const physMajor2026W: Program = {
       sourceUrl: SOURCE,
       items: [
         // Footnote 8: qualified students may take MATH 217 with 2 elective
-        // credits instead of MATH 200 and 215. Not modelled — it depends on
+        // credits instead of MATH 200 and 215. Not modelled - it depends on
         // qualification, which the plan cannot assume.
         course('phys.math200', 'MATH 200'),
         course('phys.math215', 'MATH 215'),

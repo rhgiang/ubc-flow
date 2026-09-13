@@ -18,7 +18,7 @@ function vancouverCode(code: string): { subject: string; number: string } | null
 
 /**
  * Walks a parsed tree and fills in courseId for every code we can match.
- * Unmatched codes keep courseId: null and still render — as plain text.
+ * Unmatched codes keep courseId: null and still render - as plain text.
  */
 export async function resolveTree(
   tree: Requirement | null,
@@ -80,7 +80,7 @@ export async function resolveAntireqCodes(codes: string[]): Promise<AntireqRef[]
   return refs;
 }
 
-/** Every resolved courseId referenced anywhere in a tree, deduplicated —
+/** Every resolved courseId referenced anywhere in a tree, deduplicated -
  * the set of edges buildRequirementTrees writes to CoursePrereqEdge. */
 function collectResolvedCourseIds(tree: Requirement | null): Set<string> {
   const ids = new Set<string>();
@@ -106,7 +106,7 @@ export async function buildRequirementTrees(): Promise<BuildResult> {
   let updated = 0;
   let resolved = 0;
 
-  // Wholesale rebuild — matches how prereqTree/coreqTree are already
+  // Wholesale rebuild - matches how prereqTree/coreqTree are already
   // overwritten every run (Global Constraints).
   await db.coursePrereqEdge.deleteMany({});
 
@@ -117,7 +117,7 @@ export async function buildRequirementTrees(): Promise<BuildResult> {
 
     await db.course.update({
       where: { id: course.id },
-      // Overwritten wholesale every run — no accumulation, trivially idempotent.
+      // Overwritten wholesale every run - no accumulation, trivially idempotent.
       // Prisma.DbNull, not undefined: undefined means "skip this field", which
       // would leave a stale tree behind if the text stopped parsing.
       data: {

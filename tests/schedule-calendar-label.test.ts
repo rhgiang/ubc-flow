@@ -8,7 +8,7 @@ describe('courseNumberOnly', () => {
     expect(courseNumberOnly('MATH 200')).toBe('200');
   });
 
-  it('keeps a trailing letter — 101A and 101B are different courses', () => {
+  it('keeps a trailing letter - 101A and 101B are different courses', () => {
     expect(courseNumberOnly('BIOL 140A')).toBe('140A');
   });
 

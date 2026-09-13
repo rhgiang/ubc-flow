@@ -21,7 +21,7 @@ describe('fetchText', () => {
 
   it('spaces consecutive requests by at least 1s', async () => {
     // mockResolvedValue would hand out the same Response object twice, and a
-    // fetch Body can only be read once — use mockImplementation so each call
+    // fetch Body can only be read once - use mockImplementation so each call
     // gets a fresh Response.
     vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () => new Response('ok', { status: 200 }),

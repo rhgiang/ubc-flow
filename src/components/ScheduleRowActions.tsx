@@ -29,7 +29,7 @@ export default function ScheduleRowActions({ scheduleId, name }: { scheduleId: s
     const next = !open;
     setOpen(next);
     // Fetched lazily (not on every page load) since it's a DB write the
-    // first time — creating the CalendarToken row — and most rows never
+    // first time - creating the CalendarToken row - and most rows never
     // have their menu opened.
     if (next && subscribeUrl === null) {
       try {

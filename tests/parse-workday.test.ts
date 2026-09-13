@@ -127,7 +127,7 @@ describe('parseMeetingPatterns', () => {
   });
 });
 
-describe('parseWorkdayExport — one row per weekly pattern', () => {
+describe('parseWorkdayExport - one row per weekly pattern', () => {
   it('emits a row for EACH weekly pattern of a section', () => {
     // MANU_V 231's real shape: the lecture meets Wed 2–3 in one room and
     // Fri 1–2 in another, in one Meeting Patterns cell.
@@ -174,7 +174,7 @@ describe('inferTerm', () => {
   });
 });
 
-describe('parseWorkdayExport — current courses fixture', () => {
+describe('parseWorkdayExport - current courses fixture', () => {
   it('parses the fixture end to end', async () => {
     const grid = await readWorkbookGrid(readFileSync('tests/fixtures/workday-current.xlsx'));
     const r = parseWorkdayExport(grid);
@@ -195,7 +195,7 @@ describe('parseWorkdayExport — current courses fixture', () => {
     expect(r.rows.some((x) => x.subjectCode === 'CPSC' && x.courseNumber === '110')).toBe(true);
   });
 
-  it('spans more than one term — the export is not single-term', async () => {
+  it('spans more than one term - the export is not single-term', async () => {
     const grid = await readWorkbookGrid(readFileSync('tests/fixtures/workday-current.xlsx'));
     const r = parseWorkdayExport(grid);
     const terms = new Set(r.rows.map((x) => `${x.termYear}-${x.termSession}${x.termNumber}`));
@@ -232,14 +232,14 @@ describe('parseWorkdayExport — current courses fixture', () => {
     expect(cpsc210.startDate).toBe('2027-01-06');
     expect(cpsc210.meetingEndDate).toBe('2027-04-12');
 
-    // Labs and tutorials carry no instructor in Workday — null, not ''.
+    // Labs and tutorials carry no instructor in Workday - null, not ''.
     const lab = r.rows.find((x) => x.activity === 'Laboratory')!;
     expect(lab.instructor).toBeNull();
     expect(lab.building).not.toBeNull();
   });
 });
 
-describe('parseWorkdayExport — academic record fixture', () => {
+describe('parseWorkdayExport - academic record fixture', () => {
   it('never turns transfer credit into an enrollment', async () => {
     const grid = await readWorkbookGrid(readFileSync('tests/fixtures/workday-record.xlsx'));
     const r = parseWorkdayExport(grid);
@@ -256,7 +256,7 @@ describe('parseWorkdayExport — academic record fixture', () => {
     const r = parseWorkdayExport(grid);
 
     // It used to be dropped, which understated a transfer student's progress
-    // — UBC granted the credit, so a degree plan that ignores it overstates
+    // - UBC granted the credit, so a degree plan that ignores it overstates
     // what they still owe.
     expect(r.transfers.length).toBeGreaterThan(5);
     for (const t of r.transfers) expect(t.raw).toBeTruthy();
@@ -280,7 +280,7 @@ describe('parseWorkdayExport — academic record fixture', () => {
   });
 });
 
-describe('parseWorkdayExport — safety', () => {
+describe('parseWorkdayExport - safety', () => {
   it('rejects a file containing two different student numbers', () => {
     const grid = [
       ['', 'Course Listing', '', '', '', '', 'Section', 'Registration Status'],
@@ -297,7 +297,7 @@ describe('parseWorkdayExport — safety', () => {
   });
 });
 
-describe('parseWorkdayExport — unknown tables', () => {
+describe('parseWorkdayExport - unknown tables', () => {
   it('reports a second table rather than silently ignoring it', () => {
     const grid = [
       ['', 'Course Listing', 'Section', 'Registration Status', 'Meeting Patterns'],

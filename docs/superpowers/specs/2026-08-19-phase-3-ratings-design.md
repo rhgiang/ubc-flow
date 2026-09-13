@@ -1,4 +1,4 @@
-# UBC Flow — Phase 3: Ratings and Reviews (Design)
+# UBC Flow - Phase 3: Ratings and Reviews (Design)
 
 **Date:** 2026-08-19
 **Status:** Approved for planning
@@ -17,7 +17,7 @@ makes a review trustworthy. This phase spends that groundwork.
 
 **Done when:** a verified student can open a course they actually took, submit
 ratings for the course and its instructors in one form, edit or delete that
-review later, and see aggregate ratings on both course and professor pages —
+review later, and see aggregate ratings on both course and professor pages -
 with no reviewer identity visible anywhere.
 
 ---
@@ -29,11 +29,11 @@ authority on whether a review may be written. It returns true only for a
 `verified` enrollment belonging to that exact user and course.
 
 **Every write path in this phase must call it server-side.** Hiding the review
-form in the UI is a convenience, not a control — a user who forges a request to
+form in the UI is a convenience, not a control - a user who forges a request to
 the submit endpoint must be rejected by the same check.
 
-This is what the whole of Phase 2 was built to provide. Bypassing it — even
-"temporarily", even for a seed script — reopens the review-botting hole the
+This is what the whole of Phase 2 was built to provide. Bypassing it - even
+"temporarily", even for a seed script - reopens the review-botting hole the
 project has been designed around from the start.
 
 ---
@@ -56,13 +56,13 @@ it, and a separate professor-review flow reached from elsewhere gets skipped.
 
 ### 3.1 Where the instructor dropdown comes from
 
-`Enrollment` records `(user, course, term)` — **not** which section or
+`Enrollment` records `(user, course, term)` - **not** which section or
 instructor the student had. Workday's export does not map cleanly to one
 instructor per course anyway: a single course routinely has different
 instructors for its lecture, lab, and tutorial components.
 
-So the dropdown is populated from Phase 1's scraped `SectionInstructor` data —
-every instructor who taught that course in that term — and the student selects
+So the dropdown is populated from Phase 1's scraped `SectionInstructor` data -
+every instructor who taught that course in that term - and the student selects
 who they actually had.
 
 This is **self-reported**, and deliberately so. It is not verified against the
@@ -71,13 +71,13 @@ expensive gate has already been passed: this person demonstrably took this
 course. Choosing the wrong instructor from a short, correct list of that
 course's actual instructors is a low-value attack and a low-stakes mistake.
 
-Selecting zero instructors is valid — a course review alone is a complete
+Selecting zero instructors is valid - a course review alone is a complete
 submission.
 
 ### 3.2 Transaction boundary
 
 A submission writes one `CourseReview` and N `InstructorReview` rows atomically.
-A partial write — course rated but instructor ratings lost, or vice versa —
+A partial write - course rated but instructor ratings lost, or vice versa -
 would be invisible to the user and awkward to reconcile on the next edit, since
 the form loads from both tables.
 
@@ -106,14 +106,14 @@ Reviews are **fully anonymous to other users**. No username, no program, no
 graduation year, no stable per-author identifier is rendered anywhere a visitor
 can see.
 
-The `userId` foreign key still exists — it is what makes edit, delete, and
+The `userId` foreign key still exists - it is what makes edit, delete, and
 one-review-per-course enforcement possible. It must never reach a page, an API
 response, or a client-side prop.
 
 **This is a hard requirement, not a display preference.** Course reviews can be
 critical of named instructors; a student whose authorship is discoverable is
 exposed to real professional risk. Verification proves *eligibility to review*,
-never *identity of reviewer* — those were deliberately separated in Phase 2 and
+never *identity of reviewer* - those were deliberately separated in Phase 2 and
 must stay separated here.
 
 A user can see **their own** reviews (on the course page, and to edit them).
@@ -144,7 +144,7 @@ inverted-looking data. Nothing in this codebase may store or display it
 inverted.
 
 Scores are stored `0-4` and presented to users as **1-5**. The offset is a
-presentation concern, converted at the boundary — never stored as 1-5.
+presentation concern, converted at the boundary - never stored as 1-5.
 
 ### 6.2 Display
 
@@ -175,7 +175,7 @@ model CourseReview {
 
 `CourseReview.instructorId` is a single nullable instructor per course review.
 `InstructorReview` already models the course-instructor relationship with the
-correct multiplicity — a course review can relate to several instructors, which
+correct multiplicity - a course review can relate to several instructors, which
 this column cannot express. It is redundant and actively misleading to anyone
 reading the schema later.
 
@@ -189,11 +189,11 @@ the drop risks no data. It is the only schema change this phase makes.
 Continues the established monolith. No new services, no new dependencies.
 
 ```
-src/lib/gate.ts             — EXISTING (Phase 2), the authority. Unchanged.
-src/reviews/aggregate.ts    — PURE: review rows -> aggregate stats
-src/app/actions/reviews.ts  — server actions: submit, delete (gate-checked)
-src/app/course/[code]/…     — review form + aggregates + review list
-src/app/professor/[slug]/…  — aggregates + review list
+src/lib/gate.ts             - EXISTING (Phase 2), the authority. Unchanged.
+src/reviews/aggregate.ts    - PURE: review rows -> aggregate stats
+src/app/actions/reviews.ts  - server actions: submit, delete (gate-checked)
+src/app/course/[code]/…     - review form + aggregates + review list
+src/app/professor/[slug]/…  - aggregates + review list
 ```
 
 Aggregation stays a **pure function** over already-fetched rows, following the
@@ -207,23 +207,23 @@ math is unit-tested against fixtures with no database.
 | Area | Requirement |
 |---|---|
 | Authorization | Every review write calls `canReview` server-side. UI visibility is never the control. |
-| Ownership | Edit and delete verify the review belongs to the requesting user — never trust a client-supplied review id alone. |
+| Ownership | Edit and delete verify the review belongs to the requesting user - never trust a client-supplied review id alone. |
 | Anonymity | `userId` never reaches a page, API response, or client prop for another user's review. |
 | Input | Scores validated to the 0-4 range server-side; text length-capped; `workloadHours` bounded to a sane range. |
-| Text | Review text is rendered as text, never as HTML — no `dangerouslySetInnerHTML` on user content. |
+| Text | Review text is rendered as text, never as HTML - no `dangerouslySetInnerHTML` on user content. |
 
 The gate and the ownership check are the two places where a mistake is
-expensive and quiet. Both need tests that assert the *negative* case — a
-non-enrolled user rejected, another user's review not editable — not just the
+expensive and quiet. Both need tests that assert the *negative* case - a
+non-enrolled user rejected, another user's review not editable - not just the
 happy path.
 
 ---
 
 ## 10. Out of scope
 
-- Moderation, reporting, flagging — deferred until live abuse shows its shape.
+- Moderation, reporting, flagging - deferred until live abuse shows its shape.
   The verified-enrollment gate is meaningful friction in the meantime.
-- Grade distributions — Phase 5, from public PAIR data, unrelated to reviews.
-- Schedule planner and webcal — Phase 4.
+- Grade distributions - Phase 5, from public PAIR data, unrelated to reviews.
+- Schedule planner and webcal - Phase 4.
 - Review voting, helpfulness scores, sorting by rating.
 - Any weighting of reviews by recency, author, or enrollment recency.

@@ -5,7 +5,7 @@
  * / Seminar sections in a term, registering means taking one of each alongside
  * the lecture. The builder can't know the true requirement (Workday holds it),
  * but "the course offers this activity and you picked none of it" is right
- * often enough to be worth a question at save time — and only a question:
+ * often enough to be worth a question at save time - and only a question:
  * some seminars really are optional, so the answer stays advisory, exactly
  * like the time-conflict gate.
  */
@@ -14,7 +14,7 @@
  *  Deliberately a closed list: UBC data also carries "Waiting List",
  *  "Work Placement", "Thesis" and friends, none of which anyone plans.
  *  Exported for the schedule generator, which enumerates one section per
- *  offered activity — the same rule this gate checks after the fact. */
+ *  offered activity - the same rule this gate checks after the fact. */
 export const COMPANION_ACTIVITIES = ['Lecture', 'Laboratory', 'Tutorial', 'Discussion', 'Seminar'];
 
 export type SectionActivity = { code: string; activity: string | null };

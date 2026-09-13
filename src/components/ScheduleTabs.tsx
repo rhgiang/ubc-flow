@@ -425,7 +425,7 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
         </summary>
         <p className="mt-2 text-sm text-text-secondary">
           UBC only publishes finals. Upload a course syllabus and we&apos;ll read the
-          midterm dates out of it - you confirm them before anything lands above. Your
+          midterm dates out of it. You confirm them before anything lands above. Your
           files stay private to you.
         </p>
         {!exams.termId ? (

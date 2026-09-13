@@ -16,7 +16,7 @@ type ActionResult = { ok: true } | { ok: false; error: string };
 
 /**
  * The gate lives here, server-side. Hiding the form in the UI is a
- * convenience, not a control — a forged request lands in this function.
+ * convenience, not a control - a forged request lands in this function.
  */
 export async function writeReviewForUser(
   userId: string,
@@ -130,7 +130,7 @@ export async function deleteReview(
 
 /**
  * Loads the signed-in user's own review for pre-filling the edit form.
- * Not in the brief's code sample (only listed in "Produces") — added here
+ * Not in the brief's code sample (only listed in "Produces") - added here
  * since Task 4 needs it. Read-only and scoped to the session's own userId,
  * so it carries none of the gate's write-path risk.
  */

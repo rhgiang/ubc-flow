@@ -1,15 +1,15 @@
-# UBC Flow — Schedule Builder Redesign (Design)
+# UBC Flow - Schedule Builder Redesign (Design)
 
 **Date:** 2026-08-22
 **Status:** Approved for planning
 
 ## 1. Why this phase exists
 
-The schedule planner shipped in Phase 4 as a functional two-column form: a search box, a plain weekly grid, and a list of sections. It works, but it uses a fraction of the page, it looks nothing like the tools students actually plan in, and it exposes none of the course intelligence this app already has — grades, prerequisites, professor quality — at the exact moment a student is deciding what to register for.
+The schedule planner shipped in Phase 4 as a functional two-column form: a search box, a plain weekly grid, and a list of sections. It works, but it uses a fraction of the page, it looks nothing like the tools students actually plan in, and it exposes none of the course intelligence this app already has - grades, prerequisites, professor quality - at the exact moment a student is deciding what to register for.
 
 This phase rebuilds the planner into a full-page scheduling tool modelled on **Workday's Edit Saved Schedule** screen (the interaction model UBC students already know) with the **visual language of Notion Calendar** (clean hairline grid, soft blocks, generous whitespace), and wires the app's existing course data into it through a single course-information overlay.
 
-**Done when:** a student can open the builder full-screen, import their real Workday schedule from an `.xlsx` in one step, search courses with results appearing as they type, see their week rendered as a calendar that looks like a modern calendar app, click any block or ⓘ button to get a course overlay showing description, sections, grade distribution, historical averages and each instructor's RateMyProfessors score, and save — without ever leaving the page.
+**Done when:** a student can open the builder full-screen, import their real Workday schedule from an `.xlsx` in one step, search courses with results appearing as they type, see their week rendered as a calendar that looks like a modern calendar app, click any block or ⓘ button to get a course overlay showing description, sections, grade distribution, historical averages and each instructor's RateMyProfessors score, and save - without ever leaving the page.
 
 ---
 
@@ -32,8 +32,8 @@ Reusable as-is (no changes needed): `src/upload/read-grid.ts`, `src/upload/parse
 
 One client component, `ScheduleBuilder`, serves both routes:
 
-- `/schedule/new` — draft mode (guest or signed-in, nothing persisted yet)
-- `/schedule/[id]` — saved mode (loads existing sections)
+- `/schedule/new` - draft mode (guest or signed-in, nothing persisted yet)
+- `/schedule/[id]` - saved mode (loads existing sections)
 
 ```ts
 type BuilderMode =
@@ -46,7 +46,7 @@ type BuilderMode =
 **Both modes hold the working section set in client state and commit only on Save.** This is deliberate and differs from today's saved editor, which writes through on every add/remove.
 
 Three reasons:
-1. It matches Workday, which the UI is modelled on — its builder has an explicit **Save** / **Cancel** pair.
+1. It matches Workday, which the UI is modelled on - its builder has an explicit **Save** / **Cancel** pair.
 2. It gives one rendering path and one mutation path for both modes, which is the entire point of unifying.
 3. Workday import (§7) drops 5-12 sections in at once; write-through would fire a burst of mutations for edits the student hasn't agreed to yet.
 
@@ -54,13 +54,13 @@ Commit behaviour:
 - **draft** → `saveGuestSchedule(termId, name, sectionIds)` (exists), then redirect to `/schedule/[id]`
 - **saved** → new `replaceScheduleSections(scheduleId, name, sectionIds)` server action, diffing against what's stored
 
-**Save is enabled only when the schedule has at least one section** and a non-empty name — as requested.
+**Save is enabled only when the schedule has at least one section** and a non-empty name - as requested.
 
 The cost of buffering is that navigating away loses edits, so a `beforeunload` guard is registered whenever the buffer is dirty. This is a real requirement, not polish: without it the import flow can silently discard a student's whole imported schedule.
 
 ### 3.2 Deletions
 
-`/schedule/[id]`'s server-rendered page shrinks to a thin loader that fetches the schedule + sections and renders `<ScheduleBuilder mode={{kind:'saved',...}} />`. Its inline rename form, add/remove forms and calendar section are deleted — all of it now lives in the builder.
+`/schedule/[id]`'s server-rendered page shrinks to a thin loader that fetches the schedule + sections and renders `<ScheduleBuilder mode={{kind:'saved',...}} />`. Its inline rename form, add/remove forms and calendar section are deleted - all of it now lives in the builder.
 
 ---
 
@@ -90,11 +90,11 @@ The page goes full-bleed (today's `mx-auto max-w-6xl` is the main reason it "doe
 - Left panel: fixed `340px`, own scroll region.
 - Calendar: flexes to fill remaining width, own scroll region.
 - Below `lg`, the panel stacks above the calendar.
-- Header actions sit top-right; **"Add to calendar"** becomes a compact dropdown button directly beneath Save/Delete, replacing today's full-width `<h2>Add to your calendar</h2>` block. The dropdown contains Apple/Outlook (`webcal://`), Google, and copy-URL — the same three destinations, same `getSubscribeUrl` action, just condensed.
+- Header actions sit top-right; **"Add to calendar"** becomes a compact dropdown button directly beneath Save/Delete, replacing today's full-width `<h2>Add to your calendar</h2>` block. The dropdown contains Apple/Outlook (`webcal://`), Google, and copy-URL - the same three destinations, same `getSubscribeUrl` action, just condensed.
 
 ### 4.1 Draft mode hides what cannot exist yet
 
-**Delete Schedule** and **Add to calendar** both require a persisted schedule — `getSubscribeUrl` mints a token against a `scheduleId`, and there is nothing to delete before the first save. In draft mode both controls are hidden (not disabled-and-mysterious), leaving Save alone in the header, and they appear once the schedule has been saved and the route becomes `/schedule/[id]`.
+**Delete Schedule** and **Add to calendar** both require a persisted schedule - `getSubscribeUrl` mints a token against a `scheduleId`, and there is nothing to delete before the first save. In draft mode both controls are hidden (not disabled-and-mysterious), leaving Save alone in the header, and they appear once the schedule has been saved and the route becomes `/schedule/[id]`.
 
 ---
 
@@ -106,17 +106,17 @@ Two tabs, mirroring Workday.
 
 Sections currently in the buffer, **grouped by course** and collapsible (matching the screenshot's card-per-course with a chevron). Each card shows course code + title and credits; expanding reveals its sections with activity, time, location, instructor, a remove control and an ⓘ button.
 
-Workday's cards also show a "Grading Basis" line. **We do not have that field** — `Section` carries `activity`, `status`, `deliveryMode`, `enrolTotal` and `enrolCap`, and nothing in the catalogue scrape supplies grading basis. It is omitted rather than faked.
+Workday's cards also show a "Grading Basis" line. **We do not have that field** - `Section` carries `activity`, `status`, `deliveryMode`, `enrolTotal` and `enrolCap`, and nothing in the catalogue scrape supplies grading basis. It is omitted rather than faked.
 
 A "Total Courses: N" count sits above the list, as in Workday.
 
 ### 5.2 Find Courses
 
-**Search queries as you type** — the current implementation requires submitting a form, which is the specific complaint. Debounced at 200 ms with request cancellation, reusing the exact idiom already proven in `src/components/SearchBar.tsx` (`DEBOUNCE_MS`, `cancelled` flag in the effect cleanup). Backed by the existing `searchSections` action.
+**Search queries as you type** - the current implementation requires submitting a form, which is the specific complaint. Debounced at 200 ms with request cancellation, reusing the exact idiom already proven in `src/components/SearchBar.tsx` (`DEBOUNCE_MS`, `cancelled` flag in the effect cleanup). Backed by the existing `searchSections` action.
 
 Results group by course rather than listing raw sections (today's flat list repeats "CPSC 110" once per section). Expanding a course shows its sections; each has add + ⓘ. Sections already in the buffer render as "Added" and are not re-addable.
 
-Term-scoped, as today — searching is always within the selected term.
+Term-scoped, as today - searching is always within the selected term.
 
 ---
 
@@ -131,14 +131,14 @@ New `ScheduleCalendar` client component replaces `WeekGrid` (which is server-ren
 **Interaction:**
 - Click a block → opens the course info overlay (§7) for that section's course
 - Hover a block → reveals a remove (×) control
-- Conflicting blocks keep the existing advisory treatment (rendered, never hidden — `findConflicts` is unchanged) restyled to the new palette
+- Conflicting blocks keep the existing advisory treatment (rendered, never hidden - `findConflicts` is unchanged) restyled to the new palette
 - Untimed / async sections render in a strip above the grid, matching the yellow full-width bar in Workday, instead of today's plain sentence beneath it
 
 ---
 
 ## 7. Course information overlay
 
-One component, `CourseInfoOverlay`, opened from three places: the ⓘ in Find Courses, the ⓘ in Saved Courses, and clicking a calendar block. **Always an overlay, never a redirect** — with a "View full course page →" link for students who do want the full page.
+One component, `CourseInfoOverlay`, opened from three places: the ⓘ in Find Courses, the ⓘ in Saved Courses, and clicking a calendar block. **Always an overlay, never a redirect** - with a "View full course page →" link for students who do want the full page.
 
 Data is fetched on demand by a new `getCourseDetail(courseId)` server action and cached per course in client state, so reopening is instant and the builder page's initial load stays cheap.
 
@@ -148,7 +148,7 @@ Contents:
 |---|---|---|
 | Header | `Course` | code, title, credits, description |
 | Sections | `Section` + `MeetingTime` + `SectionInstructor` | times, location, seats, instructors, add/remove inline |
-| Instructor ratings | `InstructorReview` (ours) + an RMP link-out | our own verified-enrolment ratings; RMP data is **not** ingested — see the §9 supersession note |
+| Instructor ratings | `InstructorReview` (ours) + an RMP link-out | our own verified-enrolment ratings; RMP data is **not** ingested - see the §9 supersession note |
 | Grade distribution | `GradeDistribution` | reuses `GradeChart` unchanged |
 | Historical averages | `CourseHistoricalGrades` + `…ByTerm` | reuses `HistoricalGradesTimeline` + summary stats |
 | Requirements | `prereqTree` / `coreqTree` | reuses `RequirementTree` |
@@ -161,11 +161,11 @@ Contents:
 
 `/schedule`'s primary button is renamed **"Create Saved Schedule" → "Build Schedule"**, with a second button **"Import from Workday"** beside it.
 
-"Import from Workday" opens an overlay with the export instructions (Workday → Academics → **View My Courses** → Export to Excel — the same copy already written in `UploadCoursesForm`), an `.xlsx` file input, and a result summary.
+"Import from Workday" opens an overlay with the export instructions (Workday → Academics → **View My Courses** → Export to Excel - the same copy already written in `UploadCoursesForm`), an `.xlsx` file input, and a result summary.
 
 ### 8.1 A separate path from `/api/upload`, deliberately
 
-The existing upload endpoint parses the file **and** writes `Enrollment` rows, binds `studentIdHash`, and sets `verifiedAt`. That is correct for account verification and wrong for schedule import: a student trying out the builder — possibly not even signed in — should not have their identity bound as a side effect of previewing a timetable.
+The existing upload endpoint parses the file **and** writes `Enrollment` rows, binds `studentIdHash`, and sets `verifiedAt`. That is correct for account verification and wrong for schedule import: a student trying out the builder - possibly not even signed in - should not have their identity bound as a side effect of previewing a timetable.
 
 So this phase adds a **parse-and-match-only** server action:
 
@@ -187,7 +187,7 @@ All three inputs are already produced by the existing parser and verified agains
   → term inferred from meeting start date 2026-09-09 → 2026W Term 1
 ```
 
-Matched sections load into the builder's buffer; the term selector switches to the file's term. Unmatched rows are listed by name in the overlay — never dropped silently, consistent with the rule the enrollment importer already follows.
+Matched sections load into the builder's buffer; the term selector switches to the file's term. Unmatched rows are listed by name in the overlay - never dropped silently, consistent with the rule the enrollment importer already follows.
 
 ### 8.2 Known gap this exposes
 
@@ -197,10 +197,10 @@ While validating the parser against a real export, the result panel was found to
 
 ## 9. RateMyProfessors ratings
 
-> **SUPERSEDED — 2026-08-23. The ingest described below was NOT built and must not be.**
+> **SUPERSEDED - 2026-08-23. The ingest described below was NOT built and must not be.**
 >
 > The §9.1 spike ran; findings in `docs/superpowers/notes/2026-08-23-ratemyprofessors-spike.md`.
-> Every technical question came back positive — unauthenticated GraphQL, 5,372 UBC professors,
+> Every technical question came back positive - unauthenticated GraphQL, 5,372 UBC professors,
 > all needed fields, and an 85.7% name match with **zero** ambiguity over a 300-professor
 > sample. The blocker is policy, not capability: `ratemyprofessors.com/robots.txt` is
 > `User-agent: *` / `Disallow: /` with carve-outs only for named search crawlers, and it
@@ -208,8 +208,8 @@ While validating the parser against a real export, the result panel was found to
 > unauthenticated endpoint is their own app's backend, not permission.
 >
 > **What was built instead** (see `docs/superpowers/plans/2026-08-23-phase-5-instructor-ratings.md`):
-> §9.4's link-out — an RMP *search* URL built from the instructor's name, with the app making
-> zero requests — alongside our own `InstructorReview` data surfaced in the course overlay via
+> §9.4's link-out - an RMP *search* URL built from the instructor's name, with the app making
+> zero requests - alongside our own `InstructorReview` data surfaced in the course overlay via
 > the existing `aggregateInstructorReviews`. No `InstructorRating` model, no ingest job.
 >
 > §§9.2, 9.3 and 9.5 below are retained as a record of the design that was evaluated and
@@ -219,7 +219,7 @@ New subsystem. RMP publishes no public API, so this is the highest-risk item in 
 
 ### 9.1 Spike gate
 
-**Phase 5 of the plan opens with a spike, not with implementation.** The spike answers, against the live service: is the GraphQL endpoint reachable server-side, what authorization does it require, can UBC (school 1413) teachers be enumerated, and what fields come back. Its output is a findings note under `docs/superpowers/notes/`, and it is allowed to conclude "not viable" — in which case the UI falls back to the link-out treatment described in §9.4 and the model below is not built.
+**Phase 5 of the plan opens with a spike, not with implementation.** The spike answers, against the live service: is the GraphQL endpoint reachable server-side, what authorization does it require, can UBC (school 1413) teachers be enumerated, and what fields come back. Its output is a findings note under `docs/superpowers/notes/`, and it is allowed to conclude "not viable" - in which case the UI falls back to the link-out treatment described in §9.4 and the model below is not built.
 
 The design below is what gets implemented **if** the spike succeeds.
 
@@ -235,7 +235,7 @@ model InstructorRating {
   wouldTakeAgain Float?
   numRatings     Int      @default(0)
   rmpUrl         String?
-  /** 'exact' | 'normalized' — how the RMP name was matched to ours. */
+  /** 'exact' | 'normalized' - how the RMP name was matched to ours. */
   matchQuality   String
   updatedAt      DateTime @updatedAt
 }
@@ -245,11 +245,11 @@ model InstructorRating {
 
 UBC's instructor names and RMP's are entered by different people and do not reliably agree. The ingest normalizes both sides (lowercase, strip accents, punctuation and middle initials) and matches on first + last name.
 
-**A name that matches more than one `Instructor`, or none, is skipped and counted — never assigned to a best guess.** Attaching a stranger's teaching rating to a named real person is the worst failure mode available here, and it is worse than showing nothing. Only `exact` and `normalized` matches are stored, and `matchQuality` is retained so the UI can suppress weaker matches later without a re-ingest.
+**A name that matches more than one `Instructor`, or none, is skipped and counted - never assigned to a best guess.** Attaching a stranger's teaching rating to a named real person is the worst failure mode available here, and it is worse than showing nothing. Only `exact` and `normalized` matches are stored, and `matchQuality` is retained so the UI can suppress weaker matches later without a re-ingest.
 
 ### 9.4 Display, and degradation
 
-In the overlay, each instructor shows rating, difficulty, would-take-again and rating count, with a link to their RMP page. Any instructor without a row — no match, spike failed, or job never run — renders a neutral "No rating available" with a search link to RMP. **The overlay must be fully usable with the entire `InstructorRating` table empty**, which is also how Phases 1-4 are able to ship before this one.
+In the overlay, each instructor shows rating, difficulty, would-take-again and rating count, with a link to their RMP page. Any instructor without a row - no match, spike failed, or job never run - renders a neutral "No rating available" with a search link to RMP. **The overlay must be fully usable with the entire `InstructorRating` table empty**, which is also how Phases 1-4 are able to ship before this one.
 
 ### 9.5 Operational notes
 
@@ -261,23 +261,23 @@ Run as `npm run ingest:rmp`, rate-limited through the existing `src/scrape/http.
 
 Each phase is independently shippable and leaves the app working.
 
-1. **Unified builder shell** — merge the two surfaces, full-bleed layout, tabbed left panel, live-as-you-type search, buffered Save/Delete, condensed calendar-subscribe dropdown. Deletes the duplicate editor.
-2. **Calendar** — `ScheduleCalendar` with Notion styling, per-course colour, click and remove, untimed strip.
-3. **Course info overlay** — `getCourseDetail`, overlay shell, grades + requirements wired in, grade components converted to theme tokens.
-4. **Workday import** — `parseWorkdayForSchedule`, import overlay, term switching, honest exclusion reporting.
-5. **RMP** — spike → (if viable) model, ingest job, ratings in the overlay.
+1. **Unified builder shell** - merge the two surfaces, full-bleed layout, tabbed left panel, live-as-you-type search, buffered Save/Delete, condensed calendar-subscribe dropdown. Deletes the duplicate editor.
+2. **Calendar** - `ScheduleCalendar` with Notion styling, per-course colour, click and remove, untimed strip.
+3. **Course info overlay** - `getCourseDetail`, overlay shell, grades + requirements wired in, grade components converted to theme tokens.
+4. **Workday import** - `parseWorkdayForSchedule`, import overlay, term switching, honest exclusion reporting.
+5. **RMP** - spike → (if viable) model, ingest job, ratings in the overlay.
 
 ---
 
 ## 11. Testing
 
-Following the repo's existing split — pure logic gets unit tests, DB-touching code gets integration tests, UI gets a real browser check.
+Following the repo's existing split - pure logic gets unit tests, DB-touching code gets integration tests, UI gets a real browser check.
 
 - **Section matching** (`parseWorkdayForSchedule`): unit tests over the real export fixture shape, covering a matched row, an unknown section code, and a term with no `Section` rows.
 - **Buffer diffing** (`replaceScheduleSections`): added-only, removed-only, and no-op diffs.
 - **Colour assignment**: same course code always yields the same palette entry.
 - **Name normalization** (Phase 5): accents, middle initials, and the ambiguous-match rejection path.
-- **Browser**: each phase ends by driving the real page — import an `.xlsx`, confirm blocks land on the grid, open the overlay from a calendar block, save, and reload to confirm persistence.
+- **Browser**: each phase ends by driving the real page - import an `.xlsx`, confirm blocks land on the grid, open the overlay from a calendar block, save, and reload to confirm persistence.
 
 ---
 
@@ -285,8 +285,8 @@ Following the repo's existing split — pure logic gets unit tests, DB-touching 
 
 Deliberately excluded so this phase stays finishable:
 
-- Automatic conflict *resolution* or section suggestions — conflicts stay advisory, as today.
+- Automatic conflict *resolution* or section suggestions - conflicts stay advisory, as today.
 - Drag-to-move or drag-to-resize calendar blocks. Sections have fixed meeting times; dragging implies an edit the registrar does not permit.
 - Multi-term side-by-side view. One schedule is one term.
 - Registration or waitlist actions. This app plans; Workday registers.
-- Fixing `UploadCoursesForm`'s exclusion-reporting bug (§8.2) on the Account page — noted, tracked, but a separate change.
+- Fixing `UploadCoursesForm`'s exclusion-reporting bug (§8.2) on the Account page - noted, tracked, but a separate change.

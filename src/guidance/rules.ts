@@ -3,7 +3,7 @@
  *
  * Deliberately separate from `Requirement` in src/prereqs/parse.ts. That type
  * describes what a *course* demands and its parser bails on "one of", "N of"
- * and "either" (see its AMBIGUOUS/BAILOUT guards) — which is exactly what a
+ * and "either" (see its AMBIGUOUS/BAILOUT guards) - which is exactly what a
  * *degree* is made of. The two problems only look alike.
  */
 
@@ -51,14 +51,14 @@ type Base = {
    * does not take 12 Arts credits ON TOP of their degree, they take 12 of
    * their elective credits in Arts. Counting them as additional obligations
    * inflated a 120-credit degree to 135 and added a year and a half to the
-   * plan — the Calendar's own table sums to exactly 120 with electives in it.
+   * plan - the Calendar's own table sums to exactly 120 with electives in it.
    *
    * A constraint still appears in the checklist and still gets a slot in the
    * plan; the slot is drawn from the elective pool rather than added beside it.
    */
   constraint?: boolean;
   /**
-   * Free credits, spendable on anything — the residual a program leaves after
+   * Free credits, spendable on anything - the residual a program leaves after
    * its named requirements, and the only pool a `constraint` may be charged
    * against.
    *
@@ -68,7 +68,7 @@ type Base = {
    * Communication Requirement, the Ways of Knowing breadth areas), and the
    * solver charged constraints against whichever of them came first. In the
    * Psychology major that silently ate the 6 credits of Behavioural
-   * Neuroscience and the 12 further upper-level credits — 18 credits of
+   * Neuroscience and the 12 further upper-level credits - 18 credits of
    * required psychology replaced by Ways of Knowing slots, with nothing
    * reported unplaced.
    */
@@ -76,8 +76,8 @@ type Base = {
   /**
    * The year of the degree the Calendar puts this requirement in.
    *
-   * UBC already publishes a curated sequence — which courses pair well, which
-   * crush a term — and the program tables state it directly. Deriving an
+   * UBC already publishes a curated sequence - which courses pair well, which
+   * crush a term - and the program tables state it directly. Deriving an
    * order from prerequisite depth instead reconstructs, badly, an answer we
    * were handed: it produced plans with CPSC 110 in fourth year, because
    * nothing in a prerequisite graph says an intro course belongs early.
@@ -101,8 +101,8 @@ export type Rule =
        * What the PROGRAM prices this course at, when that differs from the
        * catalogue.
        *
-       * UBC has variable-credit courses — CPEN 221 is "(4-5)", ELEC 491 and
-       * CPEN 491 are "(5-10)" — and the catalogue stores a single number,
+       * UBC has variable-credit courses - CPEN 221 is "(4-5)", ELEC 491 and
+       * CPEN 491 are "(5-10)" - and the catalogue stores a single number,
        * the bottom of the range. A program table that requires the top of it
        * was first modelled as a credits rule over a one-code list, which got
        * the arithmetic right and broke everything downstream: a credits rule
@@ -115,12 +115,12 @@ export type Rule =
   | (Base & { kind: 'chooseN'; n: number; of: Rule[] })
   /** N credits drawn from a set. Covers electives and "9 credits of CPSC 300+". */
   | (Base & { kind: 'credits'; n: number; from: CourseSet })
-  /** Structure only — carries no requirement of its own. */
+  /** Structure only - carries no requirement of its own. */
   | (Base & { kind: 'group'; items: Rule[] })
   /**
    * A real requirement we cannot evaluate. Shown to the student, never placed
    * by the solver, and never counted as satisfied. This exists so that an
-   * un-modelled rule is visible rather than silently absent — the failure mode
+   * un-modelled rule is visible rather than silently absent - the failure mode
    * that would let a plan claim a student can graduate when they cannot.
    */
   | (Base & { kind: 'note'; detail: string });
@@ -186,7 +186,7 @@ export function obligations(rules: Rule[]): Rule[] {
   return out;
 }
 
-/** A course as the guidance engine needs it — no Prisma types in the core. */
+/** A course as the guidance engine needs it - no Prisma types in the core. */
 export type CourseRef = {
   id: string;
   subject: string;
@@ -209,7 +209,7 @@ export function matches(set: CourseSet, course: CourseRef): boolean {
   if (set.excludeSubjects?.includes(course.subject)) return false;
   if (set.subjects && !set.subjects.includes(course.subject)) return false;
   // A faculty pattern with no faculty data matches nothing rather than
-  // everything — an unpopulated Subject.faculty must not silently turn
+  // everything - an unpopulated Subject.faculty must not silently turn
   // "12 credits of Arts" into "any 12 credits".
   if (set.faculty && course.faculty !== set.faculty) return false;
   const level = courseLevel(course.number);

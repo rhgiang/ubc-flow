@@ -10,12 +10,12 @@ import type { VoteKind } from '@/app/actions/review-votes';
 const AVATAR_COLORS = ['#002145', '#04316b', '#41505c', '#55636e', '#3a5a78', '#1f4e79'];
 
 /**
- * Same review id -> same avatar, every render — not Math.random(), which would
+ * Same review id -> same avatar, every render - not Math.random(), which would
  * differ between the server pass and hydration.
  *
  * Note the id is the *review* id, never the reviewer's. Keying on a user would
  * give one person the same icon on every review they ever left, which is all
- * anyone would need to thread them together across courses and instructors —
+ * anyone would need to thread them together across courses and instructors -
  * on a site whose whole premise is that reviews are anonymous.
  */
 function hash(id: string, seed: number): number {
@@ -55,7 +55,7 @@ export type TaughtBy = { name: string; slug: string };
 const BODY_PROMPT = 'What is wrong with this review?\n\n';
 
 /**
- * Both thumbs, with the one they picked coloured and the other left grey —
+ * Both thumbs, with the one they picked coloured and the other left grey -
  * UW Flow's ThumbsRatings. Showing only the chosen thumb leaves the reader
  * deciding whether a lone grey thumb means "no" or "did not answer"; showing
  * the pair makes the answer obvious at a glance.
@@ -115,7 +115,7 @@ export default function ReviewCard({
   attribution: string;
   /** Already-formatted age, e.g. "3 days ago". Omitted where it isn't known. */
   when?: string | null;
-  /** Who taught the reviewer — the instructors they reviewed alongside this. */
+  /** Who taught the reviewer - the instructors they reviewed alongside this. */
   taughtBy?: TaughtBy[];
   /** Omit to hide the helpful button entirely (the professor page's own list). */
   vote?: { kind: VoteKind; votes: number; voted: boolean; signedIn: boolean };

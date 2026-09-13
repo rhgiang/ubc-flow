@@ -70,8 +70,8 @@ function ExamChip({
       }${fromSyllabus ? ', from your syllabus' : ''}`}
       title={
         fromSyllabus
-          ? `${item.courseLabel} - from your syllabus, double-check this date`
-          : `${item.courseLabel} - UBC exam schedule`
+          ? `${item.courseLabel}: from your syllabus. Double-check this date.`
+          : `${item.courseLabel}: UBC exam schedule`
       }
       style={
         {
@@ -276,7 +276,7 @@ export default function ExamCalendar({
         <div>
           <h3 className="text-sm font-medium text-foreground">Not on the calendar</h3>
           <p className="mb-2 text-xs text-text-tertiary">
-            These have no date to sit on - a cancelled exam, or one UBC hasn&apos;t
+            These have no date to sit on: a cancelled exam, or one UBC hasn&apos;t
             scheduled yet.
           </p>
           <ExamList items={unscheduled.flat()} onSelect={onSelect} onRemove={onRemove} />

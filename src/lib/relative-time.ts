@@ -1,5 +1,5 @@
 /**
- * "3 days ago", "last month" — the age of a review, in the form UW Flow and
+ * "3 days ago", "last month" - the age of a review, in the form UW Flow and
  * every other review site states it.
  *
  * Intl.RelativeTimeFormat rather than a date library: it is in the platform,

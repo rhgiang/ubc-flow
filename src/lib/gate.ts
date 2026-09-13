@@ -6,7 +6,7 @@ import { db } from '@/lib/db';
  *
  * Transfer credit is excluded twice over. Import never marks those rows
  * verified, and the status check below says so outright rather than resting
- * on that — the course was taken at another institution, so the student has
+ * on that - the course was taken at another institution, so the student has
  * nothing to say about UBC's version of it.
  */
 export async function canReview(userId: string, courseId: string): Promise<boolean> {

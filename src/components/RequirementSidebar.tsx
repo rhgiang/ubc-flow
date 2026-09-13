@@ -18,7 +18,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-// Small print under a parsed tree (or in place of one the parser bailed on) —
+// Small print under a parsed tree (or in place of one the parser bailed on) -
 // the parser is heuristic (see BAILOUT/AMBIGUOUS in src/prereqs/parse.ts) and
 // can misread an ambiguous clause, so the raw calendar text stays one glance
 // away for a reader to double-check.

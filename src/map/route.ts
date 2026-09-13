@@ -3,7 +3,7 @@ import { findBuilding, type Building } from '@/map/buildings';
 
 /**
  * One place you stand during the day. Consecutive classes in the same
- * building merge into a single stop — walking from HENN to HENN is not a leg.
+ * building merge into a single stop - walking from HENN to HENN is not a leg.
  */
 export type RouteStop = {
   code: string;

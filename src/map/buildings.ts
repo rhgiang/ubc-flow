@@ -4,7 +4,7 @@ import raw from './ubcv-buildings.json';
  * UBC Vancouver building locations, vendored once from UBC's open geospatial
  * dataset (github.com/UBCGeodata/ubc-geospatial-opendata,
  * ubcv/locations/csv/ubcv_buildings_simple.csv). Keyed by the official
- * building code — the same codes Workday writes into meeting patterns
+ * building code - the same codes Workday writes into meeting patterns
  * (SWNG, ICCS, ESB...), verified against every imported meeting on record.
  */
 export type Building = { name: string; lat: number; lng: number };
@@ -20,7 +20,7 @@ export function findBuilding(code: string | null | undefined): Building | null {
  * "2207" -> "Floor 2", "121" -> "Floor 1", "B101" -> "Basement".
  *
  * ponytail: UBC room numbers put the floor in the leading digit (B for
- * basement) — right for nearly every building on campus, but a heuristic,
+ * basement) - right for nearly every building on campus, but a heuristic,
  * not data. If an odd building misleads someone, the fix is a per-building
  * override table here, not more parsing.
  */

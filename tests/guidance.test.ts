@@ -212,7 +212,7 @@ describe('solver', () => {
 
   it('satisfies an OR prerequisite from either branch', () => {
     // The bug this guards: CoursePrereqEdge flattens "One of 107, 110" into
-    // two edges, and requiring both made CPSC 210 — and everything after it —
+    // two edges, and requiring both made CPSC 210 - and everything after it -
     // impossible to place.
     expect(treeMet(oneOf('CPSC 107', 'CPSC 110'), new Set(['CPSC 110']))).toBe(true);
     expect(treeMet(oneOf('CPSC 107', 'CPSC 110'), new Set(['CPSC 107']))).toBe(true);
@@ -244,14 +244,14 @@ describe('solver', () => {
     );
     expect(treeMet(tightened, new Set())).toBe(false);
     // "either 221 or DSCI 221" is an OR, so 213 alone is not enough but
-    // 213 + 221 is — and 221 alone is not, because 213 is a separate conjunct.
+    // 213 + 221 is - and 221 alone is not, because 213 is a separate conjunct.
     expect(treeMet(tightened, new Set(['CPSC 221']))).toBe(false);
     expect(treeMet(tightened, new Set(['CPSC 213', 'CPSC 221']))).toBe(true);
   });
 
   it('reads "one of A, B and one of C, D" as a conjunction of alternatives', () => {
-    // CPSC 221's actual text. Reading it as "all four" made 221 — and the
-    // whole upper-year chain behind it — impossible to place.
+    // CPSC 221's actual text. Reading it as "all four" made 221 - and the
+    // whole upper-year chain behind it - impossible to place.
     const ids = new Map([
       ['CPSC 210', 'CPSC 210'], ['CPSC 260', 'CPSC 260'],
       ['CPSC 121', 'CPSC 121'], ['MATH 220', 'MATH 220'],
@@ -293,7 +293,7 @@ describe('solver', () => {
     for (const t of plan.terms) {
       for (const c of coursesIn(t)) {
         // Everything this course needs must already be satisfied by an
-        // EARLIER term — not by anything sharing its own term.
+        // EARLIER term - not by anything sharing its own term.
         expect(treeMet(prereqs.get(c.id), seen)).toBe(true);
       }
       for (const c of coursesIn(t)) seen.add(c.id);
@@ -330,7 +330,7 @@ describe('solver', () => {
     expect(withSummer.terms.length).toBeGreaterThan(0);
   });
 
-  it('skips a term marked unavailable — the co-op work-term case', () => {
+  it('skips a term marked unavailable - the co-op work-term case', () => {
     const coop = terms.map((t) => (t.id === 't1' ? { ...t, available: false } : t));
     const plan = solve(base({ terms: coop }));
     expect(plan.terms.map((t) => t.term.id)).not.toContain('t1');
@@ -407,7 +407,7 @@ describe('solver', () => {
       }),
     );
     const slots = plan.terms.flatMap((t) => t.placements).filter((p) => p.kind === 'slot');
-    // Unresolvable set, so no concrete course — but still planned, not dropped.
+    // Unresolvable set, so no concrete course - but still planned, not dropped.
     expect(slots.length).toBeGreaterThan(0);
     expect(slots.reduce((s, p) => s + (p.kind === 'slot' ? p.credits : 0), 0)).toBe(6);
     expect(plan.terms.flatMap(coursesIn)).toHaveLength(0);
@@ -415,7 +415,7 @@ describe('solver', () => {
 
   it('offers a breadth category once, not once per term', () => {
     const breadth: Rule = {
-      id: 'r.breadth', kind: 'chooseN', label: 'Science Breadth — 3 credits from any 2 of 3', n: 2,
+      id: 'r.breadth', kind: 'chooseN', label: 'Science Breadth - 3 credits from any 2 of 3', n: 2,
       of: [
         { id: 'b.chem', kind: 'credits', label: 'Chemistry', n: 3, from: { kind: 'pattern', subjects: ['CHEM'] } },
         { id: 'b.phys', kind: 'credits', label: 'Physics', n: 3, from: { kind: 'pattern', subjects: ['PHYS'] } },
@@ -429,8 +429,8 @@ describe('solver', () => {
         prefs: { creditsPerTerm: 4, useSummer: false, targetTermId: null }, // forces a spread across terms
       }),
     );
-    // Slots are labelled generically now — "Science Breadth", not
-    // "Science Breadth: Chemistry" — because the category is the student's
+    // Slots are labelled generically now - "Science Breadth", not
+    // "Science Breadth: Chemistry" - because the category is the student's
     // choice. Identity is checked through the example courses instead.
     const slots = plan.terms.flatMap((t) => t.placements).flatMap((p) => (p.kind === 'slot' ? [p] : []));
     expect(slots).toHaveLength(2); // n = 2
@@ -503,7 +503,7 @@ describe('solver', () => {
 
 describe('transcription verification', () => {
   it('reads the Calendar\'s subject-carrying shorthand', () => {
-    // "CPSC_V 310, 313, 320" — only the first number carries a subject.
+    // "CPSC_V 310, 313, 320" - only the first number carries a subject.
     const found = codesOnPage('<td>CPSC_V 310, 313, 320</td>');
     expect([...found].sort()).toEqual(['CPSC 310', 'CPSC 313', 'CPSC 320']);
   });
@@ -635,7 +635,7 @@ describe('course codes glued to the next word', () => {
 describe('lettered prerequisite alternatives', () => {
   it('reads "(a) …; or (b) …" as alternatives, not as a conjunction', () => {
     // STAT 305's real shape. parseRequirements splits on the semicolons and
-    // joins the pieces with AND, which demands every option at once —
+    // joins the pieces with AND, which demands every option at once -
     // including DSCI 200, which a Statistics major never takes.
     const parsed: Requirement = {
       type: 'and',
@@ -663,7 +663,7 @@ describe('lettered alternatives inside a single note', () => {
   it('splits "(a) … or (b) … or (c) …" into branches before reading "and"', () => {
     // BIOL 200's real prerequisite, all in one sentence. Splitting on "and"
     // first joins clauses that are alternatives, demanding (a) and (c) and
-    // (d) together — which nobody satisfies.
+    // (d) together - which nobody satisfies.
     const note: Requirement = {
       type: 'note',
       text:
@@ -753,7 +753,7 @@ describe('Arts faculty core', () => {
   walk(artsFacultyCore2026W.rules, (r) => flat.push(r));
 
   it('reserves exactly the 18 Ways of Knowing breadth credits', () => {
-    // 9 in one course code, 6 in another, 3 in the last — the fourth area is
+    // 9 in one course code, 6 in another, 3 in the last - the fourth area is
     // covered by the student's own major.
     const wok = flat.filter((r) => r.id.startsWith('arts.wok.') && r.kind === 'credits');
     expect(wok.map((r) => (r as Extract<Rule, { kind: 'credits' }>).n).sort((a, b) => b - a)).toEqual([9, 6, 3]);
@@ -845,7 +845,7 @@ describe('Science Breadth categories match the Calendar', () => {
 
   it('excludes GEOS from the 12 Arts credits', () => {
     // Geography is a Faculty of Arts subject, so a bare faculty pattern
-    // counted GEOS toward the Arts requirement. The Calendar excludes it —
+    // counted GEOS toward the Arts requirement. The Calendar excludes it -
     // those courses carry science credit instead.
     const arts = [...cats.values()].find((r) => r.id === 'sci.arts')
       ?? (() => { let f: Rule | undefined; walk(scienceFacultyCore2026W.rules, (r) => { if (r.id === 'sci.arts') f = r; }); return f as Extract<Rule, { kind: 'credits' }>; })();
@@ -870,8 +870,8 @@ describe('a constraint is charged to electives only', () => {
 
   it('does not eat a real requirement that happens to be a credits rule', () => {
     // The Psychology bug. A requirement whose approved list is not
-    // transcribed looks exactly like an elective — a credits rule over an
-    // empty code list — and the constraint was charged against it. 18 credits
+    // transcribed looks exactly like an elective - a credits rule over an
+    // empty code list - and the constraint was charged against it. 18 credits
     // of required psychology vanished from the plan with nothing reported
     // unplaced.
     const rules: Rule[] = [
@@ -893,7 +893,7 @@ describe('a constraint is charged to electives only', () => {
     // Shrinking is what stops a couple of stranded credits needing a term of
     // their own, and a plain credits rule survives it: `left` counts credits,
     // so the remainder comes back in a later term. A chooseN counts BRANCHES,
-    // so one shortened slot closes a whole branch — a 6-credit Psychology
+    // so one shortened slot closes a whole branch - a 6-credit Psychology
     // content area was reported satisfied by a 3-credit slot.
     const areas: Rule = {
       id: 'areas', kind: 'chooseN', label: 'Two content areas', n: 2,
@@ -919,7 +919,7 @@ describe('a degree that does not divide evenly into terms', () => {
   it('does not open a term for a sliver of credits', () => {
     // The B.Com. is 121 credits, and 121 at 15 a term is 8.07 terms. A ninth
     // term opened to hold one credit of electives, which nobody registers in.
-    // Real students take 16 credits once instead — the Calendar's own
+    // Real students take 16 credits once instead - the Calendar's own
     // second-year table is 31 credits for the same reason.
     const plan = solve({
       outstanding: outstanding([], [
@@ -937,7 +937,7 @@ describe('a degree that does not divide evenly into terms', () => {
   });
 
   it('leaves a full final term alone', () => {
-    // The merge is for slivers only — a tail worth a real term stays put.
+    // The merge is for slivers only - a tail worth a real term stays put.
     const plan = solve({
       outstanding: outstanding([], [
         { id: 'e', kind: 'credits', label: 'Electives', elective: true, n: 126, from: { kind: 'codes', codes: [] } },
@@ -966,7 +966,7 @@ describe('the year of the degree comes from the terms', () => {
     //
     // Here first year is emptied in a single 30-credit term. The term after it
     // has no first-year work left and is not yet allowed third-year work, so
-    // it places nothing — and under the old rule the plan stopped there for
+    // it places nothing - and under the old rule the plan stopped there for
     // good. Statistics did exactly this at 21 credits a term: three terms
     // planned, half the degree reported unplaceable, fifteen terms skipped.
     const rules: Rule[] = [

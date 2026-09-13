@@ -60,7 +60,7 @@ function ratingLine(r: InstructorRatingSummary): string {
 /**
  * "86.5% avg · +5.7% vs course · 3 terms, 740 students".
  *
- * An average GRADE from UBC's published distributions — deliberately not
+ * An average GRADE from UBC's published distributions - deliberately not
  * framed as a rating. The delta is what makes it readable: an 86.5% means
  * little until you know the course itself averages 80.8%, and it opens the
  * side-by-side comparison that shows where the difference comes from.
@@ -96,7 +96,7 @@ function GradeLine({
   );
 }
 
-/** "DMP 310, HENN 202" — de-duplicated, since a section's meetings often repeat a room. */
+/** "DMP 310, HENN 202" - de-duplicated, since a section's meetings often repeat a room. */
 function locationLabel(s: CourseSectionDetail): string | null {
   const places = [
     ...new Set(
@@ -150,7 +150,7 @@ export default function CourseInfoContent({
             </p>
           </>
         ) : (
-          // Always open — collapsing is there for a course like MATH 101 that
+          // Always open - collapsing is there for a course like MATH 101 that
           // fields dozens of sections, but it's the reader's call, not ours.
           <details open>
             <summary className="cursor-pointer text-sm font-semibold text-foreground">
@@ -237,7 +237,7 @@ export default function CourseInfoContent({
                                 // Said out loud rather than left blank: an
                                 // empty space here reads as a broken feature,
                                 // when it actually means UBC has published no
-                                // grades for this pairing — usually a
+                                // grades for this pairing - usually a
                                 // first-time offering for that instructor.
                                 <span
                                   className="ml-1.5 text-text-tertiary"

@@ -8,7 +8,7 @@ function href(code: string): string {
 
 export default function RequirementTree({ node }: { node: Requirement }) {
   if (node.type === 'course') {
-    // An unresolved code still shows — we just cannot link it (spec 5.2).
+    // An unresolved code still shows - we just cannot link it (spec 5.2).
     return node.courseId ? (
       <Link href={href(node.code)} className="text-brand-accent hover:underline">
         {node.code}

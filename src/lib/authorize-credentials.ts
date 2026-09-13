@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { verifyPassword } from '@/lib/hash';
 
-// Bcrypt hash of an arbitrary unused string (cost 12) — no real password will
+// Bcrypt hash of an arbitrary unused string (cost 12) - no real password will
 // ever match it. Used to pay the same bcrypt cost for nonexistent users so
 // login failure latency can't be used to enumerate which emails have accounts.
 const DUMMY_HASH = '$2b$12$4sX9Xy/qFm.8dakLKmXNiuL5iKJr/IdUsHrkxq3LpBezDO7dYkdVS';

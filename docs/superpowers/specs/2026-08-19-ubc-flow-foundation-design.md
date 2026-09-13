@@ -1,4 +1,4 @@
-# UBC Flow — Phase 1: Foundation (Design)
+# UBC Flow - Phase 1: Foundation (Design)
 
 **Date:** 2026-08-19
 **Status:** Approved for planning
@@ -12,7 +12,7 @@ Columbia, modelled on [UW Flow](https://uwflow.com). Students rate courses on
 
 UW Flow's source ([backend](https://github.com/UWFlow/uwflow),
 [frontend](https://github.com/UWFlow/uwflow_frontend)) is the reference for product
-decisions — schema shape, rating model, page layouts. It is **not** a code donor:
+decisions - schema shape, rating model, page layouts. It is **not** a code donor:
 their backend is Go + Hasura and their importer targets Waterloo's official course
 API. We are building a TypeScript monolith against UBC data sources. Expect to
 borrow the design and write the code.
@@ -22,15 +22,15 @@ borrow the design and write the code.
 These are why this is not merely a clone. They are designed into the schema now
 even though most ship in later phases:
 
-1. **Grade distributions** — UBC publishes historical grade data (PAIR/FOI
+1. **Grade distributions** - UBC publishes historical grade data (PAIR/FOI
    releases). Waterloo does not, so UW Flow structurally cannot offer this.
-2. **Workday schedule import + live calendar sync** — UBC's Workday Student is
+2. **Workday schedule import + live calendar sync** - UBC's Workday Student is
    widely disliked for viewing schedules and exporting to calendars. Every
    existing community tool (`workdaycal.vercel.app`, `jackkoskie/ubc-workday2cal`,
    the UBC Workday Calendar Generator extension) produces a **one-shot `.ics`
    that goes stale**. We serve a **subscribable webcal URL** that stays live.
    No existing UBC tool does this.
-3. **Design quality** — a deliberately higher visual bar than UW Flow. Continuous
+3. **Design quality** - a deliberately higher visual bar than UW Flow. Continuous
    across all phases, not a phase of its own.
 
 ### Phase order
@@ -60,14 +60,14 @@ read-only catalogue. Nobody can log in or rate anything yet.
 
 **Done when:** a visitor can search UBC courses, open a course page showing its
 description, credits, sections, meeting times, and instructors, and open a
-professor page listing the courses they teach — with data refreshed on a schedule
+professor page listing the courses they teach - with data refreshed on a schedule
 from live UBC sources.
 
 ---
 
 ## 3. Data source research (findings)
 
-Investigated 2026-08-19. **These findings materially shape the phase — read before
+Investigated 2026-08-19. **These findings materially shape the phase - read before
 planning the scraper.**
 
 ### 3.1 Every existing UBC scraper on GitHub is stale
@@ -89,30 +89,30 @@ and we do not copy the withdrawn project's approach.**
 The current search UI is at `https://courses.students.ubc.ca/course-search`. Its
 exposed filter is a standard Drupal Views form:
 
-- `campus` — radio, `1` = Vancouver, `2` = Okanagan (required)
-- `academic_period` — numeric term ID (`1449` = 2025-26 Winter Term 1 UBC-V,
+- `campus` - radio, `1` = Vancouver, `2` = Okanagan (required)
+- `academic_period` - numeric term ID (`1449` = 2025-26 Winter Term 1 UBC-V,
   `1450` = W2 UBC-V, `1452` = 2026 Summer UBC-V; Okanagan has its own IDs)
-- `subject` — numeric subject ID (`1810` = Computer Science Vancouver)
-- `subject_code` — free-text alternative (`CPSC`), preferable to the numeric ID
+- `subject` - numeric subject ID (`1810` = Computer Science Vancouver)
+- `subject_code` - free-text alternative (`CPSC`), preferable to the numeric ID
 - `course_number`, `title`, `credits`, `delivery_mode`
 
 `drupalSettings` exposes the view: `ajax_path: /views/ajax`, `view_name:
 new_course_search`, `view_display_id: block_1`, `view_path: /node/71615`.
 
-**Verified negative results — plain HTTP does not return course rows:**
+**Verified negative results - plain HTTP does not return course rows:**
 
 | Attempt | Result |
 |---|---|
 | `GET /course-search?campus=1&academic_period=1449&subject_code=CPSC` | 200, 75KB, **zero course rows** |
 | `POST /views/ajax` with full param set + `view_dom_id` | 200, 87KB, but the `insert` payload is **only the re-rendered filter form** |
 
-The academic calendar (`vancouver.calendar.ubc.ca`) behaves the same way — its
+The academic calendar (`vancouver.calendar.ubc.ca`) behaves the same way - its
 subject index yields 3 nav links and no course list to a plain GET.
 
 **Conclusion: both sources render content client-side.** A `fetch` + `cheerio`
 scraper will not work as-is.
 
-### 3.3 Consequence — the scraper is this phase's main risk
+### 3.3 Consequence - the scraper is this phase's main risk
 
 Phase 1 therefore **opens with a timeboxed spike** (see §6.1) before scraper
 implementation. Two candidate approaches, in preference order:
@@ -123,12 +123,12 @@ implementation. Two candidate approaches, in preference order:
    **Default assumption unless the spike finds something better.**
 2. **Reverse-engineered AJAX.** Capture the real request in browser DevTools
    (headers, session cookie, form build token, live `view_dom_id`) and replay it.
-   Much faster if it works — the spike's job is to find out.
+   Much faster if it works - the spike's job is to find out.
 
 Whichever wins, the scraper is a **scheduled batch job writing to our own
 database**. It is never a live proxy on the request path. Rate-limited,
 `User-Agent`-identified, results cached. We scrape only public, unauthenticated
-pages — never anything behind CWL.
+pages - never anything behind CWL.
 
 ---
 
@@ -139,10 +139,10 @@ Go API, importer, email) is sound for a funded team and overhead for a solo
 build.
 
 ```
-Next.js (App Router, TS)          — pages + route handlers, one deployable
-  └── Prisma ──► Postgres         — single source of truth
-Tailwind + shadcn/ui              — UI
-scripts/scrape/*.ts               — standalone scheduled jobs, same Prisma client
+Next.js (App Router, TS)          - pages + route handlers, one deployable
+  └── Prisma ──► Postgres         - single source of truth
+Tailwind + shadcn/ui              - UI
+scripts/scrape/*.ts               - standalone scheduled jobs, same Prisma client
 ```
 
 **Deliberately not doing:** no Hasura (hand-written queries; ratings CRUD is not
@@ -226,7 +226,7 @@ GradeDistribution  id, courseId, instructorId, termId, average,
 
 **Rating model** (mirrors UW Flow, ships Phase 3): `liked` is a boolean,
 `useful` and `difficulty` are `0..4` integers. Aggregates display as
-percentages. Note `difficulty` is stored as difficulty, not UW Flow's "easy" —
+percentages. Note `difficulty` is stored as difficulty, not UW Flow's "easy" -
 invert at the presentation layer, never in storage.
 
 ---
@@ -250,29 +250,29 @@ single subject (CPSC, Vancouver, one term), plus a saved HTML fixture for tests.
 
 Three jobs, run in dependency order:
 
-- **Subjects + terms** — populate `Subject` and `Term` from the search form's own
+- **Subjects + terms** - populate `Subject` and `Term` from the search form's own
   `<option>` lists. These *are* available to a plain GET and are the one piece
   already proven. Rarely changes; run weekly.
-- **Courses + sections** — per (campus, term, subject), populate `Course`,
+- **Courses + sections** - per (campus, term, subject), populate `Course`,
   `Section`, `MeetingTime`, `Instructor`, `SectionInstructor`. Run nightly during
   registration season, weekly otherwise.
-- **Descriptions** — enrich `Course.description`, `credits`, `prereqText` from
+- **Descriptions** - enrich `Course.description`, `credits`, `prereqText` from
   the academic calendar. Run weekly.
 
-All jobs are **idempotent upserts** — safe to re-run, never destructive. A run
+All jobs are **idempotent upserts** - safe to re-run, never destructive. A run
 that scrapes fewer than 80% of the previous run's rows aborts and alerts rather
 than writing, so an upstream markup change degrades to stale data instead of
 wiping the catalogue.
 
 ### 6.3 Pages
 
-- `/` — search entry and browse by subject
-- `/course/[code]` — e.g. `/course/cpsc-221`: description, credits, prereq prose,
+- `/` - search entry and browse by subject
+- `/course/[code]` - e.g. `/course/cpsc-221`: description, credits, prereq prose,
   sections table with times/locations/instructors, links to instructors. Leaves
   visible space for the Phase 3 ratings panel.
-- `/professor/[slug]` — courses taught, sections by term. Space reserved for
+- `/professor/[slug]` - courses taught, sections by term. Space reserved for
   Phase 3 ratings.
-- `/explore` — browse/filter by subject, faculty, campus, level
+- `/explore` - browse/filter by subject, faculty, campus, level
 
 Search in Phase 1 is Postgres `ILIKE`/trigram over course code and title.
 Postgres full-text or a dedicated search service only when that measurably
@@ -284,14 +284,14 @@ falls short.
 
 Proportionate, not ceremonial:
 
-- **Scraper parsers** — the real tests. Parse saved HTML fixtures from §6.1 into
+- **Scraper parsers** - the real tests. Parse saved HTML fixtures from §6.1 into
   expected structured output. These catch UBC markup changes, which is the
   failure mode that actually matters. No network in tests.
-- **Instructor name normalisation** — unit tests over the known-messy name
+- **Instructor name normalisation** - unit tests over the known-messy name
   variants.
-- **Upsert idempotency** — one integration test: run the same fixture twice,
+- **Upsert idempotency** - one integration test: run the same fixture twice,
   assert no duplicate rows.
-- **Pages** — smoke-level only. No component-level test suite for read-only
+- **Pages** - smoke-level only. No component-level test suite for read-only
   pages in Phase 1.
 
 ---
@@ -309,7 +309,7 @@ Proportionate, not ceremonial:
 **Cold start (out of scope but real):** UW Flow's value is ~100k reviews, not its
 code. A ratings site with no ratings is worthless. Phase 1 producing a complete,
 accurate catalogue is what makes the site useful enough to attract the first
-reviewers — treat catalogue completeness as a growth feature, not just plumbing.
+reviewers - treat catalogue completeness as a growth feature, not just plumbing.
 
 ---
 

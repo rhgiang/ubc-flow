@@ -24,7 +24,7 @@ const course = (id: string, code: string): Rule => ({
 });
 
 /**
- * Biology Major (BSc), 2026W — 120 credits.
+ * Biology Major (BSc), 2026W - 120 credits.
  *
  * Denser than the other Science majors: first year runs to 31 credits rather
  * than 30, second year carries a two-of-seven organismal diversity choice,
@@ -94,7 +94,7 @@ export const biolMajor2026W: Program = {
         course('biol.260', 'BIOL 260'),
         one('biol.genetics', 'BIOL 233 or 234', ['BIOL 233', 'BIOL 234']),
         {
-          // "Two of BIOL 203, 204, 205, 209, 210, or MICB 201 or 211" — the
+          // "Two of BIOL 203, 204, 205, 209, 210, or MICB 201 or 211" - the
           // first requirement in any program here that chooses more than one.
           id: 'biol.diversity',
           kind: 'chooseN',
@@ -144,7 +144,7 @@ export const biolMajor2026W: Program = {
           // The Calendar prints an explicit list, split into courses that do
           // and do not count toward the Science Requirement. It is not
           // transcribed here, so this is a pattern over the life-science
-          // subjects at the upper level — wide enough to suggest sensible
+          // subjects at the upper level - wide enough to suggest sensible
           // courses, and marked inferred because a course outside these
           // subjects may well be on the real list.
           from: {

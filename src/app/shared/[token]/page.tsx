@@ -11,7 +11,7 @@ import SharedCalendar from './SharedCalendar';
  *
  * No session is consulted at all: the token IS the capability, the same way
  * the calendar feed works. That also means the page must never render anything
- * about its owner — it shows a timetable and the term it belongs to, and
+ * about its owner - it shows a timetable and the term it belongs to, and
  * nothing that identifies whose it is.
  */
 export const dynamic = 'force-dynamic';
@@ -37,7 +37,7 @@ async function load(token: string) {
   return {
     name: schedule.name,
     termName: term?.name ?? null,
-    // Rooms saved with the schedule, since the catalogue carries none — a
+    // Rooms saved with the schedule, since the catalogue carries none - a
     // shared timetable is most useful when it says where to go.
     sections: applySectionLocations(sections.map(toSectionHit), schedule.sections),
   };
@@ -49,7 +49,7 @@ export async function generateMetadata({
   params: Promise<{ token: string }>;
 }): Promise<Metadata> {
   const data = await load((await params).token);
-  // A shared link is pasted into group chats, so it gets a real preview — but
+  // A shared link is pasted into group chats, so it gets a real preview - but
   // noindex, because these are personal and should never turn up in search.
   return {
     title: data ? `${data.name} · shared schedule` : 'Shared schedule',

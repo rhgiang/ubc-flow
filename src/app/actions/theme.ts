@@ -10,7 +10,7 @@ import { isMode, type Mode } from '@/lib/theme';
  * visit"; this covers everything else.
  *
  * Deliberately silent: the toggle fires this and forgets. A signed-out
- * visitor, or a failed write, costs nothing — localStorage has already
+ * visitor, or a failed write, costs nothing - localStorage has already
  * applied the choice locally, so there is nothing to tell the user about
  * and nothing to roll back.
  */
@@ -32,7 +32,7 @@ export async function saveThemeMode(mode: string): Promise<void> {
  * but auth() there forced every page dynamic; the pre-paint script now runs
  * on localStorage alone and this call reconciles the account's choice a
  * moment later. Null for a signed-out visitor, one who has never chosen, or
- * on any failure — all of which mean "leave the local theme alone".
+ * on any failure - all of which mean "leave the local theme alone".
  */
 export async function savedThemeMode(): Promise<Mode | null> {
   try {

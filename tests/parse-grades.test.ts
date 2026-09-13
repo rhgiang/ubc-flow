@@ -57,7 +57,7 @@ describe('parseGradeCsv', () => {
     const row = rows.find((r) => r.courseNumber === '449')!;
     expect(row.average).toBeNull();
     expect(row.median).toBeNull();
-    // A suppressed bucket is unknown, NOT zero — collapsing it would invent data.
+    // A suppressed bucket is unknown, NOT zero - collapsing it would invent data.
     expect(row.distribution['<50']).toBeNull();
   });
 
@@ -81,7 +81,7 @@ describe('parseGradeCsv', () => {
   it('does not let a comma inside a quoted title shift downstream columns', () => {
     // Real upstream data: CPSC 110's title is quoted because it contains
     // commas. A naive line.split(',') breaks inside the quotes and shifts
-    // every numeric column that follows — this reproduces that exact shape.
+    // every numeric column that follows - this reproduces that exact shape.
     const row = rows.find((r) => r.courseNumber === '110')!;
     expect(row.title).toBe('Computation, Programs, and Programming');
     expect(row.professors).toEqual(['Nick Bradley']);
@@ -104,7 +104,7 @@ describe('parseGradeCsv on the pre-2021 (v1) export', () => {
 
   it('reads the student count from Enrolled when Reported is absent', () => {
     // Without this the count is null, and a null count drops the row from
-    // aggregateDistributions' weighted average entirely — the whole of
+    // aggregateDistributions' weighted average entirely - the whole of
     // 2014-2020 would silently stop counting toward a course average.
     expect(v1Rows[0].reported).toBe(85);
     expect(v1Rows[1].reported).toBe(121);
@@ -121,7 +121,7 @@ describe('parseGradeCsv on the pre-2021 (v1) export', () => {
     expect(v1Rows[0].distribution['90-100']).toBe(21);
   });
 
-  it('leaves median null — the v1 export has no Median column', () => {
+  it('leaves median null - the v1 export has no Median column', () => {
     expect(v1Rows[0].median).toBeNull();
   });
 

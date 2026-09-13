@@ -8,7 +8,7 @@ const course = (id: string, code: string, year: number): Rule => ({
 });
 
 /**
- * Bachelor of Commerce core, 2026W — the 106 credits every option shares,
+ * Bachelor of Commerce core, 2026W - the 106 credits every option shares,
  * inside a 121-credit degree.
  *
  * Two things make this the odd one out among the programs here.
@@ -17,7 +17,7 @@ const course = (id: string, code: string, year: number): Rule => ({
  * is a one-credit course, and the Calendar's own year tables sum to 121. Every
  * other program transcribed so far lands on 120.
  *
- * And the option is not a major sitting on top of a faculty core — it is 15
+ * And the option is not a major sitting on top of a faculty core - it is 15
  * credits carved out of the third and fourth years, which the core's year
  * tables already reserve. So this core deliberately stops short of them: it
  * holds 106 credits, and the option that extends it supplies exactly 15. The
@@ -52,7 +52,7 @@ export const commerceCore2026W: Program = {
         {
           // Footnote 3: "Acceptable alternatives are MATH_V 180 or 110."
           // MATH 100 is listed first because it is the 3-credit option the
-          // year table is priced on — MATH 180 is 4 credits and MATH 110 is 6,
+          // year table is priced on - MATH 180 is 4 credits and MATH 110 is 6,
           // so either changes the year's arithmetic.
           id: 'comm.math',
           kind: 'chooseN',
@@ -76,7 +76,7 @@ export const commerceCore2026W: Program = {
       year: 2,
       sourceUrl: SOURCE,
       items: [
-        course('comm.202', 'COMM 202', 2), // 1 credit — the reason the degree is 121
+        course('comm.202', 'COMM 202', 2), // 1 credit - the reason the degree is 121
         course('comm.203', 'COMM 203', 2),
         course('comm.204', 'COMM 204', 2),
         course('comm.205', 'COMM 205', 2),

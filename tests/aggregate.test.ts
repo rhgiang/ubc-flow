@@ -31,7 +31,7 @@ describe('aggregateCourseReviews', () => {
   it('returns an empty aggregate for no reviews', () => {
     const a = aggregateCourseReviews([]);
     expect(a.count).toBe(0);
-    // Never 0 — a zero would render as a terrible score rather than "no data".
+    // Never 0 - a zero would render as a terrible score rather than "no data".
     expect(a.useful).toBeNull();
     expect(a.difficulty).toBeNull();
     expect(a.likedPercent).toBeNull();

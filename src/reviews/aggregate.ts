@@ -46,7 +46,7 @@ function meanOf(values: (number | null)[]): number | null {
   return present.reduce((a, b) => a + b, 0) / present.length;
 }
 
-/** Mean on the 1-5 display scale. Null stays null — never rendered as 0. */
+/** Mean on the 1-5 display scale. Null stays null - never rendered as 0. */
 function meanDisplay(values: (number | null)[]): number | null {
   const mean = meanOf(values);
   return mean === null ? null : mean + 1;
@@ -63,7 +63,7 @@ function emptyHistogram(): Histogram {
 }
 
 /** Counts each 0-4 stored rating into its 1-5 display bucket. Nulls are
- * excluded entirely — an unrated review contributes to no bucket, never a
+ * excluded entirely - an unrated review contributes to no bucket, never a
  * fabricated "1". */
 function histogramOf(values: (number | null)[]): Histogram {
   const h = emptyHistogram();
@@ -81,7 +81,7 @@ export function aggregateCourseReviews(rows: CourseReviewRow[]): CourseAggregate
     likedPercent: likedPercent(rows.map((r) => r.liked)),
     useful: meanDisplay(rows.map((r) => r.useful)),
     difficulty: meanDisplay(rows.map((r) => r.difficulty)),
-    // Workload is raw hours, not a 1-5 score — no display offset.
+    // Workload is raw hours, not a 1-5 score - no display offset.
     workloadHours: meanOf(rows.map((r) => r.workloadHours)),
     histograms: {
       useful: histogramOf(rows.map((r) => r.useful)),

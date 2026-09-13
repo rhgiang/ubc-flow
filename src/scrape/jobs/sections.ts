@@ -27,7 +27,7 @@ export async function upsertSections(rows: RawSection[], termId: string): Promis
     if (!row.course || row.course.campus !== CAMPUS) continue;
     if (!row.sectionCode) continue;
 
-    // Exact match on UBC's own subject id — the same value Task 5 stored from the
+    // Exact match on UBC's own subject id - the same value Task 5 stored from the
     // dropdown. Never match on name or code: the dropdown says "Computer Science
     // (Vancouver)", course rows say "CPSC", and those never compare equal.
     if (!row.course.ubcSubjectId) continue;
@@ -38,7 +38,7 @@ export async function upsertSections(rows: RawSection[], termId: string): Promis
     });
     if (!subject) continue;
 
-    // Subject codes appear only on course rows, never the dropdown — fill in on sight.
+    // Subject codes appear only on course rows, never the dropdown - fill in on sight.
     if (!subject.code) {
       await db.subject.update({
         where: { id: subject.id },

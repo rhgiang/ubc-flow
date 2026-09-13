@@ -1,4 +1,4 @@
-/** The one main page that had no skeleton — auth plus six queries with a blank stare. */
+/** The one main page that had no skeleton - auth plus six queries with a blank stare. */
 export default function Loading() {
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10" aria-busy="true" aria-label="Loading schedules">

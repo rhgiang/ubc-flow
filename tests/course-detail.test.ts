@@ -42,13 +42,13 @@ describe('loadCourseDetail', () => {
       where: { campus: 'V', sections: { none: { courseId } } },
       select: { id: true },
     });
-    // Every term in the dataset offers this course — nothing to assert.
+    // Every term in the dataset offers this course - nothing to assert.
     if (!emptyTerm) return;
 
     const detail = await loadCourseDetail(courseId, emptyTerm.id);
     expect(detail).not.toBeNull();
     expect(detail!.sections).toEqual([]);
-    // The course itself still loads — only its section list is term-scoped.
+    // The course itself still loads - only its section list is term-scoped.
     expect(detail!.courseId).toBe(courseId);
   });
 
@@ -74,7 +74,7 @@ describe('loadCourseDetail instructor ratings', () => {
       for (const i of s.instructors) {
         expect(typeof i.name).toBe('string');
         expect(typeof i.slug).toBe('string');
-        // Present as a key on every instructor — null when unrated.
+        // Present as a key on every instructor - null when unrated.
         expect(i).toHaveProperty('rating');
       }
     }
@@ -87,7 +87,7 @@ describe('loadCourseDetail instructor ratings', () => {
 
     const slugs = all.map((i) => i.slug);
     // InstructorReview has no `instructor` relation, only the scalar
-    // instructorId — resolve ids from slugs first.
+    // instructorId - resolve ids from slugs first.
     const instructorIds = (
       await db.instructor.findMany({ where: { slug: { in: slugs } }, select: { id: true } })
     ).map((i) => i.id);
@@ -165,7 +165,7 @@ describe('loadCourseDetail instructor grade history', () => {
     const [k] = multi;
     const [instructorId, gradedCourseId] = k.split('|');
     // The `take: 2000` scan above is only a cheap way to *find* a candidate
-    // pair — this database has 28k+ links, so that window can catch a pair
+    // pair - this database has 28k+ links, so that window can catch a pair
     // mid-group and miss some of its rows. Re-fetch the complete set for the
     // exact pair before computing `expected`, so it reflects every offering
     // (matching what loadCourseDetail itself aggregates), not an arbitrary
@@ -204,7 +204,7 @@ describe('loadCourseDetail instructor grade history', () => {
 
   it('sums an instructor distribution over their own offerings only', async () => {
     // The comparison overlay puts this chart beside the course-wide one, so it
-    // must cover this instructor's offerings of this course and nothing else —
+    // must cover this instructor's offerings of this course and nothing else -
     // not the course's other sections, and not their other courses.
     const link = await db.gradeDistributionInstructor.findFirst({
       where: { distribution: { count: { gt: 0 }, average: { not: null } } },
@@ -268,6 +268,6 @@ describe('loadCourseDetail instructor grade history', () => {
     for (const i of all) {
       if (i.grades === null) return; // found the null path, that is all we need
     }
-    // Every instructor happened to have history — nothing to assert.
+    // Every instructor happened to have history - nothing to assert.
   });
 });

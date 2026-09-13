@@ -20,7 +20,7 @@ const course = (id: string, code: string, year: number): Rule => ({
 const CAPSTONES = ['CAPS 420', 'CAPS 421', 'CAPS 422', 'CAPS 424', 'CAPS 426', 'CAPS 427', 'CAPS 431', 'CAPS 448'];
 
 /**
- * Major in Cellular, Anatomical and Physiological Sciences (BSc), 2026W — 120
+ * Major in Cellular, Anatomical and Physiological Sciences (BSc), 2026W - 120
  * credits.
  *
  * The first Science major here whose first year is not 30 credits. It is 29,
@@ -135,7 +135,7 @@ export const capsMajor2026W: Program = {
       ],
     },
     {
-      // "Three of the following ... 9" — the Calendar prices the row at 9, so
+      // "Three of the following ... 9" - the Calendar prices the row at 9, so
       // it is stated as 9 credits from the list rather than as three courses.
       // CAPS 448 is a 2-credit course, and choosing it leaves a credit to make
       // up elsewhere; a choose-3 would have hidden that.

@@ -6,9 +6,9 @@ import { useEffect, useRef } from 'react';
  * Animated clouds drawn by a fragment shader.
  *
  * CSS-transformed cloud sprites can only ever slide past; real clouds also
- * billow and dissolve. This draws density from domain-warped fBm noise — a
+ * billow and dissolve. This draws density from domain-warped fBm noise - a
  * stack of value-noise octaves whose sample point is itself displaced by more
- * noise — so the field evolves in place while the wind carries it sideways.
+ * noise - so the field evolves in place while the wind carries it sideways.
  *
  * Only the clouds live here; the sky behind them stays a CSS layer, so the
  * canvas clears to transparent and blends over whatever is underneath.
@@ -27,7 +27,7 @@ uniform float u_time;
 uniform vec3 u_color;
 uniform vec3 u_colorLow;   // cloud colour down at the horizon
 uniform float u_alpha;
-uniform float u_coverage;  // raises/lowers the density cut — more or fewer clouds
+uniform float u_coverage;  // raises/lowers the density cut - more or fewer clouds
 uniform float u_scale;
 uniform float u_top;       // where the cloud deck starts fading in, in screen Y
 uniform float u_bottom;    // and where it has faded out entirely
@@ -37,7 +37,7 @@ uniform float u_ptype;     // 0 = rain streaks, 1 = snow flakes
 out vec4 outColor;
 
 // Evenly distributed over [0,1). An earlier version ended in fract(p.x * p.y),
-// whose mean sits near 0.25 rather than 0.5 — that skew dragged the whole fBm
+// whose mean sits near 0.25 rather than 0.5 - that skew dragged the whole fBm
 // field low and made the coverage threshold behave far more sharply than the
 // numbers suggested.
 float hash(vec2 p) {
@@ -89,7 +89,7 @@ float rainLayer(vec2 uv, float t, vec2 grid, float speed, float keep, float slan
   float streak = exp(-dx * dx * grid.x * grid.x * 0.35);
 
   // Along the streak: its own start and length, both kept inside the cell so
-  // no drop is clipped at a boundary — a clipped drop puts back the very
+  // no drop is clipped at a boundary - a clipped drop puts back the very
   // horizontal seam the jitter exists to remove. Short drops overlap their
   // own fades and come out dimmer, which is what a smaller drop should do.
   float a = 0.04 + 0.34 * hash(id + 2.7);
@@ -104,7 +104,7 @@ float rainLayer(vec2 uv, float t, vec2 grid, float speed, float keep, float slan
 }
 
 // Three depths of rain: near streaks longer, faster, heavier and close to
-// vertical; far ones finer, slower, dimmer — and slanted harder, because the
+// vertical; far ones finer, slower, dimmer - and slanted harder, because the
 // same wind pushes a slower-falling drop further sideways. That difference in
 // slant between the layers, not just the difference in speed, is what gives
 // the volume its depth. Two layers alone read as two sheets of glass.
@@ -140,7 +140,7 @@ float snowLayer(vec2 uv, float t, float scale, float speed, float keep) {
   return exp(-(d * d) / (r * r)) * step(1.0 - keep, hash(id + 23.7));
 }
 
-// Three depths falling at the same screen speed but different sizes — the
+// Three depths falling at the same screen speed but different sizes - the
 // small far layer reads as depth haze, the near one as flakes you could
 // catch. All drift gently; snow that falls rain-fast reads as sleet.
 float snow(vec2 uv, float t) {
@@ -170,11 +170,11 @@ void main() {
   float d = fbm(p + 1.5 * r);
 
   // A finer, faster octave on top of the mass. Centred on zero so it only adds
-  // texture — curdled edges and wisps — without shifting overall coverage.
+  // texture - curdled edges and wisps - without shifting overall coverage.
   d += 0.11 * (fbm(p * 3.4 + r * 1.2 - t * 0.05) - 0.5);
 
   // Soft threshold: below the cut is clear sky, above it ramps to solid. The
-  // ramp is deliberately wide — a tight one turns the noise marbled and veiny
+  // ramp is deliberately wide - a tight one turns the noise marbled and veiny
   // rather than vaporous.
   float density = smoothstep(u_coverage, u_coverage + 0.52, d);
 
@@ -190,7 +190,7 @@ void main() {
   // as one sky rather than two separate strips.
   float band = mix(0.24, 1.0, clamp(max(above, below), 0.0, 1.0));
 
-  // Horizon clouds take a different colour from the ones overhead — in dusk
+  // Horizon clouds take a different colour from the ones overhead - in dusk
   // they catch the afterglow, which is the only thing that makes them legible
   // against a bright horizon.
   vec3 col = mix(u_color, u_colorLow, smoothstep(0.4, 0.95, y));
@@ -206,7 +206,7 @@ void main() {
     float pr = (u_ptype < 0.5 ? rain(suv, t) : snow(suv, t)) * u_precip;
     vec3 pcol;
     if (u_ptype < 0.5) {
-      // Streaks darker than a bright sky, lighter than a dark one — night
+      // Streaks darker than a bright sky, lighter than a dark one - night
       // rain drawn darker than the night simply vanishes.
       float skyLum = dot(u_colorLow, vec3(0.333));
       pcol = skyLum > 0.5 ? u_colorLow * 0.72 : u_colorLow + vec3(0.28, 0.3, 0.34);
@@ -224,7 +224,7 @@ void main() {
 
 /**
  * Redraw budget. The sky is deliberately slow-moving, so there is nothing to
- * gain from matching a high-refresh display — see the frame loop below.
+ * gain from matching a high-refresh display - see the frame loop below.
  */
 const FRAME_MS = 1000 / 30;
 
@@ -284,7 +284,7 @@ const LIGHT: Palette = {
 const DARK: Palette = {
   color: [0.88, 0.84, 0.95],
   // Catching the afterglow, but kept markedly paler than the horizon behind
-  // them — matching its warmth exactly left them invisible.
+  // them - matching its warmth exactly left them invisible.
   colorLow: [1.0, 0.95, 0.89],
   alpha: 0.9,
   coverage: 0.28,
@@ -316,7 +316,7 @@ export default function SkyClouds() {
       antialias: false,
       depth: false,
     });
-    // No WebGL2 (or a blocked context) just means no clouds — the sky and the
+    // No WebGL2 (or a blocked context) just means no clouds - the sky and the
     // rest of the page render fine without them.
     if (!gl) return;
 
@@ -401,7 +401,7 @@ export default function SkyClouds() {
         p.colorLow = p.colorLow.map((c) => c * 0.55) as Palette['colorLow'];
       }
       // Content pages set data-sky-dim (see PageBackground): the sky is a
-      // backdrop for reading there, not the show. Softened, not switched off —
+      // backdrop for reading there, not the show. Softened, not switched off -
       // the same weather still passes overhead, just quieter.
       const dim = root.hasAttribute('data-sky-dim');
       // Drift and fall at about half speed behind content. Everything else
@@ -426,7 +426,7 @@ export default function SkyClouds() {
 
     const frame = (now: number) => {
       // Always queue the next callback first, so throttling never stalls the
-      // loop. Uncapped, this redrew once per display refresh — on a 144Hz
+      // loop. Uncapped, this redrew once per display refresh - on a 144Hz
       // monitor that is 2.4x the work of a 60Hz one for no visible gain, since
       // the clouds drift about 4px per second. At 30fps that is still only
       // ~0.13px of movement between frames, far below anything the eye can
@@ -460,7 +460,7 @@ export default function SkyClouds() {
     document.addEventListener('visibilitychange', onVisibility);
 
     // The plain modes are static: the sky layers are hidden by CSS, so drawing
-    // would be pure waste — stop the loop, restart on the way out.
+    // would be pure waste - stop the loop, restart on the way out.
     const onThemeChange = () => {
       if (isPlain()) {
         if (raf) {

@@ -16,7 +16,7 @@ function minutes(hhmm: string | null): number | null {
 }
 
 /**
- * Overlapping meetings on the same day. Advisory only — the caller warns, it
+ * Overlapping meetings on the same day. Advisory only - the caller warns, it
  * never blocks: UBC's meeting data can't always prove a conflict is real
  * (alternating-week patterns), so refusing an add would sometimes be wrong.
  */
@@ -34,7 +34,7 @@ export function findConflicts(entries: ScheduleEntry[]): ConflictPair[] {
       const aEnd = minutes(a.endTime);
       const bStart = minutes(b.startTime);
       const bEnd = minutes(b.endTime);
-      // An unscheduled meeting has nothing to conflict with — never guess.
+      // An unscheduled meeting has nothing to conflict with - never guess.
       if (aStart === null || aEnd === null || bStart === null || bEnd === null) continue;
 
       // Strict inequality: back-to-back classes are not a conflict.

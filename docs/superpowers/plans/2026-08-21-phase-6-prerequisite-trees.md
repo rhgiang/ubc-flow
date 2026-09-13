@@ -1,10 +1,10 @@
-# UBC Flow Phase 6: Prerequisite Trees — Implementation Plan
+# UBC Flow Phase 6: Prerequisite Trees - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A student opens a course and sees its prerequisites and corequisites as a structured, linked requirement tree — with the original calendar sentence always shown alongside, and anything unparseable left as verbatim text rather than guessed at.
+**Goal:** A student opens a course and sees its prerequisites and corequisites as a structured, linked requirement tree - with the original calendar sentence always shown alongside, and anything unparseable left as verbatim text rather than guessed at.
 
-**Architecture:** Continues the Next.js + Prisma monolith. Parsing is a **pure function** (no I/O), matching every prior phase. The build job is a local DB-to-DB transform with **no network calls** — the source text is already in our database from Phase 1. The renderer is a hand-rolled recursive server component.
+**Architecture:** Continues the Next.js + Prisma monolith. Parsing is a **pure function** (no I/O), matching every prior phase. The build job is a local DB-to-DB transform with **no network calls** - the source text is already in our database from Phase 1. The renderer is a hand-rolled recursive server component.
 
 **Tech Stack:** Next.js 16, TypeScript, Prisma 7, Postgres, Tailwind, Vitest. **No new dependencies.**
 
@@ -14,10 +14,10 @@
 
 - **Node.js 20+**, npm. No bun, no pnpm.
 - **Never overclaim.** Any clause not positively matched by a rule becomes a verbatim `note` leaf. Ambiguous grouping (`either`, `(a)`/`(b)`, a standalone `or`) is NEVER flattened into an `and`. A wrong requirement is worse than an unparsed one.
-- **The ambiguity guard runs BEFORE the `One of` / `All of` rules.** Real row `KIN 211` reads `"All of (a) KIN_V 110 or HES_O 120 and (b) KIN_V 131 or HES_O 101 or BIOL_O 131."` — it starts with `All of` but is not a plain AND. Rule order is load-bearing, not stylistic.
+- **The ambiguity guard runs BEFORE the `One of` / `All of` rules.** Real row `KIN 211` reads `"All of (a) KIN_V 110 or HES_O 120 and (b) KIN_V 131 or HES_O 101 or BIOL_O 131."` - it starts with `All of` but is not a plain AND. Rule order is load-bearing, not stylistic.
 - **`Equivalency:` clauses are stripped**, never rendered as requirements. They are credit exclusions, not prerequisites.
 - **`_O` (Okanagan) codes never resolve to a link.** They display as text. Stripping the suffix and resolving against `campus: 'V'` would attach the wrong course.
-- **Purity:** `src/prereqs/parse.ts` performs no I/O — no `fetch`, no `prisma`, no `@/lib/db`, no `readFile`.
+- **Purity:** `src/prereqs/parse.ts` performs no I/O - no `fetch`, no `prisma`, no `@/lib/db`, no `readFile`.
 - **The original calendar text is always displayed** alongside the tree, even when parsing is perfectly clean.
 - **Idempotent:** re-running the build job produces identical trees.
 - Tests live in `tests/**/*.test.ts`.
@@ -27,7 +27,7 @@
 
 ## Verified data facts
 
-All confirmed by querying the live dev database on 2026-08-21 — build against these, not assumptions.
+All confirmed by querying the live dev database on 2026-08-21 - build against these, not assumptions.
 
 | Fact | Value |
 |---|---|
@@ -75,7 +75,7 @@ SCIE 300 (coreq) :: One of BIOL_V 300, STAT_V 200, STAT_V 241 and 3rd or 4th yea
 
 `prisma/schema.prisma`'s `Course` model currently has `prereqText String?` and `coreqText String?` at lines 33-34.
 
-**Prisma 7 migration procedure in this environment** (established Phase 2, used every phase since — `prisma migrate dev` hard-blocks outside a TTY here):
+**Prisma 7 migration procedure in this environment** (established Phase 2, used every phase since - `prisma migrate dev` hard-blocks outside a TTY here):
 
 ```bash
 npx prisma migrate diff --from-config-datasource prisma.config.ts --to-schema prisma/schema.prisma --script
@@ -211,7 +211,7 @@ describe('parseRequirements', () => {
 
   it('bails out to a note on a grade-qualified list, never a plain OR', () => {
     // Real row: VISA 250. The real requirement is TWO of three WITH a grade
-    // floor; emitting an OR would say "any one of three" — materially wrong.
+    // floor; emitting an OR would say "any one of three" - materially wrong.
     const r = parseRequirements(
       'A score of 72% or higher in two of VISA 110, VISA 180, VISA 183.',
     )!;
@@ -233,7 +233,7 @@ describe('parseRequirements', () => {
   });
 
   it('keeps a parseable clause and notes an unparseable one from the same text', () => {
-    // Real row: MDIA 490 — a real requirement plus a program restriction.
+    // Real row: MDIA 490 - a real requirement plus a program restriction.
     const r = parseRequirements(
       'MDIA_V 350. Restricted to BMS students with 4th year standing.',
     )!;
@@ -248,7 +248,7 @@ describe('parseRequirements', () => {
   });
 
   it('parses corequisite text with the same machinery', () => {
-    // Real coreq row: SCIE 300 — an OR group plus a standing clause.
+    // Real coreq row: SCIE 300 - an OR group plus a standing clause.
     const r = parseRequirements(
       'One of BIOL_V 300, STAT_V 200, STAT_V 241 and 3rd or 4th year standing in Combined Major in Science.',
     )!;
@@ -273,7 +273,7 @@ describe('parseRequirements', () => {
 - [ ] **Step 2: Run to verify failure**
 
 Run: `npm test -- parse-prereqs`
-Expected: FAIL — cannot find module `@/prereqs/parse`.
+Expected: FAIL - cannot find module `@/prereqs/parse`.
 
 - [ ] **Step 3: Write the implementation**
 
@@ -286,12 +286,12 @@ export type Requirement =
   | { type: 'or'; items: Requirement[] }
   | { type: 'note'; text: string };
 
-/** SUBJ[_CAMPUS] NNN[letter] — e.g. CPSC 221, CHEM_V 121, MATH_O 200, FNEL 201A. */
+/** SUBJ[_CAMPUS] NNN[letter] - e.g. CPSC 221, CHEM_V 121, MATH_O 200, FNEL 201A. */
 const COURSE_CODE = /\b[A-Z]{2,5}(?:_[A-Z])?\s?\d{2,3}[A-Z]?\b/g;
 
 /**
  * Eligibility language. A clause containing any of this is NOT a course
- * dependency — it is standing, permission, a grade floor, or a program
+ * dependency - it is standing, permission, a grade floor, or a program
  * restriction. Parse nothing from it; keep the sentence verbatim.
  */
 const BAILOUT =
@@ -300,7 +300,7 @@ const BAILOUT =
 /**
  * Grouping we do not positively handle: lettered alternatives, "either", and a
  * standalone "or". Checked BEFORE the One of/All of rules, because real rows
- * like KIN 211 open with "All of" and then use (a)/(b) alternatives — reading
+ * like KIN 211 open with "All of" and then use (a)/(b) alternatives - reading
  * that as a flat AND would tell a student to take every listed course.
  */
 const AMBIGUOUS = /\([a-z]\)|\beither\b|\bany\b|\bor\b/i;
@@ -355,7 +355,7 @@ function parseClause(clause: string): Requirement | null {
   const text = clause.trim().replace(/[.\s]+$/, '');
   if (!text) return null;
 
-  // Order matters — see AMBIGUOUS above.
+  // Order matters - see AMBIGUOUS above.
   if (BAILOUT.test(text) || AMBIGUOUS.test(text)) return { type: 'note', text };
   if (extractCodes(text).length === 0) return { type: 'note', text };
 
@@ -393,7 +393,7 @@ export function parseRequirements(text: string | null): Requirement | null {
 Run: `npm test -- parse-prereqs`
 Expected: PASS, 19 tests.
 
-Then confirm purity — this must print nothing:
+Then confirm purity - this must print nothing:
 
 ```bash
 grep -nE "fetch|prisma|@/lib/db|readFile|require\(" src/prereqs/parse.ts
@@ -424,7 +424,7 @@ git commit -m "feat: parse UBC prerequisite prose into AND/OR requirement trees"
 **Interfaces:**
 - Produces: `Course.prereqTree`, `Course.coreqTree` (both `Json?`)
 
-Both columns are **nullable additions** — no existing row changes, no backfill, no data risk.
+Both columns are **nullable additions** - no existing row changes, no backfill, no data risk.
 
 - [ ] **Step 1: Add the columns**
 
@@ -432,9 +432,9 @@ In `prisma/schema.prisma`, in the `Course` model, immediately after the existing
 `coreqText  String?` line, add:
 
 ```prisma
-  /** Requirement tree parsed from prereqText — see src/prereqs/parse.ts. */
+  /** Requirement tree parsed from prereqText - see src/prereqs/parse.ts. */
   prereqTree  Json?
-  /** Requirement tree parsed from coreqText — same shape as prereqTree. */
+  /** Requirement tree parsed from coreqText - same shape as prereqTree. */
   coreqTree   Json?
 ```
 
@@ -444,7 +444,7 @@ In `prisma/schema.prisma`, in the `Course` model, immediately after the existing
 npx prisma migrate diff --from-config-datasource prisma.config.ts --to-schema prisma/schema.prisma --script
 ```
 
-Expected SQL (verify before placing — it must be exactly two nullable `ADD COLUMN`
+Expected SQL (verify before placing - it must be exactly two nullable `ADD COLUMN`
 statements and touch nothing else):
 
 ```sql
@@ -477,7 +477,7 @@ Expected: `prereqTree`/`coreqTree` present and nullable; `courses` = 7337 and
 - [ ] **Step 4: Verify the suite still passes**
 
 ```bash
-npm test          # still 236 passing — this task adds no tests
+npm test          # still 236 passing - this task adds no tests
 npx tsc --noEmit  # clean
 ```
 
@@ -543,7 +543,7 @@ describe('resolveTree', () => {
 
   it('leaves an Okanagan code unresolved but still present', async () => {
     // Stripping _O and resolving against Vancouver would attach a different
-    // course entirely — the code must display as text with no link.
+    // course entirely - the code must display as text with no link.
     const tree = await resolveTree(parseRequirements('One of ECON_V 101, MGMT_O 301.'));
     expect(tree!.type).toBe('or');
     if (tree!.type === 'or') {
@@ -580,7 +580,7 @@ describe('resolveTree', () => {
 - [ ] **Step 2: Run to verify failure**
 
 Run: `npm test -- prereqs-build`
-Expected: FAIL — cannot find module `@/prereqs/jobs/build`.
+Expected: FAIL - cannot find module `@/prereqs/jobs/build`.
 
 - [ ] **Step 3: Write the implementation**
 
@@ -607,7 +607,7 @@ function vancouverCode(code: string): { subject: string; number: string } | null
 
 /**
  * Walks a parsed tree and fills in courseId for every code we can match.
- * Unmatched codes keep courseId: null and still render — as plain text.
+ * Unmatched codes keep courseId: null and still render - as plain text.
  */
 export async function resolveTree(
   tree: Requirement | null,
@@ -668,7 +668,7 @@ export async function buildRequirementTrees(): Promise<BuildResult> {
 
     await db.course.update({
       where: { id: course.id },
-      // Overwritten wholesale every run — no accumulation, trivially idempotent.
+      // Overwritten wholesale every run - no accumulation, trivially idempotent.
       // Prisma.DbNull, not undefined: undefined means "skip this field", which
       // would leave a stale tree behind if the text stopped parsing.
       data: {
@@ -757,7 +757,7 @@ function href(code: string): string {
 
 export default function RequirementTree({ node }: { node: Requirement }) {
   if (node.type === 'course') {
-    // An unresolved code still shows — we just cannot link it (spec 5.2).
+    // An unresolved code still shows - we just cannot link it (spec 5.2).
     return node.courseId ? (
       <Link href={href(node.code)} className="text-blue-700 hover:underline">
         {node.code}
@@ -866,12 +866,12 @@ import { resolveTree } from './src/prereqs/jobs/build';
 
 Start the dev server and check each:
 
-1. `/course/cpsc-314` — an AND containing a course and two `One of` groups; the
+1. `/course/cpsc-314` - an AND containing a course and two `One of` groups; the
    course codes are clickable links.
-2. `/course/poli-482` — a plain `All of` list.
-3. `/course/kin-211` — the ambiguity guard case: renders as the verbatim
+2. `/course/poli-482` - a plain `All of` list.
+3. `/course/kin-211` - the ambiguity guard case: renders as the verbatim
    sentence, NOT a list of five courses.
-4. `/course/fnh-325` — a single linked course.
+4. `/course/fnh-325` - a single linked course.
 5. On all four: the "As published in the calendar:" line appears beneath the tree.
 6. Any course with no prereq text at all (e.g. `/course/acam-310`) shows no
    requirements block whatsoever.
@@ -898,7 +898,7 @@ git commit -m "feat: render prerequisite and corequisite trees on course pages"
 
 ## Task 5: Full build run and verification
 
-**Files:** none — this task runs the job and verifies the result.
+**Files:** none - this task runs the job and verifies the result.
 
 Unlike Phase 5's ingest, this is a local DB transform with no rate limit and no
 network: expect it to finish in **under two minutes**, not an hour.
@@ -927,7 +927,7 @@ Confirm: `tree_prereq` is close to `text_prereq` (a tree exists for essentially
 every course that has text), `courses` is **unchanged at 7337** (this job must
 never create courses), and `tree_coreq` is roughly 234.
 
-Check the parse-quality split — how many trees are a bare note (unparseable)
+Check the parse-quality split - how many trees are a bare note (unparseable)
 versus real structure:
 
 ```bash
@@ -936,7 +936,7 @@ docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c \
 ```
 
 Expect a healthy mix of `and`/`or`/`course` alongside `note`. If `note`
-dominates overwhelmingly (say >70%), the parser is bailing too eagerly —
+dominates overwhelmingly (say >70%), the parser is bailing too eagerly -
 investigate before proceeding.
 
 Spot-check that the guard cases really did stay verbatim:
@@ -973,7 +973,7 @@ the calendar text always appears. Stop the server.
 ## Phase 6 completion criteria
 
 - [ ] `npm test`, `npx tsc --noEmit`, `npx eslint .`, `npm run build` all clean
-- [ ] No clause is ever flattened into an `and` when its grouping is ambiguous — `KIN 211` and `VISA 250` both render as verbatim notes
+- [ ] No clause is ever flattened into an `and` when its grouping is ambiguous - `KIN 211` and `VISA 250` both render as verbatim notes
 - [ ] `Equivalency:` codes never appear as requirements
 - [ ] `_O` codes display but never link
 - [ ] Unresolvable codes display as plain text and are counted by the job

@@ -9,7 +9,7 @@ import { requestPasswordReset } from '@/app/actions/password-reset';
 
 type Mode = 'login' | 'signup' | 'forgot';
 
-// One panel, two modes, switched entirely with local state — never a
+// One panel, two modes, switched entirely with local state - never a
 // navigation. Used inline on the homepage, inside the global overlay
 // (onSuccess/onClose supplied so it closes instead of redirecting), and as
 // the content of the standalone /login and /signup routes (no callbacks,
@@ -51,7 +51,7 @@ export default function AuthPanel({
       });
 
       if (result?.error) {
-        // Deliberately does not say WHICH was wrong — that would let an attacker
+        // Deliberately does not say WHICH was wrong - that would let an attacker
         // enumerate which emails have accounts.
         setError('Invalid email or password.');
         return;
@@ -59,7 +59,7 @@ export default function AuthPanel({
       // router.refresh() alone re-renders the server tree but never re-runs a
       // mounted client effect, and the nav and the home hero both read the
       // session in one of those. Without this announcement they stayed on
-      // their signed-out answer — and on the home page that answer IS the
+      // their signed-out answer - and on the home page that answer IS the
       // login card, so a successful sign-in looked like nothing happening.
       announceSignIn();
       if (onSuccess) {
@@ -73,7 +73,7 @@ export default function AuthPanel({
       // A REJECTED sign-in, as opposed to a rejected password: the request
       // never completed. Without this the button kept saying "Logging in…"
       // for as long as the page stayed open, with nothing said and nothing
-      // to do but reload — the one failure a user cannot work around.
+      // to do but reload - the one failure a user cannot work around.
       setError('Could not reach the server. Check your connection and try again.');
     } finally {
       setBusy(false);
@@ -97,7 +97,7 @@ export default function AuthPanel({
       }
 
       // The account now EXISTS, so a failure past this point must not read as
-      // "signup failed" — it sent the user to /onboarding signed out, which
+      // "signup failed" - it sent the user to /onboarding signed out, which
       // is a page that needs a session, moments after telling them it worked.
       const signedIn = await signIn('credentials', { email, password, redirect: false });
       if (signedIn?.error) {
@@ -107,7 +107,7 @@ export default function AuthPanel({
       }
 
       // Unlike login, signup always continues to onboarding (enrolment
-      // verification is the required next step) — onSuccess just closes the
+      // verification is the required next step) - onSuccess just closes the
       // overlay first if this panel is rendered inside one, so it doesn't
       // stay mounted mid-navigation.
       announceSignIn();
@@ -237,7 +237,7 @@ export default function AuthPanel({
 
       {/*
         The redirect to Google is not instant, and with nothing changing on
-        the button a slow connection reads as a dead click — so it got clicked
+        the button a slow connection reads as a dead click - so it got clicked
         again, starting a second OAuth round trip. It stays disabled after
         success too: the page is on its way out, and re-enabling it would just
         offer the same trip again.

@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
 import { CONTACT_EMAIL } from '@/lib/version';
 
 /**
- * Site footer: a frosted capsule of links floating on the sky — the nav bar's
+ * Site footer: a frosted capsule of links floating on the sky - the nav bar's
  * sibling at the foot of the page (.sky-capsule / .capsule-chip in globals.css
  * handle glass, reduced transparency, and the plain modes).
  *
@@ -32,7 +32,7 @@ function subscribe(onChange: () => void) {
 }
 
 /**
- * A page that cannot scroll shows the footer outright — body is `h-screen`
+ * A page that cannot scroll shows the footer outright - body is `h-screen`
  * and the content column is `flex-1`, so a short page like the home hero fits
  * the viewport exactly and no amount of waiting would ever reveal it.
  */

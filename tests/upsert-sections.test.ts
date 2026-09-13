@@ -53,7 +53,7 @@ describe('upsertSections', () => {
   // These rows go into the same database the app reads, so leaving them
   // behind is not a tidiness issue: "Test Term" is a plannable 2026 Winter
   // term, so it showed up in the builder's Academic Period dropdown for real
-  // users. Torn down in dependency order — sections and their children first,
+  // users. Torn down in dependency order - sections and their children first,
   // then the course, subject and term that own them.
   afterAll(async () => {
     const subject = await db.subject.findUnique({
@@ -116,7 +116,7 @@ describe('upsertSections', () => {
 
   // Guards against the exact silent-failure mode the safety guard exists to catch: a row
   // that PARSES fine (course present, right campus, sectionCode present) but whose
-  // ubcSubjectId matches no Subject row in the DB — e.g. if UBC ever renamed the
+  // ubcSubjectId matches no Subject row in the DB - e.g. if UBC ever renamed the
   // field_subject relationship. Without this returning 0, scrapeSections would log a
   // "success" while writing nothing.
   it('returns 0 for a parsed row whose subject cannot be resolved in the DB', async () => {

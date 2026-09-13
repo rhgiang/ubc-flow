@@ -1,12 +1,12 @@
-# UBC Flow Phase 5: Grade Distributions — Implementation Plan
+# UBC Flow Phase 5: Grade Distributions - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A student can open a course and see its real historical grade distribution, and open a professor and see their historical average — with UBC's privacy-suppressed data honestly labelled rather than hidden or invented.
+**Goal:** A student can open a course and see its real historical grade distribution, and open a professor and see their historical average - with UBC's privacy-suppressed data honestly labelled rather than hidden or invented.
 
 **Architecture:** Continues the Next.js + Prisma monolith. CSV parsing and aggregation are **pure functions**, matching every prior phase. Ingest is a scheduled `*.run.ts` job using Phase 1's rate-limited `fetchText`, writing idempotent upserts.
 
-**Tech Stack:** Next.js 16, TypeScript, Prisma 7, Postgres, Tailwind, Vitest. **No new dependencies** — CSV parsing is ~30 lines and the chart is 11 CSS bars.
+**Tech Stack:** Next.js 16, TypeScript, Prisma 7, Postgres, Tailwind, Vitest. **No new dependencies** - CSV parsing is ~30 lines and the chart is 11 CSS bars.
 
 **Spec:** [`docs/superpowers/specs/2026-08-20-phase-5-grade-distributions-design.md`](../specs/2026-08-20-phase-5-grade-distributions-design.md)
 
@@ -15,11 +15,11 @@
 - **Node.js 20+**, npm. No bun, no pnpm.
 - **Suppressed buckets stay `null`.** Never inferred, interpolated, or rendered as `0`. UBC suppresses buckets under 6 students for privacy; a reconstructed value would look exactly as confident as a real one.
 - **`<50` is a student COUNT, not a percentage.** Real data shows `54` against `221` reported.
-- **Instructor matching is exact-on-normalized-slug only.** Never fuzzy — attributing one professor's grades to a similarly-named person is worse than showing nothing.
+- **Instructor matching is exact-on-normalized-slug only.** Never fuzzy - attributing one professor's grades to a similarly-named person is worse than showing nothing.
 - **Co-taught sections get ONE distribution row and N join rows.** Never duplicate the distribution per instructor; that inflates course averages.
 - **Attribution is required** on any page showing this data (§2.2 of the spec).
-- **Ingest is idempotent** — re-running must not duplicate rows.
-- **Empty state is explicit** — no data shows a message, never `0.0`.
+- **Ingest is idempotent** - re-running must not duplicate rows.
+- **Empty state is explicit** - no data shows a message, never `0.0`.
 - Pure functions (`src/grades/parse-csv.ts`, `src/grades/aggregate.ts`) do no I/O.
 - Tests live in `tests/**/*.test.ts`.
 
@@ -27,7 +27,7 @@
 
 ## Verified data facts
 
-All confirmed by fetching real CSVs during planning — build against these, not assumptions.
+All confirmed by fetching real CSVs during planning - build against these, not assumptions.
 
 **Source URL shape:**
 ```
@@ -44,8 +44,8 @@ Campus,Year,Session,Subject,Course,Detail,Section,Title,Professor,Reported,Avg,M
 
 | Fact | Evidence |
 |---|---|
-| Multiple professors per row, `; `-separated | `"Norman Hutchinson; Maryam Raiyat Aliabadi; Ibtissem Bouacheria"` — 7 rows |
-| Same pair appears in BOTH orders | `"Thomas Pasquier; Norman Hutchinson"` and `"Prajeet Bajpai; Mathias Lecuyer"` / `"Mathias Lecuyer; Prajeet Bajpai"` — so ordering is meaningless |
+| Multiple professors per row, `; `-separated | `"Norman Hutchinson; Maryam Raiyat Aliabadi; Ibtissem Bouacheria"` - 7 rows |
+| Same pair appears in BOTH orders | `"Thomas Pasquier; Norman Hutchinson"` and `"Prajeet Bajpai; Mathias Lecuyer"` / `"Mathias Lecuyer; Prajeet Bajpai"` - so ordering is meaningless |
 | Blank professor | 5 rows |
 | Populated `Detail` | 10 rows, values like `A`, `C`, `N`, `Q` |
 | Non-numeric section codes | `V01`, `CH1` alongside `101`, `201` |
@@ -53,7 +53,7 @@ Campus,Year,Session,Subject,Course,Detail,Section,Title,Professor,Reported,Avg,M
 
 **Not observed but must still be handled:** suppressed (blank) grade buckets. Zero
 rows in the CPSC and MUSC 2025W samples had them, so the parser's null-handling
-**cannot be verified against those files** — the fixture in Task 1 must include a
+**cannot be verified against those files** - the fixture in Task 1 must include a
 hand-constructed suppressed row.
 
 ---
@@ -61,15 +61,15 @@ hand-constructed suppressed row.
 ## File Structure
 
 ```
-prisma/schema.prisma              — GradeDistribution reshape + join table
-src/grades/parse-csv.ts           — PURE: CSV text -> RawGradeRow[]
-src/grades/aggregate.ts           — PURE: rows -> course/instructor summaries
-src/grades/jobs/ingest.ts         — fetch + match + idempotent upsert
-src/grades/jobs/ingest.run.ts     — CLI entrypoint
-src/components/GradeChart.tsx     — CSS bar chart
-src/app/course/[code]/page.tsx    — MODIFY: distribution section
-src/app/professor/[slug]/page.tsx — MODIFY: average section
-tests/fixtures/grades-sample.csv  — committed fixture
+prisma/schema.prisma              - GradeDistribution reshape + join table
+src/grades/parse-csv.ts           - PURE: CSV text -> RawGradeRow[]
+src/grades/aggregate.ts           - PURE: rows -> course/instructor summaries
+src/grades/jobs/ingest.ts         - fetch + match + idempotent upsert
+src/grades/jobs/ingest.run.ts     - CLI entrypoint
+src/components/GradeChart.tsx     - CSS bar chart
+src/app/course/[code]/page.tsx    - MODIFY: distribution section
+src/app/professor/[slug]/page.tsx - MODIFY: average section
+tests/fixtures/grades-sample.csv  - committed fixture
 ```
 
 ---
@@ -89,7 +89,7 @@ tests/fixtures/grades-sample.csv  — committed fixture
 - [ ] **Step 1: Build the fixture**
 
 Create `tests/fixtures/grades-sample.csv`. Use the exact real header, then these
-rows — the first four are copied verbatim from real data, the last two are
+rows - the first four are copied verbatim from real data, the last two are
 hand-constructed to cover cases the real samples don't contain:
 
 ```csv
@@ -170,7 +170,7 @@ describe('parseGradeCsv', () => {
     const row = rows.find((r) => r.courseNumber === '449')!;
     expect(row.average).toBeNull();
     expect(row.median).toBeNull();
-    // A suppressed bucket is unknown, NOT zero — collapsing it would invent data.
+    // A suppressed bucket is unknown, NOT zero - collapsing it would invent data.
     expect(row.distribution['<50']).toBeNull();
   });
 
@@ -196,7 +196,7 @@ describe('parseGradeCsv', () => {
 - [ ] **Step 3: Run to verify failure**
 
 Run: `npm test -- parse-grades`
-Expected: FAIL — cannot resolve `@/grades/parse-csv`.
+Expected: FAIL - cannot resolve `@/grades/parse-csv`.
 
 - [ ] **Step 4: Implement**
 
@@ -225,11 +225,11 @@ export type RawGradeRow = {
   median: number | null;
   high: number | null;
   low: number | null;
-  /** Suppressed buckets stay null — never coerced to 0 (spec 6). */
+  /** Suppressed buckets stay null - never coerced to 0 (spec 6). */
   distribution: Record<GradeBucket, number | null>;
 };
 
-/** Blank means suppressed or unavailable — null, never 0. */
+/** Blank means suppressed or unavailable - null, never 0. */
 function num(value: string | undefined): number | null {
   const v = (value ?? '').trim();
   if (!v) return null;
@@ -242,8 +242,8 @@ function str(value: string | undefined): string {
 }
 
 /**
- * Minimal CSV split. This source has no quoted fields or embedded commas —
- * verified against real files — so a full CSV parser would be a dependency
+ * Minimal CSV split. This source has no quoted fields or embedded commas -
+ * verified against real files - so a full CSV parser would be a dependency
  * bought for nothing.
  */
 function splitLine(line: string): string[] {
@@ -335,7 +335,7 @@ git commit -m "feat: parse UBC PAIR grade distribution CSVs"
 
 **Migration environment note:** `npx prisma migrate dev` refuses to run in this
 non-interactive shell (Prisma 7 blocks it outside a TTY). Phases 2-4 all used this
-working sequence — reuse it exactly:
+working sequence - reuse it exactly:
 
 ```bash
 npx prisma migrate diff --from-config-datasource prisma.config.ts \
@@ -355,14 +355,14 @@ docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c \
   "select count(*) from \"GradeDistribution\";"
 ```
 
-Must be `0`. If not, STOP and report — dropping `instructorId` would then lose data.
+Must be `0`. If not, STOP and report - dropping `instructorId` would then lose data.
 
 - [ ] **Step 2: Reshape the model**
 
 In `prisma/schema.prisma`, replace `model GradeDistribution` with:
 
 **`termId` and `detail` are NOT NULL here, deliberately.** Prisma refuses a nullable
-field inside a compound-key `where` clause — the exact problem Phase 3 hit with
+field inside a compound-key `where` clause - the exact problem Phase 3 hit with
 `InstructorReview.courseId` and solved the same way. Since both participate in the
 unique key, a nullable version would make Task 4's `upsert` fail to compile.
 
@@ -375,10 +375,10 @@ model GradeDistribution {
   id           String  @id @default(cuid())
   courseId     String
   course       Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  /** "" when no term in our catalogue matches — see note above. */
+  /** "" when no term in our catalogue matches - see note above. */
   termId       String  @default("")
   sectionCode  String
-  /** "" when the source's Detail column is blank — see note above. */
+  /** "" when the source's Detail column is blank - see note above. */
   detail       String  @default("")
   average      Float?
   median       Float?
@@ -393,7 +393,7 @@ model GradeDistribution {
   @@index([courseId])
 }
 
-// A section has ONE distribution but may be CO-TAUGHT — verified in real data
+// A section has ONE distribution but may be CO-TAUGHT - verified in real data
 // (7 of 127 CPSC 2025W rows list several professors). Duplicating the
 // distribution per instructor would inflate every course average.
 model GradeDistributionInstructor {
@@ -438,7 +438,7 @@ docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c \
 
 No drift; both tables correct; Course/Section/Instructor counts unchanged.
 
-Then `npx tsc --noEmit` and `npm test` — both clean.
+Then `npx tsc --noEmit` and `npm test` - both clean.
 
 - [ ] **Step 5: Commit**
 
@@ -462,7 +462,7 @@ git commit -m "feat: reshape grade distributions for co-taught sections"
   - `type GradeSummary`, `type DistributionRow`
 
 **Weighting matters.** A 300-student lecture and a 9-student seminar must not
-count equally toward a course average — weight by `count` (students reported).
+count equally toward a course average - weight by `count` (students reported).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -483,7 +483,7 @@ describe('aggregateDistributions', () => {
     const s = aggregateDistributions([]);
     expect(s.sectionCount).toBe(0);
     expect(s.studentCount).toBe(0);
-    // Never 0.0 — that would read as everyone failing (spec 7).
+    // Never 0.0 - that would read as everyone failing (spec 7).
     expect(s.average).toBeNull();
   });
 
@@ -531,7 +531,7 @@ describe('aggregateDistributions', () => {
 
 - [ ] **Step 2: Run to verify failure, then implement**
 
-Run: `npm test -- grades-aggregate` (FAIL — module missing).
+Run: `npm test -- grades-aggregate` (FAIL - module missing).
 
 Create `src/grades/aggregate.ts`:
 
@@ -565,7 +565,7 @@ export function aggregateDistributions(rows: DistributionRow[]): GradeSummary {
   for (const r of rows) {
     if (r.count !== null && r.count !== undefined) studentCount += r.count;
 
-    // A suppressed average carries no information — skip rather than treat as 0.
+    // A suppressed average carries no information - skip rather than treat as 0.
     if (r.average !== null && r.count !== null && r.count !== undefined) {
       weighted += r.average * r.count;
       weight += r.count;
@@ -625,7 +625,7 @@ git commit -m "feat: aggregate grade distributions weighted by enrolment"
 
 **Matching rules (spec §5):** split professors on `;`, normalize each via Phase 1's
 `normalizeInstructorName`, match exactly on `Instructor.slug`. Unmatched or blank
-professors still ingest the distribution — with no join rows — and are reported.
+professors still ingest the distribution - with no join rows - and are reported.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -700,7 +700,7 @@ describe('ingestRows', () => {
     expect(await db.gradeDistribution.count({ where: { courseId } })).toBe(1);
   });
 
-  it('is idempotent — re-ingesting updates rather than duplicating', async () => {
+  it('is idempotent - re-ingesting updates rather than duplicating', async () => {
     await ingestRows([makeRow({ average: 80 })]);
     const found = await db.gradeDistribution.findMany({ where: { courseId } });
     expect(found).toHaveLength(1);
@@ -736,7 +736,7 @@ describe('ingestRows', () => {
       where: { courseId, sectionCode: '901' },
       include: { instructors: true },
     });
-    // One matched, one didn't — the distribution is still written once.
+    // One matched, one didn't - the distribution is still written once.
     expect(row.instructors).toHaveLength(1);
     expect(r.unmatchedProfessors).toContain('Nobody McNobody');
   });
@@ -772,7 +772,7 @@ describe('ingestRows', () => {
 
 - [ ] **Step 2: Run to verify failure, then implement**
 
-Run: `npm test -- grades-ingest` (FAIL — module missing).
+Run: `npm test -- grades-ingest` (FAIL - module missing).
 
 Create `src/grades/jobs/ingest.ts`:
 
@@ -785,7 +785,7 @@ import { parseGradeCsv, type RawGradeRow } from '@/grades/parse-csv';
 const BASE =
   'https://raw.githubusercontent.com/DonneyF/ubc-pair-grade-data/master/tableau-dashboard-v2/UBCV';
 
-/** Sessions available in the current format — verified 2026-08-20. */
+/** Sessions available in the current format - verified 2026-08-20. */
 export const SESSIONS = [
   '2021S', '2021W', '2022S', '2022W', '2023S',
   '2023W', '2024S', '2024W', '2025S', '2025W',
@@ -815,7 +815,7 @@ export async function ingestRows(rows: RawGradeRow[]): Promise<IngestResult> {
       select: { id: true },
     });
 
-    // Reported, never silently dropped — a gap here means our catalogue is
+    // Reported, never silently dropped - a gap here means our catalogue is
     // missing something, which is worth knowing.
     if (!course) {
       skippedNoCourse += 1;
@@ -909,7 +909,7 @@ export async function ingestGrades() {
       try {
         csv = await fetchText(gradeCsvUrl(session, code!));
       } catch {
-        // Not every subject exists in every session — a 404 is normal here.
+        // Not every subject exists in every session - a 404 is normal here.
         continue;
       }
 
@@ -956,7 +956,7 @@ Run `npm test -- grades-ingest` (PASS, 9 tests), `npm test`, `npx tsc --noEmit`.
 
 - [ ] **Step 4: Run a REAL limited ingest**
 
-Do not run the full job yet — it fetches ~2,300 URLs at 1 req/sec. First prove one
+Do not run the full job yet - it fetches ~2,300 URLs at 1 req/sec. First prove one
 subject works end to end:
 
 ```bash
@@ -1013,7 +1013,7 @@ git commit -m "feat: ingest grade distributions with co-taught attribution"
   through `GradeDistributionInstructor`, plus the source credit.
 - **Empty state**: no data shows an explicit message, never `0.0`.
 - **Suppression notice**: when `summary.suppressed` is true, state that some buckets
-  were withheld by UBC for privacy — do not silently show a partial chart as if complete.
+  were withheld by UBC for privacy - do not silently show a partial chart as if complete.
 - **Attribution** (spec §2.2): both pages credit and link
   `https://github.com/DonneyF/ubc-pair-grade-data`.
 - Hand-rolled CSS bars. No chart library.
@@ -1024,7 +1024,7 @@ Create `src/components/GradeChart.tsx`. A server component taking
 `distribution: Record<string, number | null>`; render one bar per bucket in
 `GRADE_BUCKETS` order, height proportional to the max non-null value. A suppressed
 bucket renders visibly distinct from a zero bucket (e.g. a hatched/greyed stub with
-a `title` explaining it was withheld) — **the two must not look identical**, since
+a `title` explaining it was withheld) - **the two must not look identical**, since
 that is the whole point of keeping nulls.
 
 Match existing style: `border`, `slate` text, `bg-blue-700` for bars.
@@ -1067,10 +1067,10 @@ Aggregate identically and render their average, counts, chart, and credit.
 
 Start the dev server. Using the CPSC data ingested in Task 4:
 
-1. Open a CPSC course page with data — confirm a real average (not `0.0`), a chart,
+1. Open a CPSC course page with data - confirm a real average (not `0.0`), a chart,
    and the credit line.
-2. Open a CPSC course with **no** grade data — confirm the explicit empty state.
-3. Open a professor who taught a CPSC course — confirm their average appears.
+2. Open a CPSC course with **no** grade data - confirm the explicit empty state.
+3. Open a professor who taught a CPSC course - confirm their average appears.
 4. Confirm a co-taught section's grades appear on **both** professors' pages.
 5. If any ingested section had suppressed buckets, confirm the notice appears and the
    suppressed bar is visually distinct from a zero bar.
@@ -1079,7 +1079,7 @@ Stop the dev server.
 
 - [ ] **Step 5: Full verification and commit**
 
-Run `npm test`, `npx tsc --noEmit`, `npx eslint .`, `npm run build` — all clean.
+Run `npm test`, `npx tsc --noEmit`, `npx eslint .`, `npm run build` - all clean.
 
 ```bash
 git add src/components/GradeChart.tsx "src/app/course/[code]/page.tsx" "src/app/professor/[slug]/page.tsx"
@@ -1090,7 +1090,7 @@ git commit -m "feat: show grade distributions on course and professor pages"
 
 ### Task 6: Full ingest
 
-**Files:** none — this task runs the job and verifies the result.
+**Files:** none - this task runs the job and verifies the result.
 
 The full ingest fetches up to 10 sessions × ~230 subjects at 1 request/second. Many
 combinations 404 (not every subject runs every session), but expect **roughly 40-60
@@ -1109,7 +1109,7 @@ docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c \
 npm run ingest:grades
 ```
 
-Let it finish. Do not raise the rate limit — this is someone else's GitHub repo.
+Let it finish. Do not raise the rate limit - this is someone else's GitHub repo.
 
 - [ ] **Step 3: Verify the result**
 

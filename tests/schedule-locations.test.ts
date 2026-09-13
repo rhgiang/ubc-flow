@@ -39,7 +39,7 @@ describe('collectSectionLocations', () => {
     ]);
   });
 
-  it('skips sections with nowhere to be — a catalogue-only pick has no room', () => {
+  it('skips sections with nowhere to be - a catalogue-only pick has no room', () => {
     expect(collectSectionLocations([hit('s1', [{}, {}])])).toEqual([]);
   });
 

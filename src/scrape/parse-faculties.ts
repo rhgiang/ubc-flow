@@ -5,7 +5,7 @@ import * as cheerio from 'cheerio';
  * which faculty a subject belongs to.
  *
  * The course-search page the catalogue scraper reads offers subjects as a
- * flat <select> of id/name/campus — no faculty anywhere. Subject.faculty has
+ * flat <select> of id/name/campus - no faculty anywhere. Subject.faculty has
  * been an empty column since it was added; this is what fills it.
  */
 
@@ -47,8 +47,8 @@ export function parseFacultySubjects(html: string): string[] {
 
   // Then the page text, for faculties that render the list without links.
   //
-  // cheerio's .text() joins sibling elements with no separator at all — not
-  // even for block tags — so "…Ocean SciencesASTR_V – Astronomy" is one run.
+  // cheerio's .text() joins sibling elements with no separator at all - not
+  // even for block tags - so "…Ocean SciencesASTR_V – Astronomy" is one run.
   // A \b or [^A-Za-z] guard drops every code glued to the previous entry.
   // The lookbehind allows a letter before the code while still refusing to
   // start mid-way through a longer run of capitals.

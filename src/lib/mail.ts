@@ -18,8 +18,8 @@ const TTL_MS: Record<TokenPurpose, number> = {
  * Sends through Resend when RESEND_API_KEY is configured; otherwise falls
  * back to logging the message, so a teammate without their own Resend
  * account still has a working (if unsent) mail flow. Tests always take the
- * console path too, even if a real key is set in .env — VITEST is set by
- * the test runner itself, not something a caller can spoof — so running the
+ * console path too, even if a real key is set in .env - VITEST is set by
+ * the test runner itself, not something a caller can spoof - so running the
  * suite can never fire real email.
  *
  * A send failure is logged, not thrown: requestPasswordReset returns the
@@ -57,7 +57,7 @@ export async function createToken(userId: string, purpose: TokenPurpose): Promis
  * Redeem a token, but only for the purpose it was issued for.
  *
  * Callers must pass the purpose they expect. A token is deleted before its
- * expiry is checked, so a replay finds nothing either way — but a token issued
+ * expiry is checked, so a replay finds nothing either way - but a token issued
  * for a different purpose is left in place, because it is still valid for its
  * own flow and rejecting it here must not consume it.
  */
@@ -73,7 +73,7 @@ export async function consumeToken(
   return { ok: true, userId: row.userId };
 }
 
-/** Drop every outstanding token of one purpose — used to retire superseded links. */
+/** Drop every outstanding token of one purpose - used to retire superseded links. */
 export async function revokeTokens(userId: string, purpose: TokenPurpose): Promise<void> {
   await db.verificationToken.deleteMany({ where: { userId, purpose } });
 }
@@ -95,7 +95,7 @@ export function createVerificationToken(userId: string): Promise<string> {
   return createToken(userId, 'verify');
 }
 
-/** Confirms the address as a side effect — the only thing a verify link does. */
+/** Confirms the address as a side effect - the only thing a verify link does. */
 export async function consumeVerificationToken(
   token: string,
 ): Promise<{ ok: boolean; userId?: string }> {

@@ -24,7 +24,7 @@ export function formatMeeting(m: {
  * Omitted when the room number already encodes it, which is common.
  */
 /**
- * UBC Learning Spaces' official page for a room — photos, floor, layout,
+ * UBC Learning Spaces' official page for a room - photos, floor, layout,
  * capacity: learningspaces.ubc.ca/classrooms/swng-121/.
  *
  * ponytail: the URL is constructed optimistically. Only general teaching

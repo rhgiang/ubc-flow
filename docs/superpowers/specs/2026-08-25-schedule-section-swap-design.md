@@ -1,4 +1,4 @@
-# UBC Flow — Schedule section swap (Design)
+# UBC Flow - Schedule section swap (Design)
 
 Date: 2026-08-25
 Status: approved, not yet implemented
@@ -17,8 +17,8 @@ matches Workday's own Save/Cancel model. `addSection` and `removeSection` are
 plain `setChosen` calls.
 
 Changing from one section of a course to another therefore takes two
-deliberate steps — find the held section, remove it, search the course again,
-add the replacement — with no affordance suggesting the two are related.
+deliberate steps - find the held section, remove it, search the course again,
+add the replacement - with no affordance suggesting the two are related.
 
 ### 1.2 Overlaps are already permitted (investigation finding)
 
@@ -27,11 +27,11 @@ It does not. Tracing the add path:
 
 - `findConflicts` (`src/schedule/conflicts.ts`) is a pure function returning
   overlapping pairs. Its own comment records that conflicts are advisory
-  because UBC's meeting data cannot always prove an overlap is real —
+  because UBC's meeting data cannot always prove an overlap is real -
   alternating-week patterns look identical to a true clash.
 - `addSection` is synchronous, returns nothing, and has no validation or
   rejection path. It cannot fail.
-- The only `disabled` in the add path is `addedIds.has(...)` — dedupe, not
+- The only `disabled` in the add path is `addedIds.has(...)` - dedupe, not
   conflict.
 - Every `setError` call site sits on the **import** or **save** path. None on
   add.
@@ -41,7 +41,7 @@ calendar block, a tooltip, and a `--danger` banner reading "N scheduling
 conflicts detected".
 
 **The reported bug was that banner.** A conflicting section was added
-successfully, and the danger styling read as a rejection — so the correct
+successfully, and the danger styling read as a rejection - so the correct
 "Added" label then looked like a second bug on top. No logic was wrong; the
 interface misreported a success as a failure.
 
@@ -83,7 +83,7 @@ the `×`.
 
 ### 3.2 Course row, beside the dock button
 
-A third button in `CourseHeaderActions`, alongside `i` and the dock icon —
+A third button in `CourseHeaderActions`, alongside `i` and the dock icon -
 same 20px circle, same course-accent colour, same `preventDefault` treatment
 (these live inside a `<summary>`, where an unguarded click toggles the
 `<details>` as a side effect).
@@ -96,15 +96,15 @@ optional and passed only when that course has a held section: always in
 ## 4. The swap overlay
 
 New component `src/components/schedule/SwapOverlay.tsx`, following
-`CourseInfoOverlay`'s established shape — a nullable identifying prop to open
+`CourseInfoOverlay`'s established shape - a nullable identifying prop to open
 and close, Escape to dismiss, backdrop, focus held in the dialog.
 
 Contents:
 
-- **Header** — "Swap MATH 101 2A2", with the current section's days and times
+- **Header** - "Swap MATH 101 2A2", with the current section's days and times
   beneath it, so the thing being replaced stays visible while choosing.
-- **Body** — `FindCoursesPanel`, seeded with the course code.
-- **Cancel** — closes with no change to the working set.
+- **Body** - `FindCoursesPanel`, seeded with the course code.
+- **Cancel** - closes with no change to the working set.
 
 ## 5. `FindCoursesPanel` changes
 
@@ -118,13 +118,13 @@ untouched.
 | --- | --- | --- |
 | `initialQuery` | `''` | seeds the query state |
 | `actionLabel` | `'Add'` | label for the action button |
-| `currentSectionId` | — | the section being replaced |
+| `currentSectionId` | - | the section being replaced |
 
 `initialQuery` is the load-bearing one. The panel already searches by code or
 title, so seeding the query with `"MATH 101"` runs the existing search effect
 and lists that course's sections immediately. The "defaults to a preview of the
 other sections" behaviour therefore needs **no new fetch path and no new
-endpoint** — it is the search that already exists, pre-filled.
+endpoint** - it is the search that already exists, pre-filled.
 
 Button state resolves in this order:
 
@@ -148,12 +148,12 @@ It replaces in one pass over `chosen`. It is deliberately **not**
 `removeSection()` followed by `addSection()`:
 
 - Two sequential updates render an intermediate state where the course is
-  absent from the calendar — a visible flicker on a purely local operation.
+  absent from the calendar - a visible flicker on a purely local operation.
 - An atomic replace keeps the section at its existing position in the list,
   where remove-then-add moves it to the end and reshuffles the panel.
 
 If the chosen replacement is already held elsewhere in the schedule, the
-replace must not produce a duplicate — the old section is dropped and the
+replace must not produce a duplicate - the old section is dropped and the
 existing entry left alone.
 
 No confirmation dialog. Swap matches Add and Remove: instant, buffered,
@@ -166,8 +166,8 @@ overlay closes on apply.
 a dialog appears naming each overlap in the same phrasing the banner uses
 ("PSYC 101 007 overlaps MATH 101 2A2 on Tue"), offering:
 
-- **Save anyway** — proceeds with the existing save path unchanged
-- **Cancel** — aborts, working set untouched, nothing persisted
+- **Save anyway** - proceeds with the existing save path unchanged
+- **Cancel** - aborts, working set untouched, nothing persisted
 
 Modelled on `UnsavedWorkDialog`, which already guards navigation away from
 unsaved work, so this is a second instance of an established pattern rather
@@ -175,18 +175,18 @@ than a new one.
 
 Constraints:
 
-- The gate fires only on Save. Planning stays silent — overlapping freely while
+- The gate fires only on Save. Planning stays silent - overlapping freely while
   working things out is useful and is the reason overlaps are permitted at all.
 - Dismissing the banner (§7.1) must **not** suppress this dialog. They are
   independent: one is a passive notice, the other is the decision point.
-- It fires whenever conflicts exist, every save. No "don't ask again" — a
+- It fires whenever conflicts exist, every save. No "don't ask again" - a
   suppression preference is speculative until someone asks for it.
 - It must not fire when there are no conflicts, so the common path is unchanged.
 
 ### 7.1 The banner is dismissible
 
 The conflict banner currently renders for as long as an overlap exists, with no
-way to put it away. A warning that cannot be dismissed becomes furniture — it
+way to put it away. A warning that cannot be dismissed becomes furniture - it
 stops being read, which is the opposite of what it is for, and it costs vertical
 space above the calendar for the whole session.
 
@@ -194,8 +194,8 @@ It gains a close control. Dismissal is scoped to the **current set of
 overlaps**, not to the session:
 
 - Dismissing hides the banner for exactly the overlaps present at that moment.
-- If the set changes — a new overlap appears, or an existing one is resolved and
-  a different one takes its place — the banner returns.
+- If the set changes - a new overlap appears, or an existing one is resolved and
+  a different one takes its place - the banner returns.
 - Resolving every overlap and creating a new one later shows it again.
 
 This is deliberately not a "don't show again" preference. Silencing a warning
@@ -204,16 +204,16 @@ about a clash they introduce in November.
 
 Implementation note: derive dismissal by comparing a key built from the current
 conflict pairs against the key that was dismissed. Do not reset the flag from an
-effect — this file is already subject to the `set-state-in-effect` lint rule,
+effect - this file is already subject to the `set-state-in-effect` lint rule,
 and a derived comparison needs no effect at all.
 
 ## 8. Testing
 
-- `swapSection` — replaces in place; preserves list position; swapping onto a
+- `swapSection` - replaces in place; preserves list position; swapping onto a
   section already held does not duplicate it.
-- The save gate — a schedule with conflicts does not persist until confirmed;
+- The save gate - a schedule with conflicts does not persist until confirmed;
   a schedule without conflicts saves with no dialog.
-- Banner dismissal — hiding it does not stop the save gate from firing, and a
+- Banner dismissal - hiding it does not stop the save gate from firing, and a
   newly introduced overlap brings the banner back.
 - `findConflicts` is pure and already covered; this work does not change it.
 
@@ -223,18 +223,18 @@ Vitest, matching the existing suite.
 
 ### 9.1 Generalise the panel, not extract or branch
 
-Rejected: extracting a shared `CourseSectionList` — a refactor of working code
+Rejected: extracting a shared `CourseSectionList` - a refactor of working code
 for a single new consumer, with regression risk in the find panel and no
 user-visible gain. Worth revisiting if a third consumer appears.
 
-Rejected: a `mode: 'add' | 'swap'` prop — branching inside the component gives
+Rejected: a `mode: 'add' | 'swap'` prop - branching inside the component gives
 it two personalities and invites accretion.
 
 ### 9.2 Swap targets the same course, with search as an escape hatch
 
 The overlay opens on the held course's sections because that is the common
 case. Searching for an unrelated course still works, and picking one still
-removes the original — the action is "replace this", not "add another".
+removes the original - the action is "replace this", not "add another".
 
 ### 9.3 No confirmation on swap
 
@@ -249,7 +249,7 @@ on the grounds that its styling is what caused a success to be read as a
 failure (§1.2). Kept red by explicit decision.
 
 Added instead: the banner can be dismissed (§7.1). This addresses the same
-underlying problem from a different angle — a permanent red bar trains the
+underlying problem from a different angle - a permanent red bar trains the
 student to ignore it, so making it dismissible keeps it meaningful when it does
 appear. Dismissal is scoped to the current set of overlaps rather than the
 session, so it can never hide an overlap the student has not already seen.

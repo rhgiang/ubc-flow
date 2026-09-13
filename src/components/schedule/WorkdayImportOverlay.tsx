@@ -43,7 +43,7 @@ function SkippedRowsList({ items }: { items: SkippedRow[] }) {
 /**
  * Loads a student's real timetable from their Workday export.
  *
- * Nothing is written by this flow — the sections land in the builder's buffer
+ * Nothing is written by this flow - the sections land in the builder's buffer
  * and are only persisted if the student then saves the schedule.
  */
 export default function WorkdayImportOverlay({
@@ -137,7 +137,7 @@ export default function WorkdayImportOverlay({
   // renders this inside .sky-hero, which overrides --foreground to white for
   // its own title text. A `fixed` dialog is still a DOM descendant even
   // though it's visually independent, so without the portal it inherited
-  // that white text onto its own light card — invisible in light mode. The
+  // that white text onto its own light card - invisible in light mode. The
   // builder-page caller has no sky ancestor, so the portal is a no-op there.
   return createPortal(
     <div
@@ -213,7 +213,7 @@ export default function WorkdayImportOverlay({
                   aria-label="Workday export file"
                   // Cleared on every open, so re-picking the SAME file still fires
                   // change. Without this a second upload of one file is silently
-                  // ignored — the browser treats an identical selection as no change,
+                  // ignored - the browser treats an identical selection as no change,
                   // and the box goes on saying no file is chosen.
                   onClick={(e) => {
                     e.currentTarget.value = '';

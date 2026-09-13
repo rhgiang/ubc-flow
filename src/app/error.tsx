@@ -2,7 +2,7 @@
 
 /**
  * The last backstop. Without this, a throw during render hands the visitor
- * Next's own error screen — a stack trace in development and a blank
+ * Next's own error screen - a stack trace in development and a blank
  * "Application error" in production, neither of which belongs to this site
  * or offers a way out.
  *

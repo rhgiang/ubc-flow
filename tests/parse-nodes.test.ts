@@ -206,7 +206,7 @@ describe('parseSectionNode', () => {
 
     const r = parseSectionNode(node as never, included);
     expect(r.meetings).toHaveLength(2);
-    // Same range on every day of the section — they share one enrolment period.
+    // Same range on every day of the section - they share one enrolment period.
     // Prisma's DateTime? columns need a real Date, not a plain date string
     // (verified against the live backfill), so parseSectionNode converts here.
     for (const m of r.meetings) {

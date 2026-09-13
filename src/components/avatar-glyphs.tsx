@@ -16,19 +16,19 @@
  *
  * Paths were traced from a 320px raster and rounded to one decimal. They render
  * at 36px, where one grid unit is well under a tenth of a pixel, so the extra
- * precision was only ever bulk — this costs about 42KB across the set rather
+ * precision was only ever bulk - this costs about 42KB across the set rather
  * than 100KB, and every avatar inlines its own path.
  *
  * Poses are chosen to fill the square. A subject much wider than it is tall
  * scales to fit the width and lands visibly lighter than its neighbours in a
- * feed — which is why the raccoon is crouched rather than walking, and why the
+ * feed - which is why the raccoon is crouched rather than walking, and why the
  * clock tower is cropped to its cap and clock face.
  *
  * Deliberately no Thunderbird and no crest: both are UBC trademarks, and this
  * site says in its own footer that it is not affiliated with UBC.
  */
 
-/** Names are for the dev preview and for grepping — nothing renders them. */
+/** Names are for the dev preview and for grepping - nothing renders them. */
 export const GLYPHS: { name: string; art: React.ReactNode }[] = [
   // ---- Campus wildlife ---------------------------------------------------
   {

@@ -26,7 +26,7 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
   const router = useRouter();
 
   useEffect(() => {
-    // An empty query needs no fetch — rendering falls back to EMPTY directly
+    // An empty query needs no fetch - rendering falls back to EMPTY directly
     // below rather than resetting state here (setState synchronously inside
     // an effect body triggers an avoidable extra render).
     if (!query.trim()) return;

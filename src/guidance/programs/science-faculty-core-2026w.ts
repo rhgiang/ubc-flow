@@ -21,7 +21,7 @@ const BREADTH =
  * missing outright, so an Atmospheric Science or Data Science course counted
  * toward nothing.
  *
- * GEOB does not exist as a subject in the catalogue — the Calendar writes
+ * GEOB does not exist as a subject in the catalogue - the Calendar writes
  * "GEOS_V (or GEOB_V)" for one course under its current and former codes, and
  * GEOS is the live one.
  */
@@ -30,9 +30,9 @@ const BREADTH_CATEGORIES: [string, string, string[], string[]][] = [
   ['chem', 'Chemistry', ['CHEM'], ['CHEM 100', 'CHEM 300']],
   ['phys', 'Physics', ['PHYS'], ['PHYS 100']],
   // Also GEOS 207, which cannot join a subject list without dragging in the
-  // rest of GEOS — see the note on the breadth rule.
+  // rest of GEOS - see the note on the breadth rule.
   ['life', 'Life Science', ['BIOL', 'BIOC', 'PSYC', 'MICB'], ['BIOL 140', 'BIOL 300']],
-  // Also BIOL 300, DSCI 100 and MATH 302 — likewise, see the note.
+  // Also BIOL 300, DSCI 100 and MATH 302 - likewise, see the note.
   ['stat', 'Statistics', ['STAT'], []],
   ['cpsc', 'Computer Science', ['CPSC', 'AI'], []],
   [
@@ -45,7 +45,7 @@ const BREADTH_CATEGORIES: [string, string, string[], string[]][] = [
 
 /**
  * Requirements every Faculty of Science BSc major carries, regardless of
- * specialization. Extended by each major rather than copied into it — this is
+ * specialization. Extended by each major rather than copied into it - this is
  * the whole reason `extends` exists. The expensive, exception-ridden breadth
  * modelling is written once here and reused by every Science program.
  *
@@ -71,13 +71,13 @@ export const scienceFacultyCore2026W: Program = {
       label: 'Arts credits',
       n: 12,
       // Matches Subject.faculty verbatim as the Calendar writes it, which is
-      // what scrape:faculties stores — not a friendly short name.
+      // what scrape:faculties stores - not a friendly short name.
       //
       // GEOS is excluded because the Calendar excludes it: Geography sits in
       // the Faculty of Arts, so a bare faculty pattern counted Geographical
       // Sciences courses toward the Arts requirement when they carry science
       // credit instead. PSYC is the same trap and cannot be fixed the same
-      // way — only the psychology courses numbered 60 to 89 in the last two
+      // way - only the psychology courses numbered 60 to 89 in the last two
       // digits carry science credit, and the rest do count as Arts. That half
       // is recorded in the note below rather than enforced.
       from: { kind: 'pattern', faculty: 'Faculty of Arts', excludeSubjects: ['GEOS'] },
@@ -143,7 +143,7 @@ export const scienceFacultyCore2026W: Program = {
       //
       // A constraint, like Arts and breadth: these are 48 of the degree's 120
       // credits spent at the upper level, not 48 on top of it. Shown rather
-      // than placed — which specific upper-level courses satisfy it depends
+      // than placed - which specific upper-level courses satisfy it depends
       // on the major's own requirements, and every program here already
       // schedules well over 30 upper-level science credits through its
       // third- and fourth-year rules.

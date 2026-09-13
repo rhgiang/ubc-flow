@@ -14,14 +14,14 @@ export const contentType = 'image/png';
  * The wordmark face, committed rather than fetched.
  *
  * Satori ships one font and silently renders every weight in it, so the card
- * came out in a generic sans while the site's wordmark is Outfit Bold — the
+ * came out in a generic sans while the site's wordmark is Outfit Bold - the
  * one place the two were allowed to disagree, on the image most people see
  * first. next/font/google is no help here: it serves woff2, which Satori
  * cannot read.
  */
 const outfitBold = readFileSync(join(process.cwd(), 'src/app/Outfit-Bold.ttf'));
 // The tagline is body text on the site (Inter), but Inter ships only as an
-// 876KB variable font — a lot of repository for one line on one image. Outfit
+// 876KB variable font - a lot of repository for one line on one image. Outfit
 // Regular is 76KB and already in the family, and one face across a card reads
 // as deliberate rather than as a mismatch.
 const outfitRegular = readFileSync(join(process.cwd(), 'src/app/Outfit-Regular.ttf'));

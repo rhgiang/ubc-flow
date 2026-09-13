@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { db } from '@/lib/db';
 
-// Spy on verifyPassword while keeping the real bcrypt implementation — the
+// Spy on verifyPassword while keeping the real bcrypt implementation - the
 // point is to prove it's actually invoked on the nonexistent-user path, not
 // to fake its result.
 vi.mock('@/lib/hash', async (importOriginal) => {

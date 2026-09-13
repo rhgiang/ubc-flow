@@ -98,7 +98,7 @@ describe('requestPasswordReset', () => {
 
   it('is silent and identical for an address with no account', async () => {
     const result = await requestPasswordReset('zz-nobody-here@example.com');
-    // Same shape as the success path — the form must not be able to tell a
+    // Same shape as the success path - the form must not be able to tell a
     // caller whether the address is registered.
     expect(result).toEqual({ ok: true });
   });

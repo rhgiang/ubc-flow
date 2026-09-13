@@ -26,7 +26,7 @@ describe('verification tokens', () => {
   it('consumes a valid token exactly once', async () => {
     const t = await createVerificationToken(userId);
     expect((await consumeVerificationToken(t)).ok).toBe(true);
-    // Replay must fail — a verification link is single-use.
+    // Replay must fail - a verification link is single-use.
     expect((await consumeVerificationToken(t)).ok).toBe(false);
   });
 

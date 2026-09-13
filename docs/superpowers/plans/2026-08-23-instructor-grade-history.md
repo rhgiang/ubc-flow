@@ -1,26 +1,26 @@
-# Instructor Grade History + Grade Chart Fixes — Implementation Plan
+# Instructor Grade History + Grade Chart Fixes - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Show each instructor's historical grade average for the course being viewed, compared against the course's own average — and fix the grade chart, which currently mis-renders in the docked panel.
+**Goal:** Show each instructor's historical grade average for the course being viewed, compared against the course's own average - and fix the grade chart, which currently mis-renders in the docked panel.
 
 **Architecture:** `GradeDistributionInstructor` already links every grade distribution to the professors who taught it. `loadCourseDetail` gains a per-instructor weighted average for *this course*, computed alongside the review summary it already builds, and the overlay renders it on the same instructor line. Separately, `GradeChart`'s columns are restructured so a wrapping axis label can no longer shrink the bar area.
 
 **Tech Stack:** Next.js 16 (App Router), Prisma 7 + PostgreSQL, Tailwind v4 theme tokens, Vitest.
 
-**Why this exists:** Phase 5 shipped instructor ratings from our own `InstructorReview` data — but the database holds exactly **one** review row, so it renders "No reviews yet" almost everywhere. The grade data we already ingested carries instructor attribution and covers **83% of instructors teaching 2026+ sections**, with **57.9%** having history for the specific course they're teaching. It is available today.
+**Why this exists:** Phase 5 shipped instructor ratings from our own `InstructorReview` data - but the database holds exactly **one** review row, so it renders "No reviews yet" almost everywhere. The grade data we already ingested carries instructor attribution and covers **83% of instructors teaching 2026+ sections**, with **57.9%** having history for the specific course they're teaching. It is available today.
 
 ## Measured facts this plan rests on
 
 - `GradeDistributionInstructor`: 28,509 links, 3,408 of 4,176 UBC-V instructors covered.
 - **11% of distributions are co-taught** (more than one instructor). The schema comment warns: *"Duplicating the distribution per instructor would inflate every course average."*
-- BIOL 111 per-instructor, against a course average of 80.8: Shona Margaret Ellis 74.3 (4 offerings, 759 students), Lynn Norman 86.5 (3, 740), Donald Wong 80.2 (3, 630). A 12-point spread — this is real signal.
-- `GradeDistribution` rows span **2021S–2025W only**. `CourseHistoricalGrades` (ubcgrades) goes back to **2000**. For BIOL 111 that is 80.8% vs 70.1% — the overlay currently shows both, unlabelled.
+- BIOL 111 per-instructor, against a course average of 80.8: Shona Margaret Ellis 74.3 (4 offerings, 759 students), Lynn Norman 86.5 (3, 740), Donald Wong 80.2 (3, 630). A 12-point spread - this is real signal.
+- `GradeDistribution` rows span **2021S–2025W only**. `CourseHistoricalGrades` (ubcgrades) goes back to **2000**. For BIOL 111 that is 80.8% vs 70.1% - the overlay currently shows both, unlabelled.
 
 ## Global Constraints
 
 - **A grade average is not a teaching-quality score.** Label it as an average grade, never as a rating or ranking. A hard course taught well can have a low average.
-- **Never double-count a co-taught distribution.** Weight by student count, and count each distribution once per instructor — do not sum a shared distribution into a course-wide figure more than once.
+- **Never double-count a co-taught distribution.** Weight by student count, and count each distribution once per instructor - do not sum a shared distribution into a course-wide figure more than once.
 - **No new tables, no new ingest.** Everything needed is already in `GradeDistribution` / `GradeDistributionInstructor`.
 - **Theme tokens only.** `foreground`, `background`, `text-secondary`, `text-tertiary`, `surface`, `surface-muted`, `border`, `border-hairline`, `brand-accent`, `danger`. No raw `slate-*`/`blue-*`/`red-*`. **`brand` as a foreground is forbidden.**
 - Commit after every task. `npx tsc --noEmit` and `npx vitest run` clean before each commit (baseline: **334 tests passing**).
@@ -50,7 +50,7 @@ export type InstructorGradeHistory = {
 ```
 
 - `CourseSectionDetail.instructors[]` entries gain `grades: InstructorGradeHistory | null`.
-- `CourseDetail` gains `courseAverage: number | null` — the same weighted mean over ALL of this course's distributions, so the UI can show a delta without recomputing.
+- `CourseDetail` gains `courseAverage: number | null` - the same weighted mean over ALL of this course's distributions, so the UI can show a delta without recomputing.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -123,7 +123,7 @@ describe('loadCourseDetail instructor grade history', () => {
     for (const i of all) {
       if (i.grades === null) return; // found the null path, that is all we need
     }
-    // Every instructor happened to have history — nothing to assert.
+    // Every instructor happened to have history - nothing to assert.
   });
 });
 ```
@@ -137,7 +137,7 @@ In `src/lib/course-detail.ts`, add the type next to `InstructorRatingSummary`:
 ```ts
 /**
  * An instructor's historical grade average FOR THIS COURSE, from UBC's own
- * published distributions (2021S onward — see the note on `courseAverage`).
+ * published distributions (2021S onward - see the note on `courseAverage`).
  *
  * This is an average GRADE, not a teaching-quality score: a demanding course
  * taught well can sit below its own mean. The UI must label it as such.
@@ -165,7 +165,7 @@ Widen the instructor entry:
 And add to `CourseDetail`, next to `grades`:
 
 ```ts
-  /** Weighted mean across ALL of this course's graded offerings — the baseline
+  /** Weighted mean across ALL of this course's graded offerings - the baseline
    *  an instructor's own average is compared against. Null when ungraded. */
   courseAverage: number | null;
 ```
@@ -175,7 +175,7 @@ Inside `loadCourseDetail`, after the existing `instructorIds` / `reviewRows` blo
 ```ts
   // GradeDistributionInstructor links each distribution to everyone who taught
   // it. 11% of distributions are co-taught, so a distribution can appear under
-  // more than one instructor — that is correct here (each taught those
+  // more than one instructor - that is correct here (each taught those
   // students) but it means a shared offering must never be summed into the
   // course-wide figure twice, which is why courseAverage is computed from
   // gradeRows above rather than from these links.
@@ -190,7 +190,7 @@ Inside `loadCourseDetail`, after the existing `instructorIds` / `reviewRows` blo
       })
     : [];
 
-  // How many instructors share each distribution — used only to flag co-teaching.
+  // How many instructors share each distribution - used only to flag co-teaching.
   const sharersPerDistribution = new Map<string, number>();
   for (const l of gradeLinks) {
     sharersPerDistribution.set(
@@ -234,7 +234,7 @@ And set `courseAverage` on the returned object, reusing the already-aggregated f
     courseAverage: /* the aggregate you already build */ .average,
 ```
 
-(Read the existing `grades: aggregateDistributions(...)` expression — hoist it into a `const courseGrades = aggregateDistributions(...)` above the return, then use `grades: courseGrades` and `courseAverage: courseGrades.average`. Do not run a second aggregation.)
+(Read the existing `grades: aggregateDistributions(...)` expression - hoist it into a `const courseGrades = aggregateDistributions(...)` above the return, then use `grades: courseGrades` and `courseAverage: courseGrades.average`. Do not run a second aggregation.)
 
 Run: `npx vitest run tests/course-detail.test.ts` → PASS.
 
@@ -270,7 +270,7 @@ Next to `ratingLine`, add:
 /**
  * "86.5% avg · +5.7 vs course · 3 terms, 740 students".
  *
- * An average GRADE from UBC's published distributions — deliberately not
+ * An average GRADE from UBC's published distributions - deliberately not
  * framed as a rating. The delta is what makes it readable: an 86.5% means
  * little until you know the course itself averages 80.8%.
  */
@@ -292,7 +292,7 @@ Add `InstructorGradeHistory` to the existing `import type { … } from '@/lib/co
 
 - [ ] **Step 2: Render it**
 
-`CourseInfoContent` needs `courseAverage`. It already receives `detail`, so read `detail.courseAverage` directly — no prop change.
+`CourseInfoContent` needs `courseAverage`. It already receives `detail`, so read `detail.courseAverage` directly - no prop change.
 
 In the instructor `<li>`, after the existing rating/no-reviews span, add a second line:
 
@@ -312,11 +312,11 @@ In the instructor `<li>`, after the existing rating/no-reviews span, add a secon
                                   )}
 ```
 
-Put it inside the same `<li>` so one instructor stays one visual unit. If the line gets long, allow it to wrap — do not truncate, the numbers matter.
+Put it inside the same `<li>` so one instructor stays one visual unit. If the line gets long, allow it to wrap - do not truncate, the numbers matter.
 
 - [ ] **Step 3: Label the two grade sources**
 
-The Grades section currently shows "Average 80.8%" (ours, 2021 onward) next to "All-time avg" / "Past 5 years" (ubcgrades, back to 2000). For BIOL 111 those read 80.8% and 70.1% — a 10-point gap with nothing explaining it.
+The Grades section currently shows "Average 80.8%" (ours, 2021 onward) next to "All-time avg" / "Past 5 years" (ubcgrades, back to 2000). For BIOL 111 those read 80.8% and 70.1% - a 10-point gap with nothing explaining it.
 
 Change the first stat's label from `Average` to `Average (since 2021)`, and add a one-line note under the historical stat grid:
 
@@ -352,7 +352,7 @@ git commit -m "feat: show each instructor's grade average against the course ave
 **Files:**
 - Modify: `src/components/GradeChart.tsx`
 
-**The bug, measured in the 380px docked panel:** each column is 28px wide, so axis labels wrap inconsistently — `<50`, `68-71`, `72-75`, `76-79` render on one line (15px) while `50-54`, `80-84`, `90-100` wrap to two (30px). Each column is a flex-column inside a fixed 96px box, so a two-line label leaves only ~62px for the bar area — but bar heights are computed in JS against the full `CHART_HEIGHT` (up to 84px). Tall bars overflow their own column, and the baseline no longer lines up.
+**The bug, measured in the 380px docked panel:** each column is 28px wide, so axis labels wrap inconsistently - `<50`, `68-71`, `72-75`, `76-79` render on one line (15px) while `50-54`, `80-84`, `90-100` wrap to two (30px). Each column is a flex-column inside a fixed 96px box, so a two-line label leaves only ~62px for the bar area - but bar heights are computed in JS against the full `CHART_HEIGHT` (up to 84px). Tall bars overflow their own column, and the baseline no longer lines up.
 
 - [ ] **Step 1: Take the labels out of the bar's flex context**
 
@@ -442,7 +442,7 @@ git commit -m "fix: keep grade chart bars on a common baseline when labels wrap"
 curl -sf http://localhost:3000 >/dev/null && echo UP
 ```
 
-Already running — do NOT start a second.
+Already running - do NOT start a second.
 
 - [ ] **Step 2: Write the smoke script**
 
@@ -471,7 +471,7 @@ try {
   console.log('instructor line:', JSON.stringify(
     dialog.split('\n').find((l) => l.includes('% avg')) ?? '(none)'));
 
-  // Now the docked panel — the narrow case where the chart mis-rendered.
+  // Now the docked panel - the narrow case where the chart mis-rendered.
   await page.click('button[aria-label="Show this course beside the calendar"]');
   await page.waitForSelector('aside[aria-label*="course information"]');
   await page.waitForTimeout(600);
@@ -506,7 +506,7 @@ try {
 Run: `node _smoke_grades.mjs`
 Expected: all checks `true`, an instructor line containing `% avg` and `vs course`, `ALL COLUMNS SHARE A BASELINE: true`, `NO COLUMN OVERFLOWS THE CHART: true`, `CONSOLE ERRORS: []`.
 
-`bottoms.length > 1` means columns still disagree on the baseline — the bug is not fixed. Report it; do not relax the assertion.
+`bottoms.length > 1` means columns still disagree on the baseline - the bug is not fixed. Report it; do not relax the assertion.
 
 - [ ] **Step 4: Look at both screenshots**
 
@@ -531,7 +531,7 @@ Expected: clean tree.
 
 - Every instructor with history for the course shows `X% avg · ±Y vs course · N terms, M students`.
 - A co-taught figure is marked and explained in its tooltip.
-- An instructor with no history for that course shows nothing extra — no zeros, no empty furniture.
+- An instructor with no history for that course shows nothing extra - no zeros, no empty furniture.
 - The grade chart's bars share a baseline at 380px and none overflow.
 - The two grade sources are labelled so the 80.8 vs 70.1 gap is explained.
 - `npx vitest run` and `npx tsc --noEmit` clean.
@@ -540,5 +540,5 @@ Expected: clean tree.
 
 - **Ranking or scoring instructors.** This shows an average grade with a delta; it does not rank, badge, or recommend.
 - Falling back to an instructor's overall average across *other* courses when they have none for this one. Cross-course averages compare different grading cultures and would mislead.
-- Backfilling grade data before 2021 — that is the limit of the ubc-pair source we ingested.
+- Backfilling grade data before 2021 - that is the limit of the ubc-pair source we ingested.
 - A separate comparison view or chart. The inline delta is the comparison; revisit only if it proves insufficient.

@@ -8,7 +8,7 @@ const B =
  *
  * Every option is exactly 15 credits on top of the 106-credit core, for a
  * 121-credit degree. The Calendar's core table splits them 6 in third year
- * and 9 in fourth, but that split is nominal — Finance and Marketing put 9 in
+ * and 9 in fourth, but that split is nominal - Finance and Marketing put 9 in
  * third year and 6 in fourth, Accounting does the reverse, and General
  * Business Management leaves all 15 to the student. Only the total is common,
  * so each option below distributes its own.
@@ -44,7 +44,7 @@ const ACC = `${B}/accounting`;
 const MKT = `${B}/marketing`;
 const GBM = `${B}/general-business-management`;
 
-/** Finance — COMM 370, 371, 374 in third year, 6 approved credits in fourth. */
+/** Finance - COMM 370, 371, 374 in third year, 6 approved credits in fourth. */
 export const commFinance2026W = opt('comm-finance-bcom-2026w', 'Commerce: Finance', 'finance', [
   {
     id: 'fin.third-year',
@@ -59,7 +59,7 @@ export const commFinance2026W = opt('comm-finance-bcom-2026w', 'Commerce: Financ
     ],
   },
   {
-    // "6 credits from approved finance courses" — footnote 2 puts the list on
+    // "6 credits from approved finance courses" - footnote 2 puts the list on
     // the Faculty website rather than in the Calendar, so this reserves the
     // credits from upper-level Commerce without naming them.
     id: 'fin.approved',
@@ -98,7 +98,7 @@ export const commFinance2026W = opt('comm-finance-bcom-2026w', 'Commerce: Financ
   },
 ]);
 
-/** Accounting — COMM 353, 354 in third year; 450 plus 6 more in fourth. */
+/** Accounting - COMM 353, 354 in third year; 450 plus 6 more in fourth. */
 export const commAccounting2026W = opt('comm-accounting-bcom-2026w', 'Commerce: Accounting', 'accounting', [
   {
     id: 'acc.third-year',
@@ -160,7 +160,7 @@ export const commAccounting2026W = opt('comm-accounting-bcom-2026w', 'Commerce: 
   },
 ]);
 
-/** Marketing — COMM 362, 363, 365 in third year; 468 plus 3 more in fourth. */
+/** Marketing - COMM 362, 363, 365 in third year; 468 plus 3 more in fourth. */
 export const commMarketing2026W = opt('comm-marketing-bcom-2026w', 'Commerce: Marketing', 'marketing', [
   {
     id: 'mkt.third-year',
@@ -211,7 +211,7 @@ export const commMarketing2026W = opt('comm-marketing-bcom-2026w', 'Commerce: Ma
   },
 ]);
 
-/** General Business Management — 15 flexible credits, 6 of them at the 400 level. */
+/** General Business Management - 15 flexible credits, 6 of them at the 400 level. */
 export const commGeneral2026W = opt(
   'comm-general-bcom-2026w',
   'Commerce: General Business Management',

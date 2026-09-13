@@ -9,14 +9,14 @@ import { obligations, walk, type Rule } from '@/guidance/rules';
 /**
  * Check a transcribed program against the world, in three directions.
  *
- * Structure — internal consistency, no I/O.
- * Catalogue — every course code names a real UBC course.
- * Source — every code in the file appears on the Calendar page it cites.
+ * Structure - internal consistency, no I/O.
+ * Catalogue - every course code names a real UBC course.
+ * Source - every code in the file appears on the Calendar page it cites.
  *
  * The third is the one that catches transcription error. A code in the file
  * but not on the page is a requirement we invented, which is the dangerous
  * direction: it tells a student to take something their degree does not ask
- * for. The reverse — codes on the page we did not transcribe — is reported
+ * for. The reverse - codes on the page we did not transcribe - is reported
  * too, but as information rather than failure, because a Calendar page names
  * plenty of courses that are not requirements.
  *
@@ -31,14 +31,14 @@ import { obligations, walk, type Rule } from '@/guidance/rules';
  * The Calendar rarely repeats a subject. It writes "CPSC_V 110 (or 103 and
  * 107)" and "CPSC_V 310, 313, 320", so most numbers appear bare and inherit
  * the nearest preceding subject. Matching only "SUBJ NNN" finds a fraction of
- * what is really there and reports the rest as invented — which is exactly
+ * what is really there and reports the rest as invented - which is exactly
  * the false alarm that would make this check worth ignoring.
  *
  * The carried subject is dropped at a sentence end, so a number in unrelated
  * prose two paragraphs later is not attributed to it.
  *
- * Footnote markers are glued straight onto the number in the rendered table —
- * "CPSC_V 1213" is CPSC 121 with footnote 3 — so a course number is read as
+ * Footnote markers are glued straight onto the number in the rendered table -
+ * "CPSC_V 1213" is CPSC 121 with footnote 3 - so a course number is read as
  * exactly three digits and any digits trailing it are consumed as the marker.
  */
 export function codesOnPage(html: string): Set<string> {
@@ -48,8 +48,8 @@ export function codesOnPage(html: string): Set<string> {
   //
   // A trailing capital is a course-letter suffix (491A) only when NO letter
   // follows it at all. Excluding just a following lowercase is not enough:
-  // "…447)123MICB_V 305…" — a footnote marker, a credit count and the next
-  // subject with no separator — let the M of MICB be read as the suffix,
+  // "…447)123MICB_V 305…" - a footnote marker, a credit count and the next
+  // subject with no separator - let the M of MICB be read as the suffix,
   // leaving "ICB_V 305" behind. The subject then parsed as ICB and MICB 305
   // looked invented, while MICB 123M and its siblings appeared out of
   // nowhere. A real suffix is always followed by space or punctuation.
@@ -103,8 +103,8 @@ export async function verifyPrograms(): Promise<number> {
     const missing = codes.filter((c) => !real.has(c));
     if (missing.length > 0) {
       // Not an error, and usually not a transcription mistake either.
-      // Course rows are only ever created by the sections scraper — it holds
-      // the single course.upsert in the codebase — so the catalogue is really
+      // Course rows are only ever created by the sections scraper - it holds
+      // the single course.upsert in the codebase - so the catalogue is really
       // "courses offered in a term we have scraped". A course on hiatus, or
       // one running in a term outside that window, is simply absent. MATH 102
       // and 104 are current UBC courses that no scraped term happens to offer.
@@ -122,7 +122,7 @@ export async function verifyPrograms(): Promise<number> {
     //
     // The check that catches double counting. Faculty-wide requirements are
     // constraints on how a student spends their credits, not extra credits on
-    // top — Arts and breadth come OUT of the elective allowance. Stating both
+    // top - Arts and breadth come OUT of the elective allowance. Stating both
     // in full makes a 120-credit degree total 150 and stretches the plan by a
     // year and a half, which is invisible until someone counts.
     /**

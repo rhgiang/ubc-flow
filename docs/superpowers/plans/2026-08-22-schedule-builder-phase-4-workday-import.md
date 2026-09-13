@@ -1,10 +1,10 @@
-# Schedule Builder — Phase 4: Workday Import Implementation Plan
+# Schedule Builder - Phase 4: Workday Import Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let a student drop their Workday `.xlsx` export into the schedule builder and have their real timetable appear, without writing anything to the database.
 
-**Architecture:** A new parse-and-match-only server action reuses the existing Workday parser unchanged, resolves each parsed row to a catalogue `Section`, and hands the result back to the client. Deliberately separate from `/api/upload`, which binds student identity and writes enrolments — importing a timetable to try it out must not have identity as a side effect. The import overlay lives **inside** the builder, so matched sections drop straight into its buffer with no cross-page state handoff.
+**Architecture:** A new parse-and-match-only server action reuses the existing Workday parser unchanged, resolves each parsed row to a catalogue `Section`, and hands the result back to the client. Deliberately separate from `/api/upload`, which binds student identity and writes enrolments - importing a timetable to try it out must not have identity as a side effect. The import overlay lives **inside** the builder, so matched sections drop straight into its buffer with no cross-page state handoff.
 
 **Tech Stack:** Next.js 16 (App Router, server actions), Prisma 7 + PostgreSQL, ExcelJS, Tailwind v4 theme tokens, Vitest.
 
@@ -14,15 +14,15 @@
 
 ## Validated before planning
 
-The riskiest assumption — that a real export's section codes match our catalogue — was checked against a real `View_My_Courses.xlsx`: **all 12 rows resolved** to a `Section` on `(subject.code, course.number, campus, sectionCode, term)`, including lab/tutorial codes like `L1U`, `T2M`, `L2X`. No format normalisation is needed.
+The riskiest assumption - that a real export's section codes match our catalogue - was checked against a real `View_My_Courses.xlsx`: **all 12 rows resolved** to a `Section` on `(subject.code, course.number, campus, sectionCode, term)`, including lab/tutorial codes like `L1U`, `T2M`, `L2X`. No format normalisation is needed.
 
 ## Global Constraints
 
-- **This action writes NOTHING.** No `Enrollment`, no `studentIdHash`, no `verifiedAt`, no `SavedSchedule`. It parses, matches, and returns. If you find yourself calling a Prisma `create`/`update`/`upsert`, stop — that is the one thing this phase must not do.
+- **This action writes NOTHING.** No `Enrollment`, no `studentIdHash`, no `verifiedAt`, no `SavedSchedule`. It parses, matches, and returns. If you find yourself calling a Prisma `create`/`update`/`upsert`, stop - that is the one thing this phase must not do.
 - **Reuse `readWorkbookGrid` and `parseWorkdayExport` unchanged.** Do not edit `src/upload/read-grid.ts` or `src/upload/parse-workday.ts`.
 - **Validate at the trust boundary.** Mirror `src/app/api/upload/route.ts`: reject > 2 MB before parsing (a zip bomb must never reach the parser) and reject anything not ending `.xlsx`.
-- **Never drop a row silently.** Every parsed row that does not end up in the schedule must be reported to the student with its course name AND its actual reason. Spec §8.2 calls this out because `UploadCoursesForm` currently reports all three exclusion reasons as "transfer credits" — do not repeat that bug.
-- **Theme tokens only.** `foreground`, `background`, `text-secondary`, `text-tertiary`, `surface`, `surface-muted`, `border`, `border-hairline`, `brand`, `brand-accent`, `brand-foreground`, `danger`/`danger-surface`/`danger-border`, and the `rounded-pill`/`rounded-card`/`rounded-input` radii. No raw `slate-*`/`blue-*`/`red-*`. **`brand` as a foreground is forbidden** — invisible in dark mode; use `brand-accent`.
+- **Never drop a row silently.** Every parsed row that does not end up in the schedule must be reported to the student with its course name AND its actual reason. Spec §8.2 calls this out because `UploadCoursesForm` currently reports all three exclusion reasons as "transfer credits" - do not repeat that bug.
+- **Theme tokens only.** `foreground`, `background`, `text-secondary`, `text-tertiary`, `surface`, `surface-muted`, `border`, `border-hairline`, `brand`, `brand-accent`, `brand-foreground`, `danger`/`danger-surface`/`danger-border`, and the `rounded-pill`/`rounded-card`/`rounded-input` radii. No raw `slate-*`/`blue-*`/`red-*`. **`brand` as a foreground is forbidden** - invisible in dark mode; use `brand-accent`.
 - Existing convention: logic in `src/lib/` or a domain folder, thin `'use server'` wrapper. Tests call the core function.
 - Commit after every task. `npx tsc --noEmit` and `npx vitest run` clean before each commit (baseline: **310 tests passing**).
 
@@ -44,7 +44,7 @@ The riskiest assumption — that a real export's section codes match our catalog
 
 - [ ] **Step 1: Write the failing test**
 
-Create `tests/match-schedule.test.ts`. It builds `EnrollmentRow`s from real catalogue rows rather than shipping a fixture file — a real Workday export contains a student's name and number and must never be committed.
+Create `tests/match-schedule.test.ts`. It builds `EnrollmentRow`s from real catalogue rows rather than shipping a fixture file - a real Workday export contains a student's name and number and must never be committed.
 
 ```ts
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -163,7 +163,7 @@ describe('matchWorkdayRows', () => {
 - [ ] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/match-schedule.test.ts`
-Expected: FAIL — cannot resolve `@/upload/match-schedule`.
+Expected: FAIL - cannot resolve `@/upload/match-schedule`.
 
 - [ ] **Step 3: Implement the matcher**
 
@@ -190,7 +190,7 @@ function label(row: EnrollmentRow): string {
 
 /**
  * Resolves parsed Workday registration rows to catalogue sections. Writes
- * nothing — this exists so a student can preview their real timetable in the
+ * nothing - this exists so a student can preview their real timetable in the
  * builder without the identity binding that /api/upload performs.
  *
  * A schedule covers ONE term, but an export can span two (a student registered
@@ -303,7 +303,7 @@ export type ImportResult =
   | { ok: false; error: string };
 
 const REASON_TEXT: Record<string, string> = {
-  transfer_credit: 'Transfer credit — earned at another institution',
+  transfer_credit: 'Transfer credit - earned at another institution',
   unparseable_course: "Course code couldn't be read",
   no_term: 'No meeting dates, so the term is unknown',
 };
@@ -314,20 +314,20 @@ const REASON_TEXT: Record<string, string> = {
  *
  * Deliberately separate from /api/upload: that endpoint binds studentIdHash
  * and writes Enrollment rows, which is right for account verification and
- * wrong here — previewing a timetable must not bind a student's identity as a
+ * wrong here - previewing a timetable must not bind a student's identity as a
  * side effect, and the builder is usable signed out.
  */
 export async function parseWorkdayForSchedule(formData: FormData): Promise<ImportResult> {
   const file = formData.get('file');
   if (!(file instanceof File)) return { ok: false, error: 'No file uploaded.' };
-  // Size is checked BEFORE parsing — a zip bomb must never reach the parser.
+  // Size is checked BEFORE parsing - a zip bomb must never reach the parser.
   if (file.size > MAX_BYTES) return { ok: false, error: 'File is too large (max 2 MB).' };
   if (!file.name.toLowerCase().endsWith('.xlsx')) {
     return { ok: false, error: 'Upload the .xlsx export from Workday.' };
   }
 
   try {
-    // Held in memory only — never written to disk, never logged.
+    // Held in memory only - never written to disk, never logged.
     const grid = await readWorkbookGrid(await file.arrayBuffer());
     const parsed = parseWorkdayExport(grid);
 
@@ -417,7 +417,7 @@ function SkipList({ title, items }: { title: string; items: string[] }) {
 /**
  * Loads a student's real timetable from their Workday export.
  *
- * Nothing is written by this flow — the sections land in the builder's buffer
+ * Nothing is written by this flow - the sections land in the builder's buffer
  * and are only persisted if the student then saves the schedule.
  */
 export default function WorkdayImportOverlay({
@@ -537,7 +537,7 @@ export default function WorkdayImportOverlay({
             </p>
 
             <SkipList title="Not in our catalogue" items={result.unmatched} />
-            <SkipList title="A different term — a schedule covers one term" items={result.otherTerm} />
+            <SkipList title="A different term - a schedule covers one term" items={result.otherTerm} />
 
             {result.skipped.length > 0 && (
               <div className="mt-3">
@@ -545,7 +545,7 @@ export default function WorkdayImportOverlay({
                 <ul className="mt-1 space-y-0.5">
                   {result.skipped.map((s) => (
                     <li key={s.raw} className="text-xs text-text-secondary">
-                      {s.raw} — {s.reason}
+                      {s.raw} - {s.reason}
                     </li>
                   ))}
                 </ul>
@@ -593,7 +593,7 @@ git commit -m "feat: add the Workday import overlay"
 
 ### Task 3: Wire the button and the builder
 
-The "Import from Workday" button sits beside "Build Schedule" on `/schedule` (spec §8), but the overlay lives **inside** the builder. So the button navigates to the builder with a query flag, and the builder opens the overlay on arrival. That avoids serialising a parsed timetable through `sessionStorage` or a URL — the sections never leave the component that owns them.
+The "Import from Workday" button sits beside "Build Schedule" on `/schedule` (spec §8), but the overlay lives **inside** the builder. So the button navigates to the builder with a query flag, and the builder opens the overlay on arrival. That avoids serialising a parsed timetable through `sessionStorage` or a URL - the sections never leave the component that owns them.
 
 **Files:**
 - Modify: `src/app/schedule/page.tsx`
@@ -646,7 +646,7 @@ In `src/components/ScheduleBuilder.tsx`:
 1. Import the overlay: `import WorkdayImportOverlay from '@/components/schedule/WorkdayImportOverlay';`
 2. Add `openImport = false` to the destructured props and `openImport?: boolean;` to the props type.
 3. Add state: `const [importOpen, setImportOpen] = useState(openImport);`
-4. Add an `applyImport` handler next to `addSection`. **Step 4 below gives its final body — write that version, not a draft one.**
+4. Add an `applyImport` handler next to `addSection`. **Step 4 below gives its final body - write that version, not a draft one.**
 
 5. Render the overlay as a sibling of `CourseInfoOverlay`, last inside `<main>`:
 
@@ -662,7 +662,7 @@ In `src/components/ScheduleBuilder.tsx`:
 
 `applyImport` calls `setTermId` with the imported term. If that term is not in the `terms` prop (the builder is given only plannable terms), the `<select>` would show a value with no matching `<option>`.
 
-**Importing the sections anyway would be worse than failing.** They would land in a schedule whose term is something else entirely — sections are term-scoped rows, so a saved schedule would then hold sections from a term it does not belong to. That is exactly the cross-term contamination the course overlay's cache key was fixed to prevent, and nothing on the save path validates section-to-term membership.
+**Importing the sections anyway would be worse than failing.** They would land in a schedule whose term is something else entirely - sections are term-scoped rows, so a saved schedule would then hold sections from a term it does not belong to. That is exactly the cross-term contamination the course overlay's cache key was fixed to prevent, and nothing on the save path validates section-to-term membership.
 
 So the guard aborts the whole import rather than partially applying it. Replace the body of `applyImport` with:
 
@@ -685,7 +685,7 @@ So the guard aborts the whole import rather than partially applying it. Replace 
   }
 ```
 
-This replaces the version written in Step 3 — write it this way and skip the earlier one. `setError` already exists in this component.
+This replaces the version written in Step 3 - write it this way and skip the earlier one. `setError` already exists in this component.
 
 - [ ] **Step 5: Verify and commit**
 
@@ -703,7 +703,7 @@ git commit -m "feat: open the Workday import from the schedule page"
 **Files:**
 - Create (temporary, NOT committed): `_smoke_import.mjs`
 
-A real export lives at `rgschedule/View_My_Courses.xlsx`. **It contains a real student's name and number — never commit it, never copy it into `tests/`, and do not print its contents in your report.** Reference it by path only.
+A real export lives at `rgschedule/View_My_Courses.xlsx`. **It contains a real student's name and number - never commit it, never copy it into `tests/`, and do not print its contents in your report.** Reference it by path only.
 
 - [ ] **Step 1: Confirm the dev server**
 
@@ -711,7 +711,7 @@ A real export lives at `rgschedule/View_My_Courses.xlsx`. **It contains a real s
 curl -sf http://localhost:3000 >/dev/null && echo UP
 ```
 
-A dev server is normally already running. Do NOT start a second — Next.js refuses and exits.
+A dev server is normally already running. Do NOT start a second - Next.js refuses and exits.
 
 - [ ] **Step 2: Write the smoke script**
 
@@ -787,7 +787,7 @@ const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.
 })();"
 ```
 
-Run this BEFORE step 3 as well, and compare. All three counts must be **identical** before and after the import. If any increased, the action is writing and that is a Critical failure — report it, do not work around it.
+Run this BEFORE step 3 as well, and compare. All three counts must be **identical** before and after the import. If any increased, the action is writing and that is a Critical failure - report it, do not work around it.
 
 - [ ] **Step 5: Look at both screenshots**
 
@@ -804,7 +804,7 @@ rm -f _smoke_import.mjs import-light.png import-dark.png
 git status --short
 ```
 
-Expected: a clean tree — in particular `rgschedule/` must NOT appear as a new or modified path. Nothing to commit for this task.
+Expected: a clean tree - in particular `rgschedule/` must NOT appear as a new or modified path. Nothing to commit for this task.
 
 ---
 
@@ -813,13 +813,13 @@ Expected: a clean tree — in particular `rgschedule/` must NOT appear as a new 
 - "Import from Workday" sits beside "Build Schedule" on `/schedule` and opens the import overlay in the builder.
 - A real export loads its sections onto the calendar and into Saved Courses.
 - The term selector switches to the export's term, or explains why it could not.
-- Every parsed row that does not make it in is reported with its course name AND its real reason — transfer credit, unreadable code, and unknown term are distinguished, not lumped together.
+- Every parsed row that does not make it in is reported with its course name AND its real reason - transfer credit, unreadable code, and unknown term are distinguished, not lumped together.
 - Importing writes NOTHING: `savedSchedule`, `enrollment`, and bound-user counts are unchanged.
 - `npx vitest run` and `npx tsc --noEmit` clean.
 
 ## Deliberately not in this phase
 
-- **RateMyProfessors** — Phase 5, behind a spike.
-- **Fixing `UploadCoursesForm`'s exclusion reporting on the Account page** — the same bug, but a separate surface; spec §12 lists it out of scope.
-- **A term picker** when an export spans two terms — dominant term wins and the rest is reported. Revisit if real exports routinely straddle.
+- **RateMyProfessors** - Phase 5, behind a spike.
+- **Fixing `UploadCoursesForm`'s exclusion reporting on the Account page** - the same bug, but a separate surface; spec §12 lists it out of scope.
+- **A term picker** when an export spans two terms - dominant term wins and the rest is reported. Revisit if real exports routinely straddle.
 - **Importing the academic-record export** (past courses). That file is transfer/history data, not a timetable; §8 is about the current schedule.

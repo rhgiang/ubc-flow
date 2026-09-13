@@ -82,7 +82,7 @@ function ScoreGroup({
   descriptions: readonly string[];
   value: number | null;
   onChange: (v: number) => void;
-  /** Submitted without an answer — only ever true after a failed submit. */
+  /** Submitted without an answer - only ever true after a failed submit. */
   missing?: boolean;
 }) {
   // Hovering describes a number before you commit to it; the chosen one takes
@@ -142,7 +142,7 @@ function LikedToggle({
   label: string;
   value: boolean | null;
   onChange: (v: boolean) => void;
-  /** Submitted without an answer — only ever true after a failed submit. */
+  /** Submitted without an answer - only ever true after a failed submit. */
   missing?: boolean;
 }) {
   return (
@@ -234,7 +234,7 @@ export function ReviewForm({
       ]),
     );
     // Arriving from a professor's page: tick them, blank, unless a review of
-    // them already exists — in which case that one is already loaded above and
+    // them already exists - in which case that one is already loaded above and
     // must not be overwritten with empties.
     if (preselectInstructorId && !initial.has(preselectInstructorId)) {
       initial.set(preselectInstructorId, { liked: null, clear: null, engaging: null, text: '' });
@@ -246,7 +246,7 @@ export function ReviewForm({
   /**
    * Which of the three course answers were left blank on a submit attempt.
    *
-   * Empty until someone actually tries to submit — the fields are not marked
+   * Empty until someone actually tries to submit - the fields are not marked
    * required up front, so warning about them before they have been asked for
    * would be scolding a form nobody has filled in yet.
    */
@@ -256,7 +256,7 @@ export function ReviewForm({
   // Compared as one serialised blob rather than field by field: the
   // per-instructor state is a nested Map, and a rating added to this form
   // later is covered without anyone remembering to extend the comparison.
-  // Entries are sorted because Map order follows insertion — checking two
+  // Entries are sorted because Map order follows insertion - checking two
   // instructors in the other order is not an edit.
   const snapshot = JSON.stringify([
     liked,
@@ -350,7 +350,7 @@ export function ReviewForm({
       // button here invites a second submit, which is a second review.
       router.push(`/course/${courseCode}`);
     } catch {
-      // The costliest stuck button in the app — everything the user typed is
+      // The costliest stuck button in the app - everything the user typed is
       // still in the form, and leaving it disabled means they cannot resubmit
       // it or, on most browsers, get it back after a reload.
       setError('Could not post your review. It is still here, so try again.');
@@ -387,7 +387,7 @@ export function ReviewForm({
 
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-10">
-      {/* Course identity on the sky, the form itself on one solid panel — the
+      {/* Course identity on the sky, the form itself on one solid panel - the
           same arrangement as the course and professor pages. */}
       <div className="sky-hero">
         <p className="text-sm text-text-tertiary">{courseLabel}</p>
@@ -539,8 +539,8 @@ export function ReviewForm({
         {missing.size > 0 && (
           <p role="alert" className="text-sm text-danger">
             {missing.size === 1
-              ? 'One answer is still blank — it is highlighted above.'
-              : `${missing.size} answers are still blank — they are highlighted above.`}
+              ? 'One answer is still blank. It is highlighted above.'
+              : `${missing.size} answers are still blank. They are highlighted above.`}
           </p>
         )}
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
@@ -548,7 +548,7 @@ export function ReviewForm({
         <div className="flex items-center gap-3">
           {/* Same rule the schedule header follows: nothing changed means
               nothing to save, and a live button there is a no-op round trip.
-              Only when editing — a first review has no baseline to differ
+              Only when editing - a first review has no baseline to differ
               from, so its Submit stays available. */}
           <button
             type="submit"

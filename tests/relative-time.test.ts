@@ -26,7 +26,7 @@ describe('timeAgo', () => {
   });
 
   it('does not round a fresh review up to a unit it has not reached', () => {
-    // 6 days is not "last week" yet — the week division starts at 7.
+    // 6 days is not "last week" yet - the week division starts at 7.
     expect(ago(6 * DAY)).toBe('6 days ago');
   });
 });

@@ -1,15 +1,15 @@
-# UBC Flow Phase 1: Foundation — Implementation Plan
+# UBC Flow Phase 1: Foundation - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship a browsable, read-only UBC course catalogue — searchable course and professor pages backed by scheduled scrapes of live UBC data.
+**Goal:** Ship a browsable, read-only UBC course catalogue - searchable course and professor pages backed by scheduled scrapes of live UBC data.
 
-**Architecture:** A single Next.js (App Router) TypeScript application with Prisma over Postgres. Scrapers are standalone `tsx` scripts sharing the same Prisma client, run on a schedule, writing to our database — never live proxies on the request path. All HTML parsing lives in **pure functions** (`html string → structured data`) so the test suite needs no network and no database; only idempotency tests touch Postgres.
+**Architecture:** A single Next.js (App Router) TypeScript application with Prisma over Postgres. Scrapers are standalone `tsx` scripts sharing the same Prisma client, run on a schedule, writing to our database - never live proxies on the request path. All HTML parsing lives in **pure functions** (`html string → structured data`) so the test suite needs no network and no database; only idempotency tests touch Postgres.
 
 **Tech Stack:** Next.js (App Router), TypeScript, Prisma, Postgres, Tailwind + shadcn/ui, Vitest, Cheerio (form dropdowns + course body HTML), tsx.
 
 > **Revised after the Task 3 spike.** The spike found an open, unauthenticated
-> Drupal **JSON:API** at `courses.students.ubc.ca/jsonapi` — verified with bare
+> Drupal **JSON:API** at `courses.students.ubc.ca/jsonapi` - verified with bare
 > `curl`, no cookies. Tasks 6-8 therefore parse structured JSON rather than
 > scraping theme markup, and **Playwright is not used in the production path**
 > (it remains installed, and was the tool that discovered the API). The academic
@@ -26,33 +26,33 @@
 - **All scraper writes are idempotent upserts.** Re-running a job must never duplicate or destroy rows.
 - **Campus scope for v1: Vancouver only** (`campus=1`). Schema supports Okanagan; do not scrape it yet.
 - **Term history depth:** current + next + two years back.
-- **Parsers are pure functions.** No parser may perform I/O — no `fetch`, no Prisma. This is what keeps the suite fast and offline.
+- **Parsers are pure functions.** No parser may perform I/O - no `fetch`, no Prisma. This is what keeps the suite fast and offline.
 - **Rating fields are not built in this phase.** Schema defines them; no UI, no routes, no seed data.
-- UBC's numeric IDs are unstable across terms — always store them, never hardcode them in application logic beyond the scrapers.
+- UBC's numeric IDs are unstable across terms - always store them, never hardcode them in application logic beyond the scrapers.
 
 ---
 
 ## File Structure
 
 ```
-prisma/schema.prisma              — full schema, all six phases
-src/app/page.tsx                  — home / search entry
-src/app/explore/page.tsx          — browse by subject
-src/app/course/[code]/page.tsx    — course detail
-src/app/professor/[slug]/page.tsx — professor detail
-src/lib/db.ts                     — Prisma singleton
-src/lib/format.ts                 — shared display helpers
-src/scrape/http.ts                — rate-limited fetch + User-Agent
-src/scrape/fetch-json.ts          — JSON:API pagination walker
-src/scrape/parse-catalog.ts       — PURE: subject/term dropdown parsing (HTML)
-src/scrape/parse-nodes.ts         — PURE: JSON:API course/section node parsing
-src/scrape/parse-body.ts          — PURE: description/prereq extraction
-src/scrape/names.ts               — PURE: instructor name normalisation
-src/scrape/jobs/catalog.ts        — subjects + terms job
-src/scrape/jobs/sections.ts       — courses + sections job
-src/scrape/jobs/descriptions.ts   — description enrichment job
-tests/fixtures/*.html             — saved UBC HTML, committed
-docs/superpowers/notes/           — spike findings
+prisma/schema.prisma              - full schema, all six phases
+src/app/page.tsx                  - home / search entry
+src/app/explore/page.tsx          - browse by subject
+src/app/course/[code]/page.tsx    - course detail
+src/app/professor/[slug]/page.tsx - professor detail
+src/lib/db.ts                     - Prisma singleton
+src/lib/format.ts                 - shared display helpers
+src/scrape/http.ts                - rate-limited fetch + User-Agent
+src/scrape/fetch-json.ts          - JSON:API pagination walker
+src/scrape/parse-catalog.ts       - PURE: subject/term dropdown parsing (HTML)
+src/scrape/parse-nodes.ts         - PURE: JSON:API course/section node parsing
+src/scrape/parse-body.ts          - PURE: description/prereq extraction
+src/scrape/names.ts               - PURE: instructor name normalisation
+src/scrape/jobs/catalog.ts        - subjects + terms job
+src/scrape/jobs/sections.ts       - courses + sections job
+src/scrape/jobs/descriptions.ts   - description enrichment job
+tests/fixtures/*.html             - saved UBC HTML, committed
+docs/superpowers/notes/           - spike findings
 ```
 
 ---
@@ -153,7 +153,7 @@ git commit -m "chore: scaffold Next.js app with Vitest"
 - Consumes: nothing
 - Produces: `prisma` client exported from `@/lib/db` as `db`. Models `Subject`, `Course`, `Term`, `Section`, `MeetingTime`, `Instructor`, `SectionInstructor` are available to all later tasks with exactly the field names below.
 
-**Note — deviation from spec §5.1:** `Subject.code` (e.g. `CPSC`) is **nullable**. The subject dropdown gives us `"Computer Science (Vancouver)"` and a numeric ID but *not* the code; codes appear only in course rows (`CPSC 221`) and are backfilled during Task 7. `ubcSubjectId` is added to iterate the search.
+**Note - deviation from spec §5.1:** `Subject.code` (e.g. `CPSC`) is **nullable**. The subject dropdown gives us `"Computer Science (Vancouver)"` and a numeric ID but *not* the code; codes appear only in course rows (`CPSC 221`) and are backfilled during Task 7. `ubcSubjectId` is added to iterate the search.
 
 - [ ] **Step 1: Provision a Postgres database**
 
@@ -419,7 +419,7 @@ Confirm `git status` shows `.env` as ignored, not staged.
 
 ---
 
-### Task 3: Scraper spike — resolve course-row extraction
+### Task 3: Scraper spike - resolve course-row extraction
 
 **This is an investigation task, not a TDD task.** Its output is a decision and a committed fixture, not production code. Timebox: 1 day.
 
@@ -432,7 +432,7 @@ Confirm `git status` shows `.env` as ignored, not staged.
 - Consumes: nothing
 - Produces: the fixture files Task 4 and Task 6 parse against, and the decision that determines Task 7's fetch mechanism.
 
-**Background — what was already proven and disproven (spec §3):**
+**Background - what was already proven and disproven (spec §3):**
 
 Working, verified:
 ```bash
@@ -492,7 +492,7 @@ await browser.close();
 Run: `npx tsx spike.ts`
 Expected: prints a length and `true`.
 
-If the selectors above do not match, inspect the live page and correct them — record the working selectors in the notes.
+If the selectors above do not match, inspect the live page and correct them - record the working selectors in the notes.
 
 - [ ] **Step 5: Save the results fixture**
 
@@ -610,7 +610,7 @@ describe('parseCatalogForm', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- parse-catalog`
-Expected: FAIL — cannot resolve `@/scrape/parse-catalog`.
+Expected: FAIL - cannot resolve `@/scrape/parse-catalog`.
 
 - [ ] **Step 3: Implement the parsers**
 
@@ -694,7 +694,7 @@ git commit -m "feat: parse UBC subject and term dropdowns"
 **Interfaces:**
 - Consumes: `parseCatalogForm` from Task 4; `db` from Task 2.
 - Produces:
-  - `fetchText(url: string): Promise<string>` — rate-limited, UA-identified
+  - `fetchText(url: string): Promise<string>` - rate-limited, UA-identified
   - `USER_AGENT: string`
   - `npm run scrape:catalog` populating `Subject` and `Term`
 
@@ -737,7 +737,7 @@ describe('fetchText', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- http`
-Expected: FAIL — cannot resolve `@/scrape/http`.
+Expected: FAIL - cannot resolve `@/scrape/http`.
 
 - [ ] **Step 3: Implement the HTTP helper**
 
@@ -838,7 +838,7 @@ Run: `npm run scrape:catalog` a second time. Then:
 npx prisma studio
 ```
 
-Confirm `Term` and `Subject` row counts are unchanged after the second run — no duplicates.
+Confirm `Term` and `Subject` row counts are unchanged after the second run - no duplicates.
 
 - [ ] **Step 9: Commit**
 
@@ -875,7 +875,7 @@ git commit -m "feat: scrape UBC subjects and terms"
 **Naming note:** this task's course-code parser is `parseUbcCourseCode` (parses
 UBC's `"CPSC_V 221"` wire format). Task 9 separately defines `parseCourseCode`
 in `src/lib/format.ts` for URL slugs (`"cpsc-221"`). Two different formats, two
-different functions — do not merge them or reuse one name for both.
+different functions - do not merge them or reuse one name for both.
 
 **Verified wire formats (from the live API during the Task 3 spike):**
 
@@ -892,11 +892,11 @@ field_credits       "4.00"
 
 Relationships resolve through the response's `included` array by `id`:
 `field_status` -> `taxonomy_term--status` `.name` (`"Open"` / `"Closed"` / `"Waitlist"`),
-`field_instructional_method` -> `.name` (`"Lecture"` / `"Laboratory"` / `"Experiential"`) — this is our `activity`,
+`field_instructional_method` -> `.name` (`"Lecture"` / `"Laboratory"` / `"Experiential"`) - this is our `activity`,
 `field_delivery_mode` -> `.name` (`"In person"`), and
 `field_course` -> `node--course` carrying `field_course_code`, `title`, `field_credits`, `body`.
 
-**Building and room are genuinely unavailable** anywhere in this API — the spike
+**Building and room are genuinely unavailable** anywhere in this API - the spike
 confirmed it. `MeetingTime.building` and `.room` stay null. Do not invent them.
 
 - [ ] **Step 1: Write the failing name tests**
@@ -948,7 +948,7 @@ describe('normalizeInstructorName', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- names`
-Expected: FAIL — cannot resolve `@/scrape/names`.
+Expected: FAIL - cannot resolve `@/scrape/names`.
 
 - [ ] **Step 3: Implement name normalisation**
 
@@ -1175,7 +1175,7 @@ describe('parseSectionNode', () => {
 - [ ] **Step 6: Run tests to verify they fail**
 
 Run: `npm test -- parse-nodes`
-Expected: FAIL — cannot resolve `@/scrape/parse-nodes`.
+Expected: FAIL - cannot resolve `@/scrape/parse-nodes`.
 
 - [ ] **Step 7: Implement the node parsers**
 
@@ -1302,7 +1302,7 @@ export function parseSectionNode(node: SectionNode, included: IncludedMap): RawS
     day,
     startTime,
     endTime,
-    // The API exposes no location anywhere — confirmed during the Task 3 spike.
+    // The API exposes no location anywhere - confirmed during the Task 3 spike.
     building: null,
     room: null,
   }));
@@ -1364,7 +1364,7 @@ GET https://courses.students.ubc.ca/jsonapi/node/section
   &page[limit]=50
 ```
 
-**Linking a section to its Subject row — do NOT match on name or code.** The nested
+**Linking a section to its Subject row - do NOT match on name or code.** The nested
 include `field_course.field_subject` resolves each course to a
 `taxonomy_term--subject` whose `meta.drupal_internal__target_id` is *the same
 numeric id Task 5 stored as `Subject.ubcSubjectId`* (verified live: CPSC_V 221 ->
@@ -1378,14 +1378,14 @@ field, populated in `parseCourseNode` from
 `node.relationships.field_subject.data.meta.drupal_internal__target_id`. Add a
 covering test for it in `tests/parse-nodes.test.ts`.
 
-The response carries `links.next.href` for pagination — follow it until absent.
+The response carries `links.next.href` for pagination - follow it until absent.
 `meta.count` reports the total matching sections (44089 across all terms at spike
 time). The `field_academic_term` relationship's `drupal_internal__target_id`
 matches the `academic_period` ids Task 5 already stored on `Term.ubcPeriodId`, so
 no extra lookup is needed.
 
 **Deduplication (important):** filtering `node--course` by `field_course_code`
-returned **8 nodes** for `"CPSC_V 221"` — course nodes are per-instance
+returned **8 nodes** for `"CPSC_V 221"` - course nodes are per-instance
 (`field_course_instance_id`), not one per course. Upserting on
 `(subjectId, number)` collapses them correctly; never assume one node per course.
 
@@ -1533,7 +1533,7 @@ describe('upsertSections', () => {
 - [ ] **Step 3: Run the test to verify it fails**
 
 Run: `npm test -- upsert-sections`
-Expected: FAIL — `upsertSections` is not exported.
+Expected: FAIL - `upsertSections` is not exported.
 
 - [ ] **Step 4: Implement the job**
 
@@ -1567,7 +1567,7 @@ export async function upsertSections(rows: RawSection[], termId: string) {
     if (!row.course || row.course.campus !== CAMPUS) continue;
     if (!row.sectionCode) continue;
 
-    // Exact match on UBC's own subject id — the same value Task 5 stored from the
+    // Exact match on UBC's own subject id - the same value Task 5 stored from the
     // dropdown. Never match on name or code: the dropdown says "Computer Science
     // (Vancouver)", course rows say "CPSC", and those never compare equal.
     if (!row.course.ubcSubjectId) continue;
@@ -1578,7 +1578,7 @@ export async function upsertSections(rows: RawSection[], termId: string) {
     });
     if (!subject) continue;
 
-    // Subject codes appear only on course rows, never the dropdown — fill in on sight.
+    // Subject codes appear only on course rows, never the dropdown - fill in on sight.
     if (!subject.code) {
       await db.subject.update({
         where: { id: subject.id },
@@ -1674,7 +1674,7 @@ export async function scrapeSections() {
     if (previous > 0 && usable.length < previous * MIN_RETAINED_FRACTION) {
       console.error(
         `ABORT ${term.name}: parsed ${usable.length} sections vs ${previous} previously. ` +
-          'UBC API likely changed — refusing to write.',
+          'UBC API likely changed - refusing to write.',
       );
       continue;
     }
@@ -1758,7 +1758,7 @@ git commit -m "feat: scrape UBC sections from JSON:API with change guard"
 - Modify: `package.json`
 
 **Interfaces:**
-- Consumes: `db` (Task 2); `fetchSectionsForTerm` (Task 7) is NOT used — this job reads `bodyHtml` already stored, see Step 5.
+- Consumes: `db` (Task 2); `fetchSectionsForTerm` (Task 7) is NOT used - this job reads `bodyHtml` already stored, see Step 5.
 - Produces:
   - `parseBody(html: string | null): { description: string | null; prereqText: string | null; coreqText: string | null }`
   - `npm run scrape:descriptions`
@@ -1773,7 +1773,7 @@ of CPSC_V 121, MATH_V 220, MATH_O 220 or (b) a score of 68% or higher in MATH_V 
 ```
 
 Note the `[3-2-0]` lecture-lab-tutorial hours marker and that the prerequisite
-sentence runs to the end of the paragraph — it contains internal periods
+sentence runs to the end of the paragraph - it contains internal periods
 ("(a) one of..."), so a naive split on `.` will truncate it. `prereqText` stays
 raw prose; Phase 6 parses it into a tree.
 
@@ -1843,7 +1843,7 @@ describe('parseBody', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- parse-body`
-Expected: FAIL — cannot resolve `@/scrape/parse-body`.
+Expected: FAIL - cannot resolve `@/scrape/parse-body`.
 
 - [ ] **Step 3: Implement the body parser**
 
@@ -1858,7 +1858,7 @@ const orNull = (s: string) => (s.length ? s : null);
 /**
  * Splits a course body into description / prerequisite / corequisite.
  * Prereq and coreq clauses run to the end of the text or to the start of the
- * next labelled clause — never to the first period, which appears inside them.
+ * next labelled clause - never to the first period, which appears inside them.
  */
 export function parseBody(html: string | null): {
   description: string | null;
@@ -1985,7 +1985,7 @@ Confirm descriptions carry no HTML tags and prerequisites read as prose.
 - [ ] **Step 8: Confirm the job is idempotent**
 
 Re-run `npm run scrape:descriptions`. The second run must report `Enriched 0
-courses.` — cleaned descriptions no longer start with `<`, so they are not
+courses.` - cleaned descriptions no longer start with `<`, so they are not
 re-selected.
 
 - [ ] **Step 9: Commit**
@@ -2062,7 +2062,7 @@ describe('formatMeeting', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- format`
-Expected: FAIL — cannot resolve `@/lib/format`.
+Expected: FAIL - cannot resolve `@/lib/format`.
 
 - [ ] **Step 3: Implement the formatters**
 
@@ -2355,7 +2355,7 @@ describe('buildSearchWhere', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: `npm test -- search`
-Expected: FAIL — cannot resolve `@/lib/search`.
+Expected: FAIL - cannot resolve `@/lib/search`.
 
 - [ ] **Step 3: Implement search**
 
@@ -2529,4 +2529,4 @@ git commit -m "feat: add course search and subject browse"
 - [ ] `npm test` passes with no skipped tests
 - [ ] `npm run scrape:catalog`, `scrape:sections`, `scrape:descriptions` each run clean and are idempotent on re-run
 - [ ] A visitor can search a course, view its sections and instructors, and navigate to a professor page
-- [ ] No authentication, ratings, or review UI exists — that is Phases 2 and 3
+- [ ] No authentication, ratings, or review UI exists - that is Phases 2 and 3

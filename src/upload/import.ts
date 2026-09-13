@@ -29,7 +29,7 @@ export async function importExport(
       throw new Error('That student number is already linked to another account.');
     }
 
-    // Once bound, an account's digest may never change to a DIFFERENT one —
+    // Once bound, an account's digest may never change to a DIFFERENT one -
     // only re-confirm the same one. Enrollments accumulate additively and are
     // never cleared on rebind, so an unguarded change would let one account
     // silently absorb a second, unrelated student's identity and history.
@@ -53,11 +53,11 @@ export async function importExport(
   // A section parses to one row per weekly pattern; it must count once.
   const countedSections = new Set<string>();
   // A course can have more than one registration row (lecture + lab), each
-  // contributing its own meeting — cleared once per (course, term) so a
+  // contributing its own meeting - cleared once per (course, term) so a
   // second row this run appends instead of wiping the first's meeting.
   const clearedMeetings = new Set<string>();
   // courseIds seen per term, so a re-upload can drop what the student is no
-  // longer registered in. Only terms the file actually covers are touched —
+  // longer registered in. Only terms the file actually covers are touched -
   // a current-term export must never prune the academic-record terms.
   const keptByTerm = new Map<string, Set<string>>();
 
@@ -85,7 +85,7 @@ export async function importExport(
             select: { id: true },
           });
 
-    // Reported, never silently dropped — a silent drop hides a catalogue gap
+    // Reported, never silently dropped - a silent drop hides a catalogue gap
     // and leaves the user unable to review with no visible cause (spec 4.2).
     // A dated row whose term we cannot find is a gap; an undated row is not.
     if (!course || (!term && row.termYear !== null)) {
@@ -190,7 +190,7 @@ export async function importExport(
    * and keeping it out of that table is what stops it reaching the review
    * gate. A degree plan still counts it, because UBC granted the credit.
    *
-   * Replaced wholesale per import, the same way meetings are — a record that
+   * Replaced wholesale per import, the same way meetings are - a record that
    * no longer lists a transfer should not leave a stale row behind.
    */
   await db.transferCredit.deleteMany({ where: { userId } });

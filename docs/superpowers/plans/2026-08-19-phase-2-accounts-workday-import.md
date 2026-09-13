@@ -1,8 +1,8 @@
-# UBC Flow Phase 2: Accounts + Workday Import — Implementation Plan
+# UBC Flow Phase 2: Accounts + Workday Import - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A student can create an account, upload their Workday exports, and end up verified with an accurate record of every course they have taken or are taking — no grades stored, one student unable to verify two accounts.
+**Goal:** A student can create an account, upload their Workday exports, and end up verified with an accurate record of every course they have taken or are taking - no grades stored, one student unable to verify two accounts.
 
 **Architecture:** Continues Phase 1's Next.js + Prisma monolith. Auth.js v5 with a Credentials provider handles sessions. Workday `.xlsx` parsing follows Phase 1's proven shape: one thin I/O boundary that turns an uploaded buffer into a `string[][]` grid, then **pure functions** over that grid, so the whole parser is testable offline against committed fixtures.
 
@@ -31,7 +31,7 @@
 Two deviations from the spec's §6/§7, both forced by how Auth.js v5 actually works. Recorded here rather than silently applied.
 
 **1. JWT sessions, and therefore no Auth.js adapter tables.** Auth.js v5's
-Credentials provider only supports the `jwt` session strategy — database
+Credentials provider only supports the `jwt` session strategy - database
 sessions are unsupported with credentials. So `Account` and `Session` tables are
 **not** created. The spec's §7 line listing them is superseded by this. We add a
 small `VerificationToken` model of our own for email verification.
@@ -45,7 +45,7 @@ which provider is eventually chosen.
 **3. `Enrollment.source` is `'workday'`, not the spec's split
 `'workday_current'` / `'workday_record'`.** Both exports run through one parser
 and produce identical enrollment rows, so the distinction would record which
-file a row happened to arrive in — not a property of the enrollment. Phase 4
+file a row happened to arrive in - not a property of the enrollment. Phase 4
 needs *current-term* registration, which is derivable from the term dates it
 already has. Superseding the spec's §7 note. Revisit only if a consumer
 genuinely needs the provenance.
@@ -55,21 +55,21 @@ genuinely needs the provenance.
 ## File Structure
 
 ```
-prisma/schema.prisma                  — + studentIdHash, verifiedAt, VerificationToken
-src/lib/auth.ts                       — Auth.js config, handlers, `auth()` helper
-src/lib/hash.ts                       — PURE: HMAC of student number, password hash/verify
-src/lib/mail.ts                       — sendMail interface + console dev impl
-src/lib/gate.ts                       — canReview(userId, courseId) — the review gate
-src/upload/read-grid.ts               — I/O BOUNDARY: xlsx buffer -> string[][]
-src/upload/parse-workday.ts           — PURE: grid -> ParsedExport
-src/upload/import.ts                  — matching + Enrollment upserts
-src/app/(auth)/signup/page.tsx        — signup form
-src/app/(auth)/login/page.tsx         — login form
-src/app/(auth)/verify/page.tsx        — email verification landing
-src/app/onboarding/page.tsx           — guided upload + preview
+prisma/schema.prisma                  - + studentIdHash, verifiedAt, VerificationToken
+src/lib/auth.ts                       - Auth.js config, handlers, `auth()` helper
+src/lib/hash.ts                       - PURE: HMAC of student number, password hash/verify
+src/lib/mail.ts                       - sendMail interface + console dev impl
+src/lib/gate.ts                       - canReview(userId, courseId) - the review gate
+src/upload/read-grid.ts               - I/O BOUNDARY: xlsx buffer -> string[][]
+src/upload/parse-workday.ts           - PURE: grid -> ParsedExport
+src/upload/import.ts                  - matching + Enrollment upserts
+src/app/(auth)/signup/page.tsx        - signup form
+src/app/(auth)/login/page.tsx         - login form
+src/app/(auth)/verify/page.tsx        - email verification landing
+src/app/onboarding/page.tsx           - guided upload + preview
 src/app/api/auth/[...nextauth]/route.ts
-src/app/api/upload/route.ts           — upload handler
-tests/fixtures/workday-*.xlsx         — REDACTED fixtures (fabricated identifiers)
+src/app/api/upload/route.ts           - upload handler
+tests/fixtures/workday-*.xlsx         - REDACTED fixtures (fabricated identifiers)
 tests/*.test.ts
 ```
 
@@ -85,7 +85,7 @@ tests/*.test.ts
 **Interfaces:**
 - Consumes: `db` from `@/lib/db` (Phase 1)
 - Produces:
-  - `hashStudentNumber(raw: string): string` — HMAC-SHA256 hex, keyed by `SERVER_SECRET`
+  - `hashStudentNumber(raw: string): string` - HMAC-SHA256 hex, keyed by `SERVER_SECRET`
   - `hashPassword(plain: string): Promise<string>`
   - `verifyPassword(plain: string, hash: string): Promise<boolean>`
   - `User.studentIdHash`, `User.verifiedAt`, `model VerificationToken`
@@ -99,7 +99,7 @@ npm install -D @types/bcryptjs
 
 - [ ] **Step 2: Add secrets to env**
 
-Append to `.env` (git-ignored — verify with `git check-ignore .env`):
+Append to `.env` (git-ignored - verify with `git check-ignore .env`):
 
 ```
 SERVER_SECRET="<paste output of: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\">"
@@ -184,7 +184,7 @@ describe('hashStudentNumber', () => {
     expect(hashStudentNumber('12345678')).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('is keyed — a different secret yields a different digest', () => {
+  it('is keyed - a different secret yields a different digest', () => {
     const a = hashStudentNumber('12345678');
     const prev = process.env.SERVER_SECRET;
     process.env.SERVER_SECRET = 'a-different-secret';
@@ -222,7 +222,7 @@ describe('passwords', () => {
 - [ ] **Step 6: Run tests to verify they fail**
 
 Run: `npm test -- hash`
-Expected: FAIL — cannot resolve `@/lib/hash`.
+Expected: FAIL - cannot resolve `@/lib/hash`.
 
 - [ ] **Step 7: Implement hashing**
 
@@ -242,7 +242,7 @@ const BCRYPT_ROUNDS = 12;
 export function hashStudentNumber(raw: string): string {
   const secret = process.env.SERVER_SECRET;
   if (!secret) {
-    throw new Error('SERVER_SECRET is not set — refusing to hash unkeyed.');
+    throw new Error('SERVER_SECRET is not set - refusing to hash unkeyed.');
   }
   return createHmac('sha256', secret).update(raw.trim()).digest('hex');
 }
@@ -282,12 +282,12 @@ Confirm `git status` shows `.env` untracked/ignored, never staged.
 **Interfaces:**
 - Consumes: nothing
 - Produces:
-  - `readWorkbookGrid(buffer: Buffer | ArrayBuffer): Promise<string[][]>` — the phase's ONLY I/O boundary
+  - `readWorkbookGrid(buffer: Buffer | ArrayBuffer): Promise<string[][]>` - the phase's ONLY I/O boundary
   - Two committed redacted fixtures
 
 **Why fixtures come before the parser:** the parser is pure and test-driven
 against these files. Real exports are git-ignored and contain a real student
-number and grades — they can never be committed, so redacted equivalents with
+number and grades - they can never be committed, so redacted equivalents with
 identical structure must exist first.
 
 - [ ] **Step 1: Install exceljs**
@@ -363,7 +363,7 @@ for (const f of ['tests/fixtures/workday-current.xlsx','tests/fixtures/workday-r
 ```
 
 Every number printed must be `99999999`. **If any other 6-10 digit number
-appears, stop — the fixture still contains real data and must not be committed.**
+appears, stop - the fixture still contains real data and must not be committed.**
 Also confirm no real name remains.
 
 - [ ] **Step 5: Confirm fixtures are committable**
@@ -372,7 +372,7 @@ Also confirm no real name remains.
 Verify the exception works:
 
 ```bash
-git check-ignore -v tests/fixtures/workday-current.xlsx || echo "NOT ignored — committable, correct"
+git check-ignore -v tests/fixtures/workday-current.xlsx || echo "NOT ignored - committable, correct"
 git check-ignore -v rgschedule/View_My_Courses.xlsx && echo "real export still ignored, correct"
 ```
 
@@ -414,7 +414,7 @@ describe('readWorkbookGrid', () => {
 - [ ] **Step 7: Run tests to verify they fail**
 
 Run: `npm test -- read-grid`
-Expected: FAIL — cannot resolve `@/upload/read-grid`.
+Expected: FAIL - cannot resolve `@/upload/read-grid`.
 
 - [ ] **Step 8: Implement the grid reader**
 
@@ -428,7 +428,7 @@ import ExcelJS from 'exceljs';
  * pure function over the returned grid, which is what keeps the parser
  * testable offline.
  *
- * Rows are padded to a uniform width so column indexes are stable — Workday
+ * Rows are padded to a uniform width so column indexes are stable - Workday
  * omits trailing empty cells, which would otherwise shift lookups per row.
  */
 export async function readWorkbookGrid(
@@ -499,7 +499,7 @@ Confirm `git status` does NOT show anything under `rgschedule/`.
   - `parseWorkdayExport(grid: string[][]): ParsedExport`
   - types `ParsedExport`, `EnrollmentRow`, `ExcludedRow`
 
-**Confirmed real formats (spec §7A) — these are observed, not guessed:**
+**Confirmed real formats (spec §7A) - these are observed, not guessed:**
 
 ```
 column A   "Ryan Giang (12345678) - Faculty of Science"
@@ -511,7 +511,7 @@ record D   "TR"                    <- transfer grade
 record E   "University of Alberta (Edmonton, AB, Canada)"
 ```
 
-**Term inference (spec §7A.3)** — no export has a term column:
+**Term inference (spec §7A.3)** - no export has a term column:
 
 | Start month | Term |
 |---|---|
@@ -592,7 +592,7 @@ describe('inferTerm', () => {
   });
 });
 
-describe('parseWorkdayExport — current courses fixture', () => {
+describe('parseWorkdayExport - current courses fixture', () => {
   it('parses the fixture end to end', async () => {
     const grid = await readWorkbookGrid(readFileSync('tests/fixtures/workday-current.xlsx'));
     const r = parseWorkdayExport(grid);
@@ -613,7 +613,7 @@ describe('parseWorkdayExport — current courses fixture', () => {
     expect(r.rows.some((x) => x.subjectCode === 'CPSC' && x.courseNumber === '110')).toBe(true);
   });
 
-  it('spans more than one term — the export is not single-term', async () => {
+  it('spans more than one term - the export is not single-term', async () => {
     const grid = await readWorkbookGrid(readFileSync('tests/fixtures/workday-current.xlsx'));
     const r = parseWorkdayExport(grid);
     const terms = new Set(r.rows.map((x) => `${x.termYear}-${x.termSession}${x.termNumber}`));
@@ -626,7 +626,7 @@ describe('parseWorkdayExport — current courses fixture', () => {
   });
 });
 
-describe('parseWorkdayExport — academic record fixture', () => {
+describe('parseWorkdayExport - academic record fixture', () => {
   it('excludes every transfer-credit row from enrollment', async () => {
     const grid = await readWorkbookGrid(readFileSync('tests/fixtures/workday-record.xlsx'));
     const r = parseWorkdayExport(grid);
@@ -648,7 +648,7 @@ describe('parseWorkdayExport — academic record fixture', () => {
   });
 });
 
-describe('parseWorkdayExport — safety', () => {
+describe('parseWorkdayExport - safety', () => {
   it('rejects a file containing two different student numbers', () => {
     const grid = [
       ['', 'Course Listing', '', '', '', '', 'Section', 'Registration Status'],
@@ -669,7 +669,7 @@ describe('parseWorkdayExport — safety', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- parse-workday`
-Expected: FAIL — cannot resolve `@/upload/parse-workday`.
+Expected: FAIL - cannot resolve `@/upload/parse-workday`.
 
 - [ ] **Step 3: Implement the parser**
 
@@ -722,7 +722,7 @@ export function parseMeetingPattern(cell: string): {
   return { startDate: m?.[1] ?? null, endDate: m?.[2] ?? null };
 }
 
-/** No export carries a term column — derive it from the start date. */
+/** No export carries a term column - derive it from the start date. */
 export function inferTerm(
   isoDate: string,
 ): { year: number; session: string; termNumber: number | null } | null {
@@ -774,7 +774,7 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
     const listing = courseCol === undefined ? '' : (row[courseCol] ?? '');
     if (!listing) continue;
 
-    // Transfer credit was earned at another institution — it must never grant
+    // Transfer credit was earned at another institution - it must never grant
     // review rights for UBC's version of the course (spec 7B).
     const grade = gradeCol === undefined ? '' : (row[gradeCol] ?? '');
     const origin = originCol === undefined ? '' : (row[originCol] ?? '');
@@ -814,7 +814,7 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
 
   if (seenStudents.size > 1) {
     throw new Error(
-      'Export contains more than one student — a legitimate export covers one student.',
+      'Export contains more than one student - a legitimate export covers one student.',
     );
   }
 
@@ -848,7 +848,7 @@ Expected when done: PASS, all tests in the file.
 
 **Why:** spec §8. The sample academic record held only a *Transfer Credit*
 table because that student has no completed UBC terms. A senior student's export
-will contain at least one more table — almost certainly the completed
+will contain at least one more table - almost certainly the completed
 coursework, the rows that matter most. `headerIndex` finds only the FIRST header
 row, so today those extra tables would be **silently ignored**, quietly costing
 that user most of their reviewable courses with nothing on screen to show it.
@@ -858,7 +858,7 @@ We cannot parse a table we have never seen. We can refuse to hide it.
 Add to `ParsedExport`:
 
 ```ts
-  /** Header rows found after the table we parsed — structures we don't handle yet. */
+  /** Header rows found after the table we parsed - structures we don't handle yet. */
   unparsedTables: string[];
 ```
 
@@ -882,7 +882,7 @@ further header-like rows and collect them:
 Return it alongside the rest. Add this test to `tests/parse-workday.test.ts`:
 
 ```ts
-describe('parseWorkdayExport — unknown tables', () => {
+describe('parseWorkdayExport - unknown tables', () => {
   it('reports a second table rather than silently ignoring it', () => {
     const grid = [
       ['', 'Course Listing', 'Section', 'Registration Status', 'Meeting Patterns'],
@@ -938,7 +938,7 @@ git commit -m "feat: parse Workday exports, excluding transfer credit"
   - `auth()`, `signIn()`, `signOut()`, `handlers` from `@/lib/auth`
   - `registerUser(email: string, password: string): Promise<{ ok: true; userId: string } | { ok: false; error: string }>`
 
-**Session strategy is `jwt`** — Auth.js v5's Credentials provider does not
+**Session strategy is `jwt`** - Auth.js v5's Credentials provider does not
 support database sessions. No `Account`/`Session` tables exist.
 
 - [ ] **Step 1: Install Auth.js**
@@ -1006,7 +1006,7 @@ describe('registerUser', () => {
 - [ ] **Step 3: Run tests to verify they fail**
 
 Run: `npm test -- signup`
-Expected: FAIL — cannot resolve `@/app/actions/auth`.
+Expected: FAIL - cannot resolve `@/app/actions/auth`.
 
 - [ ] **Step 4: Implement the registration action**
 
@@ -1056,7 +1056,7 @@ import { db } from '@/lib/db';
 import { verifyPassword } from '@/lib/hash';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // Credentials provider only supports JWT sessions in Auth.js v5 —
+  // Credentials provider only supports JWT sessions in Auth.js v5 -
   // database sessions are not an option here.
   session: { strategy: 'jwt' },
   pages: { signIn: '/login' },
@@ -1098,7 +1098,7 @@ export const { GET, POST } = handlers;
 ```
 
 The `session()` callback above assigns `session.user.id`, which the default
-Auth.js types do not declare — left as-is, `npx tsc --noEmit` fails in this task
+Auth.js types do not declare - left as-is, `npx tsc --noEmit` fails in this task
 and in every later task that reads `session.user.id` (Task 6's upload route).
 Create `src/types/next-auth.d.ts` to augment it:
 
@@ -1161,7 +1161,7 @@ export default function SignupPage() {
     <main className="mx-auto max-w-md px-6 py-16">
       <h1 className="text-3xl font-semibold">Create your account</h1>
       <p className="mt-2 text-slate-600">
-        Any email works — you&apos;ll verify you&apos;re a UBC student in the next step.
+        Any email works - you&apos;ll verify you&apos;re a UBC student in the next step.
       </p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
@@ -1228,7 +1228,7 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      // Deliberately does not say WHICH was wrong — that would let an attacker
+      // Deliberately does not say WHICH was wrong - that would let an attacker
       // enumerate which emails have accounts.
       setError('Invalid email or password.');
       setBusy(false);
@@ -1351,7 +1351,7 @@ describe('verification tokens', () => {
   it('consumes a valid token exactly once', async () => {
     const t = await createVerificationToken(userId);
     expect((await consumeVerificationToken(t)).ok).toBe(true);
-    // Replay must fail — a verification link is single-use.
+    // Replay must fail - a verification link is single-use.
     expect((await consumeVerificationToken(t)).ok).toBe(false);
   });
 
@@ -1380,7 +1380,7 @@ describe('verification tokens', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- verify`
-Expected: FAIL — cannot resolve `@/lib/mail`.
+Expected: FAIL - cannot resolve `@/lib/mail`.
 
 - [ ] **Step 3: Implement mail and tokens**
 
@@ -1394,7 +1394,7 @@ const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
  * ponytail: console transport only. Choosing a real provider is a deployment
- * decision — swap this one function's body when there is somewhere to send to.
+ * decision - swap this one function's body when there is somewhere to send to.
  */
 export async function sendMail(to: string, subject: string, body: string): Promise<void> {
   console.log(`\n--- MAIL ---\nTo: ${to}\nSubject: ${subject}\n\n${body}\n------------\n`);
@@ -1503,7 +1503,7 @@ git commit -m "feat: add single-use email verification with pluggable delivery"
 
 ---
 
-### Task 6: Import — matching, binding, and enrollment
+### Task 6: Import - matching, binding, and enrollment
 
 **Files:**
 - Create: `src/upload/import.ts`, `src/app/api/upload/route.ts`
@@ -1519,7 +1519,7 @@ git commit -m "feat: add single-use email verification with pluggable delivery"
 
 1. **One student, one account.** The HMAC digest is unique on `User`. An upload
    whose digest already belongs to a *different* user is rejected outright.
-2. **Unmatched rows are reported, never silently dropped** — a silent drop hides
+2. **Unmatched rows are reported, never silently dropped** - a silent drop hides
    catalogue gaps and leaves a user wrongly unable to review with no visible cause.
 
 - [ ] **Step 1: Write the failing tests**
@@ -1605,7 +1605,7 @@ describe('importExport', () => {
     expect(u.studentIdHash).not.toContain('99999999');
   });
 
-  it('is idempotent — re-importing does not duplicate enrollments', async () => {
+  it('is idempotent - re-importing does not duplicate enrollments', async () => {
     await importExport(userA, parsed);
     expect(await db.enrollment.count({ where: { userId: userA } })).toBe(1);
   });
@@ -1620,7 +1620,7 @@ describe('importExport', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- import`
-Expected: FAIL — cannot resolve `@/upload/import`.
+Expected: FAIL - cannot resolve `@/upload/import`.
 
 - [ ] **Step 3: Implement the importer**
 
@@ -1683,7 +1683,7 @@ export async function importExport(
       select: { id: true },
     });
 
-    // Reported, never silently dropped — a silent drop hides a catalogue gap
+    // Reported, never silently dropped - a silent drop hides a catalogue gap
     // and leaves the user unable to review with no visible cause (spec 4.2).
     if (!course || !term) {
       unmatched.push(`${row.subjectCode} ${row.courseNumber}`);
@@ -1740,7 +1740,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No file uploaded.' }, { status: 400 });
   }
 
-  // Size is checked BEFORE parsing — a zip bomb must never reach the parser.
+  // Size is checked BEFORE parsing - a zip bomb must never reach the parser.
   if (file.size > MAX_BYTES) {
     return NextResponse.json({ error: 'File is too large (max 2 MB).' }, { status: 413 });
   }
@@ -1749,13 +1749,13 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Held in memory only — never written to disk, never logged.
+    // Held in memory only - never written to disk, never logged.
     const grid = await readWorkbookGrid(await file.arrayBuffer());
     const parsed = parseWorkdayExport(grid);
 
     if (!parsed.studentNumber) {
       return NextResponse.json(
-        { error: "That file doesn't look like a Workday export — no student found." },
+        { error: "That file doesn't look like a Workday export - no student found." },
         { status: 400 },
       );
     }
@@ -1885,7 +1885,7 @@ describe('reviewableCourses', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- gate`
-Expected: FAIL — cannot resolve `@/lib/gate`.
+Expected: FAIL - cannot resolve `@/lib/gate`.
 
 - [ ] **Step 3: Implement the gate**
 
@@ -2012,7 +2012,7 @@ export default function OnboardingPage() {
           {result.excluded > 0 && (
             <p className="mt-1 text-sm text-slate-600">
               Skipped {result.excluded} transfer credit
-              {result.excluded === 1 ? '' : 's'} — those were earned at another
+              {result.excluded === 1 ? '' : 's'} - those were earned at another
               institution, so they don&apos;t unlock UBC reviews.
             </p>
           )}
@@ -2039,7 +2039,7 @@ export default function OnboardingPage() {
               href="/"
               className="mt-5 inline-block rounded-lg bg-blue-700 px-5 py-2 text-white"
             >
-              Done — start browsing →
+              Done - start browsing →
             </Link>
           )}
         </section>
@@ -2068,7 +2068,7 @@ Clean up test users, stop the dev server.
 - [ ] **Step 7: Run the full suite**
 
 Run: `npm test`
-Expected: PASS — Phase 1's 68 tests plus this phase's additions.
+Expected: PASS - Phase 1's 68 tests plus this phase's additions.
 
 Also run `npx tsc --noEmit` and `npm run build`; both must be clean.
 
@@ -2088,4 +2088,4 @@ git commit -m "feat: add onboarding upload flow and the review gate"
 - [ ] The same export uploaded to a second account is **rejected**
 - [ ] Transfer credits are reported and produce **zero** enrollments
 - [ ] No grade, GPA, raw student number, or uploaded file exists anywhere in the database or on disk
-- [ ] `canReview` returns true only for verified enrollments — ready for Phase 3
+- [ ] `canReview` returns true only for verified enrollments - ready for Phase 3

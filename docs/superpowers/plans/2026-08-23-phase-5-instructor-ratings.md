@@ -1,10 +1,10 @@
-# Phase 5 (revised) — Instructor Ratings in the Course Overlay
+# Phase 5 (revised) - Instructor Ratings in the Course Overlay
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Put instructor quality next to each section in the course overlay — using our own verified-enrolment reviews, with a link out to RateMyProfessors for anyone who wants that too.
+**Goal:** Put instructor quality next to each section in the course overlay - using our own verified-enrolment reviews, with a link out to RateMyProfessors for anyone who wants that too.
 
-**Architecture:** `loadCourseDetail` already returns each section's instructors. It gains a rating summary per instructor, computed with the existing `aggregateInstructorReviews` over `InstructorReview` rows. The overlay renders that inline under the instructor's name, plus an RMP search link built from the name — **no request is ever made to RateMyProfessors**.
+**Architecture:** `loadCourseDetail` already returns each section's instructors. It gains a rating summary per instructor, computed with the existing `aggregateInstructorReviews` over `InstructorReview` rows. The overlay renders that inline under the instructor's name, plus an RMP search link built from the name - **no request is ever made to RateMyProfessors**.
 
 **Tech Stack:** Next.js 16 (App Router), Prisma 7 + PostgreSQL, Tailwind v4 theme tokens, Vitest.
 
@@ -12,7 +12,7 @@
 
 ## Why §9 changed
 
-§9 originally specified an `InstructorRating` model fed by a nightly RateMyProfessors ingest, gated behind a spike. The spike ran — see `docs/superpowers/notes/2026-08-23-ratemyprofessors-spike.md`. Every technical question came back positive (unauthenticated GraphQL, 5,372 UBC professors, 85.7% name match with zero ambiguity), but `ratemyprofessors.com/robots.txt` is `User-agent: * / Disallow: /` with carve-outs only for named search crawlers, and separately blocks AI bots by name.
+§9 originally specified an `InstructorRating` model fed by a nightly RateMyProfessors ingest, gated behind a spike. The spike ran - see `docs/superpowers/notes/2026-08-23-ratemyprofessors-spike.md`. Every technical question came back positive (unauthenticated GraphQL, 5,372 UBC professors, 85.7% name match with zero ambiguity), but `ratemyprofessors.com/robots.txt` is `User-agent: * / Disallow: /` with carve-outs only for named search crawlers, and separately blocks AI bots by name.
 
 So §9's ingest is **struck**. This is §9.4's link-out, plus the thing that actually compounds: our own review data, which is UBC-specific and gated behind verified enrolment.
 
@@ -20,9 +20,9 @@ So §9's ingest is **struck**. This is §9.4's link-out, plus the thing that act
 
 - **Make no request to RateMyProfessors.** No `fetch`, no server action, no build step. The link is a URL string built from the instructor's name; the student's browser follows it if they choose. If you find yourself writing a network call to RMP, stop.
 - **No new rating model.** `InstructorReview` already exists. Do not add `InstructorRating`, and do not add an ingest job.
-- Reuse `aggregateInstructorReviews` from `src/reviews/aggregate.ts` — do not re-derive means. Note its convention: storage is 0-4, display is 1-5, and it already converts.
-- **Theme tokens only.** `foreground`, `background`, `text-secondary`, `text-tertiary`, `surface`, `surface-muted`, `border`, `border-hairline`, `brand`, `brand-accent`, `brand-foreground`, `danger`, and the `rounded-pill`/`rounded-card`/`rounded-input` radii. No raw `slate-*`/`blue-*`/`red-*`. **`brand` as a foreground is forbidden** — invisible in dark mode.
-- An instructor with **no reviews** must render cleanly — name and RMP link only, no empty rating furniture, no "0%".
+- Reuse `aggregateInstructorReviews` from `src/reviews/aggregate.ts` - do not re-derive means. Note its convention: storage is 0-4, display is 1-5, and it already converts.
+- **Theme tokens only.** `foreground`, `background`, `text-secondary`, `text-tertiary`, `surface`, `surface-muted`, `border`, `border-hairline`, `brand`, `brand-accent`, `brand-foreground`, `danger`, and the `rounded-pill`/`rounded-card`/`rounded-input` radii. No raw `slate-*`/`blue-*`/`red-*`. **`brand` as a foreground is forbidden** - invisible in dark mode.
+- An instructor with **no reviews** must render cleanly - name and RMP link only, no empty rating furniture, no "0%".
 - `ScheduleSection.sectionId` and `InstructorReview.courseId` are raw FKs with no Prisma relation. Resolve with a second query keyed on collected ids, never a nested include.
 - Commit after every task. `npx tsc --noEmit` and `npx vitest run` clean before each commit (baseline: **331 tests passing**).
 
@@ -62,7 +62,7 @@ describe('loadCourseDetail instructor ratings', () => {
       for (const i of s.instructors) {
         expect(typeof i.name).toBe('string');
         expect(typeof i.slug).toBe('string');
-        // Present as a key on every instructor — null when unrated.
+        // Present as a key on every instructor - null when unrated.
         expect(i).toHaveProperty('rating');
       }
     }
@@ -128,7 +128,7 @@ Add the exported type next to `CourseSectionDetail`:
 
 ```ts
 /** Our own verified-enrolment reviews for one instructor, across all their
- *  courses — the same basis the professor page uses. Null when unrated. */
+ *  courses - the same basis the professor page uses. Null when unrated. */
 export type InstructorRatingSummary = {
   count: number;
   likedPercent: number | null;
@@ -146,7 +146,7 @@ Widen the instructor entry in `CourseSectionDetail`:
 Inside `loadCourseDetail`, AFTER `sectionRows` is available and BEFORE the return, collect the instructor ids and summarise their reviews in one query:
 
 ```ts
-  // Ratings are keyed on instructor, not on (instructor, course) — the data is
+  // Ratings are keyed on instructor, not on (instructor, course) - the data is
   // sparse enough that a per-course split would almost always be empty, and
   // this matches what the professor page already shows.
   const instructorIds = [
@@ -216,7 +216,7 @@ At the top of the file, next to the other helpers (`pct`, `locationLabel`), add:
 ```tsx
 /**
  * A SEARCH link on RateMyProfessors, scoped to UBC (school 1413). Built from
- * the name — this app makes no request to RMP. Their robots.txt disallows
+ * the name - this app makes no request to RMP. Their robots.txt disallows
  * automated clients, so their ratings are not ingested; a student who wants
  * one follows this link and reads it in RMP's own context.
  */
@@ -274,7 +274,7 @@ The section row currently renders instructors as a single comma-joined `<p>` of 
                           )}
 ```
 
-Keep everything else in the section row — section code, activity, meetings, location, seats, add/remove — exactly as it is.
+Keep everything else in the section row - section code, activity, meetings, location, seats, add/remove - exactly as it is.
 
 - [ ] **Step 3: Verify and commit**
 
@@ -290,7 +290,7 @@ The grep must print nothing. Also confirm no request is made to RMP:
 grep -rniE "fetch\(.*ratemyprof|ratemyprofessors.com/graphql" src/
 ```
 
-Must print nothing — only the search-href string may mention the domain.
+Must print nothing - only the search-href string may mention the domain.
 
 ```bash
 git add src/components/schedule/course-info/CourseInfoContent.tsx
@@ -310,7 +310,7 @@ git commit -m "feat: show our instructor ratings and an RMP link in the course o
 curl -sf http://localhost:3000 >/dev/null && echo UP
 ```
 
-A dev server is already running — do NOT start a second.
+A dev server is already running - do NOT start a second.
 
 - [ ] **Step 2: Write the smoke script**
 
@@ -393,14 +393,14 @@ try {
 Run: `node --env-file=.env _smoke_ratings.mjs`
 Expected: every check `true`, the href a `/search/professors/1413?q=…` URL, and `CONSOLE ERRORS: []`.
 
-**Also confirm no network request went to RMP.** The page must not call them — the link is inert until clicked. If you want belt-and-braces, add a `page.on('request', …)` that records any URL containing `ratemyprofessors` and assert it stayed empty.
+**Also confirm no network request went to RMP.** The page must not call them - the link is inert until clicked. If you want belt-and-braces, add a `page.on('request', …)` that records any URL containing `ratemyprofessors` and assert it stayed empty.
 
 - [ ] **Step 4: Look at both screenshots**
 
 Confirm by eye:
 1. Each instructor is on its own line, name linked, with the ↗ RMP link beside it.
 2. The seeded instructor shows a rating summary; any unrated instructor shows "No reviews yet" with no empty furniture.
-3. The section row is still readable — code, activity, times, location, seats, add/remove all intact and not crowded out.
+3. The section row is still readable - code, activity, times, location, seats, add/remove all intact and not crowded out.
 4. Readable in BOTH themes; no navy-on-charcoal.
 
 - [ ] **Step 5: Clean up**
@@ -426,4 +426,4 @@ Expected: clean tree. Nothing to commit.
 
 - **Ingesting RateMyProfessors data.** See the spike note; their robots.txt disallows it. Revisit only via a licensed feed.
 - Per-course instructor ratings (rating scoped to this course rather than overall). The data is far too sparse today; revisit when review volume supports it.
-- Showing instructor ratings anywhere other than the course overlay — the professor page already has its own `RatingsBox`.
+- Showing instructor ratings anywhere other than the course overlay - the professor page already has its own `RatingsBox`.

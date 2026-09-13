@@ -4,8 +4,8 @@ import { type Instrumentation } from 'next';
  * Server-side error reporting, in one place.
  *
  * The alternative was wrapping all thirty-odd server actions in try/catch so
- * each could log its own failure. This catches strictly more — actions, route
- * handlers and Server Component renders alike — without touching any of them,
+ * each could log its own failure. This catches strictly more - actions, route
+ * handlers and Server Component renders alike - without touching any of them,
  * and it cannot miss a new action somebody forgets to wrap.
  *
  * It deliberately does NOT change what the user sees. The client components

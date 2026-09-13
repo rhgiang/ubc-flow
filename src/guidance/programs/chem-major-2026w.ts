@@ -15,11 +15,11 @@ const course = (id: string, code: string): Rule => ({
 });
 
 /**
- * Chemistry Major (BSc), 2026W — 120 credits.
+ * Chemistry Major (BSc), 2026W - 120 credits.
  *
  * The only program here whose first-year table has no Additional
  * Communication Requirement row. SCIE 113 is listed, the extra three credits
- * are not, and the year still sums to 30 — the footnote on electives carries
+ * are not, and the year still sums to 30 - the footnote on electives carries
  * it instead, saying they must together fulfil the Faculty's requirements.
  * No separate rule is added for it, because adding one would push the
  * program past 120.

@@ -13,7 +13,7 @@ import type { SectionHit } from '@/lib/search';
  * between sections never loses their half-built schedule (spec §7).
  *
  * Detail is fetched the first time a course is opened and cached for the life
- * of the page — reopening is instant, and the builder's initial load carries
+ * of the page - reopening is instant, and the builder's initial load carries
  * none of this.
  */
 export default function CourseInfoOverlay({
@@ -29,7 +29,7 @@ export default function CourseInfoOverlay({
   courseId: string | null;
   termId: string;
   addedSectionIds: Set<string>;
-  /** The student's own section, when opened from their calendar — pinned and
+  /** The student's own section, when opened from their calendar - pinned and
    *  badged so a click on "MATH 200-103" answers for 103, not all forty. */
   highlightSectionCode?: string | null;
   onAddSection?: (hit: SectionHit) => void;
@@ -83,7 +83,7 @@ export default function CourseInfoOverlay({
           <>
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                {/* The heading IS the way to the course page — burying that
+                {/* The heading IS the way to the course page - burying that
                     link at the bottom of a long overlay hid it. Guarded the
                     same way as nav links, so unsaved builder work still gets
                     its leave prompt. */}

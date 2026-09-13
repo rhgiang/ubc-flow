@@ -6,14 +6,14 @@ import GradeChart from '@/components/GradeChart';
 import HistoricalGradesTimeline from '@/components/HistoricalGradesTimeline';
 import type { CourseDetail, InstructorGradeHistory } from '@/lib/course-detail';
 
-/** "+2.6%" / "-1.4%" — the sign is the point, so a positive delta keeps its "+". */
+/** "+2.6%" / "-1.4%" - the sign is the point, so a positive delta keeps its "+". */
 export function formatDelta(instructorAverage: number, courseAverage: number): string {
   const delta = instructorAverage - courseAverage;
   return `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%`;
 }
 
 /** Local copy rather than importing from CourseInfoContent, which imports this
- *  file — the two would form an import cycle. It is five lines of markup. */
+ *  file - the two would form an import cycle. It is five lines of markup. */
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-card border border-border px-3 py-2">
@@ -30,7 +30,7 @@ function pct(v: number | null): string {
 /**
  * Course grades beside one instructor's, so a "+2.6%" is legible as a shape and
  * not just a number: an instructor can sit above the course average because they
- * give more As, or because they give fewer Ds — the two distributions say which.
+ * give more As, or because they give fewer Ds - the two distributions say which.
  *
  * Always a centred modal, even when the course panel is docked: a two-column
  * comparison cannot be read in the dock's 380px.
@@ -167,7 +167,7 @@ export default function GradeComparisonOverlay({
           Both charts come from UBC&apos;s published per-section grade data. The course side
           covers every instructor and term; this instructor&apos;s side covers only the terms
           they taught it, so the two are not drawn from the same students. Each chart is
-          scaled to its own tallest bar — compare the shape of the distributions, not the
+          scaled to its own tallest bar - compare the shape of the distributions, not the
           pixel heights.
         </p>
       </div>

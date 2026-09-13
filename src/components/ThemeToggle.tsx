@@ -7,7 +7,7 @@ import { type Mode, DEFAULT_MODE } from '@/lib/theme';
 
 /**
  * One button showing the current mode's icon. Clicking opens a small menu
- * naming all five modes — no blind cycling, one press then one labeled choice.
+ * naming all five modes - no blind cycling, one press then one labeled choice.
  * The button can also be dragged to any corner, so it can be moved off
  * whatever it happens to be covering (the builder's course cards, most often).
  *
@@ -23,7 +23,7 @@ import { type Mode, DEFAULT_MODE } from '@/lib/theme';
 /**
  * Day / Night / Campus weather are the sky; Light / Dark are the plain UI the
  * site had before it, charcoal dark included. Both families run on the same
- * two palettes — `data-plain` is the only thing that separates them, and it is
+ * two palettes - `data-plain` is the only thing that separates them, and it is
  * what globals.css and SkyClouds key the sky off.
  */
 const PLAIN: Mode[] = ['light', 'dark'];
@@ -48,7 +48,7 @@ function apply(mode: Mode, weather: WeatherNow | null) {
   root.setAttribute('data-mode', mode);
   if (mode === 'weather') {
     // No data (fetch failed): fall back to campus daylight hours, and the sky
-    // keeps its default clouds. 7-20 rather than 7-19 — Vancouver's sunset
+    // keeps its default clouds. 7-20 rather than 7-19 - Vancouver's sunset
     // runs past 21:00 midsummer and before 16:30 midwinter, so any fixed
     // window is a guess; this one errs toward daylight, which is both the
     // signature look and the answer more of the day agrees with.
@@ -109,7 +109,7 @@ const OPTIONS: { mode: Mode; label: string; icon: React.ReactNode }[] = [
 ];
 
 // Shows this option's icon on the trigger button only while its mode is
-// active. Literal strings — Tailwind can't see interpolated class names.
+// active. Literal strings - Tailwind can't see interpolated class names.
 const ICON_WHEN_ACTIVE: Record<Mode, string> = {
   day: 'hidden [html[data-mode=day]_&]:block [html:not([data-mode])_&]:block',
   night: 'hidden [html[data-mode=night]_&]:block',
@@ -163,7 +163,7 @@ export default function ThemeToggle({ weather }: { weather: WeatherNow | null })
   const corner = moved ?? (saved in CORNERS ? (saved as Corner) : 'bl');
 
   // The button stays anchored to its corner; dragging only translates it from
-  // there. That way the snap-back is a plain transform transition — nothing
+  // there. That way the snap-back is a plain transform transition - nothing
   // animates to `auto`, which is what a left/top swap would have asked for.
   const [off, setOff] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
@@ -184,7 +184,7 @@ export default function ThemeToggle({ weather }: { weather: WeatherNow | null })
   // after paint now: the pre-paint script no longer reads it (auth() during
   // the layout render forced every page dynamic). apply() writes the mode
   // back to localStorage, so this only ever runs work on the first load in
-  // a new browser — after that the two agree and nothing changes.
+  // a new browser - after that the two agree and nothing changes.
   useEffect(() => {
     void savedThemeMode().then((saved) => {
       if (saved && saved !== (localStorage.getItem('theme') ?? DEFAULT_MODE)) {
@@ -194,7 +194,7 @@ export default function ThemeToggle({ weather }: { weather: WeatherNow | null })
   }, [weather]);
 
   // Campus conditions on a page that stays open. Without this, weather mode
-  // is only ever as current as the last full page load — a tab left open
+  // is only ever as current as the last full page load - a tab left open
   // across sunset keeps drawing a daylight sky. Upstream is cached for 30
   // minutes, so a 15-minute poll costs a round trip and nothing more.
   useEffect(() => {
@@ -274,14 +274,14 @@ export default function ThemeToggle({ weather }: { weather: WeatherNow | null })
         y: next.startsWith('t') ? INSET : window.innerHeight - INSET - rect.height,
       };
       // Re-anchor to the new corner and re-express the current position as an
-      // offset from it — same pixels on screen, no jump — then let the next
+      // offset from it - same pixels on screen, no jump - then let the next
       // frame ease that offset to zero.
       setMoved(next);
       localStorage.setItem(CORNER_KEY, next);
       setOff({ x: end.x - home.x, y: end.y - home.y });
       // Two frames: one to let the re-anchored position actually paint, the
       // next to start the transition from it. One frame and the browser
-      // collapses both into a single style pass — no animation at all.
+      // collapses both into a single style pass - no animation at all.
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
           setSnapping(true);
@@ -318,7 +318,7 @@ export default function ThemeToggle({ weather }: { weather: WeatherNow | null })
               type="button"
               onClick={() => {
                 apply(o.mode, weather);
-                // Only a deliberate pick is persisted to the account —
+                // Only a deliberate pick is persisted to the account -
                 // apply() also runs on re-hydration, and saving there would
                 // write the same value back on every page load.
                 void saveThemeMode(o.mode);

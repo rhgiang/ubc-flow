@@ -11,7 +11,7 @@ export type ReviewItem = {
   tags: { label: string; value: string }[];
   liked: boolean | null;
   when: string;
-  /** Sorted on, never shown — the displayed age is `when`. */
+  /** Sorted on, never shown - the displayed age is `when`. */
   createdAt: number;
   votes: number;
   voted: boolean;
@@ -21,7 +21,7 @@ export type ReviewItem = {
 type Sort = 'recent' | 'helpful';
 
 /**
- * UW Flow offers exactly two orders — most recent and most helpful — and falls
+ * UW Flow offers exactly two orders - most recent and most helpful - and falls
  * back to the other when the first ties, which is what keeps a wall of
  * zero-vote reviews in a sensible order under "most helpful".
  */
@@ -75,7 +75,7 @@ function Tab({
       role="tab"
       // py-3 below sm: matches the identical tab pair on explore. The short
       // label is what keeps the pair one line: at half a 393px phone
-      // "Professor reviews (1)" wrapped, and a wrapped tab stood 68px tall —
+      // "Professor reviews (1)" wrapped, and a wrapped tab stood 68px tall -
       // the largest control anywhere on the site.
       className={`flex-1 px-4 py-3 text-center text-sm font-semibold sm:py-3.5 ${
         active
@@ -121,7 +121,7 @@ function List({
 /**
  * Course reviews and professor reviews as two tabs rather than two stacked
  * lists, following UW Flow: they answer different questions, and the professor
- * half is only useful once it is grouped under the professor it is about —
+ * half is only useful once it is grouped under the professor it is about -
  * which the flat list never said at all.
  */
 export default function CourseReviewTabs({

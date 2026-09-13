@@ -20,7 +20,7 @@ const course = (id: string, code: string): Rule => ({
 });
 
 /**
- * Earth and Ocean Sciences Major (BSc), 2026W — 120 credits.
+ * Earth and Ocean Sciences Major (BSc), 2026W - 120 credits.
  *
  * The most open-ended Science program here: beyond first and second year it
  * names almost nothing, asking instead for 24 credits of EOSC, ENVR or ATSC
@@ -28,7 +28,7 @@ const course = (id: string, code: string): Rule => ({
  * is mostly slots in the upper years, which is what the Calendar itself
  * prescribes rather than a gap in the transcription.
  *
- * Its degree row reads "Minimum Credits for Degree", not "Total" — the only
+ * Its degree row reads "Minimum Credits for Degree", not "Total" - the only
  * program here worded that way.
  */
 export const eoscMajor2026W: Program = {

@@ -6,7 +6,7 @@ import { matchWorkdayRows, type ScheduleImport } from '@/upload/match-schedule';
 
 const MAX_BYTES = 1 * 1024 * 1024;
 // A real export is ~12 rows. Sheet XML compresses hard, so the byte cap above
-// does not bound row count — this does.
+// does not bound row count - this does.
 const MAX_ROWS = 200;
 
 /** A parsed row that will not appear in the schedule, with the REAL reason. */
@@ -28,20 +28,20 @@ const REASON_TEXT: Record<string, string> = {
  *
  * Deliberately separate from /api/upload: that endpoint binds studentIdHash
  * and writes Enrollment rows, which is right for account verification and
- * wrong here — previewing a timetable must not bind a student's identity as a
+ * wrong here - previewing a timetable must not bind a student's identity as a
  * side effect, and the builder is usable signed out.
  */
 export async function parseWorkdayForSchedule(formData: FormData): Promise<ImportResult> {
   const file = formData.get('file');
   if (!(file instanceof File)) return { ok: false, error: 'No file uploaded.' };
-  // Size is checked BEFORE parsing — a zip bomb must never reach the parser.
+  // Size is checked BEFORE parsing - a zip bomb must never reach the parser.
   if (file.size > MAX_BYTES) return { ok: false, error: 'File is too large (max 1 MB).' };
   if (!file.name.toLowerCase().endsWith('.xlsx')) {
     return { ok: false, error: 'Upload the .xlsx export from Workday.' };
   }
 
   try {
-    // Held in memory only — never written to disk, never logged.
+    // Held in memory only - never written to disk, never logged.
     const grid = await readWorkbookGrid(await file.arrayBuffer());
     const parsed = parseWorkdayExport(grid);
 

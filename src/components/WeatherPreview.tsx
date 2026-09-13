@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { saveThemeMode } from '@/app/actions/theme';
 import { DEFAULT_MODE } from '@/lib/theme';
 
-// ponytail: temporary dev control — lets you preview every sky state without
+// ponytail: temporary dev control - lets you preview every sky state without
 // waiting for real weather. Delete this component (and its line in layout.tsx)
 // once the weather mode is signed off.
 
@@ -16,7 +16,7 @@ type Condition = (typeof CONDITIONS)[number];
  *
  * It used to hold `night`/`condition` in state seeded to day + rain, so the
  * highlighted buttons described whatever was last previewed rather than what
- * the sky was actually doing — pick "Campus weather" and the panel would
+ * the sky was actually doing - pick "Campus weather" and the panel would
  * still claim Day + Rain over a clear night. Everything that changes the sky
  * (this panel, the theme menu, the campus-weather refresh) writes these two
  * attributes, so deriving from them is the one source that cannot go stale.
@@ -31,7 +31,7 @@ function subscribe(onChange: () => void) {
 }
 
 // A joined string, because useSyncExternalStore compares snapshots by
-// identity — returning a fresh object each read would loop forever.
+// identity - returning a fresh object each read would loop forever.
 const readSky = () => {
   const r = document.documentElement;
   return `${r.getAttribute('data-weather') ?? ''}|${r.getAttribute('data-theme') ?? ''}`;
@@ -43,7 +43,7 @@ export default function WeatherPreview() {
 
   const sky = useSyncExternalStore(subscribe, readSky, () => '|');
   const [weatherAttr, themeAttr] = sky.split('|');
-  // Null in Day/Night/Light/Dark, where no condition is being drawn at all —
+  // Null in Day/Night/Light/Dark, where no condition is being drawn at all -
   // highlighting one anyway would be the same lie in a smaller form.
   const condition = (CONDITIONS as readonly string[]).includes(weatherAttr)
     ? (weatherAttr as Condition)
@@ -88,7 +88,7 @@ export default function WeatherPreview() {
   }
 
   return (
-    // max-sm:hidden — on phones this dev control parked on top of the login
+    // max-sm:hidden - on phones this dev control parked on top of the login
     // panel's Google button; preview skies from a desktop instead.
     <div ref={containerRef} className="fixed bottom-6 left-20 z-50 max-sm:hidden">
       {open && (

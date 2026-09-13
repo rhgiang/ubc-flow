@@ -1,5 +1,5 @@
 /**
- * "Open" / "Waitlist" / "Full" for a section row — one component so the
+ * "Open" / "Waitlist" / "Full" for a section row - one component so the
  * builder sidebar, the saved-courses list and the course overlay all colour
  * and word a status identically. UBC's raw value for full is "Closed", which
  * students read as cancelled; "Full" says what they mean.

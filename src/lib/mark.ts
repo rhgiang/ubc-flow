@@ -3,8 +3,8 @@
  *
  * Kept here because two TSX consumers need the raw path data: the nav
  * wordmark, and the Open Graph card (Satori rasterises JSX, so it cannot read
- * app/icon.svg off disk). The favicon itself is a standalone file — a browser
- * asks for it as an .svg, not as a module — so app/icon.svg still carries its
+ * app/icon.svg off disk). The favicon itself is a standalone file - a browser
+ * asks for it as an .svg, not as a module - so app/icon.svg still carries its
  * own copy of these three paths plus the tile behind them.
  *
  * ponytail: two copies, not one. Generating icon.svg at build time to close
@@ -22,6 +22,6 @@ export const WAVE_UPPER =
 export const WAVE_LOWER =
   'M451.754 669.211C465.294 668.452 492.144 673.379 504.184 679.544C539.017 697.384 575.664 713.695 613.069 691.384C618.016 688.434 626.321 678.972 632.161 679.121C646.676 679.504 649.81 693.353 639.391 702.555C619.923 719.749 597.838 726.508 572.245 726.524C534.194 726.635 515.22 708.697 481.85 697.552C460.714 690.493 431.158 693.471 412.411 705.498C403.562 711.176 394.302 723.995 382.586 714.458C370.136 703.97 388.054 691.588 395.905 686.437C413.455 674.922 431.187 670.452 451.754 669.211Z';
 
-/** Tight box around the three paths above — the tile's padding is not wanted
+/** Tight box around the three paths above - the tile's padding is not wanted
  *  when the mark stands next to text rather than filling a browser tab. */
 export const MARK_VIEWBOX = '288 298 452 436';

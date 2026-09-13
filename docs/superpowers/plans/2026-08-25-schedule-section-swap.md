@@ -4,7 +4,7 @@
 
 **Goal:** Let a student replace one section of a course with another in a single action, and ask for confirmation when saving a schedule that contains overlapping meetings.
 
-**Architecture:** The swap is a pure transform over the builder's working set (`buffer.ts`), surfaced by a new overlay that reuses the existing `FindCoursesPanel` with three optional props. Nothing new is fetched — seeding the panel's query with the course code reuses the search that already exists. The overlap gate is a confirmation in front of the existing `trySave`, not a change to conflict detection.
+**Architecture:** The swap is a pure transform over the builder's working set (`buffer.ts`), surfaced by a new overlay that reuses the existing `FindCoursesPanel` with three optional props. Nothing new is fetched - seeding the panel's query with the course code reuses the search that already exists. The overlap gate is a confirmation in front of the existing `trySave`, not a change to conflict detection.
 
 **Tech Stack:** Next.js 16 (App Router), React 19, TypeScript, Tailwind v4, Vitest for unit tests, Playwright for browser verification.
 
@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Conflict detection is untouched. `src/schedule/conflicts.ts` is not modified by any task.
-- The conflict banner and calendar ring keep their `--danger` styling. Explicit decision, spec §9.4. The banner gains a close control (Task 8) — a behaviour change, not a restyling.
+- The conflict banner and calendar ring keep their `--danger` styling. Explicit decision, spec §9.4. The banner gains a close control (Task 8) - a behaviour change, not a restyling.
 - Overlaps remain legal to add and legal to persist. No task may block an add.
 - Adding, removing and swapping stay client-only. Nothing commits until Save.
 - The schedule builder is the only surface affected. Routes under `/schedule/new` and `/schedule/[id]`.
@@ -33,7 +33,7 @@ The only piece with real branching. It lives in `buffer.ts` beside `diffSections
 
 **Interfaces:**
 - Consumes: `SectionHit` from `@/lib/search` (fields used: `sectionId`).
-- Produces: `swapSection(chosen: SectionHit[], oldSectionId: string, next: SectionHit): SectionHit[]` — returns a new array; returns the input array unchanged when there is nothing to do.
+- Produces: `swapSection(chosen: SectionHit[], oldSectionId: string, next: SectionHit): SectionHit[]` - returns a new array; returns the input array unchanged when there is nothing to do.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -92,7 +92,7 @@ describe('swapSection', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/buffer-swap.test.ts`
-Expected: FAIL — `swapSection` is not exported from `@/schedule/buffer`.
+Expected: FAIL - `swapSection` is not exported from `@/schedule/buffer`.
 
 - [ ] **Step 3: Write the implementation**
 
@@ -119,7 +119,7 @@ export function swapSection(
   const index = chosen.findIndex((s) => s.sectionId === oldSectionId);
   if (index === -1) return chosen;
 
-  // Already held elsewhere — a schedule holds a set, so take the old one out
+  // Already held elsewhere - a schedule holds a set, so take the old one out
   // rather than creating a second row for the same section.
   if (chosen.some((s) => s.sectionId === next.sectionId)) {
     return chosen.filter((s) => s.sectionId !== oldSectionId);
@@ -159,7 +159,7 @@ Generalises the panel so a caller decides what the action button does. No change
 
 **Interfaces:**
 - Consumes: nothing from earlier tasks.
-- Produces: three optional props on `FindCoursesPanel` — `initialQuery?: string` (default `''`), `actionLabel?: string` (default `'Add'`), `currentSectionId?: string`. Existing callers keep working untouched.
+- Produces: three optional props on `FindCoursesPanel` - `initialQuery?: string` (default `''`), `actionLabel?: string` (default `'Add'`), `currentSectionId?: string`. Existing callers keep working untouched.
 
 - [ ] **Step 1: Add the props to the signature**
 
@@ -226,7 +226,7 @@ and the button:
 - [ ] **Step 4: Verify nothing regressed**
 
 Run: `npx tsc --noEmit && npm run lint`
-Expected: no new type errors. Lint reports only the six pre-existing `set-state-in-effect` errors in `ScheduleBuilder.tsx`, `FindCoursesPanel.tsx`, `WorkdayImportOverlay.tsx` and `useCourseDetail.ts` — these predate this work and must not be "fixed" here.
+Expected: no new type errors. Lint reports only the six pre-existing `set-state-in-effect` errors in `ScheduleBuilder.tsx`, `FindCoursesPanel.tsx`, `WorkdayImportOverlay.tsx` and `useCourseDetail.ts` - these predate this work and must not be "fixed" here.
 
 - [ ] **Step 5: Verify the Find panel still behaves**
 
@@ -345,7 +345,7 @@ export default function SwapOverlay({
 - [ ] **Step 2: Typecheck**
 
 Run: `npx tsc --noEmit`
-Expected: no errors. The component is not rendered anywhere yet — that is Task 6.
+Expected: no errors. The component is not rendered anywhere yet - that is Task 6.
 
 - [ ] **Step 3: Commit**
 
@@ -358,7 +358,7 @@ git commit -m "feat: add the swap overlay shell"
 
 ### Task 4: Swap button on course rows
 
-`CourseHeaderActions` renders in both the Saved and Find panels, and swap is meaningless for a course the student does not hold — so `onSwap` is optional and only passed where a held section exists.
+`CourseHeaderActions` renders in both the Saved and Find panels, and swap is meaningless for a course the student does not hold - so `onSwap` is optional and only passed where a held section exists.
 
 **Files:**
 - Modify: `src/components/schedule/CourseHeaderActions.tsx`
@@ -407,7 +407,7 @@ and render it after the dock button, inside the same fragment:
       )}
 ```
 
-The existing `handler()` wrapper is required — these sit inside a `<summary>`, where an unguarded click toggles the `<details>` as a side effect.
+The existing `handler()` wrapper is required - these sit inside a `<summary>`, where an unguarded click toggles the `<details>` as a side effect.
 
 - [ ] **Step 2: Thread onSwap through SavedCoursesPanel**
 
@@ -440,12 +440,12 @@ Every course in this panel is held, so pass the group's first section:
 
 - [ ] **Step 3: Thread onSwap through SchedulePanelTabs**
 
-Add `onSwap: (section: SectionHit) => void` to the props and type, and pass it to `SavedCoursesPanel`. Do **not** pass it to `FindCoursesPanel` — a searched course is not necessarily held, and Task 6 covers the held case from the calendar and the saved panel.
+Add `onSwap: (section: SectionHit) => void` to the props and type, and pass it to `SavedCoursesPanel`. Do **not** pass it to `FindCoursesPanel` - a searched course is not necessarily held, and Task 6 covers the held case from the calendar and the saved panel.
 
 - [ ] **Step 4: Typecheck and lint**
 
 Run: `npx tsc --noEmit && npm run lint`
-Expected: type errors only where `ScheduleBuilder` has not yet supplied `onSwap` — that is Task 6. If `tsc` reports exactly that, the wiring is right.
+Expected: type errors only where `ScheduleBuilder` has not yet supplied `onSwap` - that is Task 6. If `tsc` reports exactly that, the wiring is right.
 
 - [ ] **Step 5: Commit**
 
@@ -533,7 +533,7 @@ import SwapOverlay from '@/components/schedule/SwapOverlay';
 import { diffSections, swapSection } from '@/schedule/buffer';
 ```
 
-(`diffSections` is already imported — extend that import rather than adding a second.)
+(`diffSections` is already imported - extend that import rather than adding a second.)
 
 - [ ] **Step 2: Add the state and handler**
 
@@ -596,12 +596,12 @@ Expected: no type errors. Lint shows only the six pre-existing errors listed in 
 With `npm run dev` running, at `http://localhost:3000/schedule/new`:
 
 1. Add `MATH 101` section 2A2 via Find Courses. It appears on the calendar.
-2. Hover the calendar block — both `⇄` and `×` appear.
+2. Hover the calendar block - both `⇄` and `×` appear.
 3. Click `⇄`. The overlay opens titled "Swap MATH 101 2A2", already listing MATH 101's sections, with 2A2 showing a disabled **Current**.
 4. Click **Swap** on 2A3. The overlay closes and the calendar block changes to 2A3 with no flicker of the course disappearing.
-5. Open **Saved Courses**, click the swap icon on the MATH 101 row — the same overlay opens.
+5. Open **Saved Courses**, click the swap icon on the MATH 101 row - the same overlay opens.
 6. In the overlay, search `CPSC 110` and swap onto one of its sections. MATH 101 leaves the schedule and CPSC 110 takes its place.
-7. Press Escape and click the backdrop — both close the overlay with no change.
+7. Press Escape and click the backdrop - both close the overlay with no change.
 
 - [ ] **Step 7: Commit**
 
@@ -633,7 +633,7 @@ import { useEffect } from 'react';
 import type { ConflictPair } from '@/schedule/conflicts';
 
 /**
- * Overlaps are legal to plan with and legal to save — UBC's meeting data can't
+ * Overlaps are legal to plan with and legal to save - UBC's meeting data can't
  * always prove a clash is real. This is the one place the student is asked,
  * because Save is where the overlap stops being a sketch.
  */
@@ -682,7 +682,7 @@ export default function ConflictSaveDialog({
           ))}
         </ul>
         <p className="mt-3 text-xs text-text-tertiary">
-          You can still save — UBC&apos;s timetable data can&apos;t always tell a real clash from
+          You can still save - UBC&apos;s timetable data can&apos;t always tell a real clash from
           an alternating-week pattern.
         </p>
 
@@ -765,15 +765,15 @@ Expected: no type errors; only the six pre-existing lint errors.
 
 At `http://localhost:3000/schedule/new`:
 
-1. Build a schedule with **no** overlaps, name it, hit **Save**. It saves with no dialog — the common path must be unchanged.
+1. Build a schedule with **no** overlaps, name it, hit **Save**. It saves with no dialog - the common path must be unchanged.
 2. Add two overlapping sections (e.g. `PSYC 101 007` Tue 09:30–11:00 and `MATH 101 2A2` Tue 10:00–12:00). The red banner appears as before.
 3. Hit **Save**. The dialog lists the overlap in the same wording as the banner.
-4. **Cancel** — nothing saves, the working set is untouched, the schedule is still on screen.
-5. **Save** again, then **Save anyway** — it persists.
+4. **Cancel** - nothing saves, the working set is untouched, the schedule is still on screen.
+5. **Save** again, then **Save anyway** - it persists.
 
 - [ ] **Step 6: Note the login re-entry path**
 
-`trySave` is re-invoked after login via `open('login', () => { void trySave(); })`. That call passes no arguments, so a guest saving a conflicting schedule is asked again after signing in. That is correct — the confirmation happened before authentication, on a save that did not complete. Do not thread `conflictsConfirmed` through the auth callback to suppress it.
+`trySave` is re-invoked after login via `open('login', () => { void trySave(); })`. That call passes no arguments, so a guest saving a conflicting schedule is asked again after signing in. That is correct - the confirmation happened before authentication, on a save that did not complete. Do not thread `conflictsConfirmed` through the auth callback to suppress it.
 
 - [ ] **Step 7: Run the full suite**
 
@@ -796,11 +796,11 @@ A banner that cannot be put away becomes furniture and stops being read. Dismiss
 **Files:**
 - Modify: `src/components/ScheduleBuilder.tsx`
 - Test: `tests/conflict-key.test.ts`
-- Modify: `src/schedule/conflicts.ts` — **exception to the Global Constraint**: this adds a new exported helper. `findConflicts` itself is not touched.
+- Modify: `src/schedule/conflicts.ts` - **exception to the Global Constraint**: this adds a new exported helper. `findConflicts` itself is not touched.
 
 **Interfaces:**
 - Consumes: `ConflictPair` from `@/schedule/conflicts`.
-- Produces: `conflictKey(conflicts: ConflictPair[]): string` — a stable identifier for a set of overlaps, order-independent.
+- Produces: `conflictKey(conflicts: ConflictPair[]): string` - a stable identifier for a set of overlaps, order-independent.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -845,11 +845,11 @@ describe('conflictKey', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run tests/conflict-key.test.ts`
-Expected: FAIL — `conflictKey` is not exported from `@/schedule/conflicts`.
+Expected: FAIL - `conflictKey` is not exported from `@/schedule/conflicts`.
 
 - [ ] **Step 3: Write the implementation**
 
-Append to `src/schedule/conflicts.ts` — do not modify `findConflicts`:
+Append to `src/schedule/conflicts.ts` - do not modify `findConflicts`:
 
 ```ts
 /**
@@ -926,7 +926,7 @@ Change the banner's condition from `conflicts.length > 0 &&` to `showConflictBan
           )}
 ```
 
-The save gate in Task 7 reads `conflicts`, **not** `showConflictBanner`. Dismissing the banner must never suppress the dialog — verified in Step 8.
+The save gate in Task 7 reads `conflicts`, **not** `showConflictBanner`. Dismissing the banner must never suppress the dialog - verified in Step 8.
 
 - [ ] **Step 7: Typecheck and lint**
 
@@ -939,7 +939,7 @@ At `http://localhost:3000/schedule/new`:
 
 1. Create an overlap. The red banner appears.
 2. Click `×`. It disappears and the calendar moves up to fill the space.
-3. Hit **Save**. The confirmation dialog **still appears** — dismissal must not silence it.
+3. Hit **Save**. The confirmation dialog **still appears** - dismissal must not silence it.
 4. Cancel. Add a third section that overlaps something else. The banner **returns**, because the conflict set changed.
 5. Dismiss again, then remove the overlapping section entirely. No banner.
 6. Recreate the same overlap. The banner appears again.
@@ -972,11 +972,11 @@ git commit -m "feat: let the conflict banner be dismissed for the current overla
 | §7 save gate, every save, cancel safe | Task 7 |
 | §7.1 banner dismissible, scoped to current overlaps | Task 8 |
 | §8 testing | Tasks 1 and 8 (unit), Tasks 6–8 (browser) |
-| §9.4 banner stays red | No task — styling untouched by design |
+| §9.4 banner stays red | No task - styling untouched by design |
 
 **Type consistency**
 
-`swapSection(chosen, oldSectionId, next)` is defined in Task 1 and called with that argument order in Task 6. `SwapOverlay`'s `section`/`onSwap`/`onClose` in Task 3 match the props passed in Task 6. `onSwap` is `(section: SectionHit) => void` on the panel path and `(sectionId: string) => void` on the calendar path — deliberately different, bridged by `startSwapById` in Task 6 Step 2. `conflictKey(conflicts)` is defined in Task 8 and used only there.
+`swapSection(chosen, oldSectionId, next)` is defined in Task 1 and called with that argument order in Task 6. `SwapOverlay`'s `section`/`onSwap`/`onClose` in Task 3 match the props passed in Task 6. `onSwap` is `(section: SectionHit) => void` on the panel path and `(sectionId: string) => void` on the calendar path - deliberately different, bridged by `startSwapById` in Task 6 Step 2. `conflictKey(conflicts)` is defined in Task 8 and used only there.
 
 **Cross-task hazard**
 

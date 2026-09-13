@@ -35,7 +35,7 @@ export default async function SchedulePlannerPage({
       })
     : [];
 
-  // Same shape searchSectionsForTerm produces, so the builder holds one type —
+  // Same shape searchSectionsForTerm produces, so the builder holds one type -
   // with the rooms saved from the student's import put back on, since the
   // catalogue has none of its own to give.
   const initialSections: SectionHit[] = applySectionLocations(
@@ -48,7 +48,7 @@ export default async function SchedulePlannerPage({
     orderBy: [{ year: 'desc' }, { termNumber: 'desc' }],
   });
   // An existing schedule keeps its own term in the list even if it has since
-  // passed — otherwise the select would silently switch it to another term.
+  // passed - otherwise the select would silently switch it to another term.
   const plannable = terms.filter(isPlannableTerm);
   const termOptions = plannable.some((t) => t.id === schedule.termId)
     ? plannable

@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import type { MissingCompanions } from '@/schedule/companions';
 
 /**
- * A course that fields labs or tutorials usually requires one of each — but
+ * A course that fields labs or tutorials usually requires one of each - but
  * only Workday knows for certain, so like the conflict gate this asks rather
  * than blocks. Save is the moment the question matters: planning with just
  * the lecture is a normal way to sketch.

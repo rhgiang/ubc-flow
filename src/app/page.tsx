@@ -7,7 +7,7 @@ import HomeHero from '@/components/HomeHero';
 export default function Home() {
   return (
     // A full viewport-height box, less the nav above it, so the hero centres on
-    // the screen rather than in whatever is left over — and the page ends up
+    // the screen rather than in whatever is left over - and the page ends up
     // exactly the footer taller than the viewport, which is what gives the
     // footer something to be revealed by.
     <main className="flex min-h-[calc(100dvh-4.75rem)] flex-1 flex-col items-center justify-center px-6">

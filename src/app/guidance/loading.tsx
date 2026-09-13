@@ -1,6 +1,6 @@
 /**
  * Shaped like the picker, because that is what /guidance resolves to when no
- * program is chosen — four degree panels of cards. A roadmap request lands
+ * program is chosen - four degree panels of cards. A roadmap request lands
  * here too and the shapes are close enough that it does not read as wrong.
  */
 export default function Loading() {

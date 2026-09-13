@@ -21,7 +21,7 @@ const nameOf = (id: string) => terms.find((t) => t.id === id)!.name;
 describe('co-op work terms', () => {
   it('reads a summer as belonging to the year it follows', () => {
     // Terms arrive in calendar order, so "2027 Summer Session" comes after
-    // 2026-27 Winter Term 2 and is therefore the summer after FIRST year —
+    // 2026-27 Winter Term 2 and is therefore the summer after FIRST year -
     // not the summer before the 2027-28 session it is named beside.
     const ids = workTermIds(terms, getCoopPattern('std'));
     expect([...ids].map(nameOf)).toEqual([

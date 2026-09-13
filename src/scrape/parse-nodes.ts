@@ -107,7 +107,7 @@ function parseCourseNode(node: JsonApiResource | null): RawCourse | null {
   const body = node.attributes.body as { value?: string } | null | undefined;
 
   // Drupal embeds the subject's numeric id right on the relationship linkage
-  // (meta.drupal_internal__target_id) — no need to resolve it through `included`.
+  // (meta.drupal_internal__target_id) - no need to resolve it through `included`.
   // This is the same id Task 5 stored as Subject.ubcSubjectId; never match subjects
   // by name or course code instead (see parse-nodes tests / sections job).
   const subjectTargetId = node.relationships?.field_subject?.data?.meta?.drupal_internal__target_id;
@@ -130,7 +130,7 @@ export function parseSectionNode(node: SectionNode, included: IncludedMap): RawS
   const endTime = secondsToTime((a.field_end_time as number | null) ?? null);
 
   // Section-level, not per-day: one enrolment period shared by every meeting.
-  // Needed for a correct RRULE UNTIL — half-term sections are real and common.
+  // Needed for a correct RRULE UNTIL - half-term sections are real and common.
   // Prisma's DateTime? columns reject a plain "YYYY-MM-DD" string (it wants a
   // full ISO-8601 datetime), so convert to a real Date here rather than in the
   // upsert path.
@@ -143,7 +143,7 @@ export function parseSectionNode(node: SectionNode, included: IncludedMap): RawS
     day,
     startTime,
     endTime,
-    // The API exposes no location anywhere — confirmed during the Task 3 spike.
+    // The API exposes no location anywhere - confirmed during the Task 3 spike.
     building: null,
     room: null,
     startDate,

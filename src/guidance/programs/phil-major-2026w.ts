@@ -23,7 +23,7 @@ const one = (id: string, label: string, codes: string[], year: number): Rule => 
 });
 
 /**
- * Major in Philosophy (B.A.), 2026W — 42 credits toward a 120-credit degree.
+ * Major in Philosophy (B.A.), 2026W - 42 credits toward a 120-credit degree.
  *
  * The Calendar states this one as two totals rather than a course list: at
  * least 42 approved Philosophy credits, of which at least 30 upper-level. The
@@ -31,8 +31,8 @@ const one = (id: string, label: string, codes: string[], year: number): Rule => 
  * Philosophy" at a stated level, which is why so much of this program is
  * credit buckets rather than courses.
  *
- * Two of the area requirements can be met at either level — Value Theory with
- * PHIL 230 or 330, Epistemology/Metaphysics with 240 or 340 — so how many
+ * Two of the area requirements can be met at either level - Value Theory with
+ * PHIL 230 or 330, Epistemology/Metaphysics with 240 or 340 - so how many
  * further upper-level credits a student needs depends on which they take. The
  * split below assumes the lower-level option in both, the common path and the
  * one that needs the most upper-level credits after it.

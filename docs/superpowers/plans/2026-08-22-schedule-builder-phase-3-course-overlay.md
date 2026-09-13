@@ -1,8 +1,8 @@
-# Schedule Builder — Phase 3: Course Info Overlay Implementation Plan
+# Schedule Builder - Phase 3: Course Info Overlay Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Put the app's course intelligence — description, sections with instructors, grade distribution, historical averages, prerequisites — one click away inside the schedule builder, as an overlay rather than a navigation.
+**Goal:** Put the app's course intelligence - description, sections with instructors, grade distribution, historical averages, prerequisites - one click away inside the schedule builder, as an overlay rather than a navigation.
 
 **Architecture:** One `CourseInfoOverlay` client component, opened from three places (the ⓘ in Find Courses, the ⓘ in Saved Courses, and clicking a calendar block). It loads on demand through a new `getCourseDetail(courseId, termId)` server action and caches per course, so the builder's initial load stays cheap and reopening is instant. Existing `GradeChart`, `HistoricalGradesTimeline` and `RequirementTree` are reused unchanged in behaviour, converted to theme tokens.
 
@@ -14,11 +14,11 @@
 
 ## Global Constraints
 
-- **Theme tokens only.** `foreground`, `text-secondary`, `text-tertiary`, `surface`, `surface-muted`, `background`, `border`, `border-hairline`, `brand`, `brand-accent`, `brand-foreground`, `danger`/`danger-surface`/`danger-border`, the `--course-N-*` course palette, and the `rounded-pill`/`rounded-card`/`rounded-input` radii. **No raw `slate-*`, `blue-*`, or `red-*`.** `brand` as a *foreground* is forbidden — it is invisible in dark mode; use `brand-accent`. `bg-brand` with `text-brand-foreground` is correct and stays.
+- **Theme tokens only.** `foreground`, `text-secondary`, `text-tertiary`, `surface`, `surface-muted`, `background`, `border`, `border-hairline`, `brand`, `brand-accent`, `brand-foreground`, `danger`/`danger-surface`/`danger-border`, the `--course-N-*` course palette, and the `rounded-pill`/`rounded-card`/`rounded-input` radii. **No raw `slate-*`, `blue-*`, or `red-*`.** `brand` as a *foreground* is forbidden - it is invisible in dark mode; use `brand-accent`. `bg-brand` with `text-brand-foreground` is correct and stays.
 - **The overlay is an overlay, never a redirect.** It must also offer a "View full course page →" link for people who do want the page.
 - **Instructor RATINGS are Phase 5, not this phase.** List instructor names (linked to our own professor pages). Do not add a RateMyProfessors model, fetch, or placeholder UI.
-- **Block click-to-open is wired here**, not in Phase 2 — `ScheduleCalendar` gains an optional `onSelectCourse` prop. The read-only "View Calendar" tab on `/schedule` must NOT pass it.
-- `ScheduleSection.sectionId` is a raw FK with no Prisma relation — section lookups are a second query keyed on collected ids, never a nested include.
+- **Block click-to-open is wired here**, not in Phase 2 - `ScheduleCalendar` gains an optional `onSelectCourse` prop. The read-only "View Calendar" tab on `/schedule` must NOT pass it.
+- `ScheduleSection.sectionId` is a raw FK with no Prisma relation - section lookups are a second query keyed on collected ids, never a nested include.
 - Existing action convention: `xxxFor(...)`/lib function holds the logic and is what tests call; the `'use server'` wrapper is thin.
 - Commit after every task. `npx tsc --noEmit` and `npx vitest run` must both be clean before each commit (baseline: 304 tests passing).
 
@@ -26,7 +26,7 @@
 
 ### Task 1: Thread `courseId` to every trigger point
 
-Nothing can open the overlay today: `SectionHit` — the shape behind both panels — carries no `courseId`, and `CalendarEntry` carries only a display `courseCode`. This task adds it everywhere it is needed. It is pure plumbing and ships without behaviour change.
+Nothing can open the overlay today: `SectionHit` - the shape behind both panels - carries no `courseId`, and `CalendarEntry` carries only a display `courseCode`. This task adds it everywhere it is needed. It is pure plumbing and ships without behaviour change.
 
 **Files:**
 - Modify: `src/lib/search.ts`
@@ -70,7 +70,7 @@ And append this test inside the existing `describe('groupSectionsByCourse', …)
 - [ ] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/schedule-group.test.ts`
-Expected: FAIL — `courseId` is not a property of `SectionHit` / `CourseGroup`.
+Expected: FAIL - `courseId` is not a property of `SectionHit` / `CourseGroup`.
 
 - [ ] **Step 3: Add `courseId` to `SectionHit` and its mapper**
 
@@ -79,7 +79,7 @@ In `src/lib/search.ts`, add the field to the type (directly after `sectionId`):
 ```ts
 export type SectionHit = {
   sectionId: string;
-  /** The COURSE this section belongs to — what the info overlay loads on. */
+  /** The COURSE this section belongs to - what the info overlay loads on. */
   courseId: string;
   code: string;
   title: string;
@@ -96,7 +96,7 @@ and populate it in `toSectionHit`, directly after `sectionId: s.id,`:
     courseId: s.courseId,
 ```
 
-`courseId` is a scalar column on `Section`, so the existing `SectionRowForHit` payload already includes it — no query change is needed.
+`courseId` is a scalar column on `Section`, so the existing `SectionRowForHit` payload already includes it - no query change is needed.
 
 - [ ] **Step 4: Add `courseId` to `CourseGroup`**
 
@@ -145,7 +145,7 @@ export type CalendarEntry = ScheduleEntry & {
 
 In `src/components/ScheduleBuilder.tsx`, add `courseId: s.courseId,` to the object built inside the `entries` `flatMap`, alongside the existing `courseCode: s.code,`.
 
-In `src/app/schedule/page.tsx`, add `courseId: m.courseId,` to the entry object pushed inside the meetings loop, alongside the existing `courseCode` line. (`EnrollmentMeeting` has a `courseId` column — see `prisma/schema.prisma`.)
+In `src/app/schedule/page.tsx`, add `courseId: m.courseId,` to the entry object pushed inside the meetings loop, alongside the existing `courseCode` line. (`EnrollmentMeeting` has a `courseId` column - see `prisma/schema.prisma`.)
 
 - [ ] **Step 7: Verify and commit**
 
@@ -237,7 +237,7 @@ describe('loadCourseDetail', () => {
 - [ ] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/course-detail.test.ts`
-Expected: FAIL — cannot resolve `@/lib/course-detail`.
+Expected: FAIL - cannot resolve `@/lib/course-detail`.
 
 - [ ] **Step 3: Implement the loader**
 
@@ -270,7 +270,7 @@ export type CourseDetail = {
   title: string;
   description: string | null;
   credits: number | null;
-  /** Link to the full course page — the overlay is never a redirect. */
+  /** Link to the full course page - the overlay is never a redirect. */
   href: string;
   sections: CourseSectionDetail[];
   grades: GradeSummary;
@@ -291,7 +291,7 @@ export type CourseDetail = {
 /**
  * Everything the schedule builder's course overlay shows, in one call.
  *
- * Sections are scoped to the term being planned — a section from another term
+ * Sections are scoped to the term being planned - a section from another term
  * could not be added to this schedule, so showing it would be an invitation to
  * a dead end. The grade and requirement data is course-wide and term-agnostic.
  */
@@ -396,7 +396,7 @@ import { loadCourseDetail, type CourseDetail } from '@/lib/course-detail';
 
 /**
  * Course detail for the schedule builder's info overlay, fetched on demand so
- * the builder's initial load stays cheap. Public catalogue data — no auth
+ * the builder's initial load stays cheap. Public catalogue data - no auth
  * needed, same as the section search beside it.
  */
 export async function getCourseDetail(
@@ -431,11 +431,11 @@ Both still use raw Tailwind colours, which do not adapt to dark mode. They are a
 - Modify: `src/components/GradeChart.tsx`
 - Modify: `src/components/HistoricalGradesTimeline.tsx`
 
-**Interfaces:** unchanged — props, behaviour, and the suppressed-bucket semantics stay exactly as they are.
+**Interfaces:** unchanged - props, behaviour, and the suppressed-bucket semantics stay exactly as they are.
 
 - [ ] **Step 1: Convert `GradeChart`**
 
-In `src/components/GradeChart.tsx` make exactly these substitutions. Do not restructure the component, and do not change the suppression logic — a suppressed (`null`) bucket must stay visually distinct from a zero one.
+In `src/components/GradeChart.tsx` make exactly these substitutions. Do not restructure the component, and do not change the suppression logic - a suppressed (`null`) bucket must stay visually distinct from a zero one.
 
 - The tooltip: `bg-slate-800 px-2 py-1 text-xs text-white` → `bg-foreground px-2 py-1 text-xs text-background`
 - The filled bar: `w-full rounded-t bg-blue-700` → `w-full rounded-t bg-brand-accent`
@@ -483,7 +483,7 @@ git commit -m "refactor: put the grade charts on theme tokens"
   courseId: string | null;   // null = closed
   termId: string;
   addedSectionIds: Set<string>;
-  /** Receives a complete SectionHit, assembled from the loaded detail — the
+  /** Receives a complete SectionHit, assembled from the loaded detail - the
    *  same shape the search panel emits, so the builder's buffer stays uniform. */
   onAddSection?: (hit: SectionHit) => void;
   onRemoveSection?: (sectionId: string) => void;
@@ -542,7 +542,7 @@ function pct(v: number | null): string {
  * between sections never loses their half-built schedule (spec §7).
  *
  * Detail is fetched the first time a course is opened and cached for the life
- * of the page — reopening is instant, and the builder's initial load carries
+ * of the page - reopening is instant, and the builder's initial load carries
  * none of this.
  */
 export default function CourseInfoOverlay({
@@ -868,7 +868,7 @@ In `src/components/schedule/ScheduleCalendar.tsx`:
 
 3. Add `${onSelectCourse && e.courseId ? 'cursor-pointer' : ''}` to that div's `className` template so it signals it is clickable.
 
-The remove `×` button inside the block already calls `onRemove`; leave it as is. Because it is a nested `<button>`, its own click will bubble to the block's handler — add `e.stopPropagation()` inside the remove button's existing `onClick` so removing a section does not also open the overlay:
+The remove `×` button inside the block already calls `onRemove`; leave it as is. Because it is a nested `<button>`, its own click will bubble to the block's handler - add `e.stopPropagation()` inside the remove button's existing `onClick` so removing a section does not also open the overlay:
 
 ```tsx
                             onClick={(ev) => {
@@ -898,7 +898,7 @@ In `src/components/ScheduleBuilder.tsx`:
       />
 ```
 
-`addSection` and `removeSection` already exist in this component and take exactly these argument types — `addSection` dedupes by `sectionId`, so adding a section that is already buffered is a safe no-op.
+`addSection` and `removeSection` already exist in this component and take exactly these argument types - `addSection` dedupes by `sectionId`, so adding a section that is already buffered is a safe no-op.
 
 - [ ] **Step 5: Confirm the read-only tab did NOT gain a click handler**
 
@@ -927,7 +927,7 @@ git commit -m "feat: open the course overlay from the panels and the calendar"
 curl -sf http://localhost:3000 >/dev/null && echo UP
 ```
 
-A dev server is normally already running. Do NOT start a second — Next.js refuses and exits.
+A dev server is normally already running. Do NOT start a second - Next.js refuses and exits.
 
 - [ ] **Step 2: Write the smoke script**
 
@@ -1016,15 +1016,15 @@ try {
 Run: `node --env-file=.env _smoke_overlay.mjs`
 Expected: all four OK lines and `CONSOLE ERRORS: []`.
 
-If clicking a calendar block does not open the overlay, the likely cause is the remove `×` swallowing or bubbling the click — check Task 5 Step 3's `stopPropagation`.
+If clicking a calendar block does not open the overlay, the likely cause is the remove `×` swallowing or bubbling the click - check Task 5 Step 3's `stopPropagation`.
 
 - [ ] **Step 4: Look at both screenshots**
 
 Confirm by eye in `overlay-light.png` and `overlay-dark.png`:
-1. The overlay sits above the builder with a dimmed backdrop — the builder is still visible behind it, not replaced.
+1. The overlay sits above the builder with a dimmed backdrop - the builder is still visible behind it, not replaced.
 2. Course code, title, credits and description are readable.
 3. The section list shows meeting times and instructor names as links.
-4. The grade chart renders with bars, and **is legible in dark mode** — this is the main risk, since Task 3 just converted it from hardcoded colours.
+4. The grade chart renders with bars, and **is legible in dark mode** - this is the main risk, since Task 3 just converted it from hardcoded colours.
 5. No raw navy-on-charcoal text anywhere in the overlay.
 6. "View full course page →" is present and readable.
 
@@ -1044,7 +1044,7 @@ Expected: clean tree. Nothing to commit for this task.
 ## Phase 3 done when
 
 - The ⓘ in Find Courses, the ⓘ in Saved Courses, and clicking a calendar block all open the same overlay.
-- The overlay shows description, term-scoped sections with instructors, grade distribution, historical averages and requirements — and links to the full course page.
+- The overlay shows description, term-scoped sections with instructors, grade distribution, historical averages and requirements - and links to the full course page.
 - Reopening a course does not refetch it.
 - Escape and a backdrop click both close it.
 - The read-only "View Calendar" tab on `/schedule` has no click-to-open behaviour.
@@ -1053,5 +1053,5 @@ Expected: clean tree. Nothing to commit for this task.
 
 ## Deliberately not in this phase
 
-- **RateMyProfessors ratings** — Phase 5, behind a spike. Instructors are listed by name only.
+- **RateMyProfessors ratings** - Phase 5, behind a spike. Instructors are listed by name only.
 - Workday import (Phase 4).

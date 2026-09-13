@@ -62,7 +62,7 @@ describe('deleteAccountFor', () => {
 
     await deleteAccountFor(author);
 
-    // The review vanished with its author (real FK, cascades on its own) —
+    // The review vanished with its author (real FK, cascades on its own) -
     // the point of this test is the vote, which has no FK to follow.
     expect(await db.courseReview.findUnique({ where: { id: review.id } })).toBeNull();
     expect(await db.reviewVote.count({ where: { reviewId: review.id } })).toBe(0);
@@ -102,7 +102,7 @@ describe('deleteAccountFor', () => {
 
     await deleteAccountFor(first);
 
-    // Deleted, not just unverified — the same hash must be claimable again,
+    // Deleted, not just unverified - the same hash must be claimable again,
     // by a returning student re-registering or a different account entirely.
     expect(await db.user.findUnique({ where: { studentIdHash: digest } })).toBeNull();
 

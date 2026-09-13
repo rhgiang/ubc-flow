@@ -30,14 +30,14 @@ const course = (id: string, code: string): Rule => ({
 });
 
 /**
- * Mathematics Major (BSc), 2026W — 120 credits.
+ * Mathematics Major (BSc), 2026W - 120 credits.
  *
  * The Calendar prints Honours, the Mathematical Sciences major, areas of
  * concentration and a dual degree on the same page; this is the Major table.
  *
  * Only the MATH-specific rules are here. Arts credits, Science Breadth,
  * residency and the non-Science cap come from science-faculty-core-2026w
- * through `extends` — the third program to reuse that core unchanged.
+ * through `extends` - the third program to reuse that core unchanged.
  */
 export const mathMajor2026W: Program = {
   code: 'math-major-bsc-2026w',

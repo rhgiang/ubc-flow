@@ -11,7 +11,7 @@ let userB: string;
 let userC: string;
 
 // Columns the parser carries but importExport doesn't persist (no display
-// use for them yet — see EnrollmentMeeting in schema.prisma).
+// use for them yet - see EnrollmentMeeting in schema.prisma).
 const unusedColumns = {
   floor: null,
   meetingEndDate: null,
@@ -114,7 +114,7 @@ describe('importExport', () => {
     expect(u.studentIdHash).not.toContain('99999999');
   });
 
-  it('is idempotent — re-importing does not duplicate enrollments', async () => {
+  it('is idempotent - re-importing does not duplicate enrollments', async () => {
     await importExport(userA, parsed);
     expect(await db.enrollment.count({ where: { userId: userA } })).toBe(1);
   });
@@ -139,7 +139,7 @@ describe('importExport', () => {
 
   it('drops a course that is no longer in a re-uploaded term, meetings and all', async () => {
     // Any other catalogued CPSC course stands in for "the student swapped
-    // one course for another" — the row's shape is what matters, not which.
+    // one course for another" - the row's shape is what matters, not which.
     const other = await db.course.findFirstOrThrow({
       where: { subject: { code: 'CPSC', campus: 'V' }, number: { not: '110' } },
       select: { id: true, number: true },
@@ -182,7 +182,7 @@ describe('importExport', () => {
     };
     await expect(importExport(userC, second)).rejects.toThrow(/already linked to a different/i);
 
-    // The digest must be UNCHANGED after the rejected rebind attempt — not
+    // The digest must be UNCHANGED after the rejected rebind attempt - not
     // silently overwritten with the second student's identity.
     const after = await db.user.findUniqueOrThrow({ where: { id: userC } });
     expect(after.studentIdHash).toBe(bound.studentIdHash);

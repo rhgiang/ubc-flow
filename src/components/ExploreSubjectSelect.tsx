@@ -84,7 +84,7 @@ export default function ExploreSubjectSelect({
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             onKeyDown={(e) => {
-              // Enter picks the top match — typing "cpsc⏎" must just work.
+              // Enter picks the top match - typing "cpsc⏎" must just work.
               if (e.key === 'Enter' && filtered.length > 0 && filtered[0].code) {
                 e.preventDefault();
                 navigate(filtered[0].code);

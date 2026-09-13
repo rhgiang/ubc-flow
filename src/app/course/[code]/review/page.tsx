@@ -33,7 +33,7 @@ export default async function ReviewPage({
   if (!course) notFound();
 
   // The gate decides, server-side. Never render the form to someone who
-  // cannot submit — and the action re-checks anyway.
+  // cannot submit - and the action re-checks anyway.
   if (!(await canReview(session.user.id, course.id))) redirect(`/course/${code}`);
 
   // One instructor teaches many sections; show each once.

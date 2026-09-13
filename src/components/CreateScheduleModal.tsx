@@ -15,7 +15,7 @@ export default function CreateScheduleModal({
 }: {
   terms: Term[];
   /** Signed-out visitors can browse /schedule, but starting either flow
-   *  below requires an account — so both buttons prompt sign-in first. */
+   *  below requires an account - so both buttons prompt sign-in first. */
   loggedIn: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -65,7 +65,7 @@ export default function CreateScheduleModal({
           /schedule/page.tsx), which overrides --foreground to white for its
           own title text. A `fixed` dialog is still a DOM descendant even
           though it's visually independent, so without the portal it inherited
-          that white text onto its own light card — invisible in light mode. */}
+          that white text onto its own light card - invisible in light mode. */}
       {open &&
         createPortal(
           <div

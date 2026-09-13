@@ -8,7 +8,7 @@ import { COMPANION_ACTIVITIES } from '@/schedule/companions';
  * Deliberately not machine learning. Every preference is a visible weight on
  * a visible measurement (minutes before your earliest, class time on a day
  * you wanted free, gap minutes, instructor scores), so every ranking can be
- * explained back to the student in the results list — and a schedule you
+ * explained back to the student in the results list - and a schedule you
  * can't explain is one nobody trusts enough to register from.
  *
  * Every preference is also SOFT: a want, not a filter. Filtering would make
@@ -26,7 +26,7 @@ export type GeneratePrefs = {
   /** Minutes from midnight; class time after this counts against. Null: any. */
   latest: number | null;
   /**
-   * 'compact': minimize dead time. 'lunch': the in-between — packed, but
+   * 'compact': minimize dead time. 'lunch': the in-between - packed, but
    * insist on a real break (30+ min) somewhere in 11:00–14:00 each day.
    * 'spread': room to breathe between classes.
    */
@@ -103,7 +103,7 @@ function toMeets(hit: SectionHit): Meet[] {
     const day = DAY_INDEX[m.day];
     const start = minutes(m.startTime);
     const end = minutes(m.endTime);
-    // An unscheduled meeting can't conflict and can't be scored — same rule
+    // An unscheduled meeting can't conflict and can't be scored - same rule
     // as findConflicts: never guess.
     if (day === undefined || start === null || end === null || end <= start) continue;
     meets.push({ day, start, end });
@@ -195,14 +195,14 @@ function minutesWithin(meets: Meet[], from: number, to: number): number {
 
 /**
  * A day fails lunch when classes leave no 30-minute free run anywhere in
- * 11:00–14:00. A day that never touches the window passes trivially — an
+ * 11:00–14:00. A day that never touches the window passes trivially - an
  * empty campus day IS a lunch break.
  */
 function daysWithoutLunch(shapes: DayShape[]): number[] {
   const failed: number[] = [];
   for (const s of shapes) {
     // Free runs inside the window: before the first class, each gap, after
-    // the last class — clipped to the window.
+    // the last class - clipped to the window.
     const runs: Gap[] = [
       { from: LUNCH_FROM, to: Math.min(s.first, LUNCH_TO) },
       ...s.gaps,
@@ -281,7 +281,7 @@ function notes(sections: Cand[], prefs: GeneratePrefs): string[] {
   /*
     The span always leads, whether or not it was asked about. With notes tied
     only to the preferences, someone who expressed none got five options
-    reading "5 days on campus" and nothing else — five identical-looking
+    reading "5 days on campus" and nothing else - five identical-looking
     schedules that were in fact quite different. An option has to say enough
     to be chosen between.
   */
@@ -292,10 +292,10 @@ function notes(sections: Cand[], prefs: GeneratePrefs): string[] {
   // A satisfied bound is already visible in the span above; only a MISSED one
   // needs saying, and it needs saying plainly.
   if (prefs.earliest !== null && firstStart < prefs.earliest) {
-    lines.push(`Couldn't start after ${fmt(prefs.earliest)} — earliest is ${fmt(firstStart)}`);
+    lines.push(`Couldn't start after ${fmt(prefs.earliest)} - earliest is ${fmt(firstStart)}`);
   }
   if (prefs.latest !== null && lastEnd > prefs.latest) {
-    lines.push(`Couldn't finish by ${fmt(prefs.latest)} — runs to ${fmt(lastEnd)}`);
+    lines.push(`Couldn't finish by ${fmt(prefs.latest)} - runs to ${fmt(lastEnd)}`);
   }
 
   if (prefs.freeDays.length) {
@@ -366,7 +366,7 @@ function notes(sections: Cand[], prefs: GeneratePrefs): string[] {
  * Generates the top `limit` conflict-free timetables for the given pool of
  * sections (every section the chosen courses offer this term), ranked by the
  * preferences. `profScores` maps sectionId to a 0..1 instructor quality
- * signal where one exists — reviews first, grade history as fallback,
+ * signal where one exists - reviews first, grade history as fallback,
  * absence scored as absence rather than as bad.
  */
 export function generateSchedules(
@@ -444,7 +444,7 @@ export function generateSchedules(
     Ranking by score alone did exactly that: swapping a lab for another lab at
     the same hour scores identically and looks identical, so the list filled
     with near-duplicates while genuinely different weeks never surfaced. Keep
-    the best-scoring schedule per week SHAPE — the times actually occupied —
+    the best-scoring schedule per week SHAPE - the times actually occupied -
     and the five on offer are five real choices.
   */
   const shape = (sections: Cand[]) =>

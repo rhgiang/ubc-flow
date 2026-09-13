@@ -1,4 +1,4 @@
-# Meeting Location + Two Data-Loss Fixes — Implementation Plan
+# Meeting Location + Two Data-Loss Fixes - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -8,12 +8,12 @@
 
 **Tech Stack:** Next.js 16 (App Router), Prisma 7 + PostgreSQL, ExcelJS, Vitest.
 
-**Context:** These were surfaced by phase reviews and deferred. I-5 was explicitly ruled "must be fixed before Phase 4 ships Workday import" — Phase 4 shipped without it, so this repays that.
+**Context:** These were surfaced by phase reviews and deferred. I-5 was explicitly ruled "must be fixed before Phase 4 ships Workday import" - Phase 4 shipped without it, so this repays that.
 
 ## Global Constraints
 
 - **Never write one student's data into shared catalogue tables.** Location parsed from a personal export belongs on `EnrollmentMeeting` (that student's own row), never on `MeetingTime` (the shared catalogue).
-- Reuse the existing parser structure — `parseMeetingPattern` already splits the cell; extend it, do not rewrite it.
+- Reuse the existing parser structure - `parseMeetingPattern` already splits the cell; extend it, do not rewrite it.
 - Theme tokens only. No raw `slate-*`/`blue-*`/`red-*`. `brand` as a foreground is forbidden; use `brand-accent`.
 - Commit after every task. `npx tsc --noEmit` and `npx vitest run` clean before each commit (baseline: **321 tests passing**).
 - Prisma migrations: create with `npx prisma migrate dev --name <name>`, then `npx prisma generate`.
@@ -34,7 +34,7 @@ Verified against a real export. The "Meeting Patterns" cell is pipe-delimited wi
 [6] Room: 202
 ```
 
-Segment 4's **last parenthetical** is the building code — both `Hennings Building (HENN)` → `HENN` and `CIRS (Centre for Interactive Research on Sustainability) (CIRS)` → `CIRS`. Segment 6 is `Room: <value>`. Floor is deliberately not stored: room numbers already encode it (`B1001`, `X260`).
+Segment 4's **last parenthetical** is the building code - both `Hennings Building (HENN)` → `HENN` and `CIRS (Centre for Interactive Research on Sustainability) (CIRS)` → `CIRS`. Segment 6 is `Room: <value>`. Floor is deliberately not stored: room numbers already encode it (`B1001`, `X260`).
 
 **Files:**
 - Modify: `prisma/schema.prisma`
@@ -110,7 +110,7 @@ function buildingCode(segment: string): string | null {
 }
 ```
 
-Extend `parseMeetingPattern`'s return type with `building: string | null; room: string | null;`, and inside it — after the existing `segments` split — add:
+Extend `parseMeetingPattern`'s return type with `building: string | null; room: string | null;`, and inside it - after the existing `segments` split - add:
 
 ```ts
   const building = segments[4] ? buildingCode(segments[4]) : null;
@@ -153,7 +153,7 @@ In `src/upload/import.ts`, the `db.enrollmentMeeting.create({ data: { … } })` 
 
 - [ ] **Step 5: Show it on the schedule calendar**
 
-`src/app/schedule/page.tsx` builds `CalendarEntry` objects from `EnrollmentMeeting` rows in a loop over `meetings` (loop variable `m`). `CalendarEntry` already supports an optional `location` — the builder populates it and `ScheduleCalendar` already renders it. Add to that object literal:
+`src/app/schedule/page.tsx` builds `CalendarEntry` objects from `EnrollmentMeeting` rows in a loop over `meetings` (loop variable `m`). `CalendarEntry` already supports an optional `location` - the builder populates it and `ScheduleCalendar` already renders it. Add to that object literal:
 
 ```tsx
         location: m.building ? `${m.building}${m.room ? ` ${m.room}` : ''}` : null,
@@ -176,7 +176,7 @@ Expect 326 tests (321 + 5).
 
 ### Task 2: Guard client-side navigation away from a dirty builder (I-5)
 
-`ScheduleBuilder` guards `beforeunload`, which covers tab close and reload but **not** App Router `<Link>` navigation. A student imports their whole Workday timetable, clicks "Explore" in the nav, and the buffer is gone with no prompt — precisely the case the guard exists for.
+`ScheduleBuilder` guards `beforeunload`, which covers tab close and reload but **not** App Router `<Link>` navigation. A student imports their whole Workday timetable, clicks "Explore" in the nav, and the buffer is gone with no prompt - precisely the case the guard exists for.
 
 Next 16's `<Link>` supports `onNavigate(e)` with `e.preventDefault()` (see `node_modules/next/dist/docs/01-app/03-api-reference/02-components/link.md`). The nav lives in a different component from the builder, so they need a shared signal.
 
@@ -213,7 +213,7 @@ const Ctx = createContext<UnsavedChangesState | null>(null);
  * Lets a nav link ask an unrelated editor whether it is safe to leave.
  *
  * The builder buffers edits in memory (spec §3.1), and `beforeunload` only
- * covers tab close and reload — an App Router <Link> click is a client-side
+ * covers tab close and reload - an App Router <Link> click is a client-side
  * navigation the browser never hears about. Without this, one click on
  * "Explore" silently discards a whole imported timetable.
  *
@@ -246,7 +246,7 @@ export function useUnsavedChanges(): UnsavedChangesState {
 
 - [ ] **Step 2: Mount the provider**
 
-In `src/app/layout.tsx`, import `UnsavedChangesProvider` and wrap the existing children — it must sit **outside** `Nav` so both the nav and the page can reach it. The body currently renders `<AuthOverlayProvider>` wrapping `Nav`, `children`, `ThemeToggle`, `AuthOverlay`. Put `UnsavedChangesProvider` immediately inside `AuthOverlayProvider`, wrapping that same set.
+In `src/app/layout.tsx`, import `UnsavedChangesProvider` and wrap the existing children - it must sit **outside** `Nav` so both the nav and the page can reach it. The body currently renders `<AuthOverlayProvider>` wrapping `Nav`, `children`, `ThemeToggle`, `AuthOverlay`. Put `UnsavedChangesProvider` immediately inside `AuthOverlayProvider`, wrapping that same set.
 
 - [ ] **Step 3: Register the builder's dirty state**
 
@@ -260,7 +260,7 @@ In `src/components/ScheduleBuilder.tsx`, import `useUnsavedChanges`, call it, an
   }, [dirty, setDirty]);
 ```
 
-Place it next to the existing `beforeunload` effect. Leave that effect alone — it still covers reload and tab close, which `onNavigate` does not.
+Place it next to the existing `beforeunload` effect. Leave that effect alone - it still covers reload and tab close, which `onNavigate` does not.
 
 - [ ] **Step 4: Guard the nav links**
 
@@ -272,7 +272,7 @@ In `src/components/NavLinks.tsx`, import `useUnsavedChanges` and call it. On the
             }}
 ```
 
-Only the `<Link>` branch needs it — the other branch is a `<button>` that opens the auth overlay without navigating.
+Only the `<Link>` branch needs it - the other branch is a `<button>` that opens the auth overlay without navigating.
 
 - [ ] **Step 5: Verify and commit**
 
@@ -287,7 +287,7 @@ git commit -m "fix: warn before navigating away from a schedule with unsaved cha
 
 ### Task 3: Stop a buffered Save from silently reverting a concurrent add (I-4)
 
-`src/app/course/[code]/page.tsx:151` adds a section to a saved schedule via a write-through server action. The builder buffers and Saves by **replacing** the whole section set. So: open the builder, add a section from a course page in another tab, Save the builder — the course-page add is deleted with no warning.
+`src/app/course/[code]/page.tsx:151` adds a section to a saved schedule via a write-through server action. The builder buffers and Saves by **replacing** the whole section set. So: open the builder, add a section from a course page in another tab, Save the builder - the course-page add is deleted with no warning.
 
 The fix is optimistic concurrency: the builder tells the server which section set it loaded with, and the server refuses if the stored set has moved on.
 
@@ -297,8 +297,8 @@ The fix is optimistic concurrency: the builder tells the server which section se
 - Modify: `tests/schedule-actions.test.ts`
 
 **Interfaces:**
-- `replaceScheduleSectionsFor(userId, scheduleId, name, sectionIds, expectedSectionIds)` — one new trailing parameter.
-- `replaceScheduleSections(scheduleId, name, sectionIds, expectedSectionIds)` — same.
+- `replaceScheduleSectionsFor(userId, scheduleId, name, sectionIds, expectedSectionIds)` - one new trailing parameter.
+- `replaceScheduleSections(scheduleId, name, sectionIds, expectedSectionIds)` - same.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -344,7 +344,7 @@ describe('replaceScheduleSectionsFor staleness', () => {
     const id = created.scheduleId;
 
     await replaceScheduleSectionsFor(ownerId, id, 'Stale C', [sectionId, second.id], []);
-    // Same set, reversed order — must be accepted.
+    // Same set, reversed order - must be accepted.
     const result = await replaceScheduleSectionsFor(ownerId, id, 'Stale C', [sectionId], [second.id, sectionId]);
     expect(result).toEqual({ ok: true });
   });
@@ -379,13 +379,13 @@ Run: `npx vitest run tests/schedule-actions.test.ts` → PASS.
 
 - [ ] **Step 3: Send the baseline from the builder**
 
-In `src/components/ScheduleBuilder.tsx`, `trySave` calls `replaceScheduleSections(scheduleId, name, sectionIds)`. The builder already has `initialIds` — the exact set it loaded with — used by the `dirty` memo. Pass it:
+In `src/components/ScheduleBuilder.tsx`, `trySave` calls `replaceScheduleSections(scheduleId, name, sectionIds)`. The builder already has `initialIds` - the exact set it loaded with - used by the `dirty` memo. Pass it:
 
 ```tsx
       const result = await replaceScheduleSections(scheduleId, name, sectionIds, initialIds);
 ```
 
-Do not change the draft-mode branch (`saveGuestSchedule`) — a draft has no stored baseline to be stale against.
+Do not change the draft-mode branch (`saveGuestSchedule`) - a draft has no stored baseline to be stale against.
 
 - [ ] **Step 4: Verify and commit**
 
@@ -405,7 +405,7 @@ Expect 329 tests (326 + 3).
 **Files:**
 - Create (temporary, NOT committed): `_smoke_fixes.mjs`
 
-**PRIVACY:** `rgschedule/View_My_Courses.xlsx` is a real student's export (gitignored). Reference it by path only — never open, print, or copy its contents. Report aggregate counts and building codes only (building codes are public campus buildings, fine to report).
+**PRIVACY:** `rgschedule/View_My_Courses.xlsx` is a real student's export (gitignored). Reference it by path only - never open, print, or copy its contents. Report aggregate counts and building codes only (building codes are public campus buildings, fine to report).
 
 - [ ] **Step 1: Confirm the dev server**
 
@@ -413,7 +413,7 @@ Expect 329 tests (326 + 3).
 curl -sf http://localhost:3000 >/dev/null && echo UP
 ```
 
-Already running — do NOT start a second.
+Already running - do NOT start a second.
 
 - [ ] **Step 2: Verify location parses end to end**
 
@@ -486,7 +486,7 @@ try {
 Run: `node _smoke_fixes.mjs`
 Expected: `CLEAN BUILDER NAVIGATES FREELY: true`, `DIRTY BUILDER PROMPTS: true`, `STAYED ON BUILDER AFTER CANCEL: true`, `CONSOLE ERRORS: []`.
 
-A dirty builder that does NOT prompt is a real failure — report it, do not relax the assertion.
+A dirty builder that does NOT prompt is a real failure - report it, do not relax the assertion.
 
 - [ ] **Step 4: Clean up**
 
@@ -510,6 +510,6 @@ Expected: clean tree.
 
 ## Deliberately not in this phase
 
-- Showing location on the **builder's** calendar or the course overlay. Those read catalogue `MeetingTime`, and `src/scrape/parse-nodes.ts:146` records that UBC's API exposes no location at all — there is no source to populate them from. Only a student's own imported enrolments can carry location.
+- Showing location on the **builder's** calendar or the course overlay. Those read catalogue `MeetingTime`, and `src/scrape/parse-nodes.ts:146` records that UBC's API exposes no location at all - there is no source to populate them from. Only a student's own imported enrolments can carry location.
 - Storing the floor. Room numbers already encode it (`B1001`, `X260`).
 - Guarding navigation from anywhere other than the nav links.

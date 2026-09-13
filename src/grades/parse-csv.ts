@@ -20,11 +20,11 @@ export type RawGradeRow = {
   median: number | null;
   high: number | null;
   low: number | null;
-  /** Suppressed buckets stay null — never coerced to 0 (spec 6). */
+  /** Suppressed buckets stay null - never coerced to 0 (spec 6). */
   distribution: Record<GradeBucket, number | null>;
 };
 
-/** Blank means suppressed or unavailable — null, never 0. */
+/** Blank means suppressed or unavailable - null, never 0. */
 function num(value: string | undefined): number | null {
   const v = (value ?? '').trim();
   if (!v) return null;
@@ -39,11 +39,11 @@ function str(value: string | undefined): string {
 /**
  * CSV split, quote-aware. The upstream feed quotes the Title field whenever
  * it contains a comma (e.g. "Thermodynamics, Kinetics and Organic
- * Chemistry") — a plain `line.split(',')` splits inside the quotes and
+ * Chemistry") - a plain `line.split(',')` splits inside the quotes and
  * shifts every downstream column for every row of that course. Handles
  * standard CSV quoting: commas inside a quoted field aren't delimiters, and
  * `""` inside a quoted field is an escaped literal quote. Still no parsing
- * library — this format doesn't need one.
+ * library - this format doesn't need one.
  */
 function splitLine(line: string): string[] {
   const fields: string[] = [];

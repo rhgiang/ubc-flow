@@ -36,7 +36,7 @@ export function announceSignIn(): void {
   window.dispatchEvent(new Event(SESSION_CHANGED));
 }
 
-/** null while the first read is in flight — not yet known, as opposed to no. */
+/** null while the first read is in flight - not yet known, as opposed to no. */
 export function useSignedIn(): boolean | null {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
 

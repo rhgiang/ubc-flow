@@ -17,12 +17,12 @@ const course = (id: string, code: string): Rule => ({
 });
 
 /**
- * Microbiology and Immunology Major (BSc), 2026W — 120 credits.
+ * Microbiology and Immunology Major (BSc), 2026W - 120 credits.
  *
  * The Calendar splits the upper years differently from every other program
  * here: alongside "Third Year" and "Fourth Year" it has a "Third or Fourth
  * Year" block whose courses may go in either. Those are recorded as year 3,
- * which is the earliest the Calendar permits — the plan may still push them
+ * which is the earliest the Calendar permits - the plan may still push them
  * later when a prerequisite is missing, which is exactly what "or fourth"
  * means in practice.
  */

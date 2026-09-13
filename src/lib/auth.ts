@@ -5,7 +5,7 @@ import { authorizeCredentials } from '@/lib/authorize-credentials';
 import { linkGoogleAccount } from '@/lib/link-google-account';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // Credentials provider only supports JWT sessions in Auth.js v5 —
+  // Credentials provider only supports JWT sessions in Auth.js v5 -
   // database sessions are not an option here.
   session: { strategy: 'jwt' },
   pages: { signIn: '/login' },
@@ -20,7 +20,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Mutating `user.id` here propagates to the jwt callback below: with no
     // database adapter configured, Auth.js echoes this same object straight
     // through to jwt() unchanged, skipping its own (adapter-gated)
-    // account-linking machinery entirely — see linkGoogleAccount for why
+    // account-linking machinery entirely - see linkGoogleAccount for why
     // that's safe to do ourselves.
     async signIn({ user, account }) {
       if (account?.provider !== 'google') return true;

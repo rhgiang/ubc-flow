@@ -20,7 +20,7 @@ type SP = {
   page?: string;
 };
 
-/** Builds an href for the current page with one or more params overridden —
+/** Builds an href for the current page with one or more params overridden -
  * every filter/sort control is a plain link, no client JS needed. */
 function hrefWith(sp: SP, overrides: Partial<Record<keyof SP, string | null>>): string {
   const merged: Record<string, string | null | undefined> = { ...sp, ...overrides };
@@ -28,7 +28,7 @@ function hrefWith(sp: SP, overrides: Partial<Record<keyof SP, string | null>>): 
   for (const [key, value] of Object.entries(merged)) {
     if (value) params.set(key, String(value));
   }
-  // Any filter/sort change resets pagination — staying on page 4 of a
+  // Any filter/sort change resets pagination - staying on page 4 of a
   // narrower result set would silently show nothing.
   if (!('page' in overrides)) params.delete('page');
   const qs = params.toString();
@@ -40,14 +40,14 @@ const LEVELS = [1, 2, 3, 4, 5] as const;
 /**
  * Degree label -> Subject.faculty, as the Calendar writes it.
  *
- * A course is not itself a BA or a BSc — degrees are programs. What people
+ * A course is not itself a BA or a BSc - degrees are programs. What people
  * mean by "BSc courses" is courses whose subject belongs to Science, so the
  * filter is by faculty and the label names the degree that faculty grants.
  * Only the faculties with a well-known undergraduate degree are listed;
  * filtering by School of Audiology helps nobody.
  *
  * Nursing and Kinesiology are deliberately absent. UBC nests those schools
- * inside a parent faculty, and the Calendar files their subjects there —
+ * inside a parent faculty, and the Calendar files their subjects there -
  * NURS courses come back under Applied Science. Offering "BSN · Nursing" as
  * its own row would return nothing, which is worse than not offering it.
  */
@@ -96,11 +96,11 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
   const requirements = sp.requirements === 'none' || sp.requirements === 'has' ? sp.requirements : undefined;
   const page = Math.max(1, Number(sp.page) || 1);
   // Matched against the list we offer, so the query only ever sees a faculty
-  // we chose to expose — same treatment termId gets.
+  // we chose to expose - same treatment termId gets.
   const faculty = DEGREE_FACULTIES.some(([, f]) => f === sp.faculty) ? sp.faculty : undefined;
 
   const [terms, subjects, courseTotal, professorTotal] = await getExploreHeader();
-  // Every term from the current one onward, not just this/next — a student
+  // Every term from the current one onward, not just this/next - a student
   // browsing in the summer is usually planning both Winter terms, and the
   // two-chip version could never show Winter Term 2.
   // Professors accept several subjects at once (comma-separated); courses
@@ -151,7 +151,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           { key: 'liked', label: 'Liked' },
         ];
 
-  // Rendered twice — inside the desktop sidebar and the mobile disclosure —
+  // Rendered twice - inside the desktop sidebar and the mobile disclosure -
   // so the two stay one control set rather than drifting apart.
   const filterControls = (
     <>
@@ -309,7 +309,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           </div>
 
           {/* The tab labels carry campus-wide totals, so a filtered view needs
-              its own count — without this a filter looks like a no-op. */}
+              its own count - without this a filter looks like a no-op. */}
           {hasFilters && (
             <p className="sky-hero mt-4 text-sm" aria-live="polite">
               {total.toLocaleString('en-CA')} {tab === 'courses' ? 'courses' : 'professors'} match your
@@ -318,7 +318,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           )}
 
           {/* On phones the sidebar would land below the table and pagination,
-              a full page from what it controls — surface the same controls
+              a full page from what it controls - surface the same controls
               here as a native disclosure instead. */}
           <details className="sky-panel mt-4 lg:hidden">
             <summary className="cursor-pointer list-none px-5 py-3 text-sm font-semibold text-foreground">
@@ -340,7 +340,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                   // capsule-chip: dark backing so the chips survive pale
                   // gray-weather skies the way the nav and footer links do;
                   // plain themes strip it back to ordinary text via CSS. The
-                  // active chip takes the brand fill instead — the same
+                  // active chip takes the brand fill instead - the same
                   // treatment as the map's day chips, which reads on every
                   // theme; capsule-chip's text colour would fight it.
                   className={`whitespace-nowrap rounded-pill border px-3.5 py-2 text-sm font-medium ${
@@ -424,7 +424,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
               </tbody>
             </table>
 
-            {/* Card-per-row on phones — same rows, same data, no six-column crush. */}
+            {/* Card-per-row on phones - same rows, same data, no six-column crush. */}
             <div className="divide-y divide-border sm:hidden">
               {tab === 'courses'
                 ? courseResult!.rows.map((r) => (

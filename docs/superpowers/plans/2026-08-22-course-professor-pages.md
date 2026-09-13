@@ -1,12 +1,12 @@
-# UBC Flow: Course & Professor Page Redesign + Historical Grades — Implementation Plan
+# UBC Flow: Course & Professor Page Redesign + Historical Grades - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Course and professor pages match UW Flow's real feature set (within our theme): a click-to-reveal ratings distribution, a collapsible current-year schedule, a full prerequisite/corequisite/antirequisite/leads-to sidebar, and a new historical-averages grade section sitting beside the existing distribution chart.
 
-**Architecture:** Continues the Next.js + Prisma monolith. Aggregation stays pure functions (`src/reviews/aggregate.ts`, extended). The historical-grades ingest is a rate-limited job reusing the existing `fetchText`. The antireq/leads-to reverse index piggybacks on the tree-walk `enrich:prereqs` already performs — no new full-table scans.
+**Architecture:** Continues the Next.js + Prisma monolith. Aggregation stays pure functions (`src/reviews/aggregate.ts`, extended). The historical-grades ingest is a rate-limited job reusing the existing `fetchText`. The antireq/leads-to reverse index piggybacks on the tree-walk `enrich:prereqs` already performs - no new full-table scans.
 
-**Tech Stack:** Next.js 16, TypeScript, Prisma 7, Postgres, Tailwind, Vitest. **No new dependencies** — donut/bar/popover UI is hand-rolled SVG/CSS, same discipline as every prior phase's charts.
+**Tech Stack:** Next.js 16, TypeScript, Prisma 7, Postgres, Tailwind, Vitest. **No new dependencies** - donut/bar/popover UI is hand-rolled SVG/CSS, same discipline as every prior phase's charts.
 
 **Spec:** [`docs/superpowers/specs/2026-08-22-course-professor-pages-design.md`](../specs/2026-08-22-course-professor-pages-design.md)
 
@@ -14,9 +14,9 @@
 
 - **Node.js 20+**, npm. No bun, no pnpm.
 - **Grade Distribution and Historical Averages are two separate sections, never merged into one chart.** Different bucket granularities (spec §3) make a merge misleading.
-- **The ratings box's Useful/Easy percentages use `(mean − 1) / 4 × 100`** — a deliberate exception to this app's existing `X.X/5` convention (Explore table, current stat cards), which is NOT touched by this plan.
+- **The ratings box's Useful/Easy percentages use `(mean − 1) / 4 × 100`** - a deliberate exception to this app's existing `X.X/5` convention (Explore table, current stat cards), which is NOT touched by this plan.
 - **Antirequisites and course/coreq codes are resolved with the exact same campus rule already established**: `_O` (Okanagan) codes never resolve to a link; unresolved codes still display as plain text, never dropped.
-- **The historical-grades ingest reuses `fetchText`** (`@/scrape/http`) — same 1 req/sec limiter as every other job. A 404 (course has no grade history) is normal, not an error — caught and skipped, same posture as every prior "not every X exists" job in this codebase.
+- **The historical-grades ingest reuses `fetchText`** (`@/scrape/http`) - same 1 req/sec limiter as every other job. A 404 (course has no grade history) is normal, not an error - caught and skipped, same posture as every prior "not every X exists" job in this codebase.
 - **`CoursePrereqEdge` is rebuilt wholesale on every `enrich:prereqs` run** (`deleteMany` then fresh inserts), matching the existing overwrite-not-accumulate idempotency rule `prereqTree`/`coreqTree` already follow.
 - Pure functions (`src/reviews/aggregate.ts`, `src/prereqs/parse.ts`) do no I/O.
 - Tests live in `tests/**/*.test.ts`.
@@ -26,7 +26,7 @@
 
 ## Verified facts this plan is grounded in
 
-**Current baseline:** `npm test` passes **254/254**. This plan's task-by-task counts build from that number — if a fix-loop round changes the running count, trust the ledger over this plan's numbers (established precedent from every prior phase).
+**Current baseline:** `npm test` passes **254/254**. This plan's task-by-task counts build from that number - if a fix-loop round changes the running count, trust the ledger over this plan's numbers (established precedent from every prior phase).
 
 **Real UBCGrades API responses** (fetched directly during spec research, still valid):
 ```
@@ -37,7 +37,7 @@ GET https://ubcgrades.com/api/v2/course-statistics/UBCV/CPSC/110
  "stdev":19.163549407185215,"subject":"CPSC","subject_title":"Computer Science"}
 
 GET https://ubcgrades.com/api/v2/course-statistics/UBCV/ZZZZ/999
-→ HTTP 404 (confirmed live — the "course has no data" case)
+→ HTTP 404 (confirmed live - the "course has no data" case)
 ```
 
 **Real Equivalency clauses** (from the live database, `Course.prereqText`):
@@ -45,16 +45,16 @@ GET https://ubcgrades.com/api/v2/course-statistics/UBCV/ZZZZ/999
 FIPR 437  :: FIPR 337. Equivalency: FILM437
 COMM 396  :: COMM 196. Equivalency: COMM_V 390
 ```
-(`FILM437` has no space between subject and number — confirms the existing `COURSE_CODE` regex's `\s?` must stay optional, which it already is.)
+(`FILM437` has no space between subject and number - confirms the existing `COURSE_CODE` regex's `\s?` must stay optional, which it already is.)
 
-**Existing code this plan builds on** (read in full before starting — do not re-derive from memory):
-- `src/prereqs/parse.ts` — `Requirement` type, `COURSE_CODE`/`BAILOUT`/`AMBIGUOUS` regexes, `stripEquivalency`, `toCourseNode`, `extractCodes` (all currently unexported module-private helpers).
-- `src/prereqs/jobs/build.ts` — `resolveTree`, `vancouverCode`, `buildRequirementTrees` (currently processes ALL courses unconditionally, per an earlier fix-loop ruling — do not reintroduce a `WHERE` filter).
-- `src/reviews/aggregate.ts` — `aggregateCourseReviews`, `aggregateInstructorReviews`, `meanDisplay`, `likedPercent` (all shown in full below).
-- `src/schedule/terms.ts` — `isUpcomingTerm(term)` already exists (added since Phase 6, **has no test coverage yet** — Task 1 adds it) — use this for "current and upcoming terms," not `isPlannableTerm` (that one is deliberately coarser, for the schedule planner).
-- `src/scrape/http.ts` — `fetchText(url)`, throws on non-OK response, 1 req/sec.
-- `src/components/RequirementTree.tsx` — reused as-is for prereq/coreq rendering inside the new sidebar.
-- `src/components/GradeChart.tsx` — reused as-is; **not modified by this plan** (no bug was found in it during spec research — the "percentages peak outside the box" report traced to the ratings *stat cards*, not this chart; Task 5 replaces those cards with the new ratings box).
+**Existing code this plan builds on** (read in full before starting - do not re-derive from memory):
+- `src/prereqs/parse.ts` - `Requirement` type, `COURSE_CODE`/`BAILOUT`/`AMBIGUOUS` regexes, `stripEquivalency`, `toCourseNode`, `extractCodes` (all currently unexported module-private helpers).
+- `src/prereqs/jobs/build.ts` - `resolveTree`, `vancouverCode`, `buildRequirementTrees` (currently processes ALL courses unconditionally, per an earlier fix-loop ruling - do not reintroduce a `WHERE` filter).
+- `src/reviews/aggregate.ts` - `aggregateCourseReviews`, `aggregateInstructorReviews`, `meanDisplay`, `likedPercent` (all shown in full below).
+- `src/schedule/terms.ts` - `isUpcomingTerm(term)` already exists (added since Phase 6, **has no test coverage yet** - Task 1 adds it) - use this for "current and upcoming terms," not `isPlannableTerm` (that one is deliberately coarser, for the schedule planner).
+- `src/scrape/http.ts` - `fetchText(url)`, throws on non-OK response, 1 req/sec.
+- `src/components/RequirementTree.tsx` - reused as-is for prereq/coreq rendering inside the new sidebar.
+- `src/components/GradeChart.tsx` - reused as-is; **not modified by this plan** (no bug was found in it during spec research - the "percentages peak outside the box" report traced to the ratings *stat cards*, not this chart; Task 5 replaces those cards with the new ratings box).
 
 **Prisma 7 migration procedure in this environment** (`prisma migrate dev` hard-blocks outside a TTY here):
 ```bash
@@ -64,7 +64,7 @@ npx prisma migrate deploy
 npx prisma generate
 npx prisma migrate status   # must report no drift
 ```
-Latest existing migration directory: `20260821000000_add_requirement_trees` — this plan's migration timestamp must sort after it.
+Latest existing migration directory: `20260821000000_add_requirement_trees` - this plan's migration timestamp must sort after it.
 
 ---
 
@@ -83,7 +83,7 @@ Latest existing migration directory: `20260821000000_add_requirement_trees` — 
 In `prisma/schema.prisma`, in the `Course` model, immediately after `coreqTree Json?`, add:
 
 ```prisma
-  /** Resolved-or-not course refs from "Equivalency:" clauses — see
+  /** Resolved-or-not course refs from "Equivalency:" clauses - see
     * src/prereqs/parse.ts:extractAntireqCodes. Same array shape a flat
     * Requirement course list would use: {code, courseId}[]. */
   antireqCodes Json?
@@ -144,12 +144,12 @@ npx prisma migrate status   # must say up to date, no drift
 docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c '\d "CourseHistoricalGrades"'
 docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c '\d "CoursePrereqEdge"'
 docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c \
-  "select count(*) courses from \"Course\";"   # must still be 7337 — additive only
+  "select count(*) courses from \"Course\";"   # must still be 7337 - additive only
 ```
 
 - [ ] **Step 4: Add test coverage for the pre-existing `isUpcomingTerm`**
 
-It already exists in `src/schedule/terms.ts` but has zero tests. Add to `tests/terms.test.ts` (append to the existing file — do not remove the existing `getCurrentAndNextTerm` tests):
+It already exists in `src/schedule/terms.ts` but has zero tests. Add to `tests/terms.test.ts` (append to the existing file - do not remove the existing `getCurrentAndNextTerm` tests):
 
 ```ts
 import { isUpcomingTerm } from '@/schedule/terms';
@@ -189,7 +189,7 @@ git commit -m "feat: add CourseHistoricalGrades, CoursePrereqEdge, Course.antire
 
 ---
 
-## Task 2: Prereq system extensions — antirequisites + leads-to
+## Task 2: Prereq system extensions - antirequisites + leads-to
 
 **Files:**
 - Modify: `src/prereqs/parse.ts`, `src/prereqs/jobs/build.ts`
@@ -205,7 +205,7 @@ git commit -m "feat: add CourseHistoricalGrades, CoursePrereqEdge, Course.antire
 
 - [ ] **Step 1: Write the failing tests**
 
-Add to `tests/parse-prereqs.test.ts` (append — do not remove existing tests):
+Add to `tests/parse-prereqs.test.ts` (append - do not remove existing tests):
 
 ```ts
 import { extractAntireqCodes } from '@/prereqs/parse';
@@ -267,20 +267,20 @@ describe('resolveAntireqCodes', () => {
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-npm test -- parse-prereqs   # FAIL — extractAntireqCodes not exported
-npm test -- prereqs-build   # FAIL — resolveAntireqCodes not exported
+npm test -- parse-prereqs   # FAIL - extractAntireqCodes not exported
+npm test -- prereqs-build   # FAIL - resolveAntireqCodes not exported
 ```
 
 - [ ] **Step 3: Implement**
 
-In `src/prereqs/parse.ts`, the module already has `extractCodes` and `toCourseNode` as private helpers — reuse them, do not duplicate the regex. Add, near `stripEquivalency`:
+In `src/prereqs/parse.ts`, the module already has `extractCodes` and `toCourseNode` as private helpers - reuse them, do not duplicate the regex. Add, near `stripEquivalency`:
 
 ```ts
 /**
- * The codes inside an "Equivalency:" clause — captured, not discarded, the
+ * The codes inside an "Equivalency:" clause - captured, not discarded, the
  * way stripEquivalency (used by parseRequirements) throws them away. These
  * are credit exclusions, not prerequisites, so they never enter a
- * Requirement tree — they're a separate flat list (spec §4.1).
+ * Requirement tree - they're a separate flat list (spec §4.1).
  */
 export function extractAntireqCodes(text: string | null): string[] {
   if (!text) return [];
@@ -312,7 +312,7 @@ export async function resolveAntireqCodes(codes: string[]): Promise<AntireqRef[]
   return refs;
 }
 
-/** Every resolved courseId referenced anywhere in a tree, deduplicated —
+/** Every resolved courseId referenced anywhere in a tree, deduplicated -
  * the set of edges buildRequirementTrees writes to CoursePrereqEdge. */
 function collectResolvedCourseIds(tree: Requirement | null): Set<string> {
   const ids = new Set<string>();
@@ -330,7 +330,7 @@ function collectResolvedCourseIds(tree: Requirement | null): Set<string> {
 }
 ```
 
-Modify `buildRequirementTrees` — add `antireqCodes` to the write, and after the existing per-course loop, populate `CoursePrereqEdge`:
+Modify `buildRequirementTrees` - add `antireqCodes` to the write, and after the existing per-course loop, populate `CoursePrereqEdge`:
 
 ```ts
 export async function buildRequirementTrees(): Promise<BuildResult> {
@@ -342,7 +342,7 @@ export async function buildRequirementTrees(): Promise<BuildResult> {
   let updated = 0;
   let resolved = 0;
 
-  // Wholesale rebuild — matches how prereqTree/coreqTree are already
+  // Wholesale rebuild - matches how prereqTree/coreqTree are already
   // overwritten every run (Global Constraints).
   await db.coursePrereqEdge.deleteMany({});
 
@@ -393,7 +393,7 @@ npm test -- parse-prereqs    # PASS, existing + 5 new
 npm test -- prereqs-build    # PASS, existing + 3 new
 npm test                     # 264 passing (256 + 5 + 3)
 npx tsc --noEmit
-grep -nE "fetch|@/lib/db|readFile|require\(" src/prereqs/parse.ts   # purity — must print nothing
+grep -nE "fetch|@/lib/db|readFile|require\(" src/prereqs/parse.ts   # purity - must print nothing
 ```
 
 - [ ] **Step 5: Commit**
@@ -462,7 +462,7 @@ describe('fetchHistoricalGrades', () => {
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-npm test -- grades-ingest-historical   # FAIL — module missing
+npm test -- grades-ingest-historical   # FAIL - module missing
 ```
 
 - [ ] **Step 3: Implement**
@@ -489,7 +489,7 @@ type ApiResponse = {
 
 export type HistoricalGradesResponse = ApiResponse | null;
 
-/** A 404 means "no grade history for this course" — normal, not an error,
+/** A 404 means "no grade history for this course" - normal, not an error,
  * same posture as every other "not every X exists" job in this codebase. */
 export async function fetchHistoricalGrades(
   subject: string,
@@ -591,10 +591,10 @@ git commit -m "feat: ingest historical grade averages from the UBCGrades API"
 
 **Files:**
 - Modify: `src/reviews/aggregate.ts`
-- Test: `tests/reviews-aggregate.test.ts` (create if it doesn't exist — check first; if `aggregateCourseReviews`/`aggregateInstructorReviews` are already covered elsewhere, add to that file instead of creating a duplicate)
+- Test: `tests/reviews-aggregate.test.ts` (create if it doesn't exist - check first; if `aggregateCourseReviews`/`aggregateInstructorReviews` are already covered elsewhere, add to that file instead of creating a duplicate)
 
 **Interfaces:**
-- Produces: `CourseAggregate.histograms`, `InstructorAggregate.histograms` — `Record<'useful' | 'difficulty', Record<1 | 2 | 3 | 4 | 5, number>>` / `Record<'clear' | 'engaging', ...>`
+- Produces: `CourseAggregate.histograms`, `InstructorAggregate.histograms` - `Record<'useful' | 'difficulty', Record<1 | 2 | 3 | 4 | 5, number>>` / `Record<'clear' | 'engaging', ...>`
 
 - [ ] **Step 1: Check for existing test coverage**
 
@@ -652,7 +652,7 @@ describe('aggregateInstructorReviews histograms', () => {
 - [ ] **Step 3: Run to verify failure**
 
 ```bash
-npm test -- reviews-aggregate   # FAIL — histograms is undefined
+npm test -- reviews-aggregate   # FAIL - histograms is undefined
 ```
 
 - [ ] **Step 4: Implement**
@@ -667,7 +667,7 @@ function emptyHistogram(): Histogram {
 }
 
 /** Counts each 0-4 stored rating into its 1-5 display bucket. Nulls are
- * excluded entirely — an unrated review contributes to no bucket, never a
+ * excluded entirely - an unrated review contributes to no bucket, never a
  * fabricated "1". */
 function histogramOf(values: (number | null)[]): Histogram {
   const h = emptyHistogram();
@@ -736,7 +736,7 @@ npm test                        # 271 passing (267 + 4)
 npx tsc --noEmit
 ```
 
-This changes `CourseAggregate`/`InstructorAggregate`'s shape — `tsc` will catch any caller that destructures these types without accounting for the new required `histograms` field. Fix any such caller by threading the field through, not by making it optional.
+This changes `CourseAggregate`/`InstructorAggregate`'s shape - `tsc` will catch any caller that destructures these types without accounting for the new required `histograms` field. Fix any such caller by threading the field through, not by making it optional.
 
 - [ ] **Step 6: Commit**
 
@@ -754,7 +754,7 @@ git commit -m "feat: add per-rating 1-5 histograms to review aggregates"
 
 **Interfaces:**
 - Consumes: `CourseAggregate` or `InstructorAggregate` (Task 4), specifically `{ count, likedPercent, histograms }` plus two named metrics
-- Produces: `RatingsBox` (client component — needs click state for the popover)
+- Produces: `RatingsBox` (client component - needs click state for the popover)
 
 This is the "1:1" recreation piece (spec §5.3): a liked-percent ring, two labeled bars using the `(mean−1)/4×100` convention, each bar's icon opening a 1-5 histogram popover on click.
 
@@ -781,7 +781,7 @@ export default function RatingsBox({
 }) {
   const [open, setOpen] = useState<number | null>(null);
 
-  // (mean - 1) / 4 * 100 — the box's own convention (spec 5.3), distinct
+  // (mean - 1) / 4 * 100 - the box's own convention (spec 5.3), distinct
   // from the X.X/5 format used elsewhere on this site (Explore table etc.),
   // which this component does not touch.
   const asPercent = (mean: number | null) => (mean === null ? null : Math.round(((mean - 1) / 4) * 100));
@@ -882,12 +882,12 @@ export default function RatingsBox({
 
 - [ ] **Step 2: Verify live**
 
-No automated test for this component (display-only, matches the established pattern from Phase 5/6's chart components — verified live instead). After Task 9 wires it in, check:
+No automated test for this component (display-only, matches the established pattern from Phase 5/6's chart components - verified live instead). After Task 9 wires it in, check:
 1. The ring fill matches `likedPercent`.
 2. Clicking a metric's chart icon opens its popover with the real 1-5 counts; clicking again closes it; clicking the other metric switches which is open.
 3. A metric with `mean: null` shows `—` and an empty (0-width) bar, never `0%`.
 
-(This live check happens as part of Task 9's verification — this task just needs `npx tsc --noEmit` clean and `npx eslint .` clean now.)
+(This live check happens as part of Task 9's verification - this task just needs `npx tsc --noEmit` clean and `npx eslint .` clean now.)
 
 ```bash
 npx tsc --noEmit
@@ -910,7 +910,7 @@ git commit -m "feat: add RatingsBox with click-to-reveal rating distribution"
 
 **Interfaces:**
 - Consumes: `isUpcomingTerm` (`@/schedule/terms`, pre-existing)
-- Produces: `CourseScheduleBox` (client component — needs collapse/tab state)
+- Produces: `CourseScheduleBox` (client component - needs collapse/tab state)
 
 Collapsible, tabbed by term, limited to current-and-upcoming terms (spec §5.5).
 
@@ -1053,7 +1053,7 @@ npx tsc --noEmit
 npx eslint src/components/CourseScheduleBox.tsx
 ```
 
-Live verification (a real course with sections in a past term AND an upcoming term — confirm past terms never appear as tabs) happens in Task 9.
+Live verification (a real course with sections in a past term AND an upcoming term - confirm past terms never appear as tabs) happens in Task 9.
 
 - [ ] **Step 3: Commit**
 
@@ -1071,7 +1071,7 @@ git commit -m "feat: add collapsible, current-year-only CourseScheduleBox"
 
 **Interfaces:**
 - Consumes: `RequirementTree` (existing, reused as-is), `Requirement` type, `AntireqRef` (Task 2)
-- Produces: `RequirementSidebar` (server component — no interactivity needed)
+- Produces: `RequirementSidebar` (server component - no interactivity needed)
 
 Prerequisites / Corequisites (reusing the existing `RequirementTree` renderer) / Antirequisites / Leads to, matching spec §5.6.
 
@@ -1185,14 +1185,14 @@ git commit -m "feat: add RequirementSidebar with antirequisites and leads-to"
 **Interfaces:**
 - Produces: `ReviewCard` (server component)
 
-Shared between course and professor pages. Deterministic colored placeholder avatar (spec §6) — hashed from the review's `id`, not random per render.
+Shared between course and professor pages. Deterministic colored placeholder avatar (spec §6) - hashed from the review's `id`, not random per render.
 
 - [ ] **Step 1: Implement**
 
 ```tsx
 const AVATAR_COLORS = ['#002145', '#04316b', '#5c6770', '#7a8791', '#3a5a78', '#1f4e79'];
 
-/** Same review id -> same color, every render — not Math.random(). */
+/** Same review id -> same color, every render - not Math.random(). */
 function colorFor(id: string): string {
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
@@ -1268,11 +1268,11 @@ git commit -m "feat: add shared ReviewCard with deterministic placeholder avatar
 **Interfaces:**
 - Consumes: `RatingsBox` (5), `CourseScheduleBox` (6), `RequirementSidebar` (7), `ReviewCard` (8), `CourseHistoricalGrades`/`CoursePrereqEdge`/`Course.antireqCodes` (1, 2)
 
-Reassembles the page in the order: header → description → RatingsBox → Grade Distribution (existing `GradeChart`, unmodified) → Historical Averages (new, inline in this task — small enough not to warrant its own component per the plan's task-sizing) → CourseScheduleBox → two-column layout with RequirementSidebar → course/professor review tabs using ReviewCard.
+Reassembles the page in the order: header → description → RatingsBox → Grade Distribution (existing `GradeChart`, unmodified) → Historical Averages (new, inline in this task - small enough not to warrant its own component per the plan's task-sizing) → CourseScheduleBox → two-column layout with RequirementSidebar → course/professor review tabs using ReviewCard.
 
 - [ ] **Step 1: Update the data fetching**
 
-In `src/app/course/[code]/page.tsx`, extend the existing `course` query's `include` to also fetch `sections.enrolTotal`/`enrolCap` (already selected implicitly via the existing `sections: { include: {...} }` — confirm no `select` is narrowing it out; if the current query already includes full `Section` rows, no change needed here).
+In `src/app/course/[code]/page.tsx`, extend the existing `course` query's `include` to also fetch `sections.enrolTotal`/`enrolCap` (already selected implicitly via the existing `sections: { include: {...} }` - confirm no `select` is narrowing it out; if the current query already includes full `Section` rows, no change needed here).
 
 Add these queries alongside the existing `gradeRows`/`reviews` fetches:
 
@@ -1327,7 +1327,7 @@ Replace the existing block from `<div className="mt-10 flex items-center justify
       </div>
 ```
 
-(The review list that currently follows moves into the new tabbed section in Step 4 — remove the old inline `<ul>` review list here.)
+(The review list that currently follows moves into the new tabbed section in Step 4 - remove the old inline `<ul>` review list here.)
 
 - [ ] **Step 3: Add Historical Averages beneath the existing Grade Distribution**
 
@@ -1474,9 +1474,9 @@ Replace the existing `<h2>Sections</h2>` block and its table (from `<h2 classNam
 }
 ```
 
-**Note on the tabs above:** this step ships both review lists visible at once with only the "Course reviews" tab styled active (no client-side toggle yet) — a deliberate, minimal first cut. If you want a real client-side tab toggle between the two lists, that requires converting this section into a small client component; do NOT do that inline in this server component. Flag it as a concern in your report rather than silently expanding scope — the controller will decide whether a follow-up task is warranted.
+**Note on the tabs above:** this step ships both review lists visible at once with only the "Course reviews" tab styled active (no client-side toggle yet) - a deliberate, minimal first cut. If you want a real client-side tab toggle between the two lists, that requires converting this section into a small client component; do NOT do that inline in this server component. Flag it as a concern in your report rather than silently expanding scope - the controller will decide whether a follow-up task is warranted.
 
-Remove the now-unused old prereq/coreq inline block (the one using `RequirementTree` directly, replaced by `RequirementSidebar`) and its now-unused `Requirement` import path if `RequirementSidebar` is the only remaining consumer — keep the `import type { Requirement }` line since it's still used for the `as unknown as Requirement` casts passed into `RequirementSidebar`.
+Remove the now-unused old prereq/coreq inline block (the one using `RequirementTree` directly, replaced by `RequirementSidebar`) and its now-unused `Requirement` import path if `RequirementSidebar` is the only remaining consumer - keep the `import type { Requirement }` line since it's still used for the `as unknown as Requirement` casts passed into `RequirementSidebar`.
 
 - [ ] **Step 5: Verify live**
 
@@ -1487,9 +1487,9 @@ npm run dev
 Check `/course/cpsc-110` (has a real review, per prior phases) and `/course/cpsc-314` (has real prerequisites from Phase 6):
 1. RatingsBox shows real liked%/useful/easy, popover opens on icon click with real 1-5 counts.
 2. Grade Distribution renders unchanged (Phase 5 chart, untouched).
-3. Historical Averages appears beneath it if `CourseHistoricalGrades` has a row (won't yet — Task 11 runs the real ingest; verify the "not shown when absent" behavior instead by confirming no empty section renders for a course with no row).
+3. Historical Averages appears beneath it if `CourseHistoricalGrades` has a row (won't yet - Task 11 runs the real ingest; verify the "not shown when absent" behavior instead by confirming no empty section renders for a course with no row).
 4. CourseScheduleBox: only current/upcoming term tabs appear, collapses on click.
-5. RequirementSidebar shows real prereq/coreq/antireq/leads-to (leads-to and antireq will be empty until Task 11's `enrich:prereqs` re-run populates them — verify the "No antirequisites"/"No courses require this one" empty states instead).
+5. RequirementSidebar shows real prereq/coreq/antireq/leads-to (leads-to and antireq will be empty until Task 11's `enrich:prereqs` re-run populates them - verify the "No antirequisites"/"No courses require this one" empty states instead).
 6. Course reviews render via ReviewCard with a colored avatar.
 
 Stop the dev server.
@@ -1497,7 +1497,7 @@ Stop the dev server.
 - [ ] **Step 6: Full verification and commit**
 
 ```bash
-npm test          # 271 passing (unchanged — this task has no new tests, display-only)
+npm test          # 271 passing (unchanged - this task has no new tests, display-only)
 npx tsc --noEmit
 npx eslint .
 npm run build
@@ -1528,13 +1528,13 @@ Add, after the existing `reviews`/`stats` computation:
   const reviewsByCourse = new Map<string, { code: string; title: string; reviews: typeof reviews }>();
   for (const r of reviews) {
     // InstructorReview.courseId has no Prisma relation to Course (raw FK,
-    // same convention as SavedSchedule.termId elsewhere in this app) — the
+    // same convention as SavedSchedule.termId elsewhere in this app) - the
     // course code/title for each group comes from the existing `courses`
     // list already built below from instructor.sections, matched by code.
   }
 ```
 
-Actually — reorder: the existing `courses` derivation (from `instructor.sections`) already has course code/title per course this instructor teaches. Build the grouping directly from `reviews` keyed by `courseId`, then resolve each group's display code/title via a fresh lookup (the existing `instructor.sections` data is keyed by course code string, not `courseId`, so it can't be joined directly — fetch course code/title for the review's `courseId` values instead):
+Actually - reorder: the existing `courses` derivation (from `instructor.sections`) already has course code/title per course this instructor teaches. Build the grouping directly from `reviews` keyed by `courseId`, then resolve each group's display code/title via a fresh lookup (the existing `instructor.sections` data is keyed by course code string, not `courseId`, so it can't be joined directly - fetch course code/title for the review's `courseId` values instead):
 
 ```ts
   const reviewCourseIds = [...new Set(reviews.map((r) => r.courseId))];
@@ -1563,7 +1563,7 @@ Actually — reorder: the existing `courses` derivation (from `instructor.sectio
     .sort((a, b) => b.reviews.length - a.reviews.length);
 ```
 
-Note: `InstructorReview` needs `courseId` selected in the existing `reviews` query — confirm it already is (it is, per the current file's `select` block).
+Note: `InstructorReview` needs `courseId` selected in the existing `reviews` query - confirm it already is (it is, per the current file's `select` block).
 
 - [ ] **Step 2: Replace the Ratings stat-card block with RatingsBox**
 
@@ -1622,14 +1622,14 @@ Replace the existing `{stats.count > 0 && (<ul>...reviews.map...</ul>)}` block w
 
 - [ ] **Step 4: Add Historical Averages to this page's Grades section too**
 
-Same block as Task 9 Step 3, using this page's already-fetched `historicalGrades` — add the identical query (`db.courseHistoricalGrades` doesn't apply directly to an instructor; this page's Grades section aggregates across courses the instructor taught via `gradeDistributions`, which already has no direct historical-grades equivalent). **Skip this step** — historical averages are a per-course concept (spec §3), and the professor page's existing Grades section already aggregates distribution data across multiple courses, which historical averages cannot be meaningfully summed into. Leave the professor page's Grades section as Grade Distribution only, unchanged from its current form. (This is a deliberate scope note, not an oversight — record it in your report.)
+Same block as Task 9 Step 3, using this page's already-fetched `historicalGrades` - add the identical query (`db.courseHistoricalGrades` doesn't apply directly to an instructor; this page's Grades section aggregates across courses the instructor taught via `gradeDistributions`, which already has no direct historical-grades equivalent). **Skip this step** - historical averages are a per-course concept (spec §3), and the professor page's existing Grades section already aggregates distribution data across multiple courses, which historical averages cannot be meaningfully summed into. Leave the professor page's Grades section as Grade Distribution only, unchanged from its current form. (This is a deliberate scope note, not an oversight - record it in your report.)
 
 - [ ] **Step 5: Verify live and full check**
 
 ```bash
 npm run dev
 ```
-Check `/professor/nick-bradley` (taught CPSC 110, has a real review) — confirm RatingsBox shows Clear/Engaging, review appears grouped under its course.
+Check `/professor/nick-bradley` (taught CPSC 110, has a real review) - confirm RatingsBox shows Clear/Engaging, review appears grouped under its course.
 
 ```bash
 npm test          # 271 passing (unchanged)
@@ -1647,7 +1647,7 @@ git commit -m "feat: reassemble the professor page with RatingsBox and course-gr
 
 ## Task 11: Full ingest run + verification
 
-**Files:** none — this task runs the jobs and verifies the result.
+**Files:** none - this task runs the jobs and verifies the result.
 
 - [ ] **Step 1: Re-run enrich:prereqs to populate antireqCodes and CoursePrereqEdge**
 
@@ -1655,7 +1655,7 @@ git commit -m "feat: reassemble the professor page with RatingsBox and course-gr
 npm run enrich:prereqs
 ```
 
-Expect it to complete in under two minutes (local job, no network — same as the original Phase 6 run).
+Expect it to complete in under two minutes (local job, no network - same as the original Phase 6 run).
 
 ```bash
 docker exec ubcflow-pg psql -U ubcflow -d ubcflow -c \
@@ -1680,7 +1680,7 @@ join \"Subject\" rs on rs.id=rc.\"subjectId\"
 where rs.code='CPSC' and rc.number='110';"
 ```
 
-The last query is CPSC 110's real "leads to" list — confirm it's non-empty and every code is a real course that plausibly requires CPSC 110.
+The last query is CPSC 110's real "leads to" list - confirm it's non-empty and every code is a real course that plausibly requires CPSC 110.
 
 - [ ] **Step 2: Run the historical grades ingest for real**
 
@@ -1688,7 +1688,7 @@ The last query is CPSC 110's real "leads to" list — confirm it's non-empty and
 npm run ingest:historical-grades
 ```
 
-This makes one request per Vancouver course (~7337, rate-limited to 1/sec) — expect roughly **two hours**. Run it via a detached background process and poll, the same way Phase 5/6's long-running ingests were supervised (do not run it as a blocking foreground call that will exceed a tool timeout).
+This makes one request per Vancouver course (~7337, rate-limited to 1/sec) - expect roughly **two hours**. Run it via a detached background process and poll, the same way Phase 5/6's long-running ingests were supervised (do not run it as a blocking foreground call that will exceed a tool timeout).
 
 - [ ] **Step 3: Verify the result**
 

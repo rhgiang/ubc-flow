@@ -6,7 +6,7 @@ export type EnrollmentRow = {
   courseNumber: string;
   sectionCode: string | null;
   activity: string | null;
-  /** Start of the FIRST meeting block — what the term is inferred from. */
+  /** Start of the FIRST meeting block - what the term is inferred from. */
   startDate: string | null;
   /** Null for academic-record rows: that export carries no dates at all. */
   termYear: number | null;
@@ -18,18 +18,18 @@ export type EnrollmentRow = {
   building: string | null;
   room: string | null;
   floor: string | null;
-  /** End of the LAST meeting block — the real span across a reading-week split. */
+  /** End of the LAST meeting block - the real span across a reading-week split. */
   meetingEndDate: string | null;
   credits: number | null;
   registrationStatus: string | null;
   deliveryMode: string | null;
-  /** Blank on most lab/tutorial rows — Workday only names the lecture's instructor. */
+  /** Blank on most lab/tutorial rows - Workday only names the lecture's instructor. */
   instructor: string | null;
   /** The section's own Start/End Date columns, which span every meeting block. */
   sectionStartDate: string | null;
   sectionEndDate: string | null;
   /**
-   * Workday's Grade cell, verbatim — a percentage, a letter, "CR", "TR".
+   * Workday's Grade cell, verbatim - a percentage, a letter, "CR", "TR".
    * Read here since the parser was written, but only to detect transfer
    * credit; the value itself was thrown away, so nothing downstream could
    * tell a pass from a fail.
@@ -43,7 +43,7 @@ export type EnrollmentRow = {
  * Credit earned elsewhere, reported separately because it is not an
  * enrollment.
  *
- * A transfer row has no UBC term and often no UBC course — "PHYS_V 1ST" is
+ * A transfer row has no UBC term and often no UBC course - "PHYS_V 1ST" is
  * unassigned first-year credit in a subject. It used to be discarded, which
  * overstated what a student still owed; it is now returned for the importer
  * to store, and deliberately kept out of EnrollmentRow so it can never reach
@@ -61,8 +61,8 @@ export type TransferRow = {
  * What a Workday grade says about completion.
  *
  * Kept deliberately narrow. A percentage below 50 is a fail at UBC and a
- * letter F is a fail; "CR" is credit granted. Anything else — a blank cell, a
- * standing like "IP" or "W", a grading basis we do not know — stays
+ * letter F is a fail; "CR" is credit granted. Anything else - a blank cell, a
+ * standing like "IP" or "W", a grading basis we do not know - stays
  * "registered", because guessing in the permissive direction is how a student
  * gets told they finished a course they have to retake.
  */
@@ -88,7 +88,7 @@ export type ParsedExport = {
   rows: EnrollmentRow[];
   transfers: TransferRow[];
   excluded: ExcludedRow[];
-  /** Header rows found after the table we parsed — structures we don't handle yet. */
+  /** Header rows found after the table we parsed - structures we don't handle yet. */
   unparsedTables: string[];
 };
 
@@ -172,7 +172,7 @@ function parseBlock(block: string): MeetingPattern {
  * A cell holds one blank-line-separated block per date range. Blocks that
  * repeat one weekly pattern (a course split around reading week) merge into a
  * single pattern spanning the first block's start to the last block's end.
- * A block with a DIFFERENT day, time or room is its own pattern — a real
+ * A block with a DIFFERENT day, time or room is its own pattern - a real
  * lecture can meet Mon Wed 1–2 in one room and Fri 2–3 in another, and
  * reading only the first block dropped the Friday class from calendars.
  */
@@ -200,7 +200,7 @@ export function parseMeetingPatterns(cell: string): MeetingPattern[] {
   return patterns;
 }
 
-/** No export carries a term column — derive it from the start date. */
+/** No export carries a term column - derive it from the start date. */
 export function inferTerm(
   isoDate: string,
 ): { year: number; session: string; termNumber: number | null } | null {
@@ -236,7 +236,7 @@ function columnMap(header: string[]): Record<string, number> {
 // A header row for ANY table (the one we parse, or a further one we don't)
 // always has an empty column 0: that column holds only the per-row student
 // identity on real data rows, and headers never carry that. (A title BANNER
-// row, e.g. "Transfer Credit from Coursework", is neither — it puts its text
+// row, e.g. "Transfer Credit from Coursework", is neither - it puts its text
 // in column 0, so this predicate correctly does not treat it as a header.)
 // Matching is restricted to whole words: real data cells routinely contain
 // near-hits ("Graded" in the Grading Basis column) that must not be mistaken
@@ -265,7 +265,7 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
   }
 
   // The current table's data ends at the next row that looks like a header for
-  // a further table (spec §8) — a senior student's export can hold more than
+  // a further table (spec §8) - a senior student's export can hold more than
   // one table, and reading past this boundary with the FIRST table's column
   // map would misread the second table's columns as this table's, including
   // possibly reading course-code-shaped text through a map with no
@@ -293,7 +293,7 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
   const originCol = cols['originating coursework'];
   // Read but never returned: `grading basis` and the column-0 student identity
   // (beyond the one-student check below) are deliberately not carried into
-  // EnrollmentRow — a timetable needs neither.
+  // EnrollmentRow - a timetable needs neither.
 
   const cell = (row: string[], col: number | undefined): string | null =>
     col === undefined ? null : (row[col]?.trim() || null);
@@ -306,8 +306,8 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
     const listing = courseCol === undefined ? '' : (row[courseCol] ?? '');
     if (!listing) continue;
 
-    // Transfer credit was earned at another institution. It is now KEPT — a
-    // degree plan that ignores it overstates what a student still owes — and
+    // Transfer credit was earned at another institution. It is now KEPT - a
+    // degree plan that ignores it overstates what a student still owes - and
     // carried as status 'transfer' so the review gate can refuse it while
     // guidance counts it. It must never grant review rights for UBC's version
     // of the course (spec 7B), which import enforces by leaving these rows
@@ -397,7 +397,7 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
   }
 
   // Everything from tableEnd on is outside the table we parsed. Report every
-  // further header row we find there — structures we don't recognise yet
+  // further header row we find there - structures we don't recognise yet
   // (e.g. "Completed Coursework" on a senior student's export). We cannot
   // parse a table we've never seen, but we can refuse to silently drop it.
   const unparsedTables = grid

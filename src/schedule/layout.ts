@@ -9,7 +9,7 @@
  * three overlapping ones.
  *
  * Back-to-back entries (one ends exactly when the next starts) do NOT overlap
- * — same rule findConflicts uses.
+ * - same rule findConflicts uses.
  */
 export function layoutDayColumns<T>(
   entries: T[],

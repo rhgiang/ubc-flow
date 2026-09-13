@@ -4,21 +4,21 @@ import { useState } from 'react';
 import { GRADE_BUCKETS } from '@/grades/parse-csv';
 
 const CHART_HEIGHT = 96; // px
-// The tallest bar maps to this fraction of CHART_HEIGHT, not all of it — full
+// The tallest bar maps to this fraction of CHART_HEIGHT, not all of it - full
 // height left the tallest bar flush against the container's rounded top
 // corner, visually poking through it (most visible on the last column, right
 // next to the corner's curve).
 const MAX_BAR_FRACTION = 0.88;
-const SUPPRESSED_STUB_HEIGHT = 10; // px — enough to read as "withheld", not "zero"
+const SUPPRESSED_STUB_HEIGHT = 10; // px - enough to read as "withheld", not "zero"
 
 /**
  * Bar chart of a grade distribution, one bar per GRADE_BUCKETS entry.
- * A suppressed bucket (null — UBC withheld it for privacy, spec 6) renders as
+ * A suppressed bucket (null - UBC withheld it for privacy, spec 6) renders as
  * a short hatched grey stub, never as an empty/zero-height bar: the two must
  * stay visibly distinct or the suppression is silently lost.
  *
  * Each bar has a tooltip showing the exact count and percentage of the
- * offering's total students — on hover, or pinned by a tap, since hover
+ * offering's total students - on hover, or pinned by a tap, since hover
  * doesn't exist on touch. (That tap support is the only reason this is a
  * client component.)
  */
@@ -41,7 +41,7 @@ export default function GradeChart({
   return (
     // overflow-x-clip: at large system text sizes a centred tooltip can be
     // most of a phone wide, and any index-based anchoring rule eventually
-    // lets one past the page edge — which widens the document and makes the
+    // lets one past the page edge - which widens the document and makes the
     // page scroll sideways. Clip the x axis at the root instead; y stays
     // visible (clip+visible is the legal mixed pair), so tooltips still
     // rise above the bars.
@@ -60,7 +60,7 @@ export default function GradeChart({
           const percent = !suppressed && total > 0 ? Math.round((value / total) * 100) : null;
 
           // The tooltip is wider than the bar it belongs to, so on the outer
-          // columns it hung past the chart — and an absolutely positioned box
+          // columns it hung past the chart - and an absolutely positioned box
           // past the right edge widens the DOCUMENT, which made the whole
           // professor page scroll sideways on a phone. Anchor the outer TWO
           // columns each side inward instead of centring them: at a large
@@ -117,7 +117,7 @@ export default function GradeChart({
       <div className="mt-1 flex gap-1">
         {GRADE_BUCKETS.map((bucket) => (
           // min(): the labels follow a smaller system text size down, but stop
-          // GROWING at 11px — eleven of them share one phone width, and past
+          // GROWING at 11px - eleven of them share one phone width, and past
           // that they widened the document itself. Axis microcopy only; the
           // tooltips and the sr-only summary carry the same data at full size.
           <span

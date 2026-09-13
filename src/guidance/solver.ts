@@ -14,7 +14,7 @@ export type PlanTerm = {
   available: boolean;
   /**
    * A term beyond the catalogue's horizon. UBC only publishes sections a year
-   * or so out, but a degree takes four — so the later half of any roadmap is
+   * or so out, but a degree takes four - so the later half of any roadmap is
    * necessarily projected. Offerings are unknown for these, and the solver
    * places into them freely rather than refusing, which would leave the plan
    * stopping halfway through second year.
@@ -26,7 +26,7 @@ export type Prefs = {
   /**
    * Credits per term, not courses.
    *
-   * A degree is measured in credits and UBC states load the same way — 15 is
+   * A degree is measured in credits and UBC states load the same way - 15 is
    * a standard full-time term, 30 a year, 120 a four-year degree. Counting
    * courses instead made a 4-credit CPSC course and a 3-credit elective slot
    * cost the same, and a default of "4 courses" quietly meant 12 credits a
@@ -39,15 +39,15 @@ export type Prefs = {
 };
 
 /**
- * One thing to do in a term. Either a specific course, or a slot — "3 credits
- * of Arts" — for a requirement that names an amount rather than a course.
+ * One thing to do in a term. Either a specific course, or a slot - "3 credits
+ * of Arts" - for a requirement that names an amount rather than a course.
  *
  * Slots are not a fallback for the unresolvable; they are the honest form for
  * a whole class of requirement. Breadth and elective rules say how much, not
  * which, and picking a particular course to fill them is a guess presented as
  * advice. It is also what produced graduate seminars in a third-year term
  * before the level caps went in. A slot has no prerequisites, so it needs no
- * ordering — which is why this is easier than concrete placement, not harder.
+ * ordering - which is why this is easier than concrete placement, not harder.
  */
 export type Placement =
   | {
@@ -57,8 +57,8 @@ export type Placement =
       /**
        * The other courses that would satisfy the same requirement.
        *
-       * A choice with seven branches — the calculus requirement has that many
-       * — is shown as one course, and without this the plan reads as though
+       * A choice with seven branches - the calculus requirement has that many
+       * - is shown as one course, and without this the plan reads as though
        * that course were the requirement. Carrying the alternatives lets the
        * page say "or one of these" instead of quietly deciding for the
        * student.
@@ -86,7 +86,7 @@ export type Plan = {
 
 export type SolverInput = {
   outstanding: RuleProgress[];
-  /** Courses already passed — prerequisites may be satisfied by these. */
+  /** Courses already passed - prerequisites may be satisfied by these. */
   completed: CourseRef[];
   catalogue: CourseRef[];
   /**
@@ -109,7 +109,7 @@ export type SolverInput = {
  * but it stores two edges, and requiring both demands a pair no student takes.
  * Gating on the edges silently made most of a CS degree unplaceable.
  *
- * A `note` is eligibility prose — standing, permission, a grade floor — not a
+ * A `note` is eligibility prose - standing, permission, a grade floor - not a
  * course dependency, so it cannot be checked here and must not block.
  * Likewise a course reference the parser could not resolve to an id.
  */
@@ -125,7 +125,7 @@ const SUBJECT_OR_NUMBER = /([A-Z]{2,5})(?:_[A-Z])?\s?(?=\d)|(\d{2,3}[A-Z]?)/g;
  * Rewrite `note` nodes that actually name courses into course requirements.
  *
  * `parseRequirements` bails to a verbatim note whenever it meets "either",
- * "N of" or a lettered alternative — so CPSC 313's real prerequisite,
+ * "N of" or a lettered alternative - so CPSC 313's real prerequisite,
  * "CPSC 213 and either CPSC 221 or DSCI 221", arrives here as prose. Treating
  * that as non-blocking let the solver put 313 in the same term as 213.
  *
@@ -133,7 +133,7 @@ const SUBJECT_OR_NUMBER = /([A-Z]{2,5})(?:_[A-Z])?\s?(?=\d)|(\d{2,3}[A-Z]?)/g;
  * those are eligibility, not ordering, and must not block.
  *
  * The prose is regular enough to read structurally: UBC writes these as
- * conjunctions of alternatives — "CPSC 213 and either CPSC 221 or DSCI 221",
+ * conjunctions of alternatives - "CPSC 213 and either CPSC 221 or DSCI 221",
  * "One of CPSC 210, CPSC 260 and one of CPSC 121, MATH 220". Splitting on
  * top-level "and" and treating each segment as an OR over the codes it names
  * reproduces both correctly.
@@ -155,15 +155,15 @@ export function tightenNotes(
     // An AND whose parts are alternatives is an OR. parseRequirements splits
     // a lettered prerequisite on its semicolons and joins the pieces with
     // AND, so STAT 305's "Either (a) …; or (b) …; or (c) …" arrives demanding
-    // all three at once — including DSCI 200, which a Statistics major never
+    // all three at once - including DSCI 200, which a Statistics major never
     // takes, making the course unreachable. A part that opens with "or" is a
     // branch of the part before it, not an addition to it.
     const alternatives =
       tree.type === 'and' &&
       tree.items.filter((i) => i.type === 'note' && i.text.trimStart().toLowerCase().startsWith('or ')).length > 0;
     if (!alternatives) return { ...tree, items };
-    // Prose that names no course is commentary — "The Department recommends
-    // option (a)" — not a route. Harmless inside an AND, where a permissive
+    // Prose that names no course is commentary - "The Department recommends
+    // option (a)" - not a route. Harmless inside an AND, where a permissive
     // note changes nothing, but fatal inside an OR: one always-true branch
     // satisfies the whole prerequisite and the course becomes reachable with
     // nothing taken at all.
@@ -173,8 +173,8 @@ export function tightenNotes(
   if (tree.type !== 'note') return tree;
 
   // Corequisites are not ordering constraints. A corequisite may be taken in
-  // the SAME term, so requiring it to be satisfied by an earlier one — which
-  // is what every other course reference here means — makes the course
+  // the SAME term, so requiring it to be satisfied by an earlier one - which
+  // is what every other course reference here means - makes the course
   // permanently unplaceable against a plan that schedules both together.
   // MICB 322 lists four of them and was unreachable for exactly that reason,
   // taking MICB 323 with it; BIOC 306's "a corequisite of BIOC 303" did the
@@ -184,14 +184,14 @@ export function tightenNotes(
   // constraint, but the plan already places both courses, and the honest
   // failure here is being too strict rather than too loose.
   const text = tree.text
-    // "Co-requisites: All of BIOL 200, …" — a sentence of its own, to the end.
+    // "Co-requisites: All of BIOL 200, …" - a sentence of its own, to the end.
     .replace(/\bco-?requisites?\s*:[\s\S]*$/i, '')
-    // "and a corequisite of BIOC 303" — a clause inside a larger sentence,
+    // "and a corequisite of BIOC 303" - a clause inside a larger sentence,
     // ending at the next branch marker or full stop.
     .replace(/\b(?:and\s+)?a\s+co-?requisite\s+of\b[^.;]*/gi, '')
     // "100-level PHYS_V beyond PHYS_V 100" names PHYS 100 to EXCLUDE it, and
     // reading it as a requirement asked for the one course the rule rules out
-    // — the remedial physics a qualified student never takes. Same for "other
+    // - the remedial physics a qualified student never takes. Same for "other
     // than". CAPS names its first-year physics this way throughout.
     .replace(/\b(?:beyond|other than)\s+[A-Z]{2,5}(?:_[A-Z])?\s?\d{2,3}[A-Z]?/gi, '')
     // "PHYS 100-level" is a level, not the course PHYS 100. Reading it as one
@@ -204,13 +204,13 @@ export function tightenNotes(
   // credits … or (d) …", all in one sentence, so the whole thing arrives as
   // one note rather than as an AND of several. Splitting it on "and" first
   // would join clauses that are alternatives, demanding branches (a) and (c)
-  // and (d) together — which no student satisfies.
+  // and (d) together - which no student satisfies.
   //
   // Split on the "or (x)" markers before anything else, and read each branch
   // with the ordinary rules below.
   // The opening bracket is optional. CAPS 205 writes its branches as
   // "a) … or b) SCIE_V 001" with no parenthesis at all, and requiring one
-  // meant the whole sentence stayed a single AND — demanding SCIE 001 of
+  // meant the whole sentence stayed a single AND - demanding SCIE 001 of
   // every student alongside the branch they actually took, which made CAPS
   // 205, 206, 305 and 310 unreachable.
   const branches = tree.text.split(/\bor\s*\(?[a-z]\)/i);
@@ -229,7 +229,7 @@ export function tightenNotes(
   // "One of CHEM 121 and CHEM 123 or CHEM 154" offers two routes: 121 with
   // 123, or 154 alone. The "one of" scopes the whole list, so the "and" binds
   // TIGHTER than the "or" and is not a boundary. Splitting on every "and"
-  // made CHEM 121 a conjunct of its own and demanded it outright — which an
+  // made CHEM 121 a conjunct of its own and demanded it outright - which an
   // engineering student who took CHEM 154 never has. CHBE 241 reads exactly
   // that way, and it took CHBE 244, 345, 355 and the rest of the department
   // down with it: the plan plateaued at 76 credits of 155.
@@ -248,7 +248,7 @@ export function tightenNotes(
     const options: Requirement[] = [];
     // Bare numbers inherit the nearest subject, the same shorthand the
     // Calendar uses. "MICB_V 211 (or 201)" names two courses, and reading
-    // only the first made MICB 322 demand 211 specifically — unsatisfiable
+    // only the first made MICB 322 demand 211 specifically - unsatisfiable
     // for a student the plan had sent to 201, and it took MICB 323 with it.
     let subject: string | null = null;
     for (const m of segment.matchAll(SUBJECT_OR_NUMBER)) {
@@ -286,7 +286,7 @@ export function treeMet(tree: Requirement | null | undefined, satisfied: Set<str
 }
 
 /**
- * How deep a course sits in the prerequisite graph — the ordering that stops
+ * How deep a course sits in the prerequisite graph - the ordering that stops
  * the plan suggesting CPSC 310 before CPSC 210.
  *
  * An `or` takes the MINIMUM of its branches, because a student only has to
@@ -331,7 +331,7 @@ function treeDepth(
 /**
  * The course sets a rule could be advanced by, best first.
  *
- * Each entry is a BUNDLE — one alternative, which may be more than one course.
+ * Each entry is a BUNDLE - one alternative, which may be more than one course.
  * "CPSC 110, or CPSC 103 and 107" offers two: [110] and [103, 107]. An earlier
  * version flattened only the single-course branches and silently dropped the
  * multi-course ones, so a program whose only viable route was a pair could
@@ -396,8 +396,8 @@ function remaining(p: RuleProgress): number {
  * Slot specifications for a rule that names an amount rather than a course.
  *
  * Two shapes qualify. A plain `credits` rule is one bucket. A `chooseN` whose
- * branches are all credit rules — Science Breadth, "3 credits from any 6 of 7
- * categories" — is a set of buckets, and only the categories the student has
+ * branches are all credit rules - Science Breadth, "3 credits from any 6 of 7
+ * categories" - is a set of buckets, and only the categories the student has
  * not already covered should appear. A CS major covers the Computer Science,
  * Mathematics and Statistics categories through their major courses; offering
  * them breadth slots for those would be telling them to do work they have
@@ -434,8 +434,8 @@ function slotSpecs(
       const earned = covered.filter((c) => matches(b.from, c)).reduce((s, c) => s + c.credits, 0);
       return earned < b.n;
     });
-    // Labelled generically. Naming the category — "Science Breadth:
-    // Chemistry" — reads as an instruction to take chemistry, when the
+    // Labelled generically. Naming the category - "Science Breadth:
+    // Chemistry" - reads as an instruction to take chemistry, when the
     // requirement is "any 6 of 7" and the choice is the student's. The
     // branch is still tracked so the count is right and no category is
     // offered twice; it just is not presented as the answer. Examples come
@@ -457,7 +457,7 @@ function slotSpecs(
  * this program actually requires.
  *
  * `depth` measures the chain behind a course; this measures the chain in
- * front. Together they give its float — the number of terms it could be
+ * front. Together they give its float - the number of terms it could be
  * delayed without making the whole plan longer:
  *
  *     float = (planLength - 1 - height) - depth
@@ -465,7 +465,7 @@ function slotSpecs(
  * A course with zero float is on the critical path: CPSC 110 must go in term
  * one because 210, 213 and 310 queue behind it. A course with float to spare
  * can move later so an elective can sit beside it instead. This is the
- * distinction a plain greedy pass cannot make — it packs every required
+ * distinction a plain greedy pass cannot make - it packs every required
  * course as early as possible, which is right for the critical path and
  * needless for everything else, and leaves the electives stacked at the end.
  */
@@ -581,7 +581,7 @@ export function solve(input: SolverInput): Plan {
   // Constrained requirements are considered before the plain elective
   // buckets. A constraint is spent FROM the electives, so if the electives
   // hand out their own slots first and run dry, a later Arts slot finds
-  // nothing to charge against and is added on top — the plan then carries
+  // nothing to charge against and is added on top - the plan then carries
   // more credits than the degree asks for.
   need.sort((a, b) => Number(!!b.p.rule.constraint) - Number(!!a.p.rule.constraint));
 
@@ -591,7 +591,7 @@ export function solve(input: SolverInput): Plan {
    * Deducting the nominal total up front loses whatever a constraint never
    * spends. Science Breadth is nominally 18 credits, but a CS major covers
    * three of its six categories through required courses, so only 9 are ever
-   * slotted — and the other 9 came off the electives and were never given
+   * slotted - and the other 9 came off the electives and were never given
    * back. The plan totalled 111 credits of 120 for exactly that reason, while
    * reporting nothing unplaced.
    *
@@ -602,16 +602,16 @@ export function solve(input: SolverInput): Plan {
     // Charged across buckets until it is fully spent. Electives are split per
     // year, so one bucket often holds less than the charge; clamping at zero
     // against a single bucket loses the remainder, and the plan then places
-    // those credits twice — once as the constraint and again as an elective
+    // those credits twice - once as the constraint and again as an elective
     // that was never charged for. That is how the totals ran over 120.
     let owed = credits;
     for (const bucket of need) {
       if (owed <= 0) break;
       const rule = bucket.p.rule;
       // Only genuine electives. Testing for "a credits rule that is not a
-      // constraint" also matched real requirements — the Communication
+      // constraint" also matched real requirements - the Communication
       // Requirement and the Ways of Knowing areas are credits rules over an
-      // untranscribed list — and charging them meant the plan quietly
+      // untranscribed list - and charging them meant the plan quietly
       // replaced required coursework with the constraint's own slots.
       if (bucket.left <= 0 || !rule.elective) continue;
       const taken = Math.min(bucket.left, owed);
@@ -657,7 +657,7 @@ export function solve(input: SolverInput): Plan {
      * Hold part of the term back for flexible requirements.
      *
      * Without this, required courses take every term they can reach and the
-     * electives, Arts and breadth all pile into the final years — four terms
+     * electives, Arts and breadth all pile into the final years - four terms
      * of nothing but slots, which is not how anyone takes a degree. The
      * Calendar spreads them too: its own tables put elective credits in every
      * year rather than saving them for the end.
@@ -665,14 +665,14 @@ export function solve(input: SolverInput): Plan {
      * The reserve is what is still owed in slots divided by the terms left, so
      * it shrinks as those requirements are met and disappears once they are.
      * It is a floor on elective room, not a cap on progress: if the reserve
-     * would leave a term unable to fit any required course, it is ignored —
+     * would leave a term unable to fit any required course, it is ignored -
      * delaying a prerequisite to make space for an elective costs a term
      * later, which is the trade this must not make.
      */
     // Sized from what the REQUIRED courses still need, not from the slots.
     // Reserving "slots divided by terms" looks equivalent and is not: it can
     // leave less room than the required courses need in a term, which pushes
-    // them later and adds a term — the plan grew from eight to nine that way.
+    // them later and adds a term - the plan grew from eight to nine that way.
     // Deriving it from the required side guarantees by construction that the
     // course pass always has room for its fair share, and whatever is left is
     // genuinely spare and goes to electives.
@@ -686,8 +686,8 @@ export function solve(input: SolverInput): Plan {
      * Summer is not a third full term.
      *
      * UBC offers a fraction of its catalogue in summer and students take one
-     * or two courses in it. The offering check cannot say so here — a
-     * projected term has no section data, so it permits everything — and with
+     * or two courses in it. The offering check cannot say so here - a
+     * projected term has no section data, so it permits everything - and with
      * summer enabled the plan moved whole SECOND YEARS into a summer session:
      * Mech 2 as a block, Civil's entire 45-credit year, a 12-credit MECH 221
      * sitting in July. Co-op made this visible by turning summer on for
@@ -702,8 +702,8 @@ export function solve(input: SolverInput): Plan {
     // rule order instead filled first year with Arts and breadth and pushed
     // CPSC 110 into second year, which is not how anyone takes this degree.
     // A third pass tops the term back up. The share is a floor either side may
-    // overshoot, and when the course pass does — two 3- and 4-credit courses
-    // against a 6-credit share — the slot share no longer fits in what is
+    // overshoot, and when the course pass does - two 3- and 4-credit courses
+    // against a 6-credit share - the slot share no longer fits in what is
     // left, so the term closes a couple of credits short. A few credits lost
     // every term is a whole extra term across a degree, which is what turned
     // an eight-term plan into twelve. The top-up ignores the slot share and
@@ -718,7 +718,7 @@ export function solve(input: SolverInput): Plan {
 
       // Anchor to the Calendar's own sequence. UBC has already decided which
       // year a requirement belongs to and its tables say so; deriving an order
-      // from prerequisite depth instead reconstructs that badly — it put
+      // from prerequisite depth instead reconstructs that badly - it put
       // CPSC 110 in fourth year, because nothing in a prerequisite graph says
       // an intro course belongs early.
       //
@@ -740,7 +740,7 @@ export function solve(input: SolverInput): Plan {
       // A choose-N of credit buckets has to re-count what it still owes as the
       // plan fills in. Science Breadth asks for 6 of 7 categories, and a CS
       // major covers Computer Science, Mathematics and Statistics through its
-      // own required courses — but `left` was fixed at 6 when the plan began,
+      // own required courses - but `left` was fixed at 6 when the plan began,
       // so those three never came off the tally and the rule reported itself
       // unplaceable no matter how many slots it was given.
       if (rule.kind === 'chooseN' && rule.of.every((b) => b.kind === 'credits')) {
@@ -759,12 +759,12 @@ export function solve(input: SolverInput): Plan {
       const specs = slotSpecs(rule, entry.left, input, covered, slotted);
       if (isSlotRule) {
         // Never fall through to concrete placement. A slot rule that produces
-        // no spec this term — every breadth category already slotted, say —
+        // no spec this term - every breadth category already slotted, say -
         // must simply wait, not start placing individual courses out of its
         // own course set. That is what put MATH 120 and MATH 398 in fourth
         // year long after the calculus requirement was met.
         // At most one slot per requirement per term. Without this the Arts
-        // rule empties its whole 12 credits into the first term with room —
+        // rule empties its whole 12 credits into the first term with room -
         // four Arts courses in one term of a CS degree, which nobody takes.
         // Spreading them is also more honest: they are a requirement to meet
         // over the degree, not a block to clear in one go.
@@ -780,15 +780,15 @@ export function solve(input: SolverInput): Plan {
           // A slot may shrink to close the term. Slots come in threes and the
           // gaps left by 3- and 4-credit courses are ones and twos, so a term
           // finishes a credit or two short and those credits queue up until
-          // they need a term of their own — five of them across four terms
+          // they need a term of their own - five of them across four terms
           // became a ninth term holding five credits. Shrinking is honest:
           // UBC has 1- and 2-credit courses, so "2 credits of electives" is a
           // real instruction. Only on the top-up, where the alternative is
           // leaving the credits stranded.
           // Only a plain credits rule may shrink. There `left` counts credits,
           // so a shortened slot leaves the remainder owed and it comes back in
-          // a later term. A chooseN counts BRANCHES — one slot closes a whole
-          // branch however small it was cut — so shrinking one silently
+          // a later term. A chooseN counts BRANCHES - one slot closes a whole
+          // branch however small it was cut - so shrinking one silently
           // under-delivers it. That is how a 6-credit Psychology content area
           // was satisfied by a 3-credit slot.
           if (spec.credits > free()) {
@@ -823,7 +823,7 @@ export function solve(input: SolverInput): Plan {
         // one course, never a ceiling it must fit inside. Courses come in 3
         // and 4 credit lumps and a share is rarely a multiple of either, so
         // treating it as a hard cap means a 4-credit course cannot start
-        // against a 6-credit share — one course a term, and a twelve-term
+        // against a 6-credit share - one course a term, and a twelve-term
         // plan. Placing while still under the share, and stopping once past
         // it, spreads the work without ever starving a term.
         //
@@ -832,7 +832,7 @@ export function solve(input: SolverInput): Plan {
         if (cost > free()) continue;
         if (bundle.some((c) => placedIds.has(c.id) || satisfied.has(c.id))) continue;
 
-        // Offered this term? Only enforced where we actually know — a
+        // Offered this term? Only enforced where we actually know - a
         // projected term has no section data, and treating "unknown" as
         // "not offered" would stop the plan at the catalogue's horizon.
         const offered = bundle.every((c) => {
@@ -843,12 +843,12 @@ export function solve(input: SolverInput): Plan {
         if (!offered) continue;
 
         // Prerequisites met by completions plus everything placed in an
-        // EARLIER term. Courses placed in this same term do not count — two
+        // EARLIER term. Courses placed in this same term do not count - two
         // courses in one term cannot satisfy each other.
         if (!bundle.every((c) => treeMet(input.prereqs.get(c.id), satisfied))) continue;
 
-        // Sibling branches of the same choice, as codes. A group branch —
-        // "CPSC 103 and 107" — is joined so it reads as the pair it is.
+        // Sibling branches of the same choice, as codes. A group branch -
+        // "CPSC 103 and 107" - is joined so it reads as the pair it is.
         const alternatives =
           rule.kind === 'chooseN'
             ? rule.of
@@ -863,7 +863,7 @@ export function solve(input: SolverInput): Plan {
             : [];
         for (const c of bundle) {
           // A program may price a variable-credit course above what the
-          // catalogue stores — CPEN 221 is "(4-5)" there and 5 in the table.
+          // catalogue stores - CPEN 221 is "(4-5)" there and 5 in the table.
           // The course still counts as taken; only its weight changes.
           const course =
             rule.kind === 'course' && rule.credits !== undefined && rule.code === c.code

@@ -12,7 +12,7 @@ import type { ReactNode } from 'react';
  *
  * The course link sits inside the <summary>, where a plain click would both
  * navigate AND toggle the card. preventDefault stops the toggle, so the push
- * has to be issued by hand — the same reason CourseHeaderActions intercepts
+ * has to be issued by hand - the same reason CourseHeaderActions intercepts
  * its clicks in the schedule panels.
  */
 export default function EnrolledCourseCard({

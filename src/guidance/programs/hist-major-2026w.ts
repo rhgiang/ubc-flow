@@ -19,13 +19,13 @@ const upper = (id: string, n: number, year: number): Rule => ({
 });
 
 /**
- * Major in History (B.A.), 2026W — 42 credits toward a 120-credit degree.
+ * Major in History (B.A.), 2026W - 42 credits toward a 120-credit degree.
  *
  * The least prescriptive Arts major transcribed so far: 12 credits at the 100
  * and 200 level with at least 6 at the 200 level, and 30 above it. Only one
  * course is actually named, the capstone, and even that is a choice of four.
  *
- * The pre-modern requirement is real but unplannable — the Calendar says the
+ * The pre-modern requirement is real but unplannable - the Calendar says the
  * list of courses with substantial pre-modern content lives with departmental
  * advisors and on the department website, not in the Calendar. It is reserved
  * as 6 credits of upper-level History and described in a note, so the credits

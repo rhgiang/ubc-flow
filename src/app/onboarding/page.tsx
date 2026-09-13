@@ -134,8 +134,8 @@ export default async function OnboardingPage() {
         where: { campus: "V" },
         orderBy: [{ year: "desc" }, { termNumber: "desc" }],
       }),
-      // Transfer credit is not an enrolment — it has no UBC term and often no
-      // UBC course — so it appears in neither of the lists above. Uploading an
+      // Transfer credit is not an enrolment - it has no UBC term and often no
+      // UBC course - so it appears in neither of the lists above. Uploading an
       // academic record stored ten rows and showed the student nothing.
       db.transferCredit.findMany({
         where: { userId },
@@ -161,8 +161,8 @@ export default async function OnboardingPage() {
    *
    * An import from before them recorded registration only, so every row reads
    * "registered" and degree progress counts none of it. That is the safe
-   * direction — the alternative is telling someone they passed a course they
-   * failed — but it leaves the guidance panel looking inert on an account
+   * direction - the alternative is telling someone they passed a course they
+   * failed - but it leaves the guidance panel looking inert on an account
    * that has clearly uploaded something, with no hint that a re-upload is
    * what fixes it.
    */
@@ -273,7 +273,7 @@ export default async function OnboardingPage() {
         <SignOutButton />
       </div>
 
-      {/* Everything below the title sits on one solid panel — this page is
+      {/* Everything below the title sits on one solid panel - this page is
           mostly small secondary text, which the sky behind it washes out. */}
       <div className="sky-panel mt-6 p-6 sm:p-8">
         {verified ? (
@@ -380,7 +380,7 @@ export default async function OnboardingPage() {
                           </span>
                         </>
                       ) : (
-                        // Unassigned credit — "PHYS_V 1ST" is first-year credit
+                        // Unassigned credit - "PHYS_V 1ST" is first-year credit
                         // in a subject rather than a course, so there is no
                         // title to show and nothing to link to.
                         <span className="font-medium text-foreground">
@@ -390,7 +390,7 @@ export default async function OnboardingPage() {
                       {/*
                         Falls back on zero as well as null. Workday left
                         APSC 160's Credits cell empty and it rendered as
-                        "0 credits" — but a transfer row exists because credit
+                        "0 credits" - but a transfer row exists because credit
                         was granted, so an empty cell is missing data rather
                         than a grant of nothing. Same reasoning as the guidance
                         total, which would otherwise disagree with this list.

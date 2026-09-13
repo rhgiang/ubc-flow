@@ -12,7 +12,7 @@ describe('aggregateDistributions', () => {
     const s = aggregateDistributions([]);
     expect(s.sectionCount).toBe(0);
     expect(s.studentCount).toBe(0);
-    // Never 0.0 — that would read as everyone failing (spec 7).
+    // Never 0.0 - that would read as everyone failing (spec 7).
     expect(s.average).toBeNull();
   });
 

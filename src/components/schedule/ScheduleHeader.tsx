@@ -95,7 +95,7 @@ export default function ScheduleHeader({
         <div className="flex flex-wrap items-center gap-2">
           {/*
             The counterpart to "Unsaved changes". Saving used to succeed in
-            total silence — the button simply went disabled — so the only
+            total silence - the button simply went disabled - so the only
             signal that it worked was the absence of an error, which is not a
             signal. No timer clears it: it is true whenever a save has landed
             and nothing has changed since, so editing anything removes it on
@@ -111,7 +111,7 @@ export default function ScheduleHeader({
             )
           )}
 
-          {/* Nothing changed means nothing to save — a live button there just
+          {/* Nothing changed means nothing to save - a live button there just
               fires a no-op round trip and makes "Unsaved changes" ambiguous. */}
           <button
             type="button"
@@ -131,7 +131,7 @@ export default function ScheduleHeader({
             {saving ? 'Saving…' : 'Save'}
           </button>
 
-          {/* Delete needs a persisted schedule — hidden, not disabled, in draft. */}
+          {/* Delete needs a persisted schedule - hidden, not disabled, in draft. */}
           {scheduleId && (
             <button
               type="button"

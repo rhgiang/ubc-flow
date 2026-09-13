@@ -16,7 +16,7 @@ afterEach(() => {
 describe('getCurrentAndNextTerm', () => {
   it('picks Summer as current and Winter T1 as next, in August', () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 7, 22)); // Aug 22 — month index 7
+    vi.setSystemTime(new Date(2026, 7, 22)); // Aug 22 - month index 7
     const { current, next } = getCurrentAndNextTerm(TERMS);
     expect(current?.id).toBe('s-26');
     expect(next?.id).toBe('w1-26');
@@ -31,7 +31,7 @@ describe('getCurrentAndNextTerm', () => {
   });
 
   it('picks Winter T2 as current using the PRIOR academic year, in February', () => {
-    // Feb 2026 falls in "2025-26 Winter Term 2" — academic year 2025, not 2026.
+    // Feb 2026 falls in "2025-26 Winter Term 2" - academic year 2025, not 2026.
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 1, 1));
     const { current, next } = getCurrentAndNextTerm(TERMS);
@@ -85,7 +85,7 @@ describe('compareTerms', () => {
 
   it('sorts across academic years, keeping Winter T2 with the year it started', () => {
     // 2025 Winter T2 runs Jan-Apr 2026 but is stored as year 2025, so it must
-    // still sort before Summer 2026 — a plain year comparison gets this wrong.
+    // still sort before Summer 2026 - a plain year comparison gets this wrong.
     expect([...TERMS].sort(compareTerms).map((t) => t.id)).toEqual([
       'w1-25',
       'w2-25',
@@ -98,7 +98,7 @@ describe('compareTerms', () => {
 
 describe('isPlannableTerm', () => {
   it('is true in January for the Winter Term 2 that started the PRIOR academic year', () => {
-    // "2026-27 Winter Term 2" runs Jan-Apr 2027 but is stored as year: 2026 —
+    // "2026-27 Winter Term 2" runs Jan-Apr 2027 but is stored as year: 2026 -
     // a plain year >= currentYear check wrongly excludes it from 1 Jan onward.
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2027-01-15'));

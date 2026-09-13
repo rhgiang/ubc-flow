@@ -30,7 +30,7 @@ describe('resolveTree', () => {
 
   it('leaves an Okanagan code unresolved but still present', async () => {
     // Stripping _O and resolving against Vancouver would attach a different
-    // course entirely — the code must display as text with no link.
+    // course entirely - the code must display as text with no link.
     const tree = await resolveTree(parseRequirements('One of ECON_V 101, MGMT_O 301.'));
     expect(tree!.type).toBe('or');
     if (tree!.type === 'or') {
@@ -64,7 +64,7 @@ describe('resolveTree', () => {
 });
 
 describe('buildRequirementTrees', () => {
-  // buildRequirementTrees() has no way to scope itself to specific courses —
+  // buildRequirementTrees() has no way to scope itself to specific courses -
   // it always processes the entire catalogue (~7337 rows), so this single
   // real run is used to prove both the result shape (a) and the idempotency
   // regression (b), rather than paying the ~2-minute cost twice.
@@ -73,7 +73,7 @@ describe('buildRequirementTrees', () => {
 
   beforeAll(async () => {
     // Pick a course that currently has no prereqText, then inject a fake
-    // "stale" tree onto it — simulating a course whose text used to parse to
+    // "stale" tree onto it - simulating a course whose text used to parse to
     // something but has since gone null. Before the fix this regression test
     // guards, buildRequirementTrees() filtered its query to courses with
     // non-null prereqText/coreqText, so a row like this would never be
@@ -86,7 +86,7 @@ describe('buildRequirementTrees', () => {
     staleCourseOriginalTree = course.prereqTree;
     await db.course.update({
       where: { id: staleCourseId },
-      data: { prereqTree: { type: 'note', text: 'STALE — must be cleared by the job' } },
+      data: { prereqTree: { type: 'note', text: 'STALE - must be cleared by the job' } },
     });
   });
 
@@ -105,7 +105,7 @@ describe('buildRequirementTrees', () => {
     async () => {
       const result = await buildRequirementTrees();
 
-      // (a) BuildResult shape/counts are sane — roughly the whole catalogue.
+      // (a) BuildResult shape/counts are sane - roughly the whole catalogue.
       expect(result.updated).toBeGreaterThan(7000);
       expect(result.resolved).toBeGreaterThan(0);
       expect(result.unresolved.length).toBeGreaterThanOrEqual(0);
@@ -113,7 +113,7 @@ describe('buildRequirementTrees', () => {
       // (b) Regression: a course with null prereqText must have prereqTree
       // written back to null, not left stale. This is the idempotency fix
       // from an earlier fix-loop round (removing the WHERE prereqText IS NOT
-      // NULL OR coreqText IS NOT NULL filter) — without it, this assertion
+      // NULL OR coreqText IS NOT NULL filter) - without it, this assertion
       // fails because the perturbed row above is never visited.
       const after = await db.course.findUniqueOrThrow({
         where: { id: staleCourseId },

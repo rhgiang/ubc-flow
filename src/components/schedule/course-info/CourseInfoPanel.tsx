@@ -56,7 +56,7 @@ export default function CourseInfoPanel({
                   href={detail.href}
                   className="hover:text-brand-accent hover:underline"
                   onNavigate={(e) => {
-                    // Same leave-guard as the nav links — this panel only
+                    // Same leave-guard as the nav links - this panel only
                     // exists inside the builder, where work can be unsaved.
                     if (!isDirty()) return;
                     e.preventDefault();

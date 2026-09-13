@@ -4,12 +4,12 @@ const SOURCE =
   'https://vancouver.calendar.ubc.ca/faculties-colleges-and-schools/faculty-arts/bachelor-arts/english';
 
 /**
- * The four Literature Course Groups, as the Calendar states them — by number
+ * The four Literature Course Groups, as the Calendar states them - by number
  * range rather than by list.
  *
  * Group D is the awkward one: it is two disjoint ranges, ENGL 332 to 339 and
  * ENGL 380 to 397, which a single course set cannot express. It is written as
- * a one-of over the two halves instead, which says the same thing — three
+ * a one-of over the two halves instead, which says the same thing - three
  * credits from either range.
  */
 const GROUPS = {
@@ -44,10 +44,10 @@ const groupD = (id: string, year: number): Rule => ({
 });
 
 /**
- * Major in English: Literature Emphasis (B.A.), 2026W — 42 credits toward a
+ * Major in English: Literature Emphasis (B.A.), 2026W - 42 credits toward a
  * 120-credit degree.
  *
- * The Department offers this major in three emphases — Literature, Language,
+ * The Department offers this major in three emphases - Literature, Language,
  * and Language and Literature. Literature is the one transcribed here, being
  * the largest; the other two are recorded as a note rather than as separate
  * programs.
@@ -140,7 +140,7 @@ export const englMajor2026W: Program = {
     },
     {
       // ENGL 222 satisfies this but does NOT count toward the 30 upper-level
-      // credits, so it is left out of the choice and put in a note — the same
+      // credits, so it is left out of the choice and put in a note - the same
       // treatment SOCI 370 gets for the same reason.
       id: 'engl.canadian',
       kind: 'chooseN',

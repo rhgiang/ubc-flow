@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * The "Add to calendar" menu for any ICS feed — a saved schedule or a term's
+ * The "Add to calendar" menu for any ICS feed - a saved schedule or a term's
  * imported enrollment. The caller mints its own token and hands back the feed
  * URL; everything downstream (webcal, Google, copy, download) is identical.
  */
@@ -13,7 +13,7 @@ export default function CalendarSubscribeMenu({
 }: {
   /** Called the first time the menu opens. Null when the token can't be minted. */
   getUrl: () => Promise<string | null>;
-  /** Which edge the panel hangs from — it is wider than the button either way. */
+  /** Which edge the panel hangs from - it is wider than the button either way. */
   align?: 'left' | 'right';
 }) {
   const [open, setOpen] = useState(false);
@@ -36,7 +36,7 @@ export default function CalendarSubscribeMenu({
     setOpen(next);
     // Minting the token is a DB write the first time, so it waits until a
     // student actually opens the menu.
-    // A rejected action used to leave every item silently inert — the menu
+    // A rejected action used to leave every item silently inert - the menu
     // opened, nothing was clickable, and nothing said why.
     if (next && url === null) {
       const minted = await getUrl().catch(() => null);
@@ -46,7 +46,7 @@ export default function CalendarSubscribeMenu({
   }
 
   // webcal:// makes iOS/macOS/Outlook offer a real subscription rather than a
-  // one-off download, so the feed keeps updating — the whole point of it.
+  // one-off download, so the feed keeps updating - the whole point of it.
   const webcalUrl = url?.replace(/^https?:\/\//, 'webcal://') ?? null;
   // Google Calendar ignores webcal:// and needs its own deep link.
   const googleUrl = webcalUrl

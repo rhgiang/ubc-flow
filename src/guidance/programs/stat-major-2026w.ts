@@ -9,7 +9,7 @@ const COMM =
  * Courses that count toward the thematic concentration (footnote 7).
  *
  * The Calendar prints a table of these by subject. It includes some courses
- * numbered below 300 — COMM 290 and 291, FRST 231, PSYC 218 — but the
+ * numbered below 300 - COMM 290 and 291, FRST 231, PSYC 218 - but the
  * requirement itself reads "Thematic concentration courses numbered 300 or
  * above", so those cannot satisfy it and are left out here rather than
  * offered to a student who would then find them rejected.
@@ -55,7 +55,7 @@ const course = (id: string, code: string): Rule => ({
 });
 
 /**
- * Statistics Major (BSc), 2026W — 120 credits.
+ * Statistics Major (BSc), 2026W - 120 credits.
  *
  * The Calendar prints the Honours variant on the same page at 132 credits;
  * this is the Major table only.

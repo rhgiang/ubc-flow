@@ -18,7 +18,7 @@ const Ctx = createContext<UnsavedChangesState | null>(null);
  * Lets a nav link ask an unrelated editor whether it is safe to leave.
  *
  * The builder buffers edits in memory (spec §3.1), and `beforeunload` only
- * covers tab close and reload — an App Router <Link> click is a client-side
+ * covers tab close and reload - an App Router <Link> click is a client-side
  * navigation the browser never hears about. Without this, one click on
  * "Explore" silently discards a whole imported timetable.
  *

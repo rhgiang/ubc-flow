@@ -6,7 +6,7 @@ import type { RawGradeRow } from '@/grades/parse-csv';
 // A dedicated fixture course, NOT a real one. This suite deletes every
 // GradeDistribution row for whatever course it targets, so pointing it at the
 // catalogue (findFirstOrThrow) meant each run destroyed a real course's grade
-// history — POLI 351 lost all 9 of its rows this way.
+// history - POLI 351 lost all 9 of its rows this way.
 const SUBJECT_CODE = 'ZZGRD';
 const SUBJECT_UBC_ID = 'ZZGRD-SUBJ';
 const COURSE_NUMBER = '999';
@@ -117,7 +117,7 @@ describe('ingestRows', () => {
     expect(await db.gradeDistribution.count({ where: { courseId } })).toBe(1);
   });
 
-  it('is idempotent — re-ingesting updates rather than duplicating', async () => {
+  it('is idempotent - re-ingesting updates rather than duplicating', async () => {
     await ingestRows([makeRow({ average: 80 })]);
     const found = await db.gradeDistribution.findMany({ where: { courseId } });
     expect(found).toHaveLength(1);
@@ -171,7 +171,7 @@ describe('ingestRows', () => {
       where: { courseId, sectionCode: '901' },
       include: { instructors: true },
     });
-    // One matched, one didn't — the distribution is still written once.
+    // One matched, one didn't - the distribution is still written once.
     expect(row.instructors).toHaveLength(1);
     expect(r.unmatchedProfessors).toContain('Nobody McNobody');
   });

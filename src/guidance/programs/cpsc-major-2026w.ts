@@ -7,7 +7,7 @@ const SOURCE =
  * Computer Science Major (BSc), 2026W.
  *
  * Transcribed from the Calendar page above. Only the CPSC-specific rules live
- * here — Arts credits, breadth, residency and the rest come from
+ * here - Arts credits, breadth, residency and the rest come from
  * science-faculty-core-2026w via `extends`.
  *
  * Course codes are written without the _V campus suffix the Calendar uses,
@@ -42,7 +42,7 @@ export const cpscMajor2026W: Program = {
           // "In addition to SCIE_V 113, B.Sc. students are required to receive
           // three credits of approved communications courses." The approved
           // list is not transcribed, so this resolves to no concrete course
-          // and the solver places it as a slot — which is the right shape
+          // and the solver places it as a slot - which is the right shape
           // regardless, since the student picks from a list.
           id: 'cpsc.comm-additional',
           kind: 'credits',
@@ -153,7 +153,7 @@ export const cpscMajor2026W: Program = {
           // may stand in for STAT 251. Confirmed against the page rather than
           // carried over from a summary, so this is stated rather than
           // inferred. The conditions attached to the substitution are not
-          // modelled — only the alternatives.
+          // modelled - only the alternatives.
           confidence: 'stated',
           of: [
             { id: 'cpsc.stat.251', kind: 'course', label: 'STAT 251', code: 'STAT 251' },
@@ -163,7 +163,7 @@ export const cpscMajor2026W: Program = {
         },
       ],
     },
-    // The Calendar's own elective rows — 10, 9 and 32 credits — kept as three
+    // The Calendar's own elective rows - 10, 9 and 32 credits - kept as three
     // rules rather than one 51-credit bucket. Splitting them by year is what
     // spreads electives across the degree: the Calendar has already decided
     // how many belong in each year, and following that beats any share or
@@ -236,7 +236,7 @@ export const cpscMajor2026W: Program = {
           // Capped at 499. The Calendar says "400 or higher" and the Faculty
           // core separately allows at most 6 credits numbered 500+, but a
           // roadmap that fills a student's fourth year with graduate seminars
-          // is wrong in practice — 500-level is an advised exception, not a
+          // is wrong in practice - 500-level is an advised exception, not a
           // default the solver should reach for.
           from: { kind: 'pattern', subjects: ['CPSC', 'AI'], levelMin: 400, levelMax: 499 },
           sourceUrl: SOURCE,

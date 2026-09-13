@@ -12,7 +12,7 @@ export default async function NewSchedulePage({
     termId?: string;
     import?: string;
     fromImport?: string;
-    /** Comma-separated course ids for Flow Builder to arrange — how a
+    /** Comma-separated course ids for Flow Builder to arrange - how a
      *  guidance plan hands a term over. Bogus ids simply match no sections. */
     courses?: string;
     flow?: string;

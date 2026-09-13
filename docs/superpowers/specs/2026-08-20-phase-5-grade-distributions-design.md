@@ -1,9 +1,9 @@
-# UBC Flow — Phase 5: Grade Distributions (Design)
+# UBC Flow - Phase 5: Grade Distributions (Design)
 
 **Date:** 2026-08-20
 **Status:** Approved for planning
 **Phase:** 5 of 6
-**Depends on:** [Phase 1: Foundation](2026-08-19-ubc-flow-foundation-design.md) · [Phase 2: Accounts + Workday Import](2026-08-19-phase-2-accounts-workday-import-design.md) · [Phase 3: Ratings and Reviews](2026-08-19-phase-3-ratings-design.md) · [Phase 4: Schedule Planner](2026-08-20-phase-4-schedule-planner-design.md) — all merged
+**Depends on:** [Phase 1: Foundation](2026-08-19-ubc-flow-foundation-design.md) · [Phase 2: Accounts + Workday Import](2026-08-19-phase-2-accounts-workday-import-design.md) · [Phase 3: Ratings and Reviews](2026-08-19-phase-3-ratings-design.md) · [Phase 4: Schedule Planner](2026-08-20-phase-4-schedule-planner-design.md) - all merged
 
 ## 1. Why this phase exists
 
@@ -13,11 +13,11 @@ structurally cannot offer this feature no matter how mature it gets.
 
 It is also the phase that makes Phase 3's professor pages meaningfully better. The
 source data carries a `Professor` name on every section, so grades attach to
-instructors, not just courses — which sits directly alongside the subjective
+instructors, not just courses - which sits directly alongside the subjective
 ratings already on those pages.
 
 **Done when:** a student can open a course and see its real historical grade
-distribution, and open a professor and see their historical average — with
+distribution, and open a professor and see their historical average - with
 suppressed data honestly labelled rather than hidden or guessed at.
 
 ---
@@ -29,7 +29,7 @@ fetched from `raw.githubusercontent.com`.
 
 **Verified live during design (2026-08-20)**, not assumed:
 
-- Repo last updated **June 2026** — actively maintained, not abandoned.
+- Repo last updated **June 2026** - actively maintained, not abandoned.
 - Path shape: `tableau-dashboard-v2/UBCV/<YEARSESSION>/UBCV-<YEARSESSION>-<SUBJECT>.csv`
 - Sessions available in the current format: `2021S` through `2025W` (10 directories).
 - A real fetch of `UBCV-2025W-CPSC.csv` returned 128 rows with this header:
@@ -48,7 +48,7 @@ the same repo and are **deliberately excluded**:
 - They use different columns and an `OVERALL` row convention that would each need
   their own parser.
 - The repo's own README documents that **grade data from 2017W was modified
-  between June and December 2019** — a known-corrupt window we would be knowingly
+  between June and December 2019** - a known-corrupt window we would be knowingly
   importing.
 
 One format means one parser and one set of quirks, for the five most recent years,
@@ -68,7 +68,7 @@ This repo is one volunteer's scrape of UBC's internal Tableau dashboard. It carr
 
 **Accepted risk:** if the upstream repo disappears or stops updating, our data
 freezes at whatever was last ingested. That is a stale-data problem, not a broken-
-site problem — already-ingested distributions keep working. Judged acceptable
+site problem - already-ingested distributions keep working. Judged acceptable
 versus reverse-engineering UBC's Tableau dashboard directly, which is hostile to
 scraping and would need its own Phase-1-scale spike.
 
@@ -89,16 +89,16 @@ duplicate every row**. Every other ingest in this codebase is an idempotent upse
 model GradeDistribution {
   id           String  @id @default(cuid())
   courseId     String
-  termId       String  @default("")   // NOT NULL — see below
+  termId       String  @default("")   // NOT NULL - see below
   sectionCode  String            // NEW
-  detail       String  @default("")   // NEW — see 4.2, NOT NULL
+  detail       String  @default("")   // NEW - see 4.2, NOT NULL
   average      Float?
   median       Float?
   high         Float?
   low          Float?
   count        Int?
   distribution Json?
-  instructors  GradeDistributionInstructor[]   // NEW — see 3.3
+  instructors  GradeDistributionInstructor[]   // NEW - see 3.3
 
   @@unique([courseId, termId, sectionCode, detail])
   @@index([courseId])
@@ -120,16 +120,16 @@ model GradeDistributionInstructor {
 **The single `instructorId` column from the Phase 1 stub is replaced by a join
 table.** The stub assumed one professor per section; the real data disproves that.
 Taking only the first listed name would silently attribute a co-taught course to
-one person — and the same pairing appears in *both orders* across rows, so
+one person - and the same pairing appears in *both orders* across rows, so
 ordering carries no meaning to lean on.
 
 **Section identity excludes the instructor entirely.** It is
 `(course, term, section, detail)`. A co-taught section is still *one* section with
-*one* distribution — the join table records who taught it without duplicating the
+*one* distribution - the join table records who taught it without duplicating the
 grades themselves, which would inflate every course average.
 
 **`termId` and `detail` are NOT NULL, using `""` as the "none" sentinel.** Prisma
-refuses a nullable field inside a compound-key `where` clause — the identical
+refuses a nullable field inside a compound-key `where` clause - the identical
 constraint Phase 3 hit with `InstructorReview.courseId`. Since both participate in
 the unique key above, nullable versions would make the ingest upsert fail to
 compile.
@@ -140,7 +140,7 @@ compile.
 
 The 11 grade buckets are stored as-is in the `Json?` column, **including nulls**.
 A suppressed bucket (§6) and a genuine zero are different facts and must stay
-distinguishable — collapsing nulls to zero would silently invent data.
+distinguishable - collapsing nulls to zero would silently invent data.
 
 ---
 
@@ -153,7 +153,7 @@ ICS generation): no I/O, no database, unit-tested against a committed fixture.
 ### 4.1 The `<50` column is a count, not a percentage
 
 The first grade bucket is literally named `<50` and holds **the number of students
-who scored below 50** — not a percentage and not a pass rate. In the real CPSC 2025W
+who scored below 50** - not a percentage and not a pass rate. In the real CPSC 2025W
 data one section shows `54` in this column against `221` reported students. Reading
 it as a percentage would produce confidently wrong failure rates.
 
@@ -174,25 +174,25 @@ never to `0`.
 
 The CSV's `Professor` column is a name string from a *different source* than the
 `Instructor` table, which Phase 1 built from UBC's course API. Names will not always
-agree — `"Firas Moosvi"` versus `"Moosvi, Firas"`, or a middle initial present in
+agree - `"Firas Moosvi"` versus `"Moosvi, Firas"`, or a middle initial present in
 one source only.
 
 **Rule: split, normalize, match exactly, report misses.**
 
-The `Professor` field may hold **several names separated by `; `** — verified in
+The `Professor` field may hold **several names separated by `; `** - verified in
 real data (`"Norman Hutchinson; Maryam Raiyat Aliabadi; Ibtissem Bouacheria"`), and
 it may also be **entirely blank** (5 of 127 CPSC 2025W rows). So:
 
 1. Split on `;` and trim.
 2. Run each name through Phase 1's existing `normalizeInstructorName`, which already
-   handles `Last, First` ordering and diacritics and produces a slug. Reuse it — do
+   handles `Last, First` ordering and diacritics and produces a slug. Reuse it - do
    not write a second name parser.
 3. Match each slug against `Instructor.slug`, creating one join-table row per match.
 
 A row whose professor is blank or matches nothing is **still ingested**, with no
 join rows: the course-level distribution is correct regardless of whether we can
 attribute it to a specific instructor. Unmatched names are counted and reported by
-the job, never silently dropped — the same posture as the Workday importer's
+the job, never silently dropped - the same posture as the Workday importer's
 unmatched courses in Phase 2.
 
 **Fuzzy matching is explicitly rejected.** Attaching one professor's grades to a
@@ -207,7 +207,7 @@ UBC nulls any grade bucket with fewer than 6 students, for privacy. Some section
 therefore have incomplete distributions.
 
 **Rule: show what exists, label the gap.** Where buckets are suppressed, display the
-average and median — which UBC still publishes — and state plainly that the detailed
+average and median - which UBC still publishes - and state plainly that the detailed
 breakdown is partially suppressed.
 
 Explicitly forbidden: inferring, interpolating, or curve-fitting suppressed buckets.
@@ -220,9 +220,9 @@ fabricated number presented with the same confidence as a real one.
 
 Two surfaces, both chosen deliberately:
 
-- **Course page** (`/course/[code]`) — the overall average across recent sections and
+- **Course page** (`/course/[code]`) - the overall average across recent sections and
   a bar chart of the aggregate distribution.
-- **Professor page** (`/professor/[slug]`) — that instructor's historical average
+- **Professor page** (`/professor/[slug]`) - that instructor's historical average
   across the courses they taught, next to the subjective ratings Phase 3 added.
 
 Both credit the data source (§2.2).
@@ -232,7 +232,7 @@ the reasoning that kept ICS generation dependency-free in Phase 4. No `recharts`
 `chart.js`.
 
 **Empty state:** a course or professor with no grade data shows an explicit "no grade
-data available" message — never a zero average, which would read as everyone failing.
+data available" message - never a zero average, which would read as everyone failing.
 This is the same rule Phase 3 applied to courses with no reviews.
 
 ---
@@ -242,14 +242,14 @@ This is the same rule Phase 3 applied to courses with no reviews.
 Continues the established monolith. No new services, no new dependencies.
 
 ```
-prisma/schema.prisma            — GradeDistribution gains sectionCode/detail + keys
-src/grades/parse-csv.ts         — PURE: CSV text -> RawGradeRow[]
-src/grades/aggregate.ts         — PURE: rows -> course/instructor summaries
-src/grades/jobs/ingest.ts       — fetch + match + idempotent upsert
-src/grades/jobs/ingest.run.ts   — CLI entrypoint (matches Phase 1's *.run.ts pattern)
-src/components/GradeChart.tsx   — CSS bar chart
-src/app/course/[code]/page.tsx  — MODIFY: distribution section
-src/app/professor/[slug]/page.tsx — MODIFY: average section
+prisma/schema.prisma            - GradeDistribution gains sectionCode/detail + keys
+src/grades/parse-csv.ts         - PURE: CSV text -> RawGradeRow[]
+src/grades/aggregate.ts         - PURE: rows -> course/instructor summaries
+src/grades/jobs/ingest.ts       - fetch + match + idempotent upsert
+src/grades/jobs/ingest.run.ts   - CLI entrypoint (matches Phase 1's *.run.ts pattern)
+src/components/GradeChart.tsx   - CSS bar chart
+src/app/course/[code]/page.tsx  - MODIFY: distribution section
+src/app/professor/[slug]/page.tsx - MODIFY: average section
 ```
 
 ---
@@ -262,7 +262,7 @@ src/app/professor/[slug]/page.tsx — MODIFY: average section
 | Suppressed data | Nulls stay null. Never inferred, interpolated, or rendered as zero. |
 | Attribution | Any page showing grade data credits the source repo. |
 | Instructor matching | Split on `;`, exact match on normalized slug only. Never fuzzy. Unmatched or blank professors still ingest, with no join rows, and are reported. |
-| Co-taught sections | One distribution row, N join rows. Never duplicate the distribution per instructor — that would inflate course averages. |
+| Co-taught sections | One distribution row, N join rows. Never duplicate the distribution per instructor - that would inflate course averages. |
 | `<50` semantics | Treated as a student count, never a percentage. |
 | Politeness | Fetches go through the existing rate-limited `fetchText`. |
 | Empty state | No data shows an explicit message, never `0.0`. |
@@ -272,9 +272,9 @@ src/app/professor/[slug]/page.tsx — MODIFY: average section
 ## 10. Out of scope
 
 - **Per-instructor breakdown on the course page** and **grades in the planner
-  sidebar** — both were considered and declined for this phase. Easy to add later;
+  sidebar** - both were considered and declined for this phase. Easy to add later;
   the data model supports both.
 - Older data formats (§2.1), including the known-corrupt 2017W window.
 - UBC Okanagan (`UBCO` exists in the source; the whole app is Vancouver-only for v1).
 - Any statistical inference over suppressed buckets (§6).
-- Prerequisite trees — Phase 6.
+- Prerequisite trees - Phase 6.

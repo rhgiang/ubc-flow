@@ -2,7 +2,7 @@ import { type CourseRef, type Rule, matches, obligations } from '@/guidance/rule
 
 /**
  * What a student has done with a course. Only `passed` and `transfer` count
- * toward a requirement — the distinction the Enrollment table cannot currently
+ * toward a requirement - the distinction the Enrollment table cannot currently
  * make, and the reason a failed course must stay on the roadmap.
  */
 export type Completion = {
@@ -35,7 +35,7 @@ export function earned(completions: Completion[]): CourseRef[] {
  *
  * `claimed` is mutated: a course spent on one rule is not available to another.
  * Degree requirements are largely disjoint, so first-come is adequate and
- * predictable. It is not optimal — a course eligible for two rules is assigned
+ * predictable. It is not optimal - a course eligible for two rules is assigned
  * to whichever is evaluated first, which can under-report progress in the rare
  * overlapping case. Recorded rather than solved, because the honest direction
  * to be wrong in is "you still owe this".
@@ -116,7 +116,7 @@ function evaluate(rule: Rule, held: CourseRef[], claimed: Set<string>): RuleProg
  * Progress across a program's whole rule set.
  *
  * Rules are evaluated in order, so a program file should list its most
- * specific requirements before its catch-all credit rules — otherwise an
+ * specific requirements before its catch-all credit rules - otherwise an
  * elective bucket can swallow a course a named requirement needed.
  */
 export function progress(completions: Completion[], rules: Rule[]): RuleProgress[] {

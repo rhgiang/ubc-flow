@@ -5,7 +5,7 @@ import ExcelJS from 'exceljs';
  * pure function over the returned grid, which is what keeps the parser
  * testable offline.
  *
- * Rows are padded to a uniform width so column indexes are stable — Workday
+ * Rows are padded to a uniform width so column indexes are stable - Workday
  * omits trailing empty cells, which would otherwise shift lookups per row.
  */
 export async function readWorkbookGrid(

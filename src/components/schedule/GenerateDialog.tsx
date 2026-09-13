@@ -22,7 +22,7 @@ import type { SectionHit } from '@/lib/search';
  * sections; nothing is saved until the student presses Save themselves, so
  * trying options is free.
  *
- * The search runs right here in the browser — the server only hands over the
+ * The search runs right here in the browser - the server only hands over the
  * section pool and instructor signals in one round trip.
  */
 
@@ -107,7 +107,7 @@ function fmt12(min: number): string {
  * don't fit ("after 12", "done by 4:15"). Looks and presses like every other
  * chip; the native input is invisible underneath and only supplies the
  * picker UI and the value. It reads as selected exactly when the stored
- * minutes match no preset — picking a preset clears it, picking a time
+ * minutes match no preset - picking a preset clears it, picking a time
  * deselects the presets, and no third piece of state has to agree with two
  * others.
  */
@@ -117,7 +117,7 @@ function CustomTime({
   isCustom,
   onChange,
 }: {
-  /** "After" / "By" — so the selected chip reads like its preset siblings. */
+  /** "After" / "By" - so the selected chip reads like its preset siblings. */
   prefix: string;
   value: number | null;
   isCustom: boolean;
@@ -169,7 +169,7 @@ export default function GenerateDialog({
 }: {
   open: boolean;
   termId: string;
-  /** The courses currently in the builder — what the generator builds from. */
+  /** The courses currently in the builder - what the generator builds from. */
   courseIds: string[];
   /** Replace the builder's chosen sections with a generated combination. */
   onApply: (sections: SectionHit[]) => void;
@@ -182,12 +182,12 @@ export default function GenerateDialog({
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [applied, setApplied] = useState<number | null>(null);
   // The fetched pool outlives one generation, so re-running with different
-  // answers is instant — no second round trip.
+  // answers is instant - no second round trip.
   const dataRef = useRef<GenerationData | null>(null);
 
   // The from-scratch intake: an empty builder means there is nothing to
   // arrange yet, so the dialog first asks who the student is and takes the
-  // term's courses from their degree's plan — the same list guidance's
+  // term's courses from their degree's plan - the same list guidance's
   // "Arrange this term" button carries.
   const [options, setOptions] = useState<Awaited<ReturnType<typeof intakeOptions>> | null>(null);
   const [programCode, setProgramCode] = useState('');
@@ -206,7 +206,7 @@ export default function GenerateDialog({
       free: boolean;
     }[]
   >([]);
-  // Electives the student picked to fill their slots — arranged alongside the
+  // Electives the student picked to fill their slots - arranged alongside the
   // plan's named courses, which is what turns a one-course term into a week.
   const [extraCourseIds, setExtraCourseIds] = useState<string[]>([]);
   // Which slot has its full list open, and what is typed in its filter. One
@@ -241,7 +241,7 @@ export default function GenerateDialog({
       if ('error' in plan) {
         setError(plan.error);
       } else if (plan.workTerm) {
-        setError("Under that co-op pattern this is a work term — there's nothing to schedule.");
+        setError("Under that co-op pattern this is a work term. There's nothing to schedule.");
       } else if (
         !plan.planned ||
         (plan.courses.length === 0 && plan.slots.every((s) => s.options.length === 0))
@@ -280,7 +280,7 @@ export default function GenerateDialog({
   useEffect(() => {
     if (open) {
       dialogRef.current?.focus();
-      // A reopened dialog starts at the questions with last time's answers —
+      // A reopened dialog starts at the questions with last time's answers -
       // the pool cache is keyed to term+courses below, not kept blindly.
       setResult(null);
       setApplied(null);
@@ -340,7 +340,7 @@ export default function GenerateDialog({
           <p className="text-sm font-semibold text-foreground">Flow Builder</p>
           <p className="mt-0.5 text-xs text-text-tertiary">
             {result
-              ? 'Pick an option to load it into the builder — nothing is saved until you press Save.'
+              ? 'Pick an option to load it into the builder. Nothing is saved until you press Save.'
               : needsIntake
                 ? "Starting from scratch? Say what you're studying and Flow Builder takes this term's courses from your degree's suggested plan."
                 : `Answer a few questions and every conflict-free timetable for your ${
@@ -432,7 +432,7 @@ export default function GenerateDialog({
                   <p className="text-xs font-medium text-text-secondary">
                     {plannedCourses.length > 0
                       ? 'Arranging from your degree plan:'
-                      : 'Your plan names no fixed courses this term — it is all your choice:'}
+                      : 'Your plan names no fixed courses this term. It is all your choice:'}
                   </p>
                   {plannedCourses.length > 0 && (
                     <p className="mt-1 text-sm text-foreground">
@@ -449,7 +449,7 @@ export default function GenerateDialog({
                     <div className="mt-2 border-t border-border pt-2">
                       <p className="text-xs text-text-secondary">
                         The rest of this term is yours to choose. Pick any of these and
-                        they&apos;ll be arranged too — all offered this term, with the
+                        they&apos;ll be arranged too, all offered this term, with the
                         prerequisites you&apos;ll have by then.
                       </p>
                       <div className="mt-1.5 space-y-2">
@@ -460,7 +460,7 @@ export default function GenerateDialog({
                             </p>
                             {s.options.length === 0 ? (
                               <p className="mt-0.5 text-xs text-text-tertiary opacity-70">
-                                Nothing offered this term fits this one — add it from Find
+                                Nothing offered this term fits this one. Add it from Find
                                 Courses.
                               </p>
                             ) : (

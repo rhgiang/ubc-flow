@@ -1,10 +1,10 @@
-# Schedule Builder — Phase 1: Unified Shell Implementation Plan
+# Schedule Builder - Phase 1: Unified Shell Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Merge the guest builder and the saved-schedule editor into one full-bleed, Workday-shaped builder with a tabbed left panel and search that queries as you type.
 
-**Architecture:** `ScheduleBuilder` becomes the single client component behind both `/schedule/new` (draft mode) and `/schedule/[id]` (saved mode). Both modes hold the working section set in client state and commit only on an explicit Save — draft creates a schedule, saved diffs and replaces. The duplicate server-action editor in `src/app/schedule/[id]/page.tsx` is deleted; that route shrinks to a data loader.
+**Architecture:** `ScheduleBuilder` becomes the single client component behind both `/schedule/new` (draft mode) and `/schedule/[id]` (saved mode). Both modes hold the working section set in client state and commit only on an explicit Save - draft creates a schedule, saved diffs and replaces. The duplicate server-action editor in `src/app/schedule/[id]/page.tsx` is deleted; that route shrinks to a data loader.
 
 **Tech Stack:** Next.js 16 (App Router, Turbopack), React client components, Prisma 7 + PostgreSQL, Tailwind v4 with CSS-variable theme tokens, Vitest.
 
@@ -12,13 +12,13 @@
 
 ## Global Constraints
 
-- **Theme tokens only.** Use `foreground`, `text-secondary`, `text-tertiary`, `surface`, `surface-muted`, `background`, `border`, `border-hairline`, `brand`, `brand-hover`, `brand-foreground`, and the `rounded-pill` / `rounded-card` / `rounded-input` radii. Never hardcode `slate-*`, `blue-*`, or hex colours — the app is light/dark themed via `data-theme`.
+- **Theme tokens only.** Use `foreground`, `text-secondary`, `text-tertiary`, `surface`, `surface-muted`, `background`, `border`, `border-hairline`, `brand`, `brand-hover`, `brand-foreground`, and the `rounded-pill` / `rounded-card` / `rounded-input` radii. Never hardcode `slate-*`, `blue-*`, or hex colours - the app is light/dark themed via `data-theme`.
 - **Save is enabled only when the schedule has ≥1 section and a non-empty name** (spec §3.1).
-- **Delete Schedule and Add-to-calendar are hidden in draft mode** — both need a persisted `scheduleId` (spec §4.1).
+- **Delete Schedule and Add-to-calendar are hidden in draft mode** - both need a persisted `scheduleId` (spec §4.1).
 - **Grading Basis is never displayed.** We have no such field; Workday shows it, we omit it rather than fake it (spec §5.1).
 - Left panel is `340px` fixed on `lg` and up; it stacks above the calendar below that (spec §4).
 - Search is debounced at **200 ms** with request cancellation, matching `src/components/SearchBar.tsx` (spec §5.2).
-- Conflicts stay **advisory** — rendered and flagged, never blocked or hidden.
+- Conflicts stay **advisory** - rendered and flagged, never blocked or hidden.
 - `ScheduleSection.sectionId` is a **raw FK with no Prisma relation** to `Section`. Fetching section detail is always a second query keyed on collected ids, never a nested `include`.
 - Existing action convention: `xxxFor(userId, …)` holds the logic and is what tests call; `xxx(…)` is the thin session wrapper that resolves `currentUserId()` and calls `revalidatePath`.
 - Commit after every task. Run `npx tsc --noEmit` before each commit.
@@ -34,7 +34,7 @@
 - Modify: `tests/schedule-actions.test.ts` (append a describe block)
 
 **Interfaces:**
-- Consumes: `owns(userId, scheduleId)`, `currentUserId()`, `Result` — all already private/local to `src/app/actions/schedule.ts`.
+- Consumes: `owns(userId, scheduleId)`, `currentUserId()`, `Result` - all already private/local to `src/app/actions/schedule.ts`.
 - Produces:
   - `diffSections(current: string[], next: string[]): { added: string[]; removed: string[] }`
   - `replaceScheduleSectionsFor(userId: string, scheduleId: string, name: string, sectionIds: string[]): Promise<Result>`
@@ -74,7 +74,7 @@ describe('diffSections', () => {
 - [ ] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/schedule-buffer.test.ts`
-Expected: FAIL — cannot resolve `@/schedule/buffer`.
+Expected: FAIL - cannot resolve `@/schedule/buffer`.
 
 - [ ] **Step 3: Implement the diff**
 
@@ -184,7 +184,7 @@ Add `replaceScheduleSectionsFor` to the existing `import { … } from '@/app/act
 - [ ] **Step 6: Run it to make sure it fails**
 
 Run: `npx vitest run tests/schedule-actions.test.ts`
-Expected: FAIL — `replaceScheduleSectionsFor` is not exported.
+Expected: FAIL - `replaceScheduleSectionsFor` is not exported.
 
 - [ ] **Step 7: Implement the action**
 
@@ -279,7 +279,7 @@ git commit -m "feat: add buffered section-diff commit path for the schedule buil
 - Create: `tests/schedule-group.test.ts`
 
 **Interfaces:**
-- Consumes: `SectionHit` from `@/lib/search` — `{ sectionId, code, title, sectionCode, activity, meetings, meetingTimes }`.
+- Consumes: `SectionHit` from `@/lib/search` - `{ sectionId, code, title, sectionCode, activity, meetings, meetingTimes }`.
 - Produces: `groupSectionsByCourse(hits: SectionHit[]): CourseGroup[]` where `CourseGroup = { code: string; title: string; sections: SectionHit[] }`.
 
 - [ ] **Step 1: Write the failing test**
@@ -330,7 +330,7 @@ describe('groupSectionsByCourse', () => {
 - [ ] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/schedule-group.test.ts`
-Expected: FAIL — cannot resolve `@/schedule/group`.
+Expected: FAIL - cannot resolve `@/schedule/group`.
 
 - [ ] **Step 3: Implement the grouping**
 
@@ -346,7 +346,7 @@ export type CourseGroup = { code: string; title: string; sections: SectionHit[] 
  * first appear in.
  *
  * searchSectionsForTerm returns one row per SECTION, so an ungrouped list
- * repeats "CPSC 110" once per lecture, lab and tutorial — which is exactly
+ * repeats "CPSC 110" once per lecture, lab and tutorial - which is exactly
  * what the old flat sidebar did.
  */
 export function groupSectionsByCourse(hits: SectionHit[]): CourseGroup[] {
@@ -444,7 +444,7 @@ export default function FindCoursesPanel({
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search by code or title — ex: CPSC 110"
+        placeholder="Search by code or title - ex: CPSC 110"
         aria-label="Search courses"
         className="w-full rounded-input border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-text-tertiary focus:border-foreground focus:outline-none"
       />
@@ -723,7 +723,7 @@ export default function CalendarSubscribeMenu({ scheduleId }: { scheduleId: stri
   }
 
   // webcal:// makes iOS/macOS/Outlook offer a real subscription rather than a
-  // one-off download, so the feed keeps updating — the whole point of it.
+  // one-off download, so the feed keeps updating - the whole point of it.
   const webcalUrl = url?.replace(/^https?:\/\//, 'webcal://') ?? null;
   // Google Calendar ignores webcal:// and needs its own deep link.
   const googleUrl = webcalUrl
@@ -774,7 +774,7 @@ export default function CalendarSubscribeMenu({ scheduleId }: { scheduleId: stri
             {copied ? 'Copied' : 'Copy subscription URL'}
           </button>
           <p className="border-t border-border px-3 py-2 text-[11px] text-text-tertiary">
-            These subscribe to a live feed — your calendar keeps updating as you edit.
+            These subscribe to a live feed - your calendar keeps updating as you edit.
           </p>
         </div>
       )}
@@ -903,7 +903,7 @@ export default function ScheduleHeader({
             {saving ? 'Saving…' : 'Save'}
           </button>
 
-          {/* Delete needs a persisted schedule — hidden, not disabled, in draft. */}
+          {/* Delete needs a persisted schedule - hidden, not disabled, in draft. */}
           {scheduleId && (
             <button
               type="button"
@@ -1161,7 +1161,7 @@ export default function ScheduleBuilder({
 - [ ] **Step 2: Typecheck**
 
 Run: `npx tsc --noEmit`
-Expected: errors ONLY in `src/app/schedule/new/page.tsx` and `src/app/schedule/[id]/page.tsx`, which Task 8 rewrites — they still pass the old props. Any error in another file means something above is wrong.
+Expected: errors ONLY in `src/app/schedule/new/page.tsx` and `src/app/schedule/[id]/page.tsx`, which Task 8 rewrites - they still pass the old props. Any error in another file means something above is wrong.
 
 - [ ] **Step 3: Commit**
 
@@ -1176,12 +1176,12 @@ git commit -m "feat: unify the schedule builder into one buffered full-page shel
 
 **Files:**
 - Modify: `src/app/schedule/new/page.tsx` (full rewrite)
-- Modify: `src/app/schedule/[id]/page.tsx` (full rewrite — 268 lines down to a loader)
+- Modify: `src/app/schedule/[id]/page.tsx` (full rewrite - 268 lines down to a loader)
 - Modify: `src/components/CreateScheduleModal.tsx:21` (button label)
 
 **Interfaces:**
 - Consumes: `ScheduleBuilder` (Task 7).
-- Produces: nothing new — both routes render the builder.
+- Produces: nothing new - both routes render the builder.
 
 - [ ] **Step 1: Rewrite the new-schedule route**
 
@@ -1218,7 +1218,7 @@ export default async function NewSchedulePage({
 
 - [ ] **Step 2: Rewrite the saved-schedule route as a loader**
 
-Replace the entire contents of `src/app/schedule/[id]/page.tsx`. Everything the old page did inline — rename form, add/remove forms, conflict banner, weekly grid, calendar-subscribe section — now lives in the builder.
+Replace the entire contents of `src/app/schedule/[id]/page.tsx`. Everything the old page did inline - rename form, add/remove forms, conflict banner, weekly grid, calendar-subscribe section - now lives in the builder.
 
 ```tsx
 import { redirect, notFound } from 'next/navigation';
@@ -1282,7 +1282,7 @@ export default async function SchedulePlannerPage({
     orderBy: [{ year: 'desc' }, { termNumber: 'desc' }],
   });
   // An existing schedule keeps its own term in the list even if it has since
-  // passed — otherwise the select would silently switch it to another term.
+  // passed - otherwise the select would silently switch it to another term.
   const plannable = terms.filter(isPlannableTerm);
   const termOptions = plannable.some((t) => t.id === schedule.termId)
     ? plannable
@@ -1302,7 +1302,7 @@ export default async function SchedulePlannerPage({
 
 - [ ] **Step 3: Rename the primary button**
 
-In `src/components/CreateScheduleModal.tsx`, change the trigger button's label on line 21 from `Create Saved Schedule` to `Build Schedule`. Leave the modal's own `<h2>` heading and its Create button unchanged — only the page-level trigger is renamed in this phase.
+In `src/components/CreateScheduleModal.tsx`, change the trigger button's label on line 21 from `Create Saved Schedule` to `Build Schedule`. Leave the modal's own `<h2>` heading and its Create button unchanged - only the page-level trigger is renamed in this phase.
 
 - [ ] **Step 4: Typecheck**
 
@@ -1312,7 +1312,7 @@ Expected: no output.
 - [ ] **Step 5: Run the full test suite**
 
 Run: `npx vitest run`
-Expected: PASS. Note `tests/smoke.test.ts` may reference the old editor markup — if it fails, update the assertion to match the new builder rather than reverting the route.
+Expected: PASS. Note `tests/smoke.test.ts` may reference the old editor markup - if it fails, update the assertion to match the new builder rather than reverting the route.
 
 - [ ] **Step 6: Commit**
 
@@ -1338,7 +1338,7 @@ npm run dev
 
 Wait for it: `timeout 30 bash -c 'until curl -sf http://localhost:3000 >/dev/null; do sleep 1; done'`
 
-If port 3000 reports "Another next dev server is already running", use the existing one — do not start a second.
+If port 3000 reports "Another next dev server is already running", use the existing one - do not start a second.
 
 - [ ] **Step 2: Write the smoke script**
 
@@ -1363,7 +1363,7 @@ page.on('pageerror', (e) => errors.push(String(e)));
 
 try {
   // Pick a term that genuinely has sections, and a course code known to exist
-  // in it — hardcoding "CPSC 110" would fail whenever the default term is a
+  // in it - hardcoding "CPSC 110" would fail whenever the default term is a
   // summer session that doesn't offer it.
   const section = await prisma.section.findFirstOrThrow({
     include: { course: { include: { subject: true } } },
@@ -1429,7 +1429,7 @@ Expected: `SEARCH-AS-YOU-TYPE OK`, `SAVED MODE OK`, `PERSISTED OK`, and `CONSOLE
 - [ ] **Step 4: Look at both screenshots**
 
 Open `builder-draft.png` and `builder-saved.png` and confirm, by eye:
-1. The builder fills the full page width — no centred narrow column.
+1. The builder fills the full page width - no centred narrow column.
 2. The left panel is a fixed-width column with Saved Courses / Find Courses tabs.
 3. `builder-draft.png` shows **no** Delete Schedule and **no** Add to calendar.
 4. `builder-saved.png` shows both, with Add to calendar sitting *below* Save/Delete.

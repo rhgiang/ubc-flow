@@ -22,7 +22,7 @@ describe('hashStudentNumber', () => {
     expect(hashStudentNumber('12345678')).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('is keyed — a different secret yields a different digest', () => {
+  it('is keyed - a different secret yields a different digest', () => {
     const a = hashStudentNumber('12345678');
     const prev = process.env.SERVER_SECRET;
     process.env.SERVER_SECRET = 'a-different-secret';

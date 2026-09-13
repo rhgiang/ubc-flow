@@ -38,7 +38,7 @@ export function useCourseDetail(
     setDetail(null);
     (async () => {
       const result = await getCourseDetail(courseId, termId);
-      // Cache regardless of cancellation — a response is still valid data even
+      // Cache regardless of cancellation - a response is still valid data even
       // if this component no longer wants to render it.
       if (result) cache.set(key, result);
       // A slower earlier request must never overwrite a newer one.

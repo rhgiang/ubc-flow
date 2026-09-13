@@ -278,7 +278,7 @@ describe('replaceScheduleSectionsFor staleness', () => {
     const id = created.scheduleId;
 
     await replaceScheduleSectionsFor(ownerId, id, 'Stale C', [sectionId, second.id], []);
-    // Same set, reversed order — must be accepted.
+    // Same set, reversed order - must be accepted.
     const result = await replaceScheduleSectionsFor(ownerId, id, 'Stale C', [sectionId], [second.id, sectionId]);
     expect(result).toEqual({ ok: true });
   });
@@ -299,7 +299,7 @@ describe('replaceScheduleSectionsFor staleness', () => {
 
 /**
  * The room a student sees after importing their Workday export comes from that
- * file and nowhere else — the catalogue has no location for any section. Before
+ * file and nowhere else - the catalogue has no location for any section. Before
  * these columns existed, saving kept only section ids, so the timetable came
  * back with nowhere to go. See src/schedule/locations.ts.
  */

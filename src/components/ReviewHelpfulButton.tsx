@@ -6,7 +6,7 @@ import { useAuthOverlay } from '@/components/AuthOverlayContext';
 import { useViewer } from '@/components/ViewerContext';
 
 /**
- * "Helpful" on someone else's review — UW Flow's upvote, under a name that
+ * "Helpful" on someone else's review - UW Flow's upvote, under a name that
  * says what it means. Anonymous in the same sense the reviews are: the server
  * records who voted so it can be taken back and counted once, and only the
  * total is ever rendered.

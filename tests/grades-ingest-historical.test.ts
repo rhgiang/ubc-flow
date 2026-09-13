@@ -15,7 +15,7 @@ afterAll(async () => {
 beforeEach(() => vi.restoreAllMocks());
 
 // Real UBCGrades API responses, captured live during spec research (plan
-// doc) and re-confirmed live during this fix pass — see
+// doc) and re-confirmed live during this fix pass - see
 // docs/superpowers/plans/2026-08-22-course-professor-pages.md.
 const CPSC_110_RESPONSE = {
   average: 74.32815216682194,
@@ -97,7 +97,7 @@ describe('historicalGradesDistributionsUrl', () => {
 
 describe('averageFromBuckets', () => {
   it('uses the granular sub-50 buckets and ignores the redundant "<50%" rollup when both are present', () => {
-    // Real CPSC 110 W2009 entry — "<50%": 8 exactly equals the sum of the
+    // Real CPSC 110 W2009 entry - "<50%": 8 exactly equals the sum of the
     // five granular sub-50 buckets (1+1+1+2+3), confirming it's a redundant
     // rollup here, not additional students.
     const grades = {
@@ -122,7 +122,7 @@ describe('averageFromBuckets', () => {
   });
 
   it('falls back to the "<50%" rollup when the granular sub-50 buckets are all null', () => {
-    // Real CPSC 110 W2014 entry — UBC stopped reporting the granular
+    // Real CPSC 110 W2014 entry - UBC stopped reporting the granular
     // sub-50 breakdown; only "<50%" has a real count.
     const grades = {
       '0-9%': null,

@@ -1,8 +1,8 @@
-# Schedule Builder — Phase 2: Calendar Implementation Plan
+# Schedule Builder - Phase 2: Calendar Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the plain `WeekGrid` with a Notion-Calendar-styled `ScheduleCalendar` — hairline grid, soft per-course pastel blocks with a saturated accent bar, a current-time indicator, an untimed/async strip, and hover-to-remove.
+**Goal:** Replace the plain `WeekGrid` with a Notion-Calendar-styled `ScheduleCalendar` - hairline grid, soft per-course pastel blocks with a saturated accent bar, a current-time indicator, an untimed/async strip, and hover-to-remove.
 
 **Architecture:** One new client component, `ScheduleCalendar`, is a drop-in replacement for `WeekGrid` keeping the same entry shape. Per-course colour is assigned by a pure deterministic hash into an 8-slot palette defined as CSS custom properties, so it survives reloads and matches in light and dark. Overlapping classes are split into side-by-side columns by a second pure helper, the way Google Calendar and Notion Calendar lay out colliding events. Both existing `WeekGrid` consumers migrate and `WeekGrid` is deleted.
 
@@ -15,16 +15,16 @@
 ## Global Constraints
 
 - **Theme tokens only.** `foreground`, `text-secondary`, `text-tertiary`, `surface`, `surface-muted`, `background`, `border`, `border-hairline`, `brand`, `brand-hover`, `brand-foreground`, and the `rounded-pill` / `rounded-card` / `rounded-input` radii. This phase ADDS course-colour and danger tokens (Task 1). After this phase there must be **zero** raw `slate-*` / `blue-*` / `red-*` utility classes anywhere in the schedule builder or calendar.
-- **Course colours are applied via inline `style` referencing CSS variables**, never via generated class names — the colour is computed at runtime and Tailwind cannot generate dynamic classes.
-- **Conflicts stay advisory.** A conflicting block is still rendered and still flagged — never hidden, never blocked. `findConflicts` in `src/schedule/conflicts.ts` is unchanged.
+- **Course colours are applied via inline `style` referencing CSS variables**, never via generated class names - the colour is computed at runtime and Tailwind cannot generate dynamic classes.
+- **Conflicts stay advisory.** A conflicting block is still rendered and still flagged - never hidden, never blocked. `findConflicts` in `src/schedule/conflicts.ts` is unchanged.
 - **Untimed meetings are never dropped.** A meeting with no day/time must remain visible somewhere on screen.
-- **Click-to-open-details is NOT in this phase.** Spec §6 says a block click opens the course overlay, but that overlay is Phase 3. Do not add an `onClick`/`onSelect` prop for it — Phase 3 adds it. Hover-to-remove IS in this phase.
+- **Click-to-open-details is NOT in this phase.** Spec §6 says a block click opens the course overlay, but that overlay is Phase 3. Do not add an `onClick`/`onSelect` prop for it - Phase 3 adds it. Hover-to-remove IS in this phase.
 - `ScheduleCalendar` must work with `onRemove` omitted (the read-only "View Calendar" tab on `/schedule` has no remove affordance).
 - Commit after every task. Run `npx tsc --noEmit` and `npx vitest run` before each commit; both must be clean (baseline: 294 tests passing).
 
 ---
 
-### Task 1: Pure calendar helpers — colours and overlap layout
+### Task 1: Pure calendar helpers - colours and overlap layout
 
 **Files:**
 - Modify: `src/app/globals.css`
@@ -36,7 +36,7 @@
 **Interfaces:**
 - Produces:
   - `COURSE_COLOR_COUNT: number` (= 8)
-  - `courseColorIndex(code: string): number` — a stable 1-based index in `1..8`
+  - `courseColorIndex(code: string): number` - a stable 1-based index in `1..8`
   - `layoutDayColumns<T>(entries: T[], getRange: (e: T) => { start: number; end: number }): Map<T, { column: number; columns: number }>`
 - CSS variables `--course-1-bg` … `--course-8-bg`, `--course-1-accent` … `--course-8-accent`, plus `--danger`, `--danger-surface`, `--danger-border`, defined for both themes.
 
@@ -58,7 +58,7 @@ describe('courseColorIndex', () => {
     }
   });
 
-  it('is deterministic — the same code always gets the same slot', () => {
+  it('is deterministic - the same code always gets the same slot', () => {
     expect(courseColorIndex('CPSC 110')).toBe(courseColorIndex('CPSC 110'));
     expect(courseColorIndex('MATH 200')).toBe(courseColorIndex('MATH 200'));
   });
@@ -66,7 +66,7 @@ describe('courseColorIndex', () => {
   it('spreads a realistic course load across several slots', () => {
     const load = ['CPSC 110', 'MATH 200', 'BIOL 121', 'DSCI 100', 'STAT 201'];
     const slots = new Set(load.map(courseColorIndex));
-    // Not a uniqueness guarantee (collisions are legal in 8 slots) — just proof
+    // Not a uniqueness guarantee (collisions are legal in 8 slots) - just proof
     // it is not degenerate and mapping everything to one colour.
     expect(slots.size).toBeGreaterThan(1);
   });
@@ -80,7 +80,7 @@ describe('courseColorIndex', () => {
 - [ ] **Step 2: Run it to make sure it fails**
 
 Run: `npx vitest run tests/schedule-colors.test.ts`
-Expected: FAIL — cannot resolve `@/schedule/colors`.
+Expected: FAIL - cannot resolve `@/schedule/colors`.
 
 - [ ] **Step 3: Implement the assignment**
 
@@ -97,7 +97,7 @@ export const COURSE_COLOR_COUNT = 8;
  * Deterministic so a course keeps its colour across reloads and matches
  * between the calendar and the left panel. Same shape as the placeholder-avatar
  * hash in ReviewCard, but with multiplier 33 rather than 31: at 31, two courses
- * in one subject collide often enough to matter — "CPSC 110" and "CPSC 121"
+ * in one subject collide often enough to matter - "CPSC 110" and "CPSC 121"
  * both land in slot 6, which is exactly the pair a student sees side by side.
  */
 export function courseColorIndex(code: string): number {
@@ -112,11 +112,11 @@ export function courseColorIndex(code: string): number {
 Run: `npx vitest run tests/schedule-colors.test.ts`
 Expected: PASS (4 tests).
 
-If the "does not collide for two courses in the same subject" case fails, do NOT weaken the test and do NOT special-case those two strings — change the multiplier (31 → 33 or 37) until real inputs separate, then re-run.
+If the "does not collide for two courses in the same subject" case fails, do NOT weaken the test and do NOT special-case those two strings - change the multiplier (31 → 33 or 37) until real inputs separate, then re-run.
 
 - [ ] **Step 4b: Write the failing test for overlap layout**
 
-Google Calendar and Notion Calendar both split overlapping events into side-by-side columns rather than stacking them. Without this, two conflicting classes render on top of each other and the lower one is invisible — the exact case a schedule builder most needs to show.
+Google Calendar and Notion Calendar both split overlapping events into side-by-side columns rather than stacking them. Without this, two conflicting classes render on top of each other and the lower one is invisible - the exact case a schedule builder most needs to show.
 
 Create `tests/schedule-layout.test.ts`:
 
@@ -192,7 +192,7 @@ Create `src/schedule/layout.ts`:
  * three overlapping ones.
  *
  * Back-to-back entries (one ends exactly when the next starts) do NOT overlap
- * — same rule findConflicts uses.
+ * - same rule findConflicts uses.
  */
 export function layoutDayColumns<T>(
   entries: T[],
@@ -250,7 +250,7 @@ Run: `npx vitest run tests/schedule-layout.test.ts` → PASS (6 tests).
 In `src/app/globals.css`, add to the **light** `:root` block (after the existing `--brand-foreground` line, before the radius block):
 
 ```css
-  /* Course-block palette for the schedule calendar — muted pastels with a
+  /* Course-block palette for the schedule calendar - muted pastels with a
      saturated accent bar, assigned per course by src/schedule/colors.ts.
      Applied via inline style (var(--course-N-bg)), never generated classes:
      the slot is computed at runtime and Tailwind cannot emit dynamic classes. */
@@ -335,7 +335,7 @@ git commit -m "feat: add course-colour and danger theme tokens"
   - `export type CalendarEntry = ScheduleEntry & { id: string; location?: string | null; courseCode?: string | null }`
   - default export `ScheduleCalendar`, props `{ entries: CalendarEntry[]; onRemove?: (sectionId: string) => void }`
 
-`CalendarEntry` is `WeekGridEntry` plus an optional `courseCode`. Colour is keyed on `courseCode` when present, else on `label` — so the read-only `/schedule` tab, which has no separate course code, still colours consistently.
+`CalendarEntry` is `WeekGridEntry` plus an optional `courseCode`. Colour is keyed on `courseCode` when present, else on `label` - so the read-only `/schedule` tab, which has no separate course code, still colours consistently.
 
 - [ ] **Step 1: Create the component**
 
@@ -389,7 +389,7 @@ function nowMinutesOnWeekday(): number | null {
  * current-time indicator.
  *
  * Rows always span at least 7 AM-6 PM, expanding beyond that only when a real
- * meeting falls outside it — never clipping data to fit. A conflicting block
+ * meeting falls outside it - never clipping data to fit. A conflicting block
  * is still rendered, flagged with a danger ring, never hidden: conflicts are
  * advisory (UBC's meeting data can't always prove one is real).
  */
@@ -402,7 +402,7 @@ export default function ScheduleCalendar({
 }) {
   // Both the indicator position AND which column counts as "today" are
   // resolved only after mount. The server's clock and timezone need not match
-  // the viewer's, so deriving either during render would hydrate-mismatch —
+  // the viewer's, so deriving either during render would hydrate-mismatch -
   // including the day-header highlight, which is easy to overlook.
   const [now, setNow] = useState<{ minutes: number | null; dayIndex: number } | null>(null);
   useEffect(() => {
@@ -530,7 +530,7 @@ export default function ScheduleCalendar({
                 {(() => {
                   const dayEntries = timed.filter((e) => e.day === day);
                   // Side-by-side columns for overlapping classes, as Google
-                  // Calendar and Notion Calendar do — without this the lower
+                  // Calendar and Notion Calendar do - without this the lower
                   // block is completely hidden behind the upper one.
                   const columns = layoutDayColumns(dayEntries, (e) => ({
                     start: toMinutes(e.startTime),
@@ -729,7 +729,7 @@ And replace the render call `<WeekGrid entries={group.entries} />` with:
           <ScheduleCalendar entries={group.entries} />
 ```
 
-No `onRemove` — this view is read-only, and the prop is optional precisely for this case.
+No `onRemove` - this view is read-only, and the prop is optional precisely for this case.
 
 - [ ] **Step 2: Migrate the page's type import**
 
@@ -764,7 +764,7 @@ rm src/components/WeekGrid.tsx
 - [ ] **Step 4: Prove nothing still references it**
 
 Run: `grep -rn "WeekGrid" src/ tests/`
-Expected: no output. If anything prints, migrate that reference before continuing — do not restore the file.
+Expected: no output. If anything prints, migrate that reference before continuing - do not restore the file.
 
 - [ ] **Step 5: Verify and commit**
 
@@ -792,7 +792,7 @@ A dev server is normally already running. Check:
 curl -sf http://localhost:3000 >/dev/null && echo UP
 ```
 
-If it is not up, start it with `npm run dev` and wait for it. Do NOT start a second one if it is already running — Next.js refuses and exits.
+If it is not up, start it with `npm run dev` and wait for it. Do NOT start a second one if it is already running - Next.js refuses and exits.
 
 - [ ] **Step 2: Write the smoke script**
 
@@ -891,14 +891,14 @@ Expected: a non-empty `BLOCK BACKGROUNDS` array, `LIGHT OK`, `DARK OK`, and `CON
 
 Confirm by eye in `calendar-light.png` and `calendar-dark.png`:
 1. Two different courses have visibly **different** block colours.
-2. Blocks show a saturated left accent bar against a soft fill, with rounded corners and a small gap between neighbours — not flush-filled table cells.
-3. Text inside a block is readable in BOTH themes — the single most likely defect, since the pastels are fixed values while the foreground token flips.
-4. Grid lines read as hairlines. Hour lines only — no heavy borders, no half-hour lines.
+2. Blocks show a saturated left accent bar against a soft fill, with rounded corners and a small gap between neighbours - not flush-filled table cells.
+3. Text inside a block is readable in BOTH themes - the single most likely defect, since the pastels are fixed values while the foreground token flips.
+4. Grid lines read as hairlines. Hour lines only - no heavy borders, no half-hour lines.
 5. Hour labels sit small, grey and right-aligned in the gutter, straddling their line rather than boxed inside a cell.
-6. **Overlapping classes sit SIDE BY SIDE**, each roughly half width — never stacked so one hides the other. This is the clearest Google/Notion tell and the main thing Task 1's layout helper buys.
+6. **Overlapping classes sit SIDE BY SIDE**, each roughly half width - never stacked so one hides the other. This is the clearest Google/Notion tell and the main thing Task 1's layout helper buys.
 7. The dark screenshot has no near-white/glowing blocks and no white conflict banner.
 
-If it does not read as calendar-like — if it still reads as a bordered spreadsheet — say so in the report with specifics rather than passing it. A blank, clipped, or half-height screenshot is a failure even if the script printed OK.
+If it does not read as calendar-like - if it still reads as a bordered spreadsheet - say so in the report with specifics rather than passing it. A blank, clipped, or half-height screenshot is a failure even if the script printed OK.
 
 - [ ] **Step 5: Clean up**
 
@@ -925,7 +925,7 @@ Expected: clean tree (these were never committed). Nothing to commit for this ta
 
 ## Deliberately not in this phase
 
-- **Clicking a block to open course details** — that overlay is Phase 3, which adds the click handler then.
-- Drag-to-move / drag-to-resize (spec §12: out of scope entirely — sections have fixed registrar-set times).
+- **Clicking a block to open course details** - that overlay is Phase 3, which adds the click handler then.
+- Drag-to-move / drag-to-resize (spec §12: out of scope entirely - sections have fixed registrar-set times).
 - Multi-term side-by-side view (spec §12).
 - The ⓘ buttons in the left panel (Phase 3).

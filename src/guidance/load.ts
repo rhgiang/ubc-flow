@@ -117,7 +117,7 @@ export async function loadPrereqs(
  * courseId -> term ids where it actually runs.
  *
  * A course with no sections at all gets no entry, and the solver treats an
- * absent entry as "no information" rather than "never offered" — most of the
+ * absent entry as "no information" rather than "never offered" - most of the
  * catalogue has no future sections loaded, and refusing to plan those would
  * empty the roadmap.
  */
@@ -138,7 +138,7 @@ export async function loadOfferings(
  * Placeable terms, in order: the real upcoming ones, then projected terms to
  * cover the rest of a degree.
  *
- * UBC publishes sections about a year ahead — the database holds five terms
+ * UBC publishes sections about a year ahead - the database holds five terms
  * total. A degree takes four years, so without projection the roadmap stops
  * partway through second year and reports the remaining two-thirds of the
  * program as unplaceable, which is what it did before this existed.
@@ -147,7 +147,7 @@ export async function loadOfferings(
 // sensible load, but not a 158-credit B.A.Sc. at 12 credits a term: that needs
 // thirteen WINTER terms and five years of projection only yields twelve, so
 // the plan reported the last of Civil as unplaceable when the real limit was
-// how far ahead we had bothered to look. Projected terms cost nothing — the
+// how far ahead we had bothered to look. Projected terms cost nothing - the
 // solver stops as soon as the degree is done.
 export async function loadTerms(years = 7): Promise<PlanTerm[]> {
   const terms = await cachedTermRows();
@@ -200,7 +200,7 @@ export async function loadTerms(years = 7): Promise<PlanTerm[]> {
  *
  * Read from `Enrollment.status`, which the Workday import now derives from the
  * grade Workday reports. A row whose grade we could not read stays
- * "registered" and counts as in progress rather than done — guessing in the
+ * "registered" and counts as in progress rather than done - guessing in the
  * permissive direction is how a student gets told they finished a course they
  * have to retake.
  *
@@ -210,7 +210,7 @@ export async function loadTerms(years = 7): Promise<PlanTerm[]> {
  *
  * Transfer credit is reported as `transfer` rather than `passed`. UBC grants
  * the credit, so a roadmap that ignored it would overstate what a student
- * still owes — but it is earned elsewhere and must never confer review rights
+ * still owes - but it is earned elsewhere and must never confer review rights
  * for UBC's version of the course, which `canReview` enforces separately on
  * `verified`.
  */
@@ -230,7 +230,7 @@ export async function loadCompletions(userId: string): Promise<Completion[]> {
 
   // No early return on an empty enrollment list. A student who transferred in
   // has no enrollments at all, and returning here skipped the transfer credits
-  // below — which is precisely the person this is meant to help.
+  // below - which is precisely the person this is meant to help.
   const courses = rows.length
     ? await db.course.findMany({
         where: { id: { in: [...new Set(rows.map((r) => r.courseId))] } },
@@ -256,7 +256,7 @@ export async function loadCompletions(userId: string): Promise<Completion[]> {
 
     // The import's own verdict, not a guess. "registered" means the grade was
     // blank or unreadable, which is in progress if the term is still running
-    // and unknown if it is not — either way not something to count as done.
+    // and unknown if it is not - either way not something to count as done.
     const status: Completion["status"] =
       row.status === "transfer"
         ? "transfer"
@@ -313,7 +313,7 @@ export async function loadCompletions(userId: string): Promise<Completion[]> {
         code: `${c.subject.code} ${c.number}`,
         // Falls through on zero as well as null. A transfer row exists
         // because credit was granted, so an empty Credits cell is missing
-        // data rather than a grant of nothing — APSC 160 arrived as 0 and
+        // data rather than a grant of nothing - APSC 160 arrived as 0 and
         // would have shown as a 0-credit course a student had "done".
         credits: t.credits || c.credits || 3,
         faculty: c.subject.faculty,

@@ -3,7 +3,7 @@ import type { PlanTerm } from '@/guidance/solver';
 /**
  * Co-op, modelled as terms the plan may not use.
  *
- * A work term is not a lighter academic term — it is not an academic term at
+ * A work term is not a lighter academic term - it is not an academic term at
  * all. Nothing is scheduled into it, and the coursework that would have gone
  * there moves later, which is exactly why the Calendar says co-op "requires an
  * additional year to complete the Bachelor of Applied Science".
@@ -12,7 +12,7 @@ import type { PlanTerm } from '@/guidance/solver';
  * has existed since the solver was written, precisely so a work term could be
  * expressed without touching the placement logic.
  *
- * What co-op does NOT do is add credits. The Faculty of Science is explicit —
+ * What co-op does NOT do is add credits. The Faculty of Science is explicit -
  * each work term earns a 3-credit co-op course on the transcript, but "co-operative
  * education course credits cannot be used in lieu of or to complement academic
  * course credits required by the specialization". So the degree total is
@@ -79,7 +79,7 @@ export const getCoopPattern = (id: string | undefined): CoopPattern | null =>
 /**
  * Which term sits at each position of the degree.
  *
- * Terms arrive in calendar order — Summer, Winter Term 1, Winter Term 2 — so a
+ * Terms arrive in calendar order - Summer, Winter Term 1, Winter Term 2 - so a
  * summer PRECEDES the Winter session it is named beside. "2027 Summer Session"
  * follows 2026-27 Winter Term 2, which makes it the summer after first year,
  * and that is how it is keyed here. The leading summer before any Winter Term 1
@@ -107,7 +107,7 @@ function positions(terms: PlanTerm[]): Map<string, string> {
  * A degree starts in September, not in the summer before it.
  *
  * The term list opens with a Summer Session because that is the next term on
- * the calendar, and with summer enabled the solver happily filled it — first
+ * the calendar, and with summer enabled the solver happily filled it - first
  * year began with a 15-credit summer nobody registers in, and every year label
  * after it was off. Co-op made this visible by turning summer on for everyone,
  * but the bug was already there for anyone who pressed "Use summer".
@@ -122,8 +122,8 @@ export function fromFirstWinter(terms: PlanTerm[]): PlanTerm[] {
  * Which year of the degree each term belongs to.
  *
  * The plan used to label years by counting rows two at a time, which is right
- * only while every term is a Winter one. A summer term — and co-op cannot work
- * without them — shifted every label after it by half a year.
+ * only while every term is a Winter one. A summer term - and co-op cannot work
+ * without them - shifted every label after it by half a year.
  */
 export function degreeYears(terms: PlanTerm[]): Map<string, number> {
   const out = new Map<string, number>();
@@ -150,8 +150,8 @@ export function workTermIds(terms: PlanTerm[], pattern: CoopPattern | null): Set
 /**
  * The term list with work terms closed off.
  *
- * Summers are opened up at the same time. Co-op runs year-round by definition —
- * three of the four work terms in a standard sequence are summers — so leaving
+ * Summers are opened up at the same time. Co-op runs year-round by definition -
+ * three of the four work terms in a standard sequence are summers - so leaving
  * the student's "use summer" preference to also govern co-op would produce a
  * sequence with nowhere to put the work.
  */

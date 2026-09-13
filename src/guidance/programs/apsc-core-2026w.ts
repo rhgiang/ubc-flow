@@ -10,12 +10,12 @@ const course = (id: string, code: string): Rule => ({
 });
 
 /**
- * The common first year of the B.A.Sc., 2026W — 37 credits.
+ * The common first year of the B.A.Sc., 2026W - 37 credits.
  *
  * Engineering is the third shape of faculty core here, and the simplest to
  * state: every student takes the same first year, then enters a department in
  * second year. There is no faculty-wide breadth requirement to model, no Arts
- * minimum, and no free electives at all — the three credits of Complementary
+ * minimum, and no free electives at all - the three credits of Complementary
  * Studies are the only choice in the year.
  *
  * It is also the heaviest. 37 credits against the 30 of a B.Sc. or B.A. first
@@ -45,7 +45,7 @@ export const apscCore2026W: Program = {
         course('apsc.160', 'APSC 160'),
         course('apsc.chem154', 'CHEM 154'),
         // Footnote 2 reads "Or another first-year English course" without
-        // naming any, so the alternatives are a note rather than a choice —
+        // naming any, so the alternatives are a note rather than a choice -
         // offering APSC 176 here would put a code in the file that appears on
         // no page the program cites.
         course('apsc.wrds150', 'WRDS 150'),

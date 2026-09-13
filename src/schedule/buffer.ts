@@ -37,7 +37,7 @@ export function swapSection(
   const index = chosen.findIndex((s) => s.sectionId === oldSectionId);
   if (index === -1) return chosen;
 
-  // Already held elsewhere — a schedule holds a set, so take the old one out
+  // Already held elsewhere - a schedule holds a set, so take the old one out
   // rather than creating a second row for the same section.
   if (chosen.some((s) => s.sectionId === next.sectionId)) {
     return chosen.filter((s) => s.sectionId !== oldSectionId);

@@ -17,7 +17,7 @@ export type SectionRow = {
 };
 
 // The signed-in user's own saved schedules, for the "add this section" cell.
-// Undefined (not an empty array) means signed out — that's what hides the
+// Undefined (not an empty array) means signed out - that's what hides the
 // column, same gating the old inline sections table used.
 export type ScheduleOption = { id: string; name: string; termId: string };
 
@@ -119,7 +119,7 @@ export default function CourseScheduleBox({
                       <th className="px-4 py-2 font-medium">Activity</th>
                       <th className="px-4 py-2 font-medium">Status</th>
                       <th className="px-4 py-2 font-medium">Time</th>
-                      {/* ponytail: dropped on phones — the widest, least
+                      {/* ponytail: dropped on phones - the widest, least
                           decision-critical column; a card-per-row layout like
                           explore's is the upgrade if phones need instructors. */}
                       <th className="px-4 py-2 font-medium max-sm:hidden">Instructor</th>

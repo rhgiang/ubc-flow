@@ -8,14 +8,14 @@ import { toSectionHit, sectionHitInclude, type SectionHit } from '@/lib/search';
  * every section the chosen courses offer this term, and a 0..1 instructor
  * quality signal per section where one can be computed.
  *
- * Read-only over public catalogue data, so no auth — the generator works for
+ * Read-only over public catalogue data, so no auth - the generator works for
  * guests exactly like search and the companion check do. The search itself
  * runs in the browser; this endpoint only hands over data.
  *
  * The instructor signal prefers reviews (clear + engaging, the two things
  * students rate teaching on) and falls back to the instructor's grade history
  * in this course. A section with neither gets null, which the generator
- * scores as absence — never as bad.
+ * scores as absence - never as bad.
  */
 export type GenerationData = {
   sections: SectionHit[];
@@ -23,7 +23,7 @@ export type GenerationData = {
   /**
    * Courses asked for that field no sections this term at all.
    *
-   * They used to disappear without a word — the generator only ever sees the
+   * They used to disappear without a word - the generator only ever sees the
    * sections, so a course with none simply wasn't in the pool, and a plan of
    * five courses could quietly arrange four. Naming them is the difference
    * between "this tool is broken" and "MATH 103 isn't offered this term".
@@ -44,7 +44,7 @@ export async function generationData(
     where: { termId, courseId: { in: ids } },
     include: {
       ...sectionHitInclude,
-      // The instructor RELATION (with ids) — toSectionHit keeps only names,
+      // The instructor RELATION (with ids) - toSectionHit keeps only names,
       // and the signals below are keyed by instructor id.
     },
     orderBy: [{ course: { number: 'asc' } }, { sectionCode: 'asc' }],
@@ -82,7 +82,7 @@ export async function generationData(
   }
 
   // Grade signal per (course, instructor): mean section average, mapped so
-  // 60% is 0 and 85%+ is 1 — roughly the observed spread of UBC averages.
+  // 60% is 0 and 85%+ is 1 - roughly the observed spread of UBC averages.
   const gradeSums = new Map<string, { total: number; n: number }>();
   for (const d of distributions) {
     for (const { instructorId } of d.instructors) {
@@ -132,7 +132,7 @@ export async function generationData(
 /**
  * The intake half of Flow Builder: a student with an empty builder tells us
  * their program (and co-op pattern) and gets the courses guidance's plan puts
- * in the builder's term — the exact list the guidance page's "Arrange this
+ * in the builder's term - the exact list the guidance page's "Arrange this
  * term" button would have carried, without making them find that page first.
  *
  * Signed in with a record uploaded, the plan starts from what they've
@@ -164,7 +164,7 @@ export type PlannedTermCourses = {
   /** Concrete courses the plan places in this term. */
   courses: { id: string; code: string }[];
   /**
-   * Requirements this term fills with an amount rather than a named course —
+   * Requirements this term fills with an amount rather than a named course -
    * "3 credits of Arts". They cannot be auto-arranged (choosing one IS the
    * student's decision), but they must be VISIBLE: a plan that quietly hands
    * over one course when the term is really five reads as broken.
@@ -172,12 +172,12 @@ export type PlannedTermCourses = {
   slots: {
     label: string;
     credits: number;
-    /** Real courses offered this term that would fill it — pickable. */
+    /** Real courses offered this term that would fill it - pickable. */
     options: { id: string; code: string; credits: number }[];
     /**
      * A free elective: the requirement names no list at all, so anything
      * counts. Distinguished from "no options" because the two need opposite
-     * things said — "pick whatever interests you" versus "nothing fits".
+     * things said - "pick whatever interests you" versus "nothing fits".
      */
     free: boolean;
   }[];
@@ -188,7 +188,7 @@ export type PlannedTermCourses = {
 };
 
 export type IntakeAnswers = {
-  /** Year of the degree they'll be in — 1 for an incoming first-year. */
+  /** Year of the degree they'll be in - 1 for an incoming first-year. */
   year: number;
   /** Credits to plan for the term; null takes the program's own full load. */
   creditsPerTerm: number | null;
@@ -273,13 +273,13 @@ export async function plannedCoursesForTerm(
     NOT the one whose id matches: the plan always starts from the next Winter
     session, so its first terms are first-year courses. A third-year student
     asking to build THIS term wants their third year's courses, and matching
-    by id gave them a first-year's — usually a nearly-empty term, since much
+    by id gave them a first-year's - usually a nearly-empty term, since much
     of first year is elective slots. So match by position instead: the term at
     the student's year of the degree, in the same slot (Winter 1, Winter 2 or
     summer) as the one the builder is on.
 
-    A student who has uploaded their record needs none of this — the solver
-    already knows what they've finished — but the year answer is what makes
+    A student who has uploaded their record needs none of this - the solver
+    already knows what they've finished - but the year answer is what makes
     the intake work for everyone else, which is nearly everyone.
   */
   const years = degreeYears(terms);
@@ -304,7 +304,7 @@ export async function plannedCoursesForTerm(
   /*
     Fill each slot with courses the student could actually register for.
 
-    Everything the plan hands over by name is only half a term — most of
+    Everything the plan hands over by name is only half a term - most of
     Winter Term 2, and nearly all of third and fourth year for a CS major, is
     "3 credits of Arts" or "9 credits of CPSC 300+". Without real options
     behind those, Flow Builder answered a five-course term with one course.
@@ -341,8 +341,8 @@ export async function plannedCoursesForTerm(
 
     Slots cannot simply claim courses in the order they appear: "Arts credits"
     is a whole faculty and "Communication requirement" is a list of six, so
-    the broad one ran first and took WRDS 150 — the canonical communication
-    course — leaving Communication showing ENVR 200 alone. The narrower
+    the broad one ran first and took WRDS 150 - the canonical communication
+    course - leaving Communication showing ENVR 200 alone. The narrower
     requirement has the better claim on a course both accept, so candidates
     are gathered first and then assigned smallest-pool-first.
 
@@ -366,7 +366,7 @@ export async function plannedCoursesForTerm(
             : [];
 
       // A free elective ("any course", recorded as an empty code list) still
-      // deserves suggestions — the most-taken things they can get into — so
+      // deserves suggestions - the most-taken things they can get into - so
       // it gets a set that matches anything rather than nothing.
       const free = sets.length === 1 && sets[0].kind === 'codes' && sets[0].codes.length === 0;
       const effectiveSets = free ? [{ kind: 'pattern' } as const] : sets;

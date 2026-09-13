@@ -7,7 +7,7 @@ import type { HistoricalGradeTerm } from '@/components/HistoricalGradesTimeline'
 import type { Requirement } from '@/prereqs/parse';
 
 /** Our own verified-enrolment reviews for one instructor, across all their
- *  courses — the same basis the professor page uses. Null when unrated. */
+ *  courses - the same basis the professor page uses. Null when unrated. */
 export type InstructorRatingSummary = {
   count: number;
   likedPercent: number | null;
@@ -17,7 +17,7 @@ export type InstructorRatingSummary = {
 
 /**
  * An instructor's historical grade average FOR THIS COURSE, from UBC's own
- * published distributions (2021S onward — see the note on `courseAverage`).
+ * published distributions (2021S onward - see the note on `courseAverage`).
  *
  * This is an average GRADE, not a teaching-quality score: a demanding course
  * taught well can sit below its own mean. The UI must label it as such.
@@ -55,11 +55,11 @@ export type CourseDetail = {
   title: string;
   description: string | null;
   credits: number | null;
-  /** Link to the full course page — the overlay is never a redirect. */
+  /** Link to the full course page - the overlay is never a redirect. */
   href: string;
   sections: CourseSectionDetail[];
   grades: GradeSummary;
-  /** Weighted mean across ALL of this course's graded offerings — the baseline
+  /** Weighted mean across ALL of this course's graded offerings - the baseline
    *  an instructor's own average is compared against. Null when ungraded. */
   courseAverage: number | null;
   historical: {
@@ -79,7 +79,7 @@ export type CourseDetail = {
 /**
  * Everything the schedule builder's course overlay shows, in one call.
  *
- * Sections are scoped to the term being planned — a section from another term
+ * Sections are scoped to the term being planned - a section from another term
  * could not be added to this schedule, so showing it would be an invitation to
  * a dead end. The grade and requirement data is course-wide and term-agnostic.
  */
@@ -115,7 +115,7 @@ export async function loadCourseDetail(
 
   const code = `${course.subject.code ?? ''} ${course.number}`.trim();
 
-  // Ratings are keyed on instructor, not on (instructor, course) — the data is
+  // Ratings are keyed on instructor, not on (instructor, course) - the data is
   // sparse enough that a per-course split would almost always be empty, and
   // this matches what the professor page already shows.
   const instructorIds = [
@@ -149,7 +149,7 @@ export async function loadCourseDetail(
 
   // GradeDistributionInstructor links each distribution to everyone who taught
   // it. 11% of distributions are co-taught, so a distribution can appear under
-  // more than one instructor — that is correct here (each taught those
+  // more than one instructor - that is correct here (each taught those
   // students) but it means a shared offering must never be summed into the
   // course-wide figure twice, which is why courseAverage is computed from
   // gradeRows above rather than from these links.
@@ -166,7 +166,7 @@ export async function loadCourseDetail(
       })
     : [];
 
-  // How many instructors share each distribution — used only to flag co-teaching.
+  // How many instructors share each distribution - used only to flag co-teaching.
   const sharersPerDistribution = new Map<string, number>();
   for (const l of gradeLinks) {
     sharersPerDistribution.set(

@@ -12,7 +12,7 @@ export type CourseGroup = {
  * first appear in.
  *
  * searchSectionsForTerm returns one row per SECTION, so an ungrouped list
- * repeats "CPSC 110" once per lecture, lab and tutorial — which is exactly
+ * repeats "CPSC 110" once per lecture, lab and tutorial - which is exactly
  * what the old flat sidebar did.
  */
 export function groupSectionsByCourse(hits: SectionHit[]): CourseGroup[] {

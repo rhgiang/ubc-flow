@@ -18,7 +18,7 @@ function subscribeNarrow(onChange: () => void) {
   return () => m.removeEventListener('change', onChange);
 }
 
-/** "2009W" — year first, matching ubcgrades.com's own axis labels. */
+/** "2009W" - year first, matching ubcgrades.com's own axis labels. */
 function termLabel(t: HistoricalGradeTerm): string {
   return `${t.year}${t.session}`;
 }
@@ -30,8 +30,8 @@ function termFullLabel(t: HistoricalGradeTerm): string {
 /**
  * Line chart of a course's average grade per term, from ubcgrades.com's
  * per-term distributions (see src/grades/jobs/ingest-historical.ts).
- * Mirrors ubcgrades.com's own chart — zero-based 0-100 axis, one point per
- * term, Past 5 Years / All Years toggle — in this app's theme.
+ * Mirrors ubcgrades.com's own chart - zero-based 0-100 axis, one point per
+ * term, Past 5 Years / All Years toggle - in this app's theme.
  *
  * Fully width-responsive: points are positioned as percentages and the SVG
  * stretches with its container (`preserveAspectRatio="none"`), so a short

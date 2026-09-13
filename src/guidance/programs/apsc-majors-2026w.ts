@@ -4,7 +4,7 @@ const B =
   'https://vancouver.calendar.ubc.ca/faculties-colleges-and-schools/faculty-applied-science/bachelor-applied-science';
 
 /**
- * Four B.A.Sc. programs, 2026W — Mechanical, Electrical, Civil, and Chemical
+ * Four B.A.Sc. programs, 2026W - Mechanical, Electrical, Civil, and Chemical
  * and Biological Engineering.
  *
  * They share the 37-credit common first year and then diverge completely, so
@@ -15,7 +15,7 @@ const B =
  * Engineering totals are unlike anything else transcribed here. Mechanical is
  * 148 credits, Electrical 151, Chemical and Biological 155, Civil 158, against
  * 120 for a B.Sc. or B.A. and 121 for the B.Com. There are no free electives
- * anywhere in them — every elective is technical or complementary and drawn
+ * anywhere in them - every elective is technical or complementary and drawn
  * from a departmental list.
  */
 
@@ -39,8 +39,8 @@ const c = (id: string, code: string, year: number, src: string): Rule => ({
 /**
  * A required course the PROGRAM prices differently from the catalogue.
  *
- * UBC's variable-credit courses — CPEN 221 is "(4-5)", ELEC 491 and CPEN 491
- * are "(5-10)" — are stored at the bottom of their range, while the program
+ * UBC's variable-credit courses - CPEN 221 is "(4-5)", ELEC 491 and CPEN 491
+ * are "(5-10)" - are stored at the bottom of their range, while the program
  * tables require the top. It has to stay a course rather than become a credits
  * rule: a credits rule plans as a slot, slots never enter the satisfied set,
  * and CPEN 212, 331 and 391 all depend on CPEN 221 having been taken.
@@ -49,7 +49,7 @@ const cAt = (id: string, code: string, year: number, src: string, credits: numbe
   id, kind: 'course', label: code, code, year, credits, sourceUrl: src, confidence: 'stated',
 });
 
-/** Technical or complementary electives — restricted lists held by departments. */
+/** Technical or complementary electives - restricted lists held by departments. */
 const el = (id: string, label: string, n: number, year: number, src: string): Rule => ({
   id, kind: 'credits', label, n, year,
   from: { kind: 'codes', codes: [] },
@@ -62,7 +62,7 @@ const CIVL = `${B}/civil-engineering`;
 const CHBE = `${B}/chemical-and-biological-engineering`;
 
 /**
- * Mechanical — 37 + 40 + 35 + 36 = 148.
+ * Mechanical - 37 + 40 + 35 + 36 = 148.
  *
  * Second year is "Mech 2", a single block that starts a week before term and
  * runs as one programme; MECH 220 is taken before Term 1 even begins.
@@ -179,7 +179,7 @@ export const mechMajor2026W = prog('mech-basc-2026w', 'Mechanical Engineering', 
   },
 ]);
 
-/** Electrical — 37 + 39 + 39 + 36 = 151. */
+/** Electrical - 37 + 39 + 39 + 36 = 151. */
 export const elecMajor2026W = prog('elec-basc-2026w', 'Electrical Engineering', 'electrical-and-computer-engineering', 151, [
   {
     id: 'elec.second-year',
@@ -306,7 +306,7 @@ export const elecMajor2026W = prog('elec-basc-2026w', 'Electrical Engineering', 
 ]);
 
 /**
- * Computer Engineering — 37 + 38 + 38 + 38 = 151.
+ * Computer Engineering - 37 + 38 + 38 + 38 = 151.
  *
  * Shares a department and a Calendar page with Electrical, and about half its
  * second year, but diverges completely above that: CPSC 221 and 320 in place
@@ -425,7 +425,7 @@ export const cpenMajor2026W = prog('cpen-basc-2026w', 'Computer Engineering', 'e
   },
 ]);
 
-/** Civil — 37 + 45 + 40 + 36 = 158, the largest degree here. */
+/** Civil - 37 + 45 + 40 + 36 = 158, the largest degree here. */
 export const civlMajor2026W = prog('civl-basc-2026w', 'Civil Engineering', 'civil-engineering', 158, [
   {
     id: 'civl.second-year',
@@ -512,7 +512,7 @@ export const civlMajor2026W = prog('civl-basc-2026w', 'Civil Engineering', 'civi
   },
 ]);
 
-/** Chemical and Biological — 37 + 39 + 40 + 39 = 155. */
+/** Chemical and Biological - 37 + 39 + 40 + 39 = 155. */
 export const chbeMajor2026W = prog('chbe-basc-2026w', 'Chemical and Biological Engineering', 'chemical-and-biological-engineering', 155, [
   {
     id: 'chbe.second-year',

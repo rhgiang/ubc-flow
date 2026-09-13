@@ -8,7 +8,7 @@ type Metric = {
   mean: number | null;
   histogram: Histogram;
   /**
-   * Whether a high score is good news. Useful: yes. Difficulty: no — 100%
+   * Whether a high score is good news. Useful: yes. Difficulty: no - 100%
    * difficult is the red end, not the green one, so its colour reads off the
    * inverse. Only the colour flips; the bar still shows the real number.
    */
@@ -17,8 +17,8 @@ type Metric = {
 
 /**
  * Red through amber to green across 0-100, deep at the left and bright at the
- * right. Hue carries the score — 0deg red, 140deg green, amber falling where
- * it should — and is fixed across the bar: shifting it would put a green
+ * right. Hue carries the score - 0deg red, 140deg green, amber falling where
+ * it should - and is fixed across the bar: shifting it would put a green
  * shoulder on a red one and read as a different number. The sheen is
  * saturation and lightness only.
  *
@@ -67,11 +67,11 @@ export default function RatingsBox({
   likedPercent: number | null;
   /** Every review, with or without written comments. */
   ratingCount: number;
-  /** The subset that wrote something — the count worth jumping to. */
+  /** The subset that wrote something - the count worth jumping to. */
   commentCount: number;
   metrics: [Metric, Metric];
   reviewsHref?: string;
-  /** Sits in the footer beside the counts — the review button, on both pages. */
+  /** Sits in the footer beside the counts - the review button, on both pages. */
   action?: ReactNode;
   /** 'glass' when the box floats on the sky rather than sitting on a panel. */
   tone?: 'panel' | 'glass';
@@ -92,7 +92,7 @@ export default function RatingsBox({
     return () => cancelAnimationFrame(ring);
   }, []);
 
-  // (mean - 1) / 4 * 100 — the box's own convention (spec 5.3), distinct
+  // (mean - 1) / 4 * 100 - the box's own convention (spec 5.3), distinct
   // from the X.X/5 format used elsewhere on this site (Explore table etc.),
   // which this component does not touch.
   const asPercent = (mean: number | null) =>
@@ -105,7 +105,7 @@ export default function RatingsBox({
   const shell =
     tone === 'glass' ? 'sky-glass p-6' : 'rounded-card border border-border bg-surface p-6';
 
-  // Same card, same footprint, an empty ring — rather than a line of grey text
+  // Same card, same footprint, an empty ring - rather than a line of grey text
   // floating where a card should be, which read as a page that had failed to
   // load rather than one nobody has reviewed yet.
   if (ratingCount === 0) {

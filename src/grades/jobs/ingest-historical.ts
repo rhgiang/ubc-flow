@@ -27,13 +27,13 @@ type ApiResponse = {
 export type HistoricalGradesResponse = ApiResponse | null;
 
 // ponytail: the real API returns "" (not null) for stats it can't compute
-// (e.g. average_past_5_yrs on a course with too little history) — coerce any
+// (e.g. average_past_5_yrs on a course with too little history) - coerce any
 // non-finite-number field to null before it reaches Prisma's Float? columns.
 function toNullableFloat(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
-/** A 404 means "no grade history for this course" — normal, not an error,
+/** A 404 means "no grade history for this course" - normal, not an error,
  * same posture as every other "not every X exists" job in this codebase. */
 export async function fetchHistoricalGrades(
   subject: string,
@@ -58,12 +58,12 @@ type DistributionEntry = {
   year: string;
   session: string;
   // Values are usually number|null, but the API also emits "" for some
-  // buckets — see toCount below. Typed loosely so that reality can't be
+  // buckets - see toCount below. Typed loosely so that reality can't be
   // silently coerced past the type checker.
   grades: Record<string, unknown>;
 };
 
-// Non-"<50%" buckets, with their midpoint grade — used to compute a
+// Non-"<50%" buckets, with their midpoint grade - used to compute a
 // weighted-average per term from ubcgrades.com's distribution buckets.
 // Different bucket set/shape than this app's own GradeDistribution data
 // (spec: deliberately not merged, see docs/superpowers/specs), so this
@@ -94,7 +94,7 @@ const SUB_50_MIDPOINT = 25; // midpoint of the rolled-up "<50%" bucket's 0-49 ra
  * Individual buckets come back as "" (empty string) for some terms, the same
  * way the summary endpoint returns "" for stats it can't compute. A bare
  * `!= null` check lets "" through, and `count += ""` silently switches count
- * from number to string — every later `+=` then CONCATENATES, so the final
+ * from number to string - every later `+=` then CONCATENATES, so the final
  * weightedSum/count divides by a giant numeric string and yields ~1e-19
  * instead of a grade. Guard on the type, never on nullishness alone.
  */
@@ -105,7 +105,7 @@ function toCount(v: unknown): number | null {
 /**
  * A term's average from its raw grade-bucket counts. In earlier years UBC
  * reported the sub-50% range as five granular buckets; in later years those
- * are all null and only the rolled-up "<50%" bucket has a real count — using
+ * are all null and only the rolled-up "<50%" bucket has a real count - using
  * both at once would double-count the same students, so "<50%" is only used
  * as a fallback when none of the granular sub-50 buckets have data.
  */
@@ -130,7 +130,7 @@ export function averageFromBuckets(grades: Record<string, unknown>): number | nu
 }
 
 /** Per-term averages for a course, computed from the real distributions
- * endpoint. A 404/empty response means no history — normal, returns []. */
+ * endpoint. A 404/empty response means no history - normal, returns []. */
 export async function fetchHistoricalGradesByTerm(
   subject: string,
   number: string,

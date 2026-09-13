@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterToOwnSection, examCoverage, type ExamListItem } from '@/schedule/exams';
-import { groupExams } from '@/components/ExamList';
+import { filterToOwnSection, examCoverage, groupExams, type ExamListItem } from '@/schedule/exams';
 
 /**
  * `Enrollment` carries no section, so joining it to `FinalExam` on course+term

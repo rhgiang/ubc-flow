@@ -1,5 +1,4 @@
-import type { ExamListItem } from '@/schedule/exams';
-import { groupExams } from '@/components/ExamList';
+import { groupExams, type ExamListItem } from '@/schedule/exams';
 
 /**
  * A month grid of the exam period - the "how bad is this week" view a list

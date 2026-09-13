@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { formatDate, groupExams } from '@/components/ExamList';
-import type { ExamListItem } from '@/schedule/exams';
+import { formatDate } from '@/components/ExamList';
+import { groupExams, type ExamListItem } from '@/schedule/exams';
 
 export type ExamCourse = { id: string; label: string };
 

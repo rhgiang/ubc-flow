@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { toExamListItem } from '@/schedule/exams';
-import { formatDate, groupExams } from '@/components/ExamList';
+import { toExamListItem, groupExams } from '@/schedule/exams';
+import { formatDate } from '@/components/ExamList';
 
 describe('toExamListItem', () => {
   it('joins building and room into one location string', () => {

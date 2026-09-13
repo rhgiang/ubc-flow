@@ -88,6 +88,38 @@ function sameSection(a: string): string {
 }
 
 /**
+ * UBC splits a big exam across rooms by surname, publishing one row per room.
+ * Those rows are the SAME exam, and rendering them as separate cards reads as
+ * "you have two BIOL 121 exams" - which is how the first person to see this
+ * page read it. Group them so one exam is one card, listing each room against
+ * the surnames that go to it.
+ *
+ * The key deliberately excludes alphaSplit, building and room - those are what
+ * differ WITHIN a group. Two genuinely separate exams for one course (a
+ * midterm and a final, or two midterms) differ by kind or date and stay apart.
+ */
+export function groupKey(item: ExamListItem): string {
+  return [
+    item.courseLabel,
+    item.kind,
+    item.date ? item.date.toISOString() : 'no-date',
+    item.startTime ?? 'no-time',
+    item.source,
+  ].join('|');
+}
+
+export function groupExams(items: ExamListItem[]): ExamListItem[][] {
+  const groups = new Map<string, ExamListItem[]>();
+  for (const item of items) {
+    const key = groupKey(item);
+    const existing = groups.get(key);
+    if (existing) existing.push(item);
+    else groups.set(key, [item]);
+  }
+  return [...groups.values()];
+}
+
+/**
  * Drops the other sections' exams.
  *
  * `Enrollment` carries no section, so the course+term join brings back every

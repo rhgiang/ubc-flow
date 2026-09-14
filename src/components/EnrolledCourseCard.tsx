@@ -1,7 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { removeCourse } from '@/app/actions/account';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 /**
  * A course on the Account page, collapsible so a full timetable can be
@@ -19,17 +21,93 @@ export default function EnrolledCourseCard({
   code,
   title,
   href,
+  courseId,
+  termId,
   collapsible,
   children,
 }: {
   code: string;
   title: string;
   href: string;
+  courseId: string;
+  /** Null on an academic-record course, which carries no term. */
+  termId: string | null;
   /** False when there are no meetings to hide, so the card renders inert. */
   collapsible: boolean;
   children: ReactNode;
 }) {
   const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onConfirm() {
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await removeCourse(courseId, termId);
+      if (!result.ok) {
+        setError(result.error);
+        setBusy(false);
+        return;
+      }
+      setConfirming(false);
+      setBusy(false);
+      // The lists on this page are rendered on the server from the rows this
+      // just deleted, so without a refresh the card stays on screen.
+      router.refresh();
+    } catch {
+      setError('Could not remove that course. Try again in a moment.');
+      setBusy(false);
+    }
+  }
+
+  // Sits in the header so it is reachable on a card with no meetings to
+  // expand. Inside a <summary> a plain click would also toggle the card, the
+  // same reason the course link above intercepts its own.
+  const removeButton = (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setConfirming(true);
+      }}
+      // Named for a screen reader, where a page of cards is otherwise a list
+      // of identical "Remove" buttons.
+      aria-label={`Remove ${code}`}
+      className="mt-0.5 shrink-0 rounded-pill border border-border px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:border-danger-border hover:bg-danger-surface hover:text-danger"
+    >
+      Remove
+    </button>
+  );
+
+  const dialog = (
+    <ConfirmDialog
+      open={confirming}
+      title={`Remove ${code}?`}
+      confirmLabel="Remove course"
+      destructive
+      busy={busy}
+      onConfirm={onConfirm}
+      onCancel={() => {
+        if (busy) return;
+        setConfirming(false);
+        setError(null);
+      }}
+    >
+      <p>
+        This takes {code} off your account, along with its meeting times, its exams, and
+        any syllabus you recorded for it. Uploading a Workday export that still lists this
+        course will bring the course back, but not the syllabus.
+      </p>
+      {error && (
+        <p role="alert" className="mt-2 text-danger">
+          {error}
+        </p>
+      )}
+    </ConfirmDialog>
+  );
 
   const header = (
     <>
@@ -46,6 +124,7 @@ export default function EnrolledCourseCard({
         </a>
         <span className="ml-2 text-sm text-text-secondary">{title}</span>
       </span>
+      {removeButton}
       {collapsible && (
         <svg
           viewBox="0 0 24 24"
@@ -61,20 +140,29 @@ export default function EnrolledCourseCard({
     </>
   );
 
+  // The dialog is rendered OUTSIDE the <details> on purpose. showModal() puts
+  // it in the top layer, but events still bubble along the DOM tree, so a
+  // click on Cancel from inside <summary> would toggle the card underneath.
   if (!collapsible) {
     return (
-      <div className="rounded-card border border-border bg-surface p-4">
-        <div className="flex items-start gap-2">{header}</div>
-      </div>
+      <>
+        <div className="rounded-card border border-border bg-surface p-4">
+          <div className="flex items-start gap-2">{header}</div>
+        </div>
+        {dialog}
+      </>
     );
   }
 
   return (
-    <details className="group rounded-card border border-border bg-surface">
-      <summary className="flex cursor-pointer list-none items-start gap-2 p-4 [&::-webkit-details-marker]:hidden">
-        {header}
-      </summary>
-      <div className="space-y-3 border-t border-border px-4 pb-4 pt-3">{children}</div>
-    </details>
+    <>
+      <details className="group rounded-card border border-border bg-surface">
+        <summary className="flex cursor-pointer list-none items-start gap-2 p-4 [&::-webkit-details-marker]:hidden">
+          {header}
+        </summary>
+        <div className="space-y-3 border-t border-border px-4 pb-4 pt-3">{children}</div>
+      </details>
+      {dialog}
+    </>
   );
 }

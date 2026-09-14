@@ -45,6 +45,8 @@ type MeetingLite = {
 
 type CourseRow = {
   id: string;
+  courseId: string;
+  termId: string | null;
   code: string;
   title: string;
   href: string;
@@ -90,6 +92,8 @@ function CourseCard({ course }: { course: CourseRow }) {
       code={course.code}
       title={course.title}
       href={course.href}
+      courseId={course.courseId}
+      termId={course.termId}
       collapsible={course.meetings.length > 0}
     >
       {course.meetings.map((m) => (
@@ -237,6 +241,8 @@ export default async function OnboardingPage() {
     if (!course) continue;
     const row = {
       id: e.id,
+      courseId: e.courseId,
+      termId: e.termId,
       code: `${course.subject.code} ${course.number}`,
       title: course.title,
       href: courseHref(course.subject.code ?? "", course.number),

@@ -119,10 +119,24 @@ export async function hiddenExamRowsForUser(userId: string, termId: string): Pro
  * the row itself now. `assignment`/`quiz` rows don't belong on the exam page
  * and are dropped. `courseId` is a raw FK (same convention as `FinalExamRow`
  * above), so the course/subject join happens in JS.
+ *
+ * Narrowed to what the student is still enrolled in, the same way
+ * `examRowsForUser` above is. These rows carry their own userId, so this was
+ * never an ownership hole, but an enrollment can go away without its
+ * assessments: the importer prunes a re-uploaded term, and a student can
+ * remove a course by hand. A course they are no longer in must not keep
+ * posting midterms to the exam list, the month calendar or the feed.
  */
 export async function syllabusExamRowsForUser(userId: string, termId: string): Promise<ExamListItem[]> {
+  const enrolled = await db.enrollment.findMany({
+    where: { userId, termId },
+    select: { courseId: true },
+  });
+  const enrolledIds = [...new Set(enrolled.map((e) => e.courseId))];
+  if (enrolledIds.length === 0) return [];
+
   const rows = await db.syllabusAssessment.findMany({
-    where: { userId, termId, kind: { in: ['midterm', 'final'] } },
+    where: { userId, termId, courseId: { in: enrolledIds }, kind: { in: ['midterm', 'final'] } },
   });
   if (rows.length === 0) return [];
 

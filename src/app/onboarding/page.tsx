@@ -86,7 +86,7 @@ function MeetingLine({ m }: { m: MeetingLite }) {
   );
 }
 
-function CourseCard({ course }: { course: CourseRow }) {
+function CourseCard({ course, canRemove }: { course: CourseRow; canRemove: boolean }) {
   return (
     <EnrolledCourseCard
       code={course.code}
@@ -94,6 +94,7 @@ function CourseCard({ course }: { course: CourseRow }) {
       href={course.href}
       courseId={course.courseId}
       termId={course.termId}
+      canRemove={canRemove}
       collapsible={course.meetings.length > 0}
     >
       {course.meetings.map((m) => (
@@ -103,7 +104,22 @@ function CourseCard({ course }: { course: CourseRow }) {
   );
 }
 
-function CourseGroup({ group, first }: { group: TermGroup; first: boolean }) {
+/**
+ * `canRemove` is false for finished terms and for the undated academic record.
+ * Removing is for a schedule change or a drop, and neither is a thing you can
+ * do to a course you already completed: the only effect there would be to
+ * quietly change degree progress and review eligibility with no way back
+ * except re-importing the record.
+ */
+function CourseGroup({
+  group,
+  first,
+  canRemove,
+}: {
+  group: TermGroup;
+  first: boolean;
+  canRemove: boolean;
+}) {
   return (
     <div className={first ? "" : "mt-5"}>
       <h3 className="text-sm font-medium text-foreground">{group.termName}</h3>
@@ -113,7 +129,7 @@ function CourseGroup({ group, first }: { group: TermGroup; first: boolean }) {
           because a grid row is as tall as its tallest cell. */}
       <div className="mt-2 flex flex-col gap-2">
         {group.rows.map((r) => (
-          <CourseCard key={r.id} course={r} />
+          <CourseCard key={r.id} course={r} canRemove={canRemove} />
         ))}
       </div>
     </div>
@@ -338,7 +354,7 @@ export default async function OnboardingPage() {
                 </p>
               ) : (
                 [...currentByTerm.values()].map((g, i) => (
-                  <CourseGroup key={g.termId} group={g} first={i === 0} />
+                  <CourseGroup key={g.termId} group={g} first={i === 0} canRemove />
                 ))
               )}
             </section>
@@ -353,7 +369,7 @@ export default async function OnboardingPage() {
                 </p>
               ) : (
                 [...pastByTerm.values()].map((g, i) => (
-                  <CourseGroup key={g.termId} group={g} first={i === 0} />
+                  <CourseGroup key={g.termId} group={g} first={i === 0} canRemove={false} />
                 ))
               )}
             </section>

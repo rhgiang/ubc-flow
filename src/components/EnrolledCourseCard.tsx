@@ -23,6 +23,7 @@ export default function EnrolledCourseCard({
   href,
   courseId,
   termId,
+  canRemove,
   collapsible,
   children,
 }: {
@@ -32,6 +33,13 @@ export default function EnrolledCourseCard({
   courseId: string;
   /** Null on an academic-record course, which carries no term. */
   termId: string | null;
+  /**
+   * Only current and upcoming terms offer removal. Removing is for a schedule
+   * change or a drop; a finished course is history, and taking it off would
+   * quietly change degree progress and review eligibility with no way back
+   * except re-importing the academic record.
+   */
+  canRemove: boolean;
   /** False when there are no meetings to hide, so the card renders inert. */
   collapsible: boolean;
   children: ReactNode;
@@ -64,8 +72,9 @@ export default function EnrolledCourseCard({
 
   // Sits in the header so it is reachable on a card with no meetings to
   // expand. Inside a <summary> a plain click would also toggle the card, the
-  // same reason the course link above intercepts its own.
-  const removeButton = (
+  // same reason the course link above intercepts its own. Absent entirely on a
+  // finished term: see `canRemove`.
+  const removeButton = !canRemove ? null : (
     <button
       type="button"
       onClick={(e) => {
@@ -82,7 +91,7 @@ export default function EnrolledCourseCard({
     </button>
   );
 
-  const dialog = (
+  const dialog = !canRemove ? null : (
     <ConfirmDialog
       open={confirming}
       title={`Remove ${code}?`}

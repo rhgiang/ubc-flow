@@ -12,6 +12,10 @@ type ImportResult = {
   /** Credits earned elsewhere. Stored and counted, but never an enrolment. */
   transfers: number;
   removed: number;
+  /** Courses kept because this file said nothing about their term. */
+  untouched: string[];
+  /** Diagnostic only, logged server-side. Never shown to a student. */
+  unexpectedStatuses: string[];
   boundStudent: boolean;
 };
 
@@ -214,6 +218,32 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
               you&apos;re no longer registered in for{" "}
               {result.removed === 1 ? "that term" : "those terms"}.
             </p>
+          )}
+          {/*
+            The other half of the removal story. The importer only prunes
+            terms the file actually covers, so a course dropped in a term this
+            export doesn't mention survives it, and used to do so in total
+            silence. Naming them is what makes a manual removal findable.
+          */}
+          {result.untouched.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm font-medium text-foreground">
+                Kept {result.untouched.length} course
+                {result.untouched.length === 1 ? "" : "s"} this file didn&apos;t mention:
+              </p>
+              <ul className="mt-1 text-sm text-text-secondary">
+                {result.untouched.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+              <p className="mt-1 text-xs text-text-tertiary">
+                This export says nothing about{" "}
+                {result.untouched.length === 1 ? "that term" : "those terms"}, so we left{" "}
+                {result.untouched.length === 1 ? "it" : "them"} alone instead of deleting a
+                term the file doesn&apos;t cover. If you&apos;ve dropped one, use Remove on
+                its card in Current courses or Past courses above.
+              </p>
+            </div>
           )}
           {result.transfers > 0 && (
             <p className="mt-1 text-sm text-text-secondary">

@@ -10,6 +10,28 @@ export type ImportResult = {
   transfers: number;
   /** Enrollments dropped because they are no longer in the re-uploaded term. */
   removed: number;
+  /**
+   * Courses still on the account that this file said nothing about, as
+   * "CPSC 110 (2026 Winter Term 1)".
+   *
+   * The prune below only touches terms the file covers, so a course dropped in
+   * a term this export does not mention survives it. That is deliberate (see
+   * `keptByTerm`), but it used to be silent, which is how a dropped course
+   * could sit on an account through re-upload after re-upload with nothing on
+   * screen to explain it. Naming them is what makes it recoverable: the
+   * student can see the leftovers and remove them by hand.
+   */
+  untouched: string[];
+  /**
+   * Distinct `registrationStatus` values in the file that are not a plain
+   * "Registered".
+   *
+   * Reported rather than acted on. We do not know Workday's vocabulary for a
+   * dropped or withdrawn course, and guessing wrong deletes a real
+   * registration, which is worse than keeping a stale one. Logged server-side
+   * so the next real export tells us the words instead of us inventing them.
+   */
+  unexpectedStatuses: string[];
   boundStudent: boolean;
 };
 
@@ -183,6 +205,53 @@ export async function importExport(
     await db.enrollmentMeeting.deleteMany({ where: stale });
   }
 
+  // Everything left in a dated term this file never covered. `not: null` is
+  // explicit because SQL's NOT IN is NULL for a NULL column, and the
+  // academic-record rows (termId null) are not "a term the file skipped" in
+  // any sense a student would recognise.
+  const leftovers = await db.enrollment.findMany({
+    where: { userId, termId: { not: null, notIn: [...keptByTerm.keys()] } },
+    select: { courseId: true, termId: true },
+  });
+  const untouched: string[] = [];
+  if (leftovers.length > 0) {
+    const [courses, terms] = await Promise.all([
+      db.course.findMany({
+        where: { id: { in: [...new Set(leftovers.map((l) => l.courseId))] } },
+        select: { id: true, number: true, subject: { select: { code: true } } },
+      }),
+      db.term.findMany({
+        where: { id: { in: [...new Set(leftovers.map((l) => l.termId as string))] } },
+        select: { id: true, name: true },
+      }),
+    ]);
+    const courseById = new Map(courses.map((c) => [c.id, c]));
+    const termById = new Map(terms.map((t) => [t.id, t.name]));
+    for (const l of leftovers) {
+      const course = courseById.get(l.courseId);
+      const termName = termById.get(l.termId as string);
+      // A row whose course or term fell out of the catalogue has no name to
+      // show, and a blank line helps nobody remove anything.
+      if (!course || !termName) continue;
+      untouched.push(`${course.subject.code} ${course.number} (${termName})`);
+    }
+    untouched.sort();
+  }
+
+  const unexpectedStatuses = [
+    ...new Set(
+      parsed.rows.flatMap((r) => {
+        const s = r.registrationStatus?.trim();
+        return s && s.toLowerCase() !== 'registered' ? [s] : [];
+      }),
+    ),
+  ].sort();
+  if (unexpectedStatuses.length > 0) {
+    // Column values only, the same rule the upload route logs under: a
+    // registration status is never a name, a number or a grade.
+    console.error('import: unexpected registration statuses:', JSON.stringify(unexpectedStatuses));
+  }
+
   /**
    * Transfer credit, stored rather than discarded.
    *
@@ -218,6 +287,8 @@ export async function importExport(
     excluded: parsed.excluded.length,
     transfers: parsed.transfers.length,
     removed,
+    untouched,
+    unexpectedStatuses,
     boundStudent,
   };
 }

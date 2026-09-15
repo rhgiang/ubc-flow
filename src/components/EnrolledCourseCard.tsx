@@ -134,7 +134,13 @@ export default function EnrolledCourseCard({
         <span className="ml-2 text-sm text-text-secondary">{title}</span>
       </span>
       {removeButton}
-      {collapsible && (
+      {/*
+        A card with no meetings has no chevron, but it still reserves the
+        chevron's slot. Without it the Remove button slides right into that
+        space and sits out of line with every other card in the list, which is
+        what a course with no fixed meeting time (CRWR 200) looked like.
+      */}
+      {collapsible ? (
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -145,6 +151,8 @@ export default function EnrolledCourseCard({
         >
           <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
+      ) : (
+        <span aria-hidden className="mt-1 h-4 w-4 shrink-0" />
       )}
     </>
   );

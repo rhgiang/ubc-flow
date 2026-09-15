@@ -9,6 +9,11 @@ import type { SavedAssessmentRow } from '@/syllabus/schema';
 export type SyllabusListItem = {
   courseId: string;
   courseLabel: string;
+  /** This student's lecture section for the course, from their Workday
+   *  import, or null if they have not imported one. Used only to label the
+   *  section-specific rows on the confirm table: a syllabus that gives one
+   *  midterm two dates, one per section, produces a row for each. */
+  mySection: string | null;
   syllabus: {
     id: string;
     /** All three null together when there is no uploaded PDF on this row. */
@@ -139,6 +144,7 @@ export default function SyllabusList({ termId, items }: { termId: string; items:
                 // A link is a bookmark: we never fetch it, so there is
                 // nothing to read until a PDF or the pasted text arrives.
                 readable={item.syllabus.filename !== null || item.syllabus.sourceText !== null}
+                mySection={item.mySection}
                 onSaved={() => router.refresh()}
               />
 

@@ -94,9 +94,12 @@ export function compareItems(a: ExamListItem, b: ExamListItem): number {
   return ka[0] - kb[0] || ka[1] - kb[1] || ka[2].localeCompare(kb[2]);
 }
 
-/** Section codes are compared, never displayed, through this: the exam table
- *  and a Workday export are two different transcriptions of the same string. */
-function sameSection(a: string): string {
+/** Section codes are compared, never displayed, through this: the exam table,
+ *  a Workday export and a syllabus PDF are three different transcriptions of
+ *  the same string. Exported so the syllabus confirm screen marks a student's
+ *  own section by the same comparison `filterToOwnSection` uses below, rather
+ *  than growing a second one that disagrees at the edges. */
+export function sameSection(a: string): string {
   return a.trim().toUpperCase();
 }
 

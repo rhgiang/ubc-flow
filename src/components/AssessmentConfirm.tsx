@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { sameSection } from '@/schedule/exams';
 import {
   ASSESSMENT_KINDS,
   MAX_ASSESSMENT_ROWS,
@@ -34,6 +35,35 @@ function toRow(a: SavedAssessmentRow): Row {
 }
 
 /**
+ * What a row's section says to THIS student, or null when the row carries no
+ * section and there is nothing to say.
+ *
+ * Nothing is ever auto-removed here. A syllabus that writes "Oct 26 (126)
+ * Oct 27 (124)" produces a row per section, and dropping the ones that don't
+ * match would leave a student holding a date with no sign anything was
+ * dropped, which is precisely what this screen exists to prevent: a section
+ * code read off a PDF can be transcribed oddly, and a Workday import can be
+ * missing or stale. So every row is shown, labelled, and removed by the
+ * student. When we don't know their section, nothing is marked as theirs,
+ * because a guess here sends someone to a midterm on the wrong day.
+ *
+ * `sameSection` is the exam page's comparison (src/schedule/exams.ts), reused
+ * rather than re-written so both places agree on what "the same section" is.
+ */
+function sectionNote(
+  section: string | null,
+  mySection: string | null,
+): { text: string; mine: boolean } | null {
+  if (section === null) return null;
+  if (mySection === null) return { text: `For section ${section}`, mine: false };
+  const mine = sameSection(section) === sameSection(mySection);
+  return {
+    text: mine ? `For section ${section}, which is yours` : `For section ${section}, not yours`,
+    mine,
+  };
+}
+
+/**
  * The confirm screen from the design doc's §8 "human in the loop" - extracted
  * rows are proposals only. Every extracted row keeps its verbatim `quote` and
  * `page` visible beside it: that quote is the only way to check the model
@@ -50,12 +80,17 @@ export default function AssessmentConfirm({
   saved,
   alreadyExtracted,
   readable,
+  mySection,
   onSaved,
 }: {
   syllabusId: string;
   /** Rows already saved for this syllabus, newest save wins. */
   saved: SavedAssessmentRow[];
   alreadyExtracted: boolean;
+  /** This student's lecture section for the course, from their Workday
+   *  import, or null when they have not imported one. Only ever used to
+   *  LABEL a section-specific row, never to drop one. */
+  mySection: string | null;
   /** False for a link-only syllabus: a bookmark is never fetched, so there is
    *  nothing to read. Said outright instead of offering a button that can
    *  only fail, or an empty list that looks like a syllabus with no exams. */
@@ -122,6 +157,7 @@ export default function AssessmentConfirm({
       date: null,
       startTime: null,
       weight: null,
+      section: null,
       quote: null,
       page: null,
       manual: true,
@@ -247,7 +283,9 @@ export default function AssessmentConfirm({
           {mode === 'extract' ? 'No graded assessments found.' : 'Nothing here yet.'}
         </p>
       )}
-      {rows.map((row, i) => (
+      {rows.map((row, i) => {
+        const note = sectionNote(row.section, mySection);
+        return (
         <div key={i} className="rounded-input border border-border p-3">
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -298,6 +336,25 @@ export default function AssessmentConfirm({
               Remove
             </button>
           </div>
+          {note && (
+            <p className={`mt-2 text-sm font-medium ${
+              mySection === null
+                ? 'text-text-secondary'
+                : note.mine ? 'text-brand-accent' : 'text-danger'
+            }`}
+            >
+              {note.text}
+              {mySection === null
+                ? '. Import your Workday schedule and we can tell you which one is yours.'
+                : note.mine ? '.' : '. Remove it if you don’t want it.'}
+            </p>
+          )}
+          {row.outsideTerm && (
+            <p className="mt-2 text-sm font-medium text-danger">
+              This date falls outside the term, so the year may be wrong. Check it against the
+              quote below.
+            </p>
+          )}
           {row.quote !== null ? (
             <p className="mt-2 text-sm italic text-text-secondary">
               &ldquo;{row.quote}&rdquo; (page {row.page})
@@ -309,7 +366,8 @@ export default function AssessmentConfirm({
           )}
           {row.edited && <p className="mt-1 text-sm text-brand-accent">Edited</p>}
         </div>
-      ))}
+        );
+      })}
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       <div className="flex flex-wrap gap-3">
         <button

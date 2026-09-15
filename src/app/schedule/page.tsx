@@ -52,7 +52,7 @@ async function examsTabData(
   ]);
 
   const courseIds = [...new Set(enrollments.map((e) => e.courseId))];
-  const [courses, syllabi] = courseIds.length
+  const [courses, syllabi, lectures] = courseIds.length
     ? await Promise.all([
         db.course.findMany({ where: { id: { in: courseIds } }, include: { subject: true } }),
         db.syllabus.findMany({
@@ -61,9 +61,21 @@ async function examsTabData(
           // corrected there, with no second extraction call.
           include: { assessments: true },
         }),
+        // The student's own lecture section per course, the same query
+        // `examRowsForUser` runs for UBC's exam table: Workday's
+        // "Instructional Format" is the activity, and a lab's "L1U" is not a
+        // section a syllabus writes a midterm date against. Here it only
+        // labels the confirm table's section-specific rows.
+        db.enrollmentMeeting.findMany({
+          where: { userId, termId: currentTermId, courseId: { in: courseIds }, activity: 'Lecture' },
+          select: { courseId: true, sectionCode: true },
+        }),
       ])
-    : [[], []];
+    : [[], [], []];
   const syllabusByCourse = new Map(syllabi.map((s) => [s.courseId, s]));
+  const sectionByCourse = new Map(
+    lectures.flatMap((m) => (m.sectionCode ? [[m.courseId, m.sectionCode] as const] : [])),
+  );
 
   const items = mergeExams(scraped, fromSyllabus);
 
@@ -82,6 +94,7 @@ async function examsTabData(
         return {
           courseId: c.id,
           courseLabel: courseLabel(c),
+          mySection: sectionByCourse.get(c.id) ?? null,
           syllabus: s
             ? {
                 id: s.id,

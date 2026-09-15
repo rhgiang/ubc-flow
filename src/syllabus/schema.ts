@@ -15,6 +15,26 @@ export type ExtractedAssessment = {
   date: string | null;
   startTime: string | null;
   weight: number | null;
+  /**
+   * Which lecture section this row's date is for, when one line gives a
+   * different date per section ("In-class Oct 26 (126) Oct 27 (124)"), and
+   * null when the date is everyone's.
+   *
+   * A CONFIRM SCREEN HINT ONLY. There is deliberately no column for it and no
+   * migration: its whole job is to let a student pick the row that is theirs
+   * before anything is saved, and once they have confirmed, the surviving row
+   * is simply their assessment. Storing it would mean maintaining a second,
+   * staler copy of section membership that `EnrollmentMeeting` already holds.
+   */
+  section: string | null;
+  /**
+   * Set when `date` landed outside the term this syllabus belongs to. The
+   * month and day came off the page but the year did not, so the row is kept
+   * and shown with a warning rather than clamped (which invents a date) or
+   * nulled (which is the bug this whole change exists to fix). Never stored:
+   * it is recomputed from the term on each extraction.
+   */
+  outsideTerm?: boolean;
   quote: string;
   page: number;
 };
@@ -40,16 +60,30 @@ export type SavedAssessmentRow = SavedAssessment & { editedByUser: boolean };
 const assessment = {
   type: 'object',
   additionalProperties: false,
-  required: ['title', 'kind', 'date', 'startTime', 'weight', 'quote', 'page'],
+  // strict:true: every property is listed in `required` and nullable ones are
+  // typed ["string","null"], or the API rejects the tool definition outright.
+  required: ['title', 'kind', 'date', 'startTime', 'weight', 'section', 'quote', 'page'],
   properties: {
     title: { type: 'string', description: 'As the syllabus names it, e.g. "Midterm 1".' },
     kind: { type: 'string', enum: [...ASSESSMENT_KINDS] },
     date: {
       type: ['string', 'null'],
-      description: 'ISO date (YYYY-MM-DD), or null if the syllabus gives none. Never infer one.',
+      description: 'The date the syllabus states, as YYYY-MM-DD. Syllabi rarely write the '
+        + 'year, so when one gives a month and day ("Oct 26"), resolve it to the year that '
+        + 'puts it inside the term stated in the system prompt and report the full date. '
+        + 'Null when the syllabus states no date for this assessment at all: "TBA", "will '
+        + 'be posted on Canvas" and "scheduled by the registrar" are not dates, and a date '
+        + 'is never guessed from the term calendar or from a position in a list.',
     },
     startTime: { type: ['string', 'null'], description: '24-hour HH:MM, or null.' },
     weight: { type: ['number', 'null'], description: 'Percent of the final grade, or null.' },
+    section: {
+      type: ['string', 'null'],
+      description: 'The lecture section this date is for, exactly as the syllabus writes it '
+        + '("126"), when one assessment is written with a different date per section. One row '
+        + 'per section in that case, each with its own date. Null when the date is the same '
+        + 'for the whole class, which is the usual case.',
+    },
     quote: { type: 'string', description: 'Verbatim sentence from the syllabus supporting this row.' },
     page: { type: 'integer', description: '1-indexed page the quote appears on.' },
   },
@@ -84,6 +118,10 @@ function normalizeFields(raw: unknown): Omit<ExtractedAssessment, 'quote' | 'pag
     startTime: typeof r.startTime === 'string' && /^\d{2}:\d{2}$/.test(r.startTime)
       ? r.startTime : null,
     weight: typeof r.weight === 'number' && Number.isFinite(r.weight) ? r.weight : null,
+    // Capped because it is rendered: a section code is three or four
+    // characters, and this one comes off a PDF a stranger wrote.
+    section: typeof r.section === 'string' && r.section.trim() !== ''
+      ? r.section.trim().slice(0, 20) : null,
   };
 }
 
@@ -135,6 +173,10 @@ export function toSavedAssessmentRow(row: {
     date: row.date ? row.date.toISOString().slice(0, 10) : null,
     startTime: row.startTime,
     weight: row.weight,
+    // Always null coming back out: `section` is the confirm screen's way of
+    // asking "which of these is yours", and a saved row is the one the
+    // student already answered that with.
+    section: null,
     editedByUser: row.editedByUser,
   };
   return row.quote !== null && row.page !== null

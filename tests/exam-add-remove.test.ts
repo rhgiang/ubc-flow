@@ -54,7 +54,7 @@ describe('normalizeManualExam', () => {
   it('saves a typed exam with no quote, because the student is the evidence', () => {
     expect(normalizeManualExam(typed)).toEqual({
       title: 'Midterm', kind: 'midterm', date: '2026-10-14', startTime: '18:00',
-      weight: 20, quote: null, page: null, editedByUser: true, location: null,
+      weight: 20, section: null, quote: null, page: null, editedByUser: true, location: null,
     });
   });
 

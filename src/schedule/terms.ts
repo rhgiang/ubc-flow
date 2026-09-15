@@ -65,3 +65,51 @@ export function getCurrentAndNextTerm<T extends TermLike>(
   if (currentIndex === -1) return { current: null, next: null };
   return { current: sorted[currentIndex], next: sorted[currentIndex + 1] ?? null };
 }
+
+/** The calendar window a term's dates fall in, as YYYY-MM-DD. Compared as
+ *  strings on purpose: these are plain calendar days with no time zone in
+ *  them, and that is also the shape the extraction reports dates in. */
+export type TermWindow = { start: string; end: string };
+
+function isoDay(year: number, month: number, day: number): string {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+/** UBC-V's session months, the same mapping `currentOrdinal` reads in the
+ *  other direction. Each window runs to the end of its last month so a final
+ *  sat in the registrar's exam period (late December, late April) is inside
+ *  the term rather than looking like a year adrift. */
+function sessionWindow(t: TermLike): TermWindow {
+  if (t.session === 'S') return { start: isoDay(t.year, 5, 1), end: isoDay(t.year, 8, 31) };
+  if (t.termNumber === 1) return { start: isoDay(t.year, 9, 1), end: isoDay(t.year, 12, 31) };
+  if (t.termNumber === 2) return { start: isoDay(t.year + 1, 1, 1), end: isoDay(t.year + 1, 4, 30) };
+  // Neither a session nor a term number we recognise. The whole academic year
+  // is still enough to pin a year onto a stated month.
+  return { start: isoDay(t.year, 1, 1), end: isoDay(t.year + 1, 4, 30) };
+}
+
+/**
+ * When a term runs, for anything that has to resolve "Oct 26" to a real year.
+ *
+ * `Term.startDate`/`endDate` are the schema's answer to this, and in this
+ * dataset they are NULL on every row: the catalogue scrape
+ * (src/scrape/parse-catalog.ts) reads the term picker, which publishes a name
+ * and nothing else. So the session months are the floor, by the same UBC-V
+ * mapping `currentOrdinal` above already relies on, and the columns only ever
+ * widen that window when they are populated and reach outside it.
+ */
+export function termDateRange(
+  term: TermLike & { startDate?: Date | null; endDate?: Date | null },
+): TermWindow {
+  const { start, end } = sessionWindow(term);
+  const from = term.startDate ? isoDate(term.startDate) : null;
+  const to = term.endDate ? isoDate(term.endDate) : null;
+  return {
+    start: from && from < start ? from : start,
+    end: to && to > end ? to : end,
+  };
+}

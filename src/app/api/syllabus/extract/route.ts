@@ -3,6 +3,7 @@ import { get } from '@vercel/blob';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { extractAssessments } from '@/syllabus/extract';
+import { termDateRange } from '@/schedule/terms';
 
 // Opus 5 over a multi-page PDF, non-streaming, is the only long-running route
 // in this repo - the platform's default function timeout would otherwise
@@ -57,6 +58,16 @@ export async function POST(req: Request) {
       },
       { status: 400 },
     );
+  }
+
+  // The term is what turns "Oct 26" into a real date (see
+  // src/syllabus/extract.ts). `Syllabus.termId` is a raw FK, same convention
+  // as the rest of this schema, so it is fetched rather than included. A
+  // syllabus whose term has gone is not a state a student can reach, and the
+  // same 404 answers it as any other row we cannot serve.
+  const term = await db.term.findUnique({ where: { id: syllabus.termId } });
+  if (!term) {
+    return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   }
 
   // The PDF wins when a course has both: it carries page numbers and survives
@@ -117,7 +128,7 @@ export async function POST(req: Request) {
     const source = blob
       ? Buffer.from(await new Response(blob.stream).arrayBuffer())
       : syllabus.sourceText!;
-    const assessments = await extractAssessments(source);
+    const assessments = await extractAssessments(source, termDateRange(term));
     return NextResponse.json({ assessments });
   } catch (e) {
     // The message only, never the syllabus content or who sent it. A missing

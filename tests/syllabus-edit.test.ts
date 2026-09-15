@@ -14,7 +14,9 @@ describe('normalizeSavedAssessment', () => {
   it('saves a hand-typed row with no quote, because the student is the evidence', () => {
     expect(normalizeSavedAssessment(manual)).toEqual({
       title: 'Midterm 2', kind: 'midterm', date: '2026-11-18', startTime: null,
-      weight: null, quote: null, page: null, editedByUser: true,
+      // A typed row is the student's own, so there is no other section's copy
+      // of it to tell apart.
+      weight: null, section: null, quote: null, page: null, editedByUser: true,
     });
   });
 

@@ -351,7 +351,12 @@ describe('which syllabus sources the extract route can read', () => {
   it('reads a pasted syllabus, sending the text itself', async () => {
     const res = await extract({ sourceText: 'Midterm 1: Oct 14 (20%)' }, 1);
     expect(res.status).toBe(200);
-    expect(extractAssessments).toHaveBeenLastCalledWith('Midterm 1: Oct 14 (20%)');
+    // The term window travels with it: without it the model has no year to
+    // resolve "Oct 14" to and every date comes back null.
+    expect(extractAssessments).toHaveBeenLastCalledWith(
+      'Midterm 1: Oct 14 (20%)',
+      { start: expect.any(String), end: expect.any(String) },
+    );
   });
 
   it('reads an uploaded PDF, sending bytes rather than text', async () => {

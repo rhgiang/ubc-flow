@@ -65,7 +65,7 @@ describe('parseMeetingPatterns', () => {
   const withTime = (t: string) => parseMeetingPatterns(LAB.replace('9:00 a.m. - 12:00 p.m.', t))[0];
 
   it('splits a time range on an en dash or an em dash, not only a hyphen', () => {
-    for (const t of ['9:00 a.m. – 12:00 p.m.', '9:00 a.m. — 12:00 p.m.', '9:00 a.m.–12:00 p.m.']) {
+    for (const t of ['9:00 a.m. \u2013 12:00 p.m.', '9:00 a.m. \u2014 12:00 p.m.', '9:00 a.m.\u201312:00 p.m.']) {
       const r = withTime(t);
       expect(r.days).toEqual(['Thu']);
       expect(r.startTime).toBe('09:00');
@@ -101,7 +101,7 @@ describe('parseMeetingPatterns', () => {
   });
 
   it('keeps a block with a different day, time or room as its OWN pattern', () => {
-    // MANU_V 261's real cell: Mon Wed 1–2 plus Fri 2–3. Reading only the
+    // MANU_V 261's real cell: Mon Wed 1\u20132 plus Fri 2\u20133. Reading only the
     // first block dropped the Friday class from student calendars.
     const r = parseMeetingPatterns(
       '2026-09-09 - 2026-12-07 | Mon Wed | 1:00 p.m. - 2:00 p.m. | UBCV | Frank Forward Building (FORW) | Floor: 2 | Room: 217\n\n' +
@@ -159,8 +159,8 @@ describe('parseMeetingPatterns', () => {
 
 describe('parseWorkdayExport - one row per weekly pattern', () => {
   it('emits a row for EACH weekly pattern of a section', () => {
-    // MANU_V 231's real shape: the lecture meets Wed 2–3 in one room and
-    // Fri 1–2 in another, in one Meeting Patterns cell.
+    // MANU_V 231's real shape: the lecture meets Wed 2\u20133 in one room and
+    // Fri 1\u20132 in another, in one Meeting Patterns cell.
     const grid = [
       ['', 'Course Listing', 'Section', 'Instructional Format', 'Meeting Patterns'],
       [

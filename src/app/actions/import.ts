@@ -1,7 +1,7 @@
 'use server';
 
 import { readWorkbookGrid } from '@/upload/read-grid';
-import { parseWorkdayExport } from '@/upload/parse-workday';
+import { parseWorkdayExport, EXCLUDED_REASON_TEXT } from '@/upload/parse-workday';
 import { matchWorkdayRows, type ScheduleImport } from '@/upload/match-schedule';
 
 const MAX_BYTES = 1 * 1024 * 1024;
@@ -15,12 +15,6 @@ export type SkippedRow = { raw: string; reason: string };
 export type ImportResult =
   | ({ ok: true } & ScheduleImport & { skipped: SkippedRow[] })
   | { ok: false; error: string; skipped?: SkippedRow[] };
-
-const REASON_TEXT: Record<string, string> = {
-  transfer_credit: 'Transfer credit, earned at another institution',
-  unparseable_course: "Course code couldn't be read",
-  no_term: 'No meeting dates, so the term is unknown',
-};
 
 /**
  * Parses a Workday export and resolves it to catalogue sections for the
@@ -57,7 +51,7 @@ export async function parseWorkdayForSchedule(formData: FormData): Promise<Impor
     // "transfer credits" is the bug spec §8.2 calls out on the Account page.
     const skipped = parsed.excluded.map((e) => ({
       raw: e.raw,
-      reason: REASON_TEXT[e.reason] ?? e.reason,
+      reason: EXCLUDED_REASON_TEXT[e.reason],
     }));
 
     const result = await matchWorkdayRows(parsed.rows);

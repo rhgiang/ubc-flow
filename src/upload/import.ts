@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { hashStudentNumber } from '@/lib/hash';
-import type { ParsedExport } from '@/upload/parse-workday';
+import { EXCLUDED_REASON_TEXT, type ParsedExport } from '@/upload/parse-workday';
 
 export type ImportResult = {
   matched: number;
@@ -14,7 +14,8 @@ export type ImportResult = {
    * screen instead of a section that vanished behind "Matched N courses".
    */
   unplaced: string[];
-  excluded: number;
+  /** Rows the parser skipped, each with the reason in words. A bare count told the student nothing. */
+  excluded: { raw: string; reason: string }[];
   /** Credits earned elsewhere, stored but never an enrollment. */
   transfers: number;
   /** Enrollments dropped because they are no longer in the re-uploaded term. */
@@ -318,7 +319,7 @@ export async function importExport(
     matched,
     unmatched,
     unplaced: [...unplaced].sort(),
-    excluded: parsed.excluded.length,
+    excluded: parsed.excluded.map((e) => ({ raw: e.raw, reason: EXCLUDED_REASON_TEXT[e.reason] })),
     transfers: parsed.transfers.length,
     removed,
     untouched,

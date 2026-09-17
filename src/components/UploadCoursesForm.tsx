@@ -10,13 +10,13 @@ type ImportResult = {
   unmatched: string[];
   /** Sections the file named that we could not read a meeting day or time for. */
   unplaced: string[];
-  excluded: number;
+  excluded: { raw: string; reason: string }[];
   /** Credits earned elsewhere. Stored and counted, but never an enrolment. */
   transfers: number;
   removed: number;
   /** Courses kept because this file said nothing about their term. */
   untouched: string[];
-  /** Diagnostic only, logged server-side. Never shown to a student. */
+  /** Registration statuses in the file other than Registered, imported as they are. */
   unexpectedStatuses: string[];
   /** Further tables in the file that we do not read yet. */
   unparsedTables: string[];
@@ -261,10 +261,33 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
               UBC reviews.
             </p>
           )}
-          {result.excluded > 0 && (
+          {result.excluded.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm font-medium text-foreground">
+                Skipped {result.excluded.length} row
+                {result.excluded.length === 1 ? "" : "s"}:
+              </p>
+              <ul className="mt-1 text-sm text-text-secondary">
+                {result.excluded.map((e) => (
+                  <li key={e.raw}>
+                    {e.raw}
+                    <span className="text-text-tertiary"> ({e.reason})</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {/*
+            We do not know Workday's words for a dropped or waitlisted course,
+            so these rows are imported as they are and the student is told.
+            Guessing and filtering would delete a real registration.
+          */}
+          {result.unexpectedStatuses.length > 0 && (
             <p className="mt-1 text-sm text-text-secondary">
-              Skipped {result.excluded} row{result.excluded === 1 ? "" : "s"} we
-              couldn&apos;t read.
+              Some rows had a registration status of{" "}
+              {result.unexpectedStatuses.join(", ")} rather than Registered. We
+              added them anyway. If one isn&apos;t a course you&apos;re taking, use
+              Remove on its card above.
             </p>
           )}
 

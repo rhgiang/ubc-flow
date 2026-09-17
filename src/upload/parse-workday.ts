@@ -89,6 +89,13 @@ export type ExcludedRow = {
   reason: 'transfer_credit' | 'unparseable_course' | 'no_term';
 };
 
+/** The reason a row was excluded, in words a student can act on. */
+export const EXCLUDED_REASON_TEXT: Record<ExcludedRow['reason'], string> = {
+  transfer_credit: 'Transfer credit, earned at another institution',
+  unparseable_course: "Course code couldn't be read",
+  no_term: 'No meeting dates, so the term is unknown',
+};
+
 export type ParsedExport = {
   studentNumber: string | null;
   rows: EnrollmentRow[];

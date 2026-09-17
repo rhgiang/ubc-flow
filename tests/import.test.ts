@@ -93,7 +93,9 @@ describe('importExport', () => {
     const r = await importExport(userA, parsed);
     expect(r.matched).toBe(1);
     expect(r.unmatched).toContain('ZZNOPE 999');
-    expect(r.excluded).toBe(1);
+    expect(r.excluded).toEqual([
+      { raw: 'MATH_V 101 - Integral Calculus', reason: 'Transfer credit, earned at another institution' },
+    ]);
   });
 
   it('writes a verified enrollment for the matched course', async () => {

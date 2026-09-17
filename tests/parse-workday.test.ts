@@ -58,6 +58,36 @@ describe('parseMeetingPatterns', () => {
     expect(midnight.startTime).toBe('00:00');
   });
 
+  // The lab cell of tests/fixtures/workday-current.xlsx, which imports fine;
+  // every variant below changes only the time segment.
+  const LAB =
+    '2026-09-10 - 2026-12-03 | Thu | 9:00 a.m. - 12:00 p.m. | UBCV | Institute for Computing Information and Cognitive Systems / Computer Science Building (ICCS) | Floor: 2 | Room: X260';
+  const withTime = (t: string) => parseMeetingPatterns(LAB.replace('9:00 a.m. - 12:00 p.m.', t))[0];
+
+  it('splits a time range on an en dash or an em dash, not only a hyphen', () => {
+    for (const t of ['9:00 a.m. – 12:00 p.m.', '9:00 a.m. — 12:00 p.m.', '9:00 a.m.–12:00 p.m.']) {
+      const r = withTime(t);
+      expect(r.days).toEqual(['Thu']);
+      expect(r.startTime).toBe('09:00');
+      expect(r.endTime).toBe('12:00');
+    }
+  });
+
+  it('reads an hour with no minutes and a 24-hour clock', () => {
+    expect(withTime('10 a.m. - 1 p.m.')).toMatchObject({ startTime: '10:00', endTime: '13:00' });
+    expect(withTime('12 p.m. - 1 p.m.')).toMatchObject({ startTime: '12:00', endTime: '13:00' });
+    expect(withTime('12 a.m. - 1 a.m.')).toMatchObject({ startTime: '00:00', endTime: '01:00' });
+    expect(withTime('13:00 - 15:00')).toMatchObject({ startTime: '13:00', endTime: '15:00' });
+    expect(withTime('9:00 - 10:30')).toMatchObject({ startTime: '09:00', endTime: '10:30' });
+  });
+
+  it('still leaves a time it cannot read as null rather than guessing', () => {
+    expect(withTime('9:00 a.m to 12:00 p.m')).toMatchObject({ startTime: null, endTime: null });
+    expect(withTime('9:00 a.m. - 12:00 noon')).toMatchObject({ startTime: '09:00', endTime: null });
+    expect(withTime('25:00 - 26:00')).toMatchObject({ startTime: null, endTime: null });
+    expect(withTime('')).toMatchObject({ days: ['Thu'], startTime: null, endTime: null });
+  });
+
   it('merges blocks that repeat one weekly pattern into a single span', () => {
     // A course split around reading week: same days, time and room, so it is
     // ONE pattern running from the first block's start to the last block's end.

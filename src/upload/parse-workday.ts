@@ -106,15 +106,25 @@ export function parseSectionCode(cell: string): string | null {
 
 const DAY_ABBREVIATIONS = new Set(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
 
-/** "10:00 a.m." -> "10:00", "3:30 p.m." -> "15:30". Null on anything else. */
+/**
+ * "10:00 a.m." -> "10:00", "3:30 p.m." -> "15:30", "10 a.m." -> "10:00",
+ * "13:00" -> "13:00". Null on anything else.
+ */
 function to24Hour(t: string): string | null {
-  const m = t.trim().match(/^(\d{1,2}):(\d{2})\s*([ap])\.?m\.?$/i);
-  if (!m) return null;
-  let h = Number(m[1]);
-  const isPM = m[3].toLowerCase() === 'p';
-  if (isPM && h !== 12) h += 12;
-  if (!isPM && h === 12) h = 0;
-  return `${String(h).padStart(2, '0')}:${m[2]}`;
+  const s = t.trim();
+  const ampm = s.match(/^(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?$/i);
+  if (ampm) {
+    let h = Number(ampm[1]);
+    const isPM = ampm[3].toLowerCase() === 'p';
+    if (isPM && h !== 12) h += 12;
+    if (!isPM && h === 12) h = 0;
+    return `${String(h).padStart(2, '0')}:${ampm[2] ?? '00'}`;
+  }
+  const clock = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (clock && Number(clock[1]) < 24 && Number(clock[2]) < 60) {
+    return `${clock[1].padStart(2, '0')}:${clock[2]}`;
+  }
+  return null;
 }
 
 /**
@@ -151,7 +161,9 @@ function parseBlock(block: string): MeetingPattern {
 
   const segments = block.split('|').map((s) => s.trim());
   const days = (segments[1] ?? '').split(/\s+/).filter((d) => DAY_ABBREVIATIONS.has(d));
-  const timeMatch = segments[2]?.match(/^(.+?)\s*-\s*(.+)$/);
+  // The character class is Workday's output, not prose: a range may be joined
+  // by a hyphen, an en dash or an em dash.
+  const timeMatch = segments[2]?.match(/^(.+?)\s*[-–—]\s*(.+)$/);
   const building = segments[4] ? buildingCode(segments[4]) : null;
   const floorRaw = segments[5]?.replace(/^Floor:\s*/i, '').trim();
   const roomRaw = segments[6]?.replace(/^Room:\s*/i, '').trim();

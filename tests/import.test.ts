@@ -291,6 +291,15 @@ describe('importExport - sections it could not place', () => {
     expect(await sectionsWithMeetings()).toEqual(['103', 'L1U']);
   });
 
+  it('passes through the tables the parser did not read, so the form can say so', async () => {
+    const r = await importExport(userId, {
+      ...exportOf([lecture()]),
+      unparsedTables: ['Course Listing | Section | Meeting Patterns'],
+    });
+    expect(r.unparsedTables).toEqual(['Course Listing | Section | Meeting Patterns']);
+    expect(r.matched).toBe(1);
+  });
+
   it('says nothing about an academic-record row, which has no pattern by design', async () => {
     const r = await importExport(
       userId,

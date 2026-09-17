@@ -18,6 +18,8 @@ type ImportResult = {
   untouched: string[];
   /** Diagnostic only, logged server-side. Never shown to a student. */
   unexpectedStatuses: string[];
+  /** Further tables in the file that we do not read yet. */
+  unparsedTables: string[];
   boundStudent: boolean;
 };
 
@@ -291,6 +293,15 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
                 Workday wrote.
               </p>
             </div>
+          )}
+
+          {result.unparsedTables.length > 0 && (
+            <p className="mt-1 text-sm text-text-secondary">
+              This file also had {result.unparsedTables.length} table
+              {result.unparsedTables.length === 1 ? "" : "s"} we don&apos;t read yet, so
+              anything in {result.unparsedTables.length === 1 ? "it" : "them"} isn&apos;t
+              included.
+            </p>
           )}
 
           {/* Required by spec 4.2: never drop unmatched rows silently. */}

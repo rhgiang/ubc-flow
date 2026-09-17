@@ -41,6 +41,13 @@ export type ImportResult = {
    * so the next real export tells us the words instead of us inventing them.
    */
   unexpectedStatuses: string[];
+  /**
+   * Header rows of further tables in the file that the parser does not read,
+   * column labels only. A senior student's export can carry more than one
+   * table; the parser stops at the first boundary, and until now the route
+   * only mentioned that when it found no student number at all.
+   */
+  unparsedTables: string[];
   boundStudent: boolean;
 };
 
@@ -316,6 +323,7 @@ export async function importExport(
     removed,
     untouched,
     unexpectedStatuses,
+    unparsedTables: parsed.unparsedTables,
     boundStudent,
   };
 }

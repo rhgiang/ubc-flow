@@ -186,6 +186,53 @@ describe('parseWorkdayExport - one row per weekly pattern', () => {
   });
 });
 
+// A synthetic grid in the fixture's exact column layout, so a whole-row
+// variant runs through parseWorkdayExport the way a real export does.
+const HEADER = ['', 'Course Listing', 'Drop', 'Swap', 'Credits', 'Grading Basis', 'Section', 'Registration Status', 'Instructional Format', 'Delivery Mode', 'Meeting Patterns', 'Instructor', 'Start Date', 'End Date'];
+const blank = (n: number) => Array<string>(n).fill('');
+function labRow(meetingPatterns: string, start = '2026-09-08', end = '2026-12-07'): string[] {
+  return ['Test Student (99999999) - Faculty of Science', 'CPSC_V 110 - Computation, Programs, and Programming', '', '', '4', 'Graded', 'CPSC_V 110-L1U - Computation, Programs, and Programming', 'Registered', 'Laboratory', 'In Person Learning', meetingPatterns, '', start, end];
+}
+const gridOf = (...rows: string[][]) => [['My Enrolled Courses', ...blank(13)], blank(14), HEADER, ...rows];
+
+describe('parseWorkdayExport - a dated row whose pattern has no day or time', () => {
+  it('keeps the row with no days and carries the segments it could not read', () => {
+    for (const [cell, unparsed] of [
+      ['', ''],
+      ['To be determined', 'To be determined'],
+      ['| | | UBCV | Hennings Building (HENN) | Floor: 1 | Room: 202', ' |  | '],
+      ['2026-09-10 - 2026-12-03 | | | UBCV | Hennings Building (HENN) | Floor: 1 | Room: 202', '2026-09-10 - 2026-12-03 |  | '],
+      // The date segment is missing, so every segment shifts one to the left.
+      ['Thu | 9:00 a.m. - 12:00 p.m. | UBCV | x (X) | Floor: 1 | Room: 1', 'Thu | 9:00 a.m. - 12:00 p.m. | UBCV'],
+    ]) {
+      const p = parseWorkdayExport(gridOf(labRow(cell)));
+      expect(p.excluded).toEqual([]);
+      expect(p.rows).toHaveLength(1);
+      expect(p.rows[0].days).toEqual([]);
+      expect(p.rows[0].termYear).toBe(2026);
+      expect(p.rows[0].unparsedMeeting).toBe(unparsed);
+    }
+  });
+
+  it('carries the segments when the day parsed but the time did not', () => {
+    const p = parseWorkdayExport(gridOf(labRow('2026-09-10 - 2026-12-03 | Thu | 9:00 a.m to 12:00 p.m | UBCV | x (X) | Floor: 1 | Room: 1')));
+    expect(p.rows[0].days).toEqual(['Thu']);
+    expect(p.rows[0].meetingStartTime).toBeNull();
+    expect(p.rows[0].unparsedMeeting).toBe('2026-09-10 - 2026-12-03 | Thu | 9:00 a.m to 12:00 p.m');
+  });
+
+  it('carries nothing for a pattern it read in full', () => {
+    const p = parseWorkdayExport(gridOf(labRow('2026-09-10 - 2026-12-03 | Thu | 9:00 a.m. - 12:00 p.m. | UBCV | x (X) | Floor: 1 | Room: 1')));
+    expect(p.rows[0].unparsedMeeting).toBeNull();
+  });
+
+  it('still excludes the row when there is no date anywhere to place it in a term', () => {
+    const p = parseWorkdayExport(gridOf(labRow('', '', '')));
+    expect(p.rows).toEqual([]);
+    expect(p.excluded[0].reason).toBe('no_term');
+  });
+});
+
 describe('inferTerm', () => {
   it('maps September to Winter Term 1 of that academic year', () => {
     expect(inferTerm('2026-09-09')).toEqual({ year: 2026, session: 'W', termNumber: 1 });

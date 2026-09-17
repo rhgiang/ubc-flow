@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { importExport } from '@/upload/import';
-import type { ParsedExport } from '@/upload/parse-workday';
+import type { ParsedExport, EnrollmentRow } from '@/upload/parse-workday';
 
 const A = 'zz-import-a@example.com';
 const B = 'zz-import-b@example.com';
@@ -186,5 +186,116 @@ describe('importExport', () => {
     // silently overwritten with the second student's identity.
     const after = await db.user.findUniqueOrThrow({ where: { id: userC } });
     expect(after.studentIdHash).toBe(bound.studentIdHash);
+  });
+});
+
+// A lecture and a lab of one course, the shape of the export that lost a lab:
+// the lab row is a registered section with a Start Date, so it passes the term
+// check and is counted, and its Meeting Patterns cell gave the parser nothing.
+describe('importExport - sections it could not place', () => {
+  const EMAIL = 'zz-import-unplaced@example.com';
+  let userId: string;
+  const base = {
+    grade: null,
+    status: 'registered' as const,
+    subjectCode: 'CPSC',
+    campus: 'V',
+    courseNumber: '110',
+    instructor: null,
+    sectionStartDate: '2026-09-08',
+    sectionEndDate: '2026-12-07',
+    termYear: 2026,
+    termSession: 'W',
+    termNumber: 1,
+    ...unusedColumns,
+  };
+  const lecture = (): EnrollmentRow => ({
+    ...base,
+    sectionCode: '103',
+    activity: 'Lecture',
+    building: 'HENN',
+    room: '202',
+    startDate: '2026-09-08',
+    days: ['Tue', 'Thu'],
+    meetingStartTime: '15:30',
+    meetingEndTime: '17:00',
+  });
+  const lab = (over: Partial<EnrollmentRow> = {}): EnrollmentRow => ({
+    ...base,
+    sectionCode: 'L1U',
+    activity: 'Laboratory',
+    building: 'ICCS',
+    room: 'X260',
+    startDate: '2026-09-10',
+    days: ['Thu'],
+    meetingStartTime: '09:00',
+    meetingEndTime: '12:00',
+    ...over,
+  });
+  const exportOf = (rows: EnrollmentRow[]): ParsedExport => ({
+    studentNumber: null,
+    rows,
+    transfers: [],
+    excluded: [],
+    unparsedTables: [],
+  });
+  const sectionsWithMeetings = async () =>
+    (await db.enrollmentMeeting.findMany({ where: { userId }, orderBy: { sectionCode: 'asc' } })).map(
+      (m) => m.sectionCode,
+    );
+
+  beforeAll(async () => {
+    await db.user.deleteMany({ where: { email: EMAIL } });
+    userId = (await db.user.create({ data: { email: EMAIL } })).id;
+  });
+
+  afterAll(async () => {
+    await db.enrollment.deleteMany({ where: { userId } });
+    await db.enrollmentMeeting.deleteMany({ where: { userId } });
+    await db.user.deleteMany({ where: { email: EMAIL } });
+  });
+
+  it('names a lab with no meeting day, and still counts it and writes no meeting for it', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const r = await importExport(
+        userId,
+        exportOf([lecture(), lab({ days: [], meetingStartTime: null, meetingEndTime: null, unparsedMeeting: 'To be determined' })]),
+      );
+      expect(r.matched).toBe(2);
+      expect(r.unmatched).toEqual([]);
+      expect(r.unplaced).toEqual(['CPSC 110 L1U']);
+      // What is written is unchanged: the lecture's meeting, and nothing for the lab.
+      expect(await sectionsWithMeetings()).toEqual(['103']);
+      // The segments that failed to parse reach the log, column values only.
+      expect(logged.mock.calls.map((c) => c.join(' ')).join('\n')).toContain('To be determined');
+    } finally {
+      logged.mockRestore();
+    }
+  });
+
+  it('names a lab whose time did not parse, which is written with null times', async () => {
+    const r = await importExport(userId, exportOf([lecture(), lab({ meetingStartTime: null, meetingEndTime: null })]));
+    expect(r.unplaced).toEqual(['CPSC 110 L1U']);
+    expect(await sectionsWithMeetings()).toEqual(['103', 'L1U']);
+  });
+
+  it('falls back to the activity when the section code is missing', async () => {
+    const r = await importExport(userId, exportOf([lecture(), lab({ sectionCode: null, days: [] })]));
+    expect(r.unplaced).toEqual(['CPSC 110 Laboratory']);
+  });
+
+  it('names nothing when every section has a day and a time', async () => {
+    const r = await importExport(userId, exportOf([lecture(), lab()]));
+    expect(r.unplaced).toEqual([]);
+    expect(await sectionsWithMeetings()).toEqual(['103', 'L1U']);
+  });
+
+  it('says nothing about an academic-record row, which has no pattern by design', async () => {
+    const r = await importExport(
+      userId,
+      exportOf([{ ...lecture(), days: [], meetingStartTime: null, meetingEndTime: null, termYear: null, termSession: null, termNumber: null }]),
+    );
+    expect(r.unplaced).toEqual([]);
   });
 });

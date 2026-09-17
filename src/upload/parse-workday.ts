@@ -37,6 +37,12 @@ export type EnrollmentRow = {
   grade: string | null;
   /** What this row means for a degree, rather than for a timetable. */
   status: 'registered' | 'passed' | 'failed';
+  /**
+   * The date, day and time segments of a block that produced no day or no
+   * time, for the server log. Column values only, never personal data: this
+   * is how the next report says which cell shape Workday actually wrote.
+   */
+  unparsedMeeting?: string | null;
 };
 
 /**
@@ -149,6 +155,8 @@ export type MeetingPattern = {
   building: string | null;
   room: string | null;
   floor: string | null;
+  /** See EnrollmentRow.unparsedMeeting. */
+  unparsedMeeting: string | null;
 };
 
 /**
@@ -167,16 +175,20 @@ function parseBlock(block: string): MeetingPattern {
   const building = segments[4] ? buildingCode(segments[4]) : null;
   const floorRaw = segments[5]?.replace(/^Floor:\s*/i, '').trim();
   const roomRaw = segments[6]?.replace(/^Room:\s*/i, '').trim();
+  const startTime = timeMatch ? to24Hour(timeMatch[1]) : null;
+  const endTime = timeMatch ? to24Hour(timeMatch[2]) : null;
 
   return {
     startDate: ranges[0]?.[1] ?? null,
     endDate: ranges[ranges.length - 1]?.[2] ?? null,
     days,
-    startTime: timeMatch ? to24Hour(timeMatch[1]) : null,
-    endTime: timeMatch ? to24Hour(timeMatch[2]) : null,
+    startTime,
+    endTime,
     building,
     room: roomRaw || null,
     floor: floorRaw || null,
+    unparsedMeeting:
+      days.length === 0 || !startTime || !endTime ? segments.slice(0, 3).join(' | ') : null,
   };
 }
 
@@ -398,6 +410,7 @@ export function parseWorkdayExport(grid: string[][]): ParsedExport {
         termYear: term?.year ?? null,
         termSession: term?.session ?? null,
         termNumber: term?.termNumber ?? null,
+        unparsedMeeting: meeting.unparsedMeeting,
       });
     }
   }

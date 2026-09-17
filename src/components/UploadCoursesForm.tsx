@@ -8,6 +8,8 @@ import { UBC_WORKDAY_URL } from "@/lib/links";
 type ImportResult = {
   matched: number;
   unmatched: string[];
+  /** Sections the file named that we could not read a meeting day or time for. */
+  unplaced: string[];
   excluded: number;
   /** Credits earned elsewhere. Stored and counted, but never an enrolment. */
   transfers: number;
@@ -262,6 +264,33 @@ export default function UploadCoursesForm({ verified }: { verified: boolean }) {
               Skipped {result.excluded} row{result.excluded === 1 ? "" : "s"} we
               couldn&apos;t read.
             </p>
+          )}
+
+          {/*
+            The other way a section goes missing: it matched, it was
+            recorded, and it put nothing on the calendar because its Meeting
+            Patterns cell had no day or time we could read. That used to be
+            invisible behind "Matched N courses". A fully online course lands
+            here too, which is true rather than a fault, so the copy informs.
+          */}
+          {result.unplaced.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm font-medium text-foreground">
+                In your file but not on your calendar:
+              </p>
+              <ul className="mt-1 text-sm text-text-secondary">
+                {result.unplaced.map((s) => (
+                  <li key={s}>{s}</li>
+                ))}
+              </ul>
+              <p className="mt-1 text-xs text-text-tertiary">
+                We couldn&apos;t read a meeting day or time for{" "}
+                {result.unplaced.length === 1 ? "this one" : "these"}. That&apos;s
+                expected for an online course with no set time. If one of them does
+                meet weekly, email hello@ubcflow.com and we&apos;ll look at what
+                Workday wrote.
+              </p>
+            </div>
           )}
 
           {/* Required by spec 4.2: never drop unmatched rows silently. */}

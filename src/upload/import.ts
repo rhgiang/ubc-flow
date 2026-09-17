@@ -5,6 +5,15 @@ import type { ParsedExport } from '@/upload/parse-workday';
 export type ImportResult = {
   matched: number;
   unmatched: string[];
+  /**
+   * Sections that were in the file, matched a course and a term, and still
+   * put nothing on the calendar, as "CPSC 110 L1U": the parser found no
+   * meeting day or no time for them. An empty or "To be determined" Meeting
+   * Patterns cell lands here, and so does a genuinely online course, which
+   * is true, it is not on the calendar. Named so a missing lab is a line on
+   * screen instead of a section that vanished behind "Matched N courses".
+   */
+  unplaced: string[];
   excluded: number;
   /** Credits earned elsewhere, stored but never an enrollment. */
   transfers: number;
@@ -71,6 +80,8 @@ export async function importExport(
   }
 
   const unmatched: string[] = [];
+  const unplaced = new Set<string>();
+  const unparsedMeetings = new Set<string>();
   let matched = 0;
   // A section parses to one row per weekly pattern; it must count once.
   const countedSections = new Set<string>();
@@ -169,6 +180,15 @@ export async function importExport(
       keptByTerm.set(term.id, kept);
     }
 
+    // Only dated rows: the academic record has no meeting pattern by design.
+    // Nothing about what is written changes here, this is the report.
+    if (term && (row.days.length === 0 || !row.meetingStartTime || !row.meetingEndTime)) {
+      unplaced.add(
+        `${row.subjectCode} ${row.courseNumber} ${row.sectionCode ?? row.activity ?? ''}`.trim(),
+      );
+      if (row.unparsedMeeting != null) unparsedMeetings.add(row.unparsedMeeting);
+    }
+
     if (term && row.days.length > 0) {
       const key = `${course.id}:${term.id}`;
       if (!clearedMeetings.has(key)) {
@@ -251,6 +271,12 @@ export async function importExport(
     // registration status is never a name, a number or a grade.
     console.error('import: unexpected registration statuses:', JSON.stringify(unexpectedStatuses));
   }
+  if (unparsedMeetings.size > 0) {
+    // The same rule: a Meeting Patterns cell is dates, days, times and rooms,
+    // never a person. This is what tells us Workday's vocabulary for a day or
+    // a time we could not read, without anyone sending their file.
+    console.error('import: meeting segments not parsed:', JSON.stringify([...unparsedMeetings]));
+  }
 
   /**
    * Transfer credit, stored rather than discarded.
@@ -284,6 +310,7 @@ export async function importExport(
   return {
     matched,
     unmatched,
+    unplaced: [...unplaced].sort(),
     excluded: parsed.excluded.length,
     transfers: parsed.transfers.length,
     removed,

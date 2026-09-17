@@ -167,7 +167,12 @@ export default function ScheduleCalendar({
       (DAYS as readonly string[]).includes(e.day) && e.startTime !== null && e.endTime !== null,
   );
   const timedSet = new Set<CalendarEntry>(timed);
-  const untimed = entries.filter((e) => !timedSet.has(e));
+  // A Saturday lab has a perfectly good time and no column to sit in. It gets
+  // its own strip: filing it under "No fixed meeting time" told the student
+  // it had none.
+  const hasTimes = (e: CalendarEntry) => e.startTime !== null && e.endTime !== null;
+  const untimed = entries.filter((e) => !hasTimes(e));
+  const weekend = entries.filter((e) => !timedSet.has(e) && hasTimes(e));
 
   // findConflicts returns pairs referencing the same objects passed in, so
   // object identity tells us which blocks to flag.
@@ -212,34 +217,46 @@ export default function ScheduleCalendar({
 
   return (
     <div className={fill ? 'flex min-h-0 flex-1 flex-col' : ''}>
-      {untimed.length > 0 && (
-        <div className="mb-3 rounded-card border border-border bg-surface-muted px-3 py-2">
-          <p className="text-xs font-medium text-foreground">No fixed meeting time</p>
-          <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-            {untimed.map((e) => (
-              <li key={e.id} className="flex items-center gap-1.5 text-xs text-text-secondary">
-                <span
-                  aria-hidden
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{
-                    background: `var(--course-${courseColorIndex(e.courseCode ?? e.label)}-accent)`,
-                  }}
-                />
-                {e.label}
-                {onRemove && (
-                  <button
-                    type="button"
-                    onClick={() => onRemove(e.sectionId)}
-                    aria-label={`Remove ${e.label}`}
-                    className="text-text-tertiary hover:text-foreground"
-                  >
-                    ×
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+      {(
+        [
+          ['No fixed meeting time', untimed],
+          ['Weekend', weekend],
+        ] as const
+      ).map(
+        ([title, strip]) =>
+          strip.length > 0 && (
+            <div
+              key={title}
+              className="mb-3 rounded-card border border-border bg-surface-muted px-3 py-2"
+            >
+              <p className="text-xs font-medium text-foreground">{title}</p>
+              <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                {strip.map((e) => (
+                  <li key={e.id} className="flex items-center gap-1.5 text-xs text-text-secondary">
+                    <span
+                      aria-hidden
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{
+                        background: `var(--course-${courseColorIndex(e.courseCode ?? e.label)}-accent)`,
+                      }}
+                    />
+                    {e.label}
+                    {hasTimes(e) && ` ${e.day} ${e.startTime}\u2013${e.endTime}`}
+                    {onRemove && (
+                      <button
+                        type="button"
+                        onClick={() => onRemove(e.sectionId)}
+                        aria-label={`Remove ${e.label}`}
+                        className="text-text-tertiary hover:text-foreground"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ),
       )}
 
       {/* Phones only: the desktop grid is already wide enough to read. The

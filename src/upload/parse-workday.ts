@@ -175,7 +175,14 @@ function parseBlock(block: string): MeetingPattern {
   const ranges = [...block.matchAll(/(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})/g)];
 
   const segments = block.split('|').map((s) => s.trim());
-  const days = (segments[1] ?? '').split(/\s+/).filter((d) => DAY_ABBREVIATIONS.has(d));
+  // Split on whitespace, commas and slashes, and drop a trailing dot, so
+  // "Mon, Wed", "Mon/Wed" and "Thu." all yield their days. Without this,
+  // "Mon, Wed" gave ["Wed"]: Monday lost, and the row escaped the unplaced
+  // report because it still had one day.
+  const days = (segments[1] ?? '')
+    .split(/[\s,/]+/)
+    .map((d) => d.replace(/\.$/, ''))
+    .filter((d) => DAY_ABBREVIATIONS.has(d));
   // The character class is Workday's output, not prose: a range may be joined
   // by a hyphen, an en dash or an em dash.
   const timeMatch = segments[2]?.match(/^(.+?)\s*[-–—]\s*(.+)$/);

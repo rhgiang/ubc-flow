@@ -50,6 +50,17 @@ describe('parseMeetingPatterns', () => {
     expect(r.endTime).toBe('11:30');
   });
 
+  // The review's probe showed "Mon, Wed" parsing to ["Wed"]: Monday silently
+  // lost, and the row not even reported as unplaced because it kept one day.
+  it('reads days joined by commas or slashes, and with a trailing dot', () => {
+    const cell = (d: string) => `2026-09-09 - 2026-12-04 | ${d} | 10:00 a.m. - 11:30 a.m. | UBCV`;
+    expect(parseMeetingPatterns(cell('Mon, Wed'))[0].days).toEqual(['Mon', 'Wed']);
+    expect(parseMeetingPatterns(cell('Mon/Wed/Fri'))[0].days).toEqual(['Mon', 'Wed', 'Fri']);
+    expect(parseMeetingPatterns(cell('Thu.'))[0].days).toEqual(['Thu']);
+    // Still nothing for a spelling we do not know, so it lands in the unplaced report.
+    expect(parseMeetingPatterns(cell('Tues'))[0].days).toEqual([]);
+  });
+
   it('converts a p.m. time range correctly, including the 12 p.m./a.m. edge cases', () => {
     const [r] = parseMeetingPatterns('2026-09-09 - 2026-12-04 | Mon | 12:00 p.m. - 1:30 p.m.');
     expect(r.startTime).toBe('12:00');

@@ -463,7 +463,15 @@ export default function ScheduleCalendar({
                             }}
                             aria-label={`Swap ${e.label}`}
                             title="Swap section"
-                            className="pointer-events-none absolute right-6 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100 pointer-coarse:pointer-events-auto pointer-coarse:opacity-100"
+                            // Hidden on a phone unless expanded: a fitted column
+                            // is about 60px, and two always-visible buttons left
+                            // the course code roughly 13px, which truncated to
+                            // nothing. Swap is still one tap away in the Saved
+                            // Courses row, and the block itself opens the
+                            // overlay. Expanded columns are wide enough to keep it.
+                            className={`pointer-events-none absolute right-6 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100 pointer-coarse:pointer-events-auto pointer-coarse:opacity-100 ${
+                              expanded ? '' : 'max-sm:hidden'
+                            }`}
                           >
                             ⇄
                           </button>
@@ -476,7 +484,11 @@ export default function ScheduleCalendar({
                               onRemove(e.sectionId);
                             }}
                             aria-label={`Remove ${e.label}`}
-                            className="pointer-events-none absolute right-0.5 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100 pointer-coarse:pointer-events-auto pointer-coarse:opacity-100"
+                            // Same rule as swap above. Remove is also in the
+                            // overlay a tap opens and in the Saved Courses row.
+                            className={`pointer-events-none absolute right-0.5 top-0.5 rounded px-1 text-text-secondary opacity-0 transition-opacity hover:text-foreground group-hover:pointer-events-auto group-hover:opacity-100 focus:pointer-events-auto group-focus-within:opacity-100 pointer-coarse:pointer-events-auto pointer-coarse:opacity-100 ${
+                              expanded ? '' : 'max-sm:hidden'
+                            }`}
                           >
                             ×
                           </button>
@@ -490,12 +502,13 @@ export default function ScheduleCalendar({
                         {!expanded && (
                           <>
                             <p
-                              // The remove and swap buttons sit in the top-right
-                              // and stay visible on touch, so the text has to be
-                              // kept out from under them.
-                              className={`truncate text-[0.625rem] font-medium text-foreground sm:hidden ${
-                                onRemove ? (onSwap ? 'pr-10' : 'pr-4') : ''
-                              }`}
+                              // This line renders only below sm and only when
+                              // not expanded, which is exactly when the swap and
+                              // remove buttons are hidden above, so the code
+                              // gets the block's full width. The 40px of right
+                              // padding that used to clear the buttons is what
+                              // truncated "CPSC 110" to nothing.
+                              className="truncate pr-0.5 text-[0.625rem] font-medium text-foreground sm:hidden"
                             >
                               {colCount === 1 || !e.courseCode
                                 ? e.courseCode ?? e.label

@@ -170,6 +170,9 @@ model User {
   syllabi Syllabus[]
   assessments SyllabusAssessment[]
   hiddenFinalExams HiddenFinalExam[]
+  canvasFeed         CanvasFeed?
+  canvasDeadlines    CanvasDeadline[]
+  reminderPreference ReminderPreference?
 }
 
 model Enrollment {
@@ -677,4 +680,87 @@ model VerificationToken {
 
   @@index([userId])
   @@index([userId, purpose])
+}
+
+/// One per student: the encrypted Canvas calendar feed URL and its health.
+/// The URL is a bearer credential for the student's whole calendar. It is
+/// never stored in the clear, never logged, and never sent to the browser.
+model CanvasFeed {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// AES-256-GCM, base64 of iv || tag || ciphertext. See src/canvas/crypto.ts.
+  encryptedUrl  String
+  connectedAt   DateTime  @default(now())
+  lastFetchedAt DateTime?
+  /// HTTP status of the last fetch, or 0 for a network failure; null before the first.
+  lastStatus    Int?
+  /// Consecutive non-200 fetches. Three in a row marks the feed broken.
+  failureCount  Int       @default(0)
+  /// Set when polling was suspended (401, 404, or three failures). The student
+  /// is emailed once. Cleared on reconnect.
+  brokenAt      DateTime?
+  /// Set once the first sync has run: its welcome email goes out exactly once
+  /// and per-item reminders start only after it.
+  firstSyncedAt DateTime?
+}
+
+/// One per student per Canvas event UID. Two students in one course each hold
+/// their own copy: per-section overrides and mutes differ.
+model CanvasDeadline {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Canvas's own VEVENT UID, stable across polls; the diff key.
+  uid         String
+  /// "assignment" when the UID contains that word, else "event".
+  kind        String
+  /// The SUMMARY with its trailing "[Course]" removed.
+  title       String
+  /// The bracketed course name from the SUMMARY, verbatim.
+  courseName  String
+  /// The instant it is due, UTC. An all-day item is 23:59:59 Vancouver on
+  /// that date, so "due Friday" reminds before Friday ends.
+  dueAt       DateTime
+  allDay      Boolean   @default(false)
+  url         String?
+  firstSeenAt DateTime  @default(now())
+  /// Set when a poll found a different dueAt. Kept, not cleared: the sent-log's
+  /// notice key stops the notice repeating, and the page shows the move.
+  movedFrom   DateTime?
+  movedAt     DateTime?
+  /// Set when a poll no longer returned this uid. Kept and marked, never
+  /// deleted: a prof deleting an assignment is a fact worth showing.
+  removedAt   DateTime?
+  reminders   ReminderSent[]
+
+  @@unique([userId, uid])
+  @@index([userId, dueAt])
+}
+
+model ReminderPreference {
+  userId       String   @id
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enabled      Boolean  @default(true)
+  /// Hours before dueAt at which to remind. Default 3 days and 1 day.
+  leadHours    Int[]    @default([72, 24])
+  /// Course names, as they appear in the feed's brackets, the student muted.
+  mutedCourses String[] @default([])
+}
+
+/// The no-double-send guarantee. A row is claimed BEFORE the email is sent;
+/// the unique below means two overlapping runs cannot both send. A row with
+/// null deliveredAt is a claim whose send failed, retried next run.
+model ReminderSent {
+  id          String         @id @default(cuid())
+  userId      String
+  deadlineId  String
+  deadline    CanvasDeadline @relation(fields: [deadlineId], references: [id], onDelete: Cascade)
+  /// "lead:72", "lead:24", "moved:<new dueAt ISO>", "removed".
+  notice      String
+  claimedAt   DateTime       @default(now())
+  deliveredAt DateTime?
+
+  @@unique([deadlineId, notice])
+  @@index([userId, deliveredAt])
 }

@@ -75,7 +75,19 @@ describe('syncFeedFor', () => {
     expect(feed.brokenAt).toBeNull();
   });
 
-  it('treats a 200 with a non-calendar body as transient and does not touch deadlines', async () => {
+  it('leaves lastFetchedAt on the last good read, so a failing feed cannot look fresh', async () => {
+    const good = new Date('2026-10-20T03:00:00Z');
+    await syncFeedFor(userId, good);
+    feedResponse.status = 503;
+    feedResponse.body = null as unknown as string;
+    expect(await syncFeedFor(userId, new Date('2026-10-20T15:00:00Z'))).toBe('transient');
+    const feed = await db.canvasFeed.findUniqueOrThrow({ where: { userId } });
+    expect(feed.lastFetchedAt?.toISOString()).toBe(good.toISOString());
+    expect(feed.lastStatus).toBe(503);
+    expect(feed.failureCount).toBe(1);
+  });
+
+  it('treats a 200 with a non-calendar body as transient, recording it as 0, and does not touch deadlines', async () => {
     await syncFeedFor(userId, NOW);
     feedResponse.status = 200;
     feedResponse.body = '<html><body>Please log in to Canvas</body></html>';
@@ -84,6 +96,8 @@ describe('syncFeedFor', () => {
     const feed = await db.canvasFeed.findUniqueOrThrow({ where: { userId } });
     expect(feed.failureCount).toBe(1);
     expect(feed.brokenAt).toBeNull();
+    // 0, not 200: nothing usable came back, whatever the status line said.
+    expect(feed.lastStatus).toBe(0);
   });
 
   it('marks a feed broken instead of throwing when the stored URL cannot be decrypted', async () => {

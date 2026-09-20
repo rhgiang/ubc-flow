@@ -177,7 +177,7 @@ export default async function OnboardingPage() {
       }),
       db.canvasFeed.findUnique({
         where: { userId },
-        select: { connectedAt: true, lastFetchedAt: true, brokenAt: true },
+        select: { connectedAt: true, lastFetchedAt: true, brokenAt: true, failureCount: true },
       }),
     ]);
 
@@ -359,6 +359,7 @@ export default async function OnboardingPage() {
                   connectedAt={feed?.connectedAt.toISOString() ?? null}
                   lastFetchedAt={feed?.lastFetchedAt?.toISOString() ?? null}
                   broken={Boolean(feed?.brokenAt)}
+                  failing={Boolean(feed && feed.failureCount > 0 && !feed.brokenAt)}
                 />
               </div>
               {feed && (

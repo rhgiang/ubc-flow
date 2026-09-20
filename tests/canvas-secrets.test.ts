@@ -53,7 +53,7 @@ describe('normalizeFeedUrl', () => {
     ['javascript:alert(1)', ''],
     ['not a url', ''],
     ['', ''],
-  ])('rejects %s', (input, _hint) => {
+  ])('rejects %s', (input) => {
     expect(normalizeFeedUrl(input).ok).toBe(false);
   });
 

@@ -9,15 +9,21 @@ import ConfirmDialog from '@/components/ConfirmDialog';
  * The URL is a credential. Once stored it is never shown again, not even
  * masked: the block shows only when it was connected and when it was last
  * read, and offers Disconnect.
+ *
+ * `failing` is a feed whose last read failed but which has not yet run out of
+ * retries. Said plainly here, because lastFetchedAt is the last SUCCESSFUL
+ * read and would otherwise sit there looking fine next to stale deadlines.
  */
 export default function CanvasConnect({
   connectedAt,
   lastFetchedAt,
   broken,
+  failing = false,
 }: {
   connectedAt: string | null;
   lastFetchedAt: string | null;
   broken: boolean;
+  failing?: boolean;
 }) {
   const router = useRouter();
   const [value, setValue] = useState('');
@@ -52,6 +58,11 @@ export default function CanvasConnect({
           Connected {new Date(connectedAt).toLocaleDateString('en-CA')}
           {lastFetchedAt ? `, last read ${new Date(lastFetchedAt).toLocaleString('en-CA')}` : ', not read yet'}.
         </p>
+        {failing && (
+          <p className="text-sm text-danger">
+            The last read of your Canvas feed failed, so your deadlines may be out of date. We keep trying.
+          </p>
+        )}
         <button type="button" onClick={() => setConfirming(true)} className="text-sm font-medium text-danger hover:underline">
           Disconnect Canvas
         </button>

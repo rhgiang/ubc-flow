@@ -62,6 +62,7 @@ export default function DeadlinesList({
   connectedAt,
   lastFetchedAt,
   broken,
+  failing,
   enabled,
   leadHours,
   mutedCourses,
@@ -71,6 +72,9 @@ export default function DeadlinesList({
   connectedAt: string | null;
   lastFetchedAt: string | null;
   broken: boolean;
+  /** Last read failed, but the feed has retries left. The dates below are
+   *  the last good ones, so say so rather than letting them look current. */
+  failing: boolean;
   enabled: boolean;
   leadHours: number[];
   mutedCourses: string[];
@@ -189,9 +193,15 @@ export default function DeadlinesList({
       <section className="rounded-card border border-border bg-surface p-4">
         <h2 className="text-sm font-semibold text-foreground">Your Canvas connection</h2>
         <div className="mt-2">
-          <CanvasConnect connectedAt={connectedAt} lastFetchedAt={lastFetchedAt} broken={broken} />
+          <CanvasConnect connectedAt={connectedAt} lastFetchedAt={lastFetchedAt} broken={broken} failing={failing} />
         </div>
       </section>
+
+      {failing && (
+        <p className="text-sm text-danger">
+          The last read of your Canvas feed failed. What is below is the last good read, so it may be out of date.
+        </p>
+      )}
 
       {deadlines.length === 0 ? (
         <p className="text-sm text-text-secondary">

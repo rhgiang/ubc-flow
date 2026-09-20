@@ -50,7 +50,21 @@ export async function syncFeedFor(userId: string, now: Date): Promise<SyncOutcom
     const dead = status === 401 || status === 404 || failures >= BROKEN_AFTER_FAILURES;
     await db.canvasFeed.update({
       where: { userId },
-      data: { lastFetchedAt: now, lastStatus: status, failureCount: failures, brokenAt: dead ? now : null },
+      data: {
+        // lastFetchedAt is NOT written here. The page renders it as "last
+        // read", and a feed failing for twelve hours must not claim it was
+        // read three minutes ago beside half day old data. It means the last
+        // read that actually produced deadlines. failureCount is what says
+        // the most recent attempt failed.
+        //
+        // A 200 whose body was not a calendar records 0, the same value a
+        // network failure records: nothing usable came back, whatever the
+        // status line said. With failureCount that is enough to tell a
+        // content failure from a plain HTTP one, which reports its own code.
+        lastStatus: notCalendar && status === 200 ? 0 : status,
+        failureCount: failures,
+        brokenAt: dead ? now : null,
+      },
     });
     return dead ? 'broken' : 'transient';
   }

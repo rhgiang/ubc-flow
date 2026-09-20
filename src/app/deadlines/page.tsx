@@ -53,7 +53,7 @@ export default async function DeadlinesPage() {
   const [feed, preference, deadlines] = await Promise.all([
     db.canvasFeed.findUnique({
       where: { userId },
-      select: { connectedAt: true, lastFetchedAt: true, brokenAt: true },
+      select: { connectedAt: true, lastFetchedAt: true, brokenAt: true, failureCount: true },
     }),
     db.reminderPreference.findUnique({
       where: { userId },
@@ -101,6 +101,7 @@ export default async function DeadlinesPage() {
         connectedAt={feed.connectedAt.toISOString()}
         lastFetchedAt={feed.lastFetchedAt?.toISOString() ?? null}
         broken={Boolean(feed.brokenAt)}
+        failing={feed.failureCount > 0 && !feed.brokenAt}
         enabled={preference?.enabled ?? true}
         leadHours={preference?.leadHours ?? []}
         mutedCourses={preference?.mutedCourses ?? []}

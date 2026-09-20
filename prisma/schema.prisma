@@ -697,8 +697,13 @@ model CanvasFeed {
   /// AES-256-GCM, base64 of iv || tag || ciphertext. See src/canvas/crypto.ts.
   encryptedUrl  String
   connectedAt   DateTime  @default(now())
+  /// The last read that actually produced deadlines, not the last attempt:
+  /// the page shows it as "last read", so a failing feed must not claim to
+  /// be fresh. failureCount is what says the latest attempt failed.
   lastFetchedAt DateTime?
-  /// HTTP status of the last fetch, or 0 for a network failure; null before the first.
+  /// HTTP status of the last fetch, or 0 when nothing usable came back (a
+  /// network failure, or a 200 whose body was not a calendar); null before
+  /// the first.
   lastStatus    Int?
   /// Consecutive non-200 fetches. Three in a row marks the feed broken.
   failureCount  Int       @default(0)

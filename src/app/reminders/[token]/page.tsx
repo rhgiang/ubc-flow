@@ -1,21 +1,20 @@
 // src/app/reminders/[token]/page.tsx
-import Link from 'next/link';
-import { consumeToken } from '@/lib/mail';
-import { db } from '@/lib/db';
+import { peekToken } from '@/lib/mail';
+import { muteReminders } from '@/app/actions/canvas';
 
 /**
- * A mute link lands in an inbox, so whoever clicks it is usually signed out.
- * No session is consulted: the token names the userId, and that user's
- * reminders are turned off directly with db, the same shape as the shared
- * schedule link.
+ * A mute link lands in an inbox, so whoever opens it is usually signed out.
+ * No session is consulted: the token names the student.
  *
- * This page must never host anything that re-renders it: consumeToken
- * deletes the token's row on the first render, so a second render of the
- * same request (a form action on this route revalidating it, for instance)
- * would find no row and fall into the expired branch below, even though the
- * first render already succeeded. Turning reminders back on is therefore a
- * plain link to /deadlines, not a form here: that page is signed-in-scoped,
- * not keyed on a consumed token, so it can host setRemindersEnabled safely.
+ * Rendering must not change anything. UBC runs Microsoft 365 and Defender
+ * Safe Links fetches the URLs in inbound mail, so a page that muted on GET
+ * would be muted by the scanner before the student saw it, and the token
+ * would already be spent. This page only peeks at the token; the button
+ * posts it to muteReminders, which consumes it and redirects to
+ * /reminders/off. Plain form, plain server action, no client JavaScript.
+ *
+ * /reminders/off is a static segment and beats this dynamic one in the App
+ * Router, and tokens are 64 hex characters, so the two cannot collide.
  */
 export const dynamic = 'force-dynamic';
 
@@ -25,9 +24,9 @@ export default async function MutePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const result = await consumeToken(token, 'mute');
+  const result = await peekToken(token, 'mute');
 
-  if (!result.ok || !result.userId) {
+  if (!result.ok) {
     return (
       <main className="mx-auto w-full max-w-lg px-4 py-10 sm:px-6">
         <p className="text-sm text-text-secondary">
@@ -37,23 +36,22 @@ export default async function MutePage({
     );
   }
 
-  await db.reminderPreference.upsert({
-    where: { userId: result.userId },
-    create: { userId: result.userId, enabled: false },
-    update: { enabled: false },
-  });
-
   return (
     <main className="mx-auto w-full max-w-lg px-4 py-10 sm:px-6">
-      <h1 className="text-xl font-semibold text-foreground">Reminders are off</h1>
+      <h1 className="text-xl font-semibold text-foreground">Stop Canvas deadline emails?</h1>
       <p className="mt-2 text-sm text-text-secondary">
-        You will not get any more Canvas deadline emails.
+        This turns off every Canvas deadline reminder for your UBC Flow account. Your deadlines
+        page keeps working, and you can turn reminders back on there any time.
       </p>
-      <p className="mt-4 text-sm">
-        <Link href="/deadlines" className="font-medium underline underline-offset-4">
-          Change reminders from your deadlines page
-        </Link>
-      </p>
+      <form action={muteReminders} className="mt-4">
+        <input type="hidden" name="token" value={token} />
+        <button
+          type="submit"
+          className="rounded-pill bg-brand px-4 py-1.5 text-sm font-medium text-brand-foreground"
+        >
+          Turn reminders off
+        </button>
+      </form>
     </main>
   );
 }

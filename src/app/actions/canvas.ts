@@ -2,8 +2,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { consumeToken } from '@/lib/mail';
 import { connectCanvasFeedFor, disconnectCanvasFeedFor, type Result } from '@/canvas/connect';
 import { updateReminderPreferencesFor } from '@/canvas/prefs';
 
@@ -32,9 +34,31 @@ export async function disconnectCanvasFeed(): Promise<Result> {
   return result;
 }
 
-// Turns reminders back on (or off) for the signed-in student. The mute page
-// itself does the opposite for a signed-out student, keyed on the userId a
-// consumed token names, with db directly - not this action.
+/**
+ * The mute link's form posts here. The exception to the rule above: it takes
+ * a token, not a userId, and the token is the authorisation. Whoever opens a
+ * mute link from their inbox is usually signed out, so no session is read.
+ *
+ * Consuming happens here rather than while rendering /reminders/[token], so
+ * a mail scanner fetching the URL cannot turn a student's reminders off.
+ * A spent or bogus token still lands on the confirmation: the page it came
+ * from already checked the token, and a student who clicks the same link
+ * twice should not be told something went wrong when nothing did.
+ */
+export async function muteReminders(formData: FormData): Promise<void> {
+  const result = await consumeToken(String(formData.get('token') ?? ''), 'mute');
+  if (result.ok && result.userId) {
+    await db.reminderPreference.upsert({
+      where: { userId: result.userId },
+      create: { userId: result.userId, enabled: false },
+      update: { enabled: false },
+    });
+  }
+  redirect('/reminders/off');
+}
+
+// Turns reminders back on (or off) for the signed-in student. muteReminders
+// above is the signed-out path, keyed on a token instead of a session.
 export async function setRemindersEnabled(enabled: boolean): Promise<Result> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };

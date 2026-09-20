@@ -83,6 +83,24 @@ export async function consumeToken(
   return { ok: true, userId: row.userId };
 }
 
+/**
+ * Read a token without spending it, for a page that has to render on a GET.
+ *
+ * Same purpose and expiry rules as consumeToken, no delete. Inbound mail at
+ * UBC goes through Microsoft Defender Safe Links, which fetches the URLs in a
+ * message; a page that consumed its token on render would have the scanner
+ * spend it before the student ever clicked. The page peeks, shows a form, and
+ * the form's action consumes.
+ */
+export async function peekToken(
+  token: string,
+  purpose: TokenPurpose,
+): Promise<{ ok: boolean; userId?: string }> {
+  const row = await db.verificationToken.findUnique({ where: { token } });
+  if (!row || row.purpose !== purpose || row.expiresAt < new Date()) return { ok: false };
+  return { ok: true, userId: row.userId };
+}
+
 /** Drop every outstanding token of one purpose - used to retire superseded links. */
 export async function revokeTokens(userId: string, purpose: TokenPurpose): Promise<void> {
   await db.verificationToken.deleteMany({ where: { userId, purpose } });

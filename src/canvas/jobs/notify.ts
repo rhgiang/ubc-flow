@@ -1,0 +1,76 @@
+// src/canvas/jobs/notify.ts
+import { Prisma } from '@prisma/client';
+import { db } from '@/lib/db';
+import { createToken, sendMail } from '@/lib/mail';
+import { selectNotices, type DeadlineForNotice, type Notice } from '@/canvas/notices';
+import { reminderEmail, welcomeEmail } from '@/canvas/emails';
+
+const SITE = process.env.NEXTAUTH_URL ?? 'https://ubcflow.com';
+const DAY = 24 * 3600_000;
+
+async function muteUrl(userId: string): Promise<string> {
+  return `${SITE}/reminders/${await createToken(userId, 'mute')}`;
+}
+
+/**
+ * Runs AFTER syncFeedFor for the same student. Sends at most one email per
+ * run per student. Every notice in that email is claimed in ReminderSent
+ * before the send: two overlapping runs cannot both send, because the second
+ * claim loses on the unique (deadlineId, notice). A claim whose send failed
+ * keeps deliveredAt null and is retried while its window is still open.
+ */
+export async function notifyFor(userId: string, now: Date): Promise<{ sent: number }> {
+  const [user, feed, prefs] = await Promise.all([
+    db.user.findUnique({ where: { id: userId }, select: { email: true } }),
+    db.canvasFeed.findUnique({ where: { userId } }),
+    db.reminderPreference.findUnique({ where: { userId } }),
+  ]);
+  if (!user || !feed || feed.brokenAt || !prefs) return { sent: 0 };
+
+  const deadlines: DeadlineForNotice[] = await db.canvasDeadline.findMany({
+    where: { userId },
+    select: { id: true, title: true, courseName: true, dueAt: true, allDay: true, url: true, movedFrom: true, movedAt: true, removedAt: true },
+  });
+
+  if (!feed.firstSyncedAt) {
+    // The welcome replaces every per-item reminder this run: a student who
+    // connects with eight things due this week must not get eight emails.
+    const upcoming = deadlines
+      .filter((d) => !d.removedAt && d.dueAt > now && d.dueAt.getTime() - now.getTime() <= 14 * DAY)
+      .sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime());
+    const mail = welcomeEmail(upcoming, prefs, await muteUrl(userId));
+    await sendMail(user.email, mail.subject, mail.body);
+    await db.canvasFeed.update({ where: { userId }, data: { firstSyncedAt: now } });
+    return { sent: 0 };
+  }
+
+  // Claim first. Undelivered earlier claims are picked up again here too.
+  const claimed: { rowId: string; notice: Notice }[] = [];
+  for (const notice of selectNotices(deadlines, prefs, now)) {
+    try {
+      const row = await db.reminderSent.create({
+        data: { userId, deadlineId: notice.deadline.id, notice: notice.key, claimedAt: now },
+        select: { id: true },
+      });
+      claimed.push({ rowId: row.id, notice });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const existing = await db.reminderSent.findUnique({
+          where: { deadlineId_notice: { deadlineId: notice.deadline.id, notice: notice.key } },
+          select: { id: true, deliveredAt: true },
+        });
+        if (existing && existing.deliveredAt === null) claimed.push({ rowId: existing.id, notice });
+        continue;
+      }
+      throw e;
+    }
+  }
+  if (claimed.length === 0) return { sent: 0 };
+
+  const mail = reminderEmail(claimed.map((c) => c.notice), await muteUrl(userId));
+  const delivered = await sendMail(user.email, mail.subject, mail.body);
+  if (delivered) {
+    await db.reminderSent.updateMany({ where: { id: { in: claimed.map((c) => c.rowId) } }, data: { deliveredAt: now } });
+  }
+  return { sent: delivered ? claimed.length : 0 };
+}

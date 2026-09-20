@@ -5,13 +5,15 @@ import { db } from '@/lib/db';
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 /** What an emailed link is allowed to do. See VerificationToken in schema.prisma. */
-export type TokenPurpose = 'verify' | 'reset';
+export type TokenPurpose = 'verify' | 'reset' | 'mute';
 
 const TTL_MS: Record<TokenPurpose, number> = {
   // A confirmation link is harmless if it sits in an inbox for a day.
   verify: 24 * 60 * 60 * 1000,
   // A reset link is a live key to the account, so it gets an hour.
   reset: 60 * 60 * 1000,
+  // A mute link lives in an inbox for weeks before it is wanted.
+  mute: 30 * 24 * 60 * 60 * 1000,
 };
 
 /**
@@ -29,11 +31,15 @@ const TTL_MS: Record<TokenPurpose, number> = {
  * This still prints reset links to the server log as a side effect of the
  * fallback path, which is one of the reasons tokens carry a purpose: a link
  * that leaks from there can only do the one thing it was issued for.
+ *
+ * Returns whether the message can be considered sent, so a caller like the
+ * Canvas notify job can decide whether to mark its sent-log delivered or
+ * leave it to retry. Existing callers ignore the return value.
  */
-export async function sendMail(to: string, subject: string, body: string): Promise<void> {
+export async function sendMail(to: string, subject: string, body: string): Promise<boolean> {
   if (!resend || process.env.VITEST) {
     console.log(`\n--- MAIL ---\nTo: ${to}\nSubject: ${subject}\n\n${body}\n------------\n`);
-    return;
+    return true;
   }
 
   const { error } = await resend.emails.send({
@@ -42,7 +48,11 @@ export async function sendMail(to: string, subject: string, body: string): Promi
     subject,
     text: body,
   });
-  if (error) console.error('sendMail failed:', error);
+  if (error) {
+    console.error('sendMail failed:', error);
+    return false;
+  }
+  return true;
 }
 
 export async function createToken(userId: string, purpose: TokenPurpose): Promise<string> {

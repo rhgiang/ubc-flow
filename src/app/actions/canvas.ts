@@ -3,6 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { connectCanvasFeedFor, disconnectCanvasFeedFor, type Result } from '@/canvas/connect';
 
 // Only session-reading functions are exported here. Anything that takes a
@@ -28,4 +29,19 @@ export async function disconnectCanvasFeed(): Promise<Result> {
   const result = await disconnectCanvasFeedFor(session.user.id);
   if (result.ok) revalidatePath('/onboarding');
   return result;
+}
+
+// Turns reminders back on (or off) for the signed-in student. The mute page
+// itself does the opposite for a signed-out student, keyed on the userId a
+// consumed token names, with db directly - not this action.
+export async function setRemindersEnabled(enabled: boolean): Promise<Result> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
+  await db.reminderPreference.upsert({
+    where: { userId: session.user.id },
+    create: { userId: session.user.id, enabled },
+    update: { enabled },
+  });
+  revalidatePath('/deadlines');
+  return { ok: true };
 }

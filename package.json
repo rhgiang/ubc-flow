@@ -14,6 +14,7 @@
     "scrape:descriptions": "tsx src/scrape/jobs/descriptions.run.ts",
     "scrape:faculties": "tsx src/scrape/jobs/faculties.run.ts",
     "scrape:exams": "tsx src/scrape/jobs/exams.run.ts",
+    "canvas:sync": "tsx src/canvas/jobs/sync.run.ts",
     "scrape:courses": "tsx src/scrape/jobs/catalogue-courses.run.ts",
     "guidance:verify": "tsx src/guidance/jobs/verify.run.ts",
     "enrich:prereqs": "tsx src/prereqs/jobs/build.run.ts",

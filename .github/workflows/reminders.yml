@@ -1,0 +1,29 @@
+name: Canvas deadline reminders
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch: {}
+
+# Two runs must never overlap: a claim in ReminderSent is what stops a double
+# send, and this keeps that guard from ever being exercised by the scheduler.
+concurrency:
+  group: canvas-reminders
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run canvas:sync
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FEED_ENCRYPTION_KEY: ${{ secrets.FEED_ENCRYPTION_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          NEXTAUTH_URL: https://ubcflow.com

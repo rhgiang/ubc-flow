@@ -124,6 +124,35 @@ describe('parseCanvasFeed on the synthetic feed', () => {
   it('returns nothing for text that is not a calendar', () => {
     expect(parseCanvasFeed('<html>login</html>')).toEqual({ items: [], skipped: 0 });
   });
+
+  it('counts a one-event feed missing its final END:VEVENT as skipped, not dropped', () => {
+    const unclosed = [
+      'BEGIN:VCALENDAR',
+      'BEGIN:VEVENT',
+      'UID:event-assignment-unclosed',
+      'SUMMARY:Unclosed [CPSC 110 101 2026W1]',
+    ].join('\r\n');
+    expect(parseCanvasFeed(unclosed)).toEqual({ items: [], skipped: 1 });
+  });
+
+  it('accounts for both events when a BEGIN:VEVENT nests before the first END:VEVENT', () => {
+    const nested = [
+      'BEGIN:VCALENDAR',
+      'BEGIN:VEVENT',
+      'UID:event-assignment-outer',
+      'SUMMARY:Outer [CPSC 110 101 2026W1]',
+      'BEGIN:VEVENT',
+      'UID:event-assignment-inner',
+      'SUMMARY:Inner [CPSC 110 101 2026W1]',
+      'DTSTART:20261027T065959Z',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+    const parsed = parseCanvasFeed(nested);
+    expect(parsed.items).toHaveLength(1);
+    expect(parsed.skipped).toBe(1);
+    expect(parsed.items[0].uid).toBe('event-assignment-inner');
+  });
 });
 
 // The student's own feed, captured once at plan time. Names and course titles

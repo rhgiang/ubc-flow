@@ -82,18 +82,26 @@ export function parseCanvasFeed(ics: string): ParsedFeed {
   let skipped = 0;
   let current: Record<string, { params: Record<string, string>; value: string }> | null = null;
 
+  // Closes out whatever event is open: parsed into an item, or counted as
+  // skipped. Called on END:VEVENT, on a BEGIN:VEVENT that finds one already
+  // open, and once more after the loop for an event the feed never closed.
+  // One function so those three sites cannot drift apart.
+  const finish = () => {
+    if (!current) return;
+    const item = toItem(current);
+    if (item) items.push(item);
+    else skipped += 1;
+    current = null;
+  };
+
   for (const line of unfoldLines(ics)) {
     if (line === 'BEGIN:VEVENT') {
+      finish();
       current = {};
       continue;
     }
     if (line === 'END:VEVENT') {
-      if (current) {
-        const item = toItem(current);
-        if (item) items.push(item);
-        else skipped += 1;
-      }
-      current = null;
+      finish();
       continue;
     }
     if (!current) continue;
@@ -102,6 +110,7 @@ export function parseCanvasFeed(ics: string): ParsedFeed {
     // repeated one would be a malformed event, not a second value.
     if (prop && !(prop.name in current)) current[prop.name] = { params: prop.params, value: prop.value };
   }
+  finish();
 
   return { items, skipped };
 }

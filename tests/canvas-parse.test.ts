@@ -168,9 +168,9 @@ describe('parseCanvasFeed on the synthetic feed', () => {
   });
 });
 
-// The student's own feed, captured once at plan time. Names and course titles
-// are left in on purpose: they are what the parser has to handle. This block
-// runs only once the file exists, so Task 1 does not depend on it.
+// The student's own feed, captured 2026-09-20 and sanitized only by replacing
+// the calendar owner's name in X-WR-CALNAME and X-WR-CALDESC. Every line the
+// parser reads is verbatim Canvas output, because the shapes are the point.
 const REAL = 'tests/fixtures/canvas-feed.ics';
 describe.skipIf(!existsSync(REAL))('parseCanvasFeed on the real feed', () => {
   // describe.skipIf still runs this factory body during collection even when
@@ -178,16 +178,57 @@ describe.skipIf(!existsSync(REAL))('parseCanvasFeed on the real feed', () => {
   // a missing fixture does not throw before the skip takes effect.
   const parsed = existsSync(REAL) ? parseCanvasFeed(readFileSync(REAL, 'utf8')) : { items: [], skipped: 0 };
 
-  it('reads at least one assignment with a course and a UTC due instant', () => {
-    const a = parsed.items.find((i) => i.kind === 'assignment');
-    expect(a).toBeDefined();
-    expect(a!.courseName).not.toBe('');
-    expect(Number.isNaN(a!.dueAt.getTime())).toBe(false);
+  it('reads every event in the feed and skips none', () => {
+    // The fixture holds 71 VEVENTs. Skipping even one would mean a deadline
+    // the student can see in Canvas and not here, which is the failure this
+    // whole feature cannot have.
+    expect(parsed.items).toHaveLength(71);
+    expect(parsed.skipped).toBe(0);
   });
 
-  it('skips nothing it should not: every skipped event is genuinely undated', () => {
-    // If this fails, read the skipped events in the fixture by hand and
-    // decide whether the reader needs a case or the fallback library.
-    expect(parsed.skipped).toBeLessThanOrEqual(parsed.items.length);
+  it('gives every item a course, a valid instant and a link', () => {
+    for (const i of parsed.items) {
+      expect(i.courseName, `blank course on ${i.uid}`).not.toBe('');
+      expect(Number.isNaN(i.dueAt.getTime()), `bad date on ${i.uid}`).toBe(false);
+      expect(i.url, `no link on ${i.uid}`).toBeTruthy();
+    }
+    expect(new Set(parsed.items.map((i) => i.courseName)).size).toBe(5);
+  });
+
+  it('hands out no repeated uid, so the dedupe in diffFeed is a guard and not a crutch', () => {
+    // If this ever fails, a real feed does repeat a uid and diffFeed is
+    // silently dropping a genuine event. See the warning logged in
+    // applyFeedBody.
+    expect(new Set(parsed.items.map((i) => i.uid)).size).toBe(parsed.items.length);
+  });
+
+  it("reads Canvas's doubled VALUE=DATE parameter as one all-day due date", () => {
+    // Canvas emits `DTSTART;VALUE=DATE;VALUE=DATE:20260921`, repeating the
+    // parameter. 29 of the 71 events look like this and the synthetic feed
+    // never did. An all-day item is due at the end of that day in Vancouver.
+    const allDay = parsed.items.filter((i) => i.allDay);
+    expect(allDay).toHaveLength(29);
+    const one = allDay.find((i) => i.title === 'Quiz 3: Concepts and Applications');
+    expect(one).toBeDefined();
+    expect(one!.dueAt.toISOString()).toBe('2026-09-29T06:59:59.000Z');
+  });
+
+  it('reads a section override as an ordinary assignment', () => {
+    // A per-section due date arrives as `event-assignment-override-<n>`, a
+    // uid shape the synthetic feed never had. It must not be skipped, and it
+    // must not collide with the base assignment.
+    const overrides = parsed.items.filter((i) => i.uid.startsWith('event-assignment-override-'));
+    expect(overrides).toHaveLength(4);
+    for (const o of overrides) expect(o.kind).toBe('assignment');
+  });
+
+  it('splits the course off a SUMMARY that was folded mid-bracket', () => {
+    // This one's SUMMARY wraps across a fold inside the trailing [Course]
+    // bracket, so it only parses if unfoldLines runs before splitSummary.
+    const i = parsed.items.find((x) => x.uid === 'event-assignment-2500037');
+    expect(i).toBeDefined();
+    expect(i!.title).toBe('Pre-class: Reading Response 1');
+    expect(i!.courseName).toBe('ASTR_V 101 001 2026W1');
+    expect(i!.dueAt.toISOString()).toBe('2026-09-12T05:00:00.000Z');
   });
 });

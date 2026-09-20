@@ -1,5 +1,6 @@
 // tests/canvas-sync.test.ts
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { readFileSync, existsSync } from 'node:fs';
 import { db } from '@/lib/db';
 
 const feedResponse = { status: 200, body: '' };
@@ -142,5 +143,31 @@ describe('syncFeedFor', () => {
   it('skips a feed already marked broken', async () => {
     await db.canvasFeed.update({ where: { userId }, data: { brokenAt: NOW } });
     expect(await syncFeedFor(userId, NOW)).toBe('skipped');
+  });
+});
+
+// The real captured feed, driven through the whole pipeline rather than just
+// the parser. Nothing here is synthetic: if Canvas's actual output can abort
+// applyDiff's transaction or churn rows between runs, it fails here.
+const REAL = 'tests/fixtures/canvas-feed.ics';
+describe.skipIf(!existsSync(REAL))('syncFeedFor on the real feed', () => {
+  it('lands every event once and stays still when nothing changed', async () => {
+    feedResponse.body = readFileSync(REAL, 'utf8');
+    expect(await syncFeedFor(userId, NOW)).toBe('ok');
+    const first = await db.canvasDeadline.findMany({ where: { userId } });
+    expect(first).toHaveLength(71);
+    expect(first.filter((r) => r.removedAt !== null)).toHaveLength(0);
+    expect(first.filter((r) => r.movedAt !== null)).toHaveLength(0);
+
+    // A second pass over an unchanged feed must be a no-op. A duplicate uid
+    // would have aborted the transaction above; a diff that is not stable
+    // would show up here as a spurious move, removal or restore, and every
+    // one of those sends the student an email saying their prof changed
+    // something.
+    expect(await syncFeedFor(userId, NOW)).toBe('ok');
+    const second = await db.canvasDeadline.findMany({ where: { userId } });
+    expect(second).toHaveLength(71);
+    expect(second.filter((r) => r.removedAt !== null)).toHaveLength(0);
+    expect(second.filter((r) => r.movedAt !== null)).toHaveLength(0);
   });
 });

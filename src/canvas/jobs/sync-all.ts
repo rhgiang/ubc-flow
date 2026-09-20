@@ -23,7 +23,6 @@ export async function syncAllFeeds(now = new Date()) {
     where: { brokenAt: null },
     select: {
       userId: true,
-      brokenAt: true,
       user: { select: { email: true, reminderPreference: { select: { enabled: true } } } },
     },
   });

@@ -196,7 +196,8 @@ export default function DeadlinesList({
       <section className="rounded-card border border-border bg-surface p-4">
         <h2 className="text-sm font-semibold text-foreground">Your Canvas connection</h2>
         <div className="mt-2">
-          <CanvasConnect connectedAt={connectedAt} lastFetchedAt={lastFetchedAt} broken={broken} failing={failing} />
+          {/* No failing prop: this page says it once, below, next to the list it affects. */}
+          <CanvasConnect connectedAt={connectedAt} lastFetchedAt={lastFetchedAt} broken={broken} />
         </div>
       </section>
 

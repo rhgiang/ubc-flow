@@ -67,7 +67,27 @@ export async function syncFeedFor(userId: string, now: Date): Promise<SyncOutcom
     return dead ? 'broken' : 'transient';
   }
 
+  await applyFeedBody(userId, body, now);
+  return 'ok';
+}
+
+/**
+ * Everything syncFeedFor does once it holds a calendar body. Split out so the
+ * connect action, which has already fetched and validated the body, can store
+ * it without a second 20 second round trip to canvas.ubc.ca. The caller must
+ * have proved the body is a calendar; handing an HTML login page to this
+ * would mark every stored deadline removed.
+ */
+export async function applyFeedBody(userId: string, body: string, now: Date): Promise<void> {
   const parsed = parseCanvasFeed(body);
+  // diffFeed keeps the first of a repeated uid, because two creates for one
+  // uid abort the whole transaction. That is the right call, but it is
+  // invisible, so say it here: this is the log line to look for if a student
+  // reports a deadline that never appears.
+  const unique = new Set(parsed.items.map((i) => i.uid)).size;
+  if (unique !== parsed.items.length) {
+    console.warn(`canvas sync: feed repeated ${parsed.items.length - unique} uid(s); kept the first of each`);
+  }
   const stored = await db.canvasDeadline.findMany({
     where: { userId },
     select: { id: true, uid: true, dueAt: true, removedAt: true, title: true, courseName: true, url: true, allDay: true },
@@ -77,7 +97,6 @@ export async function syncFeedFor(userId: string, now: Date): Promise<SyncOutcom
     where: { userId },
     data: { lastFetchedAt: now, lastStatus: 200, failureCount: 0 },
   });
-  return 'ok';
 }
 
 export async function applyDiff(userId: string, diff: FeedDiff, now: Date): Promise<void> {

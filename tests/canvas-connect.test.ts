@@ -113,6 +113,18 @@ describe('disconnectCanvasFeedFor', () => {
     expect(await db.canvasFeed.findUnique({ where: { userId: userA } })).not.toBeNull();
   });
 
+  it('leaves the reminder preference standing, so a muted student stays muted', async () => {
+    await connectCanvasFeedFor(userB, GOOD);
+    await db.reminderPreference.update({ where: { userId: userB }, data: { enabled: false } });
+    await disconnectCanvasFeedFor(userB);
+    // Load bearing: the row surviving is the only reason connectCanvasFeedFor's
+    // update: {} can preserve enabled false, which is what keeps notifyFor from
+    // welcoming a student who asked for no email. Deleting it here would be
+    // silent.
+    const pref = await db.reminderPreference.findUnique({ where: { userId: userB } });
+    expect(pref?.enabled).toBe(false);
+  });
+
   it('is a 404 shape for a student with nothing connected', async () => {
     const r = await disconnectCanvasFeedFor(userB);
     expect(r).toEqual({ ok: false, error: 'Not found.' });

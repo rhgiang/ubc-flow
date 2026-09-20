@@ -4,7 +4,7 @@ import { encryptFeedUrl } from '@/canvas/crypto';
 import { normalizeFeedUrl } from '@/canvas/feed-url';
 import { fetchFeed } from '@/canvas/fetch-feed';
 import { isCalendarBody } from '@/canvas/parse-ics';
-import { syncFeedFor } from '@/canvas/jobs/sync';
+import { applyFeedBody } from '@/canvas/jobs/sync';
 
 export type Result = { ok: true } | { ok: false; error: string };
 
@@ -63,19 +63,33 @@ export async function connectCanvasFeedFor(userId: string, input: string): Promi
   ]);
 
   // Populate the page now rather than leaving "Nothing due yet" for up to
-  // four hours. Not notifyFor: the welcome email waits for the scheduled
-  // run, and an inline send would make the student wait for it. A failure
-  // here is not a failed connect, the row is stored and the job will retry.
+  // four hours. The body above is reused rather than refetched: syncFeedFor
+  // would go back to canvas.ubc.ca for a second 20 second fetch, doubling
+  // both the wait and the load the cooldown above exists to bound, and a
+  // throttled second fetch would paint "last read failed" on a connection
+  // that just worked. Not notifyFor: the welcome email waits for the
+  // scheduled run, and an inline send would make the student wait for it. A
+  // failure here is not a failed connect, the row is stored and the job will
+  // retry.
   try {
-    await syncFeedFor(userId, new Date());
+    await applyFeedBody(userId, body, new Date());
   } catch (e) {
     console.error('canvas connect: first sync failed, leaving it to the job:', e instanceof Error ? e.message : e);
   }
   return { ok: true };
 }
 
-/** Deletes the feed and every deadline and sent-log row under it. Explicit
- *  rather than cascade because deadlines hang off the user, not the feed. */
+/**
+ * Deletes the feed and every deadline and sent-log row under it. Explicit
+ * rather than cascade because deadlines hang off the user, not the feed.
+ *
+ * ReminderPreference is deliberately left standing: it is what remembers that
+ * a student turned reminders off, and connectCanvasFeedFor's `update: {}`
+ * relies on it to keep them off through a reconnect. firstSyncedAt does go,
+ * because it lives on the feed row, so an enabled student who fully
+ * disconnects and comes back is welcomed again. That is intended; a full
+ * disconnect is a fresh start.
+ */
 export async function disconnectCanvasFeedFor(userId: string): Promise<Result> {
   const feed = await db.canvasFeed.findUnique({ where: { userId }, select: { id: true } });
   if (!feed) return { ok: false, error: 'Not found.' };

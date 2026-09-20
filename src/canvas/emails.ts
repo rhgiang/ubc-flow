@@ -45,8 +45,11 @@ export function reminderEmail(notices: Notice[], muteUrl: string) {
 
   const section = (title: string, ns: Notice[], extra?: (n: Notice) => string) => {
     if (!ns.length) return '';
-    const shown = ns.slice(0, MAX_PER_SECTION);
-    const rest = ns.length - shown.length;
+    // Sorted before the slice: the capped case must show the soonest, not an
+    // arbitrary 25, or the subject can name something the body leaves out.
+    const sorted = [...ns].sort((a, b) => a.deadline.dueAt.getTime() - b.deadline.dueAt.getTime());
+    const shown = sorted.slice(0, MAX_PER_SECTION);
+    const rest = sorted.length - shown.length;
     const listed = shown.map((n) => line(n.deadline) + (extra ? extra(n) : '')).join('\n\n');
     const more = rest ? `\n\nand ${rest} more. See them all at ${SITE}/deadlines` : '';
     return `${title}\n\n${listed}${more}`;

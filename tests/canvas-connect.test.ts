@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { db } from '@/lib/db';
 
 // The action fetches the feed once to prove it works. Stub that, never the network.
@@ -29,6 +29,15 @@ beforeAll(async () => {
 afterAll(async () => {
   await db.user.deleteMany({ where: { email: { in: [A, B] } } });
   await db.$disconnect();
+});
+// Connecting is capped at one attempt a minute per account; these tests
+// connect repeatedly on purpose, so the stamp is cleared between them. The
+// cooldown itself has its own test below.
+beforeEach(async () => {
+  await db.user.updateMany({
+    where: { email: { in: [A, B] } },
+    data: { canvasConnectAttemptAt: null },
+  });
 });
 
 describe('connectCanvasFeedFor', () => {
@@ -62,6 +71,22 @@ describe('connectCanvasFeedFor', () => {
     const feed = await db.canvasFeed.findUniqueOrThrow({ where: { userId: userA } });
     expect(feed.brokenAt).toBeNull();
     expect(feed.failureCount).toBe(0);
+  });
+
+  it('refuses a second attempt inside the cooldown, without fetching again', async () => {
+    const { fetchFeed } = await import('@/canvas/fetch-feed');
+    expect(await connectCanvasFeedFor(userA, GOOD)).toEqual({ ok: true });
+    const calls = (fetchFeed as unknown as ReturnType<typeof vi.fn>).mock.calls.length;
+    const second = await connectCanvasFeedFor(userA, GOOD);
+    expect(second.ok).toBe(false);
+    expect((fetchFeed as unknown as ReturnType<typeof vi.fn>).mock.calls.length).toBe(calls);
+    // It is per account: another student is not held up by this one.
+    expect(await connectCanvasFeedFor(userB, GOOD)).toEqual({ ok: true });
+  });
+
+  it('does not spend the cooldown on a link that never had a chance', async () => {
+    expect((await connectCanvasFeedFor(userA, 'https://evil.example/feeds/calendars/x.ics')).ok).toBe(false);
+    expect(await connectCanvasFeedFor(userA, GOOD)).toEqual({ ok: true });
   });
 });
 

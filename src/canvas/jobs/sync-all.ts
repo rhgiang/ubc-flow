@@ -1,11 +1,9 @@
 import { db } from '@/lib/db';
 import { sendMail } from '@/lib/mail';
 import { assertFeedKey } from '@/canvas/crypto';
-import { reconnectEmail } from '@/canvas/emails';
+import { SITE, reconnectEmail } from '@/canvas/emails';
 import { syncFeedFor } from '@/canvas/jobs/sync';
 import { notifyFor } from '@/canvas/jobs/notify';
-
-const SITE = process.env.NEXTAUTH_URL ?? 'https://ubcflow.com';
 
 /** One pass over every connected, unbroken feed. Feeds are independent: a
  *  failure on one is logged and the loop continues, so one dead feed cannot

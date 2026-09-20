@@ -3,9 +3,8 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { createToken, sendMail } from '@/lib/mail';
 import { selectNotices, type DeadlineForNotice, type Notice } from '@/canvas/notices';
-import { reminderEmail, welcomeEmail } from '@/canvas/emails';
+import { SITE, reminderEmail, welcomeEmail } from '@/canvas/emails';
 
-const SITE = process.env.NEXTAUTH_URL ?? 'https://ubcflow.com';
 const DAY = 24 * 3600_000;
 
 async function muteUrl(userId: string): Promise<string> {

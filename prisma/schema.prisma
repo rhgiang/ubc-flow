@@ -158,6 +158,11 @@ model User {
   /// write operations vs. Anthropic calls) and must not consume each other.
   uploadCount           Int       @default(0)
   uploadWindowStart     DateTime?
+  /// When this account last tried to connect a Canvas feed. Connecting fires
+  /// a 20 second fetch at canvas.ubc.ca and signup is open, so it is stamped
+  /// and tested in one conditional updateMany (see src/canvas/connect.ts).
+  /// One column, not a window pair: the cap is one attempt, not a count.
+  canvasConnectAttemptAt DateTime?
   enrollments   Enrollment[]
   enrollmentMeetings EnrollmentMeeting[]
   courseReviews CourseReview[]

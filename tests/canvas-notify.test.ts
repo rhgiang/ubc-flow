@@ -105,6 +105,8 @@ describe('notifyFor', () => {
     await notifyFor(userId, NOW);
     expect(sent.map((m) => m.subject)).toEqual(['Canvas connected: your upcoming deadlines']);
     // Pasting a fresh link keeps firstSyncedAt, so the welcome is not re-sent.
+    // Clear the connect cooldown first; the two connects are back to back.
+    await db.user.update({ where: { id: userId }, data: { canvasConnectAttemptAt: null } });
     expect(await connectCanvasFeedFor(userId, FEED)).toEqual({ ok: true });
     await notifyFor(userId, new Date(NOW.getTime() + H));
     expect(sent.map((m) => m.subject)).toEqual(['Canvas connected: your upcoming deadlines']);

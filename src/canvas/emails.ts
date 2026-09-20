@@ -2,6 +2,17 @@
 import { formatVancouver } from './tz';
 import type { DeadlineForNotice, Notice, Prefs } from './notices';
 
+/** Absolute base for links in these emails: they are read outside the
+ *  browser, so a relative path is no use. Production sets NEXTAUTH_URL. One
+ *  definition, shared with the jobs that build the mute and account links. */
+export const SITE = process.env.NEXTAUTH_URL ?? 'https://ubcflow.com';
+
+/** A pathological feed would otherwise concatenate into a body Resend
+ *  rejects, leaving every claim in that run undelivered and retrying every
+ *  four hours forever. Only the rendering is bounded: notify claims every
+ *  notice regardless, so nothing capped out here fires again later. */
+const MAX_PER_SECTION = 25;
+
 function line(d: DeadlineForNotice): string {
   const when = formatVancouver(d.dueAt, d.allDay);
   return `${d.courseName ? `${d.courseName}: ` : ''}${d.title}\n    due ${when}${d.url ? `\n    ${d.url}` : ''}`;
@@ -32,8 +43,14 @@ export function reminderEmail(notices: Notice[], muteUrl: string) {
     ? `${parts.join(', ')}: ${soonest.deadline.courseName} ${soonest.deadline.title}`.trim()
     : parts.join(', ');
 
-  const section = (title: string, ns: Notice[], extra?: (n: Notice) => string) =>
-    ns.length ? `${title}\n\n${ns.map((n) => line(n.deadline) + (extra ? extra(n) : '')).join('\n\n')}` : '';
+  const section = (title: string, ns: Notice[], extra?: (n: Notice) => string) => {
+    if (!ns.length) return '';
+    const shown = ns.slice(0, MAX_PER_SECTION);
+    const rest = ns.length - shown.length;
+    const listed = shown.map((n) => line(n.deadline) + (extra ? extra(n) : '')).join('\n\n');
+    const more = rest ? `\n\nand ${rest} more. See them all at ${SITE}/deadlines` : '';
+    return `${title}\n\n${listed}${more}`;
+  };
   const body = [
     section('Due soon', leads),
     section('Moved', moved, (n) => `\n    was ${n.deadline.movedFrom ? formatVancouver(n.deadline.movedFrom, n.deadline.allDay) : 'unknown'}`),

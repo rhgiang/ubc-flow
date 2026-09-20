@@ -7,6 +7,10 @@ import { parseCanvasFeed } from '@/canvas/parse-ics';
 
 export type Result = { ok: true } | { ok: false; error: string };
 
+/** One connect attempt per minute per account. Each one is a 20 second fetch
+ *  at canvas.ubc.ca on our IP, and signup is open. */
+const COOLDOWN_MS = 60 * 1000;
+
 /**
  * Validates, proves the feed answers, encrypts, stores. The URL never appears
  * in a log line, an error string, or a response: failures name the HTTP
@@ -17,6 +21,26 @@ export type Result = { ok: true } | { ok: false; error: string };
 export async function connectCanvasFeedFor(userId: string, input: string): Promise<Result> {
   const normalized = normalizeFeedUrl(input);
   if (!normalized.ok) return normalized;
+
+  // Charged after validation (a typo should not cost a minute) and before the
+  // fetch, which is what it bounds. One statement tests and stamps, the same
+  // shape as the syllabus cap in src/app/api/syllabus/extract/route.ts: the
+  // WHERE re-encodes the condition, so two concurrent submits contend on the
+  // row and the loser gets count 0 back rather than both reading "clear"
+  // first. A read followed by a write would let both through.
+  const claim = await db.user.updateMany({
+    where: {
+      id: userId,
+      OR: [
+        { canvasConnectAttemptAt: null },
+        { canvasConnectAttemptAt: { lt: new Date(Date.now() - COOLDOWN_MS) } },
+      ],
+    },
+    data: { canvasConnectAttemptAt: new Date() },
+  });
+  if (claim.count === 0) {
+    return { ok: false, error: 'Give that a minute, then try again.' };
+  }
 
   const { status, body } = await fetchFeed(normalized.url);
   if (status !== 200 || body === null) {

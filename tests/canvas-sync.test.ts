@@ -75,6 +75,23 @@ describe('syncFeedFor', () => {
     expect(feed.brokenAt).toBeNull();
   });
 
+  it('treats a 200 with a non-calendar body as transient and does not touch deadlines', async () => {
+    await syncFeedFor(userId, NOW);
+    feedResponse.status = 200;
+    feedResponse.body = '<html><body>Please log in to Canvas</body></html>';
+    expect(await syncFeedFor(userId, NOW)).toBe('transient');
+    expect(await db.canvasDeadline.count({ where: { userId, removedAt: null } })).toBe(2);
+    const feed = await db.canvasFeed.findUniqueOrThrow({ where: { userId } });
+    expect(feed.failureCount).toBe(1);
+    expect(feed.brokenAt).toBeNull();
+  });
+
+  it('marks a feed broken instead of throwing when the stored URL cannot be decrypted', async () => {
+    await db.canvasFeed.update({ where: { userId }, data: { encryptedUrl: 'not-valid-base64-ciphertext' } });
+    expect(await syncFeedFor(userId, NOW)).toBe('broken');
+    expect((await db.canvasFeed.findUniqueOrThrow({ where: { userId } })).brokenAt).not.toBeNull();
+  });
+
   it('breaks on a 404 immediately, and on repeated failures', async () => {
     feedResponse.status = 404;
     feedResponse.body = null as unknown as string;

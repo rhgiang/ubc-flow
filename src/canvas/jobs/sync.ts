@@ -24,8 +24,15 @@ export async function syncFeedFor(userId: string, now: Date): Promise<SyncOutcom
   if (!feed || feed.brokenAt) return 'skipped';
 
   // Re-validated after decrypting, so a key or data problem cannot become a
-  // request to an arbitrary host. The URL itself is never logged.
-  const url = normalizeFeedUrl(decryptFeedUrl(feed.encryptedUrl));
+  // request to an arbitrary host. The URL itself is never logged. A corrupted
+  // row or a rotated key makes decryptFeedUrl throw; that is handled exactly
+  // like a failed validation, not left to reject the promise.
+  let url: ReturnType<typeof normalizeFeedUrl>;
+  try {
+    url = normalizeFeedUrl(decryptFeedUrl(feed.encryptedUrl));
+  } catch {
+    url = { ok: false, error: 'could not be decrypted' };
+  }
   if (!url.ok) {
     await db.canvasFeed.update({ where: { userId }, data: { brokenAt: now, lastFetchedAt: now } });
     console.error('canvas sync: stored feed URL failed validation for one user; marked broken');
@@ -33,7 +40,12 @@ export async function syncFeedFor(userId: string, now: Date): Promise<SyncOutcom
   }
 
   const { status, body } = await fetchFeed(url.url);
-  if (status !== 200 || body === null) {
+  // A 200 with no calendar in it (an HTML login page, an SSO redirect, a
+  // maintenance interstitial) is not a valid empty feed: parseCanvasFeed
+  // would happily return zero items and diffFeed would then mark every
+  // stored deadline removed. Treat it as a failure, same as a non-200.
+  const notCalendar = body === null || !/BEGIN:VCALENDAR/i.test(body);
+  if (status !== 200 || notCalendar) {
     const failures = feed.failureCount + 1;
     const dead = status === 401 || status === 404 || failures >= BROKEN_AFTER_FAILURES;
     await db.canvasFeed.update({

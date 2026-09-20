@@ -20,7 +20,12 @@ export function normalizeFeedUrl(input: string): { ok: true; url: string } | { o
   } catch {
     return { ok: false, error: 'That is not a link.' };
   }
-  if (u.protocol !== 'https:' || u.hostname !== FEED_HOST || !u.pathname.startsWith(FEED_PATH_PREFIX)) {
+  if (
+    u.protocol !== 'https:' ||
+    u.hostname !== FEED_HOST ||
+    u.port !== '' ||
+    !u.pathname.startsWith(FEED_PATH_PREFIX)
+  ) {
     return {
       ok: false,
       error: 'That is not a canvas.ubc.ca Calendar Feed link. In Canvas, open Calendar and click Calendar Feed.',

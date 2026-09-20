@@ -48,6 +48,8 @@ describe('normalizeFeedUrl', () => {
     ['https://canvas.ubc.ca/courses/1', 'feeds'],
     ['http://canvas.ubc.ca/feeds/calendars/x.ics', 'https'],
     ['https://169.254.169.254/feeds/calendars/x.ics', 'host'],
+    ['https://canvas.ubc.ca:8443/feeds/calendars/x.ics', 'port'],
+    ['https://canvas.ubc.ca:22/feeds/calendars/x.ics', 'port'],
     ['javascript:alert(1)', ''],
     ['not a url', ''],
     ['', ''],

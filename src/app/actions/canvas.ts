@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { connectCanvasFeedFor, disconnectCanvasFeedFor, type Result } from '@/canvas/connect';
+import { updateReminderPreferencesFor } from '@/canvas/prefs';
 
 // Only session-reading functions are exported here. Anything that takes a
 // userId lives in src/canvas/connect.ts: an export from this file is an
@@ -44,4 +45,15 @@ export async function setRemindersEnabled(enabled: boolean): Promise<Result> {
   });
   revalidatePath('/deadlines');
   return { ok: true };
+}
+
+// Session-reading wrapper only; the validation and the write live in
+// src/canvas/prefs.ts so a test can call updateReminderPreferencesFor
+// directly with no request context.
+export async function updateReminderPreferences(input: { leadHours: number[]; mutedCourses: string[] }): Promise<Result> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
+  const result = await updateReminderPreferencesFor(session.user.id, input);
+  if (result.ok) revalidatePath('/deadlines');
+  return result;
 }

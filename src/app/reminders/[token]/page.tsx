@@ -2,14 +2,20 @@
 import Link from 'next/link';
 import { consumeToken } from '@/lib/mail';
 import { db } from '@/lib/db';
-import { setRemindersEnabled } from '@/app/actions/canvas';
 
 /**
  * A mute link lands in an inbox, so whoever clicks it is usually signed out.
  * No session is consulted: the token names the userId, and that user's
  * reminders are turned off directly with db, the same shape as the shared
- * schedule link. Turning them back on is a separate, session-scoped action,
- * because that direction only ever happens from inside a signed-in session.
+ * schedule link.
+ *
+ * This page must never host anything that re-renders it: consumeToken
+ * deletes the token's row on the first render, so a second render of the
+ * same request (a form action on this route revalidating it, for instance)
+ * would find no row and fall into the expired branch below, even though the
+ * first render already succeeded. Turning reminders back on is therefore a
+ * plain link to /deadlines, not a form here: that page is signed-in-scoped,
+ * not keyed on a consumed token, so it can host setRemindersEnabled safely.
  */
 export const dynamic = 'force-dynamic';
 
@@ -43,20 +49,9 @@ export default async function MutePage({
       <p className="mt-2 text-sm text-text-secondary">
         You will not get any more Canvas deadline emails.
       </p>
-      <form
-        action={async () => {
-          'use server';
-          await setRemindersEnabled(true);
-        }}
-        className="mt-4"
-      >
-        <button className="rounded-pill bg-brand px-4 py-1.5 text-sm font-medium text-brand-foreground">
-          Turn reminders back on
-        </button>
-      </form>
       <p className="mt-4 text-sm">
         <Link href="/deadlines" className="font-medium underline underline-offset-4">
-          Go to your deadlines
+          Change reminders from your deadlines page
         </Link>
       </p>
     </main>

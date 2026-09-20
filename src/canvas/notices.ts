@@ -4,6 +4,33 @@ const H = 60 * 60 * 1000;
  *  either handled by an earlier run or predates the connection, and a stale
  *  "3 days before" is noise. It also absorbs a late or missed cron run. */
 export const WINDOW_GRACE_MS = 24 * H;
+/** How long a move or a removal stays news. Exported and shared with
+ *  src/app/deadlines/page.tsx so the page and the email cannot drift: a prof
+ *  who shifts a December midterm in September must not have it announced as
+ *  news in December, when the page stopped showing the move months earlier.
+ *  Spec section 5: an out-of-window move shows on the page, not in mail. */
+export const RECENT_MS = 14 * 24 * H;
+
+/** A deadline an hour past is still worth a glance; yesterday's is not. */
+const PAST_GRACE_MS = 24 * H;
+
+/**
+ * Whether a deadline still belongs on the deadlines page. The page's job is
+ * what is next, so something already due drops off a day later, however long
+ * the term's backlog. A recent removal or move is the exception: "your
+ * instructor removed yesterday's quiz" is news worth a line.
+ *
+ * Here rather than in the page so the same 14 day window governs both what
+ * the page shows and what selectNotices emails about.
+ */
+export function stillWorthShowing(
+  d: { dueAt: Date; movedAt: Date | null; removedAt: Date | null },
+  now: number,
+): boolean {
+  const recent = (at: Date | null) => at !== null && now - at.getTime() <= RECENT_MS;
+  if (d.removedAt) return recent(d.removedAt);
+  return d.dueAt.getTime() > now - PAST_GRACE_MS || recent(d.movedAt);
+}
 
 export type DeadlineForNotice = {
   id: string; title: string; courseName: string; dueAt: Date; allDay: boolean; url: string | null;
@@ -29,7 +56,10 @@ export function selectNotices(deadlines: DeadlineForNotice[], prefs: Prefs, now:
       if (inLargestWindow(d.dueAt)) out.push({ deadline: d, key: 'removed', kind: 'removed' });
       continue;
     }
-    if (d.movedAt && (inLargestWindow(d.dueAt) || inLargestWindow(d.movedFrom))) {
+    // movedAt is set once and never cleared, so the lead window alone is not
+    // enough: the move has to still be recent as well.
+    const movedRecently = d.movedAt !== null && t - d.movedAt.getTime() <= RECENT_MS;
+    if (movedRecently && (inLargestWindow(d.dueAt) || inLargestWindow(d.movedFrom))) {
       out.push({ deadline: d, key: `moved:${d.dueAt.toISOString()}`, kind: 'moved' });
     }
     if (due <= t) continue;

@@ -1,6 +1,6 @@
 // tests/canvas-notices.test.ts
 import { describe, it, expect } from 'vitest';
-import { selectNotices, type DeadlineForNotice, type Prefs } from '@/canvas/notices';
+import { selectNotices, stillWorthShowing, RECENT_MS, type DeadlineForNotice, type Prefs } from '@/canvas/notices';
 
 const H = 60 * 60 * 1000;
 const NOW = new Date('2026-10-24T15:00:00Z');
@@ -68,9 +68,43 @@ describe('selectNotices, moved and removed', () => {
     expect(selectNotices([far], prefs, NOW).filter((x) => x.kind === 'moved')).toEqual([]);
   });
 
+  it('does not notice a move made months before the deadline came into range', () => {
+    // Shifted in September, due in December: the page stopped showing the
+    // move weeks ago, so the email must not announce it as news.
+    const stale = dl({
+      id: 'a', dueAt: at(60), movedFrom: at(30), movedAt: new Date(NOW.getTime() - RECENT_MS - 1),
+    });
+    expect(selectNotices([stale], prefs, NOW).filter((x) => x.kind === 'moved')).toEqual([]);
+  });
+
   it('notices a removal inside the window, with a fixed key', () => {
     const gone = dl({ id: 'a', dueAt: at(20), removedAt: NOW });
     const n = selectNotices([gone], prefs, NOW);
     expect(n.map((x) => x.key)).toEqual(['removed']);
+  });
+});
+
+describe('stillWorthShowing', () => {
+  const t = NOW.getTime();
+  const row = (over: Partial<{ dueAt: Date; movedAt: Date | null; removedAt: Date | null }>) => ({
+    dueAt: at(24), movedAt: null, removedAt: null, ...over,
+  });
+
+  it('keeps what is still to come', () => {
+    expect(stillWorthShowing(row({ dueAt: at(1) }), t)).toBe(true);
+    expect(stillWorthShowing(row({ dueAt: at(-1) }), t)).toBe(true);
+  });
+
+  it('drops a deadline more than a day past, so September does not sit above November', () => {
+    expect(stillWorthShowing(row({ dueAt: at(-25) }), t)).toBe(false);
+    expect(stillWorthShowing(row({ dueAt: at(-24 * 60) }), t)).toBe(false);
+  });
+
+  it('keeps a past deadline whose move or removal is still recent, and drops it once it is not', () => {
+    expect(stillWorthShowing(row({ dueAt: at(-25), movedAt: NOW }), t)).toBe(true);
+    expect(stillWorthShowing(row({ dueAt: at(-25), removedAt: NOW }), t)).toBe(true);
+    const old = new Date(t - RECENT_MS - 1);
+    expect(stillWorthShowing(row({ dueAt: at(-25), movedAt: old }), t)).toBe(false);
+    expect(stillWorthShowing(row({ dueAt: at(48), removedAt: old }), t)).toBe(false);
   });
 });

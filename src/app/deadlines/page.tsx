@@ -4,9 +4,8 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { LEAD_CHOICES } from '@/canvas/prefs';
+import { RECENT_MS, stillWorthShowing } from '@/canvas/notices';
 import DeadlinesList from '@/components/DeadlinesList';
-
-const RECENT_MS = 14 * 24 * 60 * 60 * 1000;
 
 type DeadlineFields = {
   id: string;
@@ -93,9 +92,7 @@ export default async function DeadlinesPage() {
   }
 
   const now = currentTimeMs();
-  const rows = deadlines
-    .filter((d) => !d.removedAt || now - d.removedAt.getTime() <= RECENT_MS)
-    .map((d) => toRow(d, now));
+  const rows = deadlines.filter((d) => stillWorthShowing(d, now)).map((d) => toRow(d, now));
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6">

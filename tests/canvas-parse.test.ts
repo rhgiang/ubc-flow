@@ -121,6 +121,19 @@ describe('parseCanvasFeed on the synthetic feed', () => {
     expect(lecture.url).toBeNull();
   });
 
+  it('skips an event whose TZID names a zone Intl does not know', () => {
+    const bogus = [
+      'BEGIN:VCALENDAR',
+      'BEGIN:VEVENT',
+      'UID:event-assignment-bad-tz',
+      'SUMMARY:Lab [CPSC 110 101 2026W1]',
+      'DTSTART;TZID=Mars/Olympus_Mons:20261103T140000',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+    expect(parseCanvasFeed(bogus)).toEqual({ items: [], skipped: 1 });
+  });
+
   it('returns nothing for text that is not a calendar', () => {
     expect(parseCanvasFeed('<html>login</html>')).toEqual({ items: [], skipped: 0 });
   });

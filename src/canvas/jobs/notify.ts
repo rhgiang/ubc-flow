@@ -21,7 +21,7 @@ async function muteUrl(userId: string): Promise<string> {
 export async function notifyFor(userId: string, now: Date): Promise<{ sent: number }> {
   const [user, feed, prefs] = await Promise.all([
     db.user.findUnique({ where: { id: userId }, select: { email: true } }),
-    db.canvasFeed.findUnique({ where: { userId } }),
+    db.canvasFeed.findUnique({ where: { userId }, select: { brokenAt: true, firstSyncedAt: true } }),
     db.reminderPreference.findUnique({ where: { userId } }),
   ]);
   if (!user || !feed || feed.brokenAt || !prefs) return { sent: 0 };

@@ -77,6 +77,16 @@ function parseDtStart(value: string, params: Record<string, string>): { at: Date
   }
 }
 
+/**
+ * Whether a response body is a calendar at all. A 200 carrying an HTML login
+ * page, an SSO redirect or a maintenance interstitial parses to zero items,
+ * which would read as "the prof deleted everything". Both the connect action
+ * and the sync job check this, so it lives in one place.
+ */
+export function isCalendarBody(body: string | null): body is string {
+  return body !== null && /BEGIN:VCALENDAR/i.test(body);
+}
+
 export function parseCanvasFeed(ics: string): ParsedFeed {
   const items: FeedItem[] = [];
   let skipped = 0;

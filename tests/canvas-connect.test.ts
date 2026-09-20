@@ -73,6 +73,15 @@ describe('connectCanvasFeedFor', () => {
     expect(feed.failureCount).toBe(0);
   });
 
+  it('populates the deadlines page straight away instead of after the next run', async () => {
+    await db.canvasDeadline.deleteMany({ where: { userId: userA } });
+    expect(await connectCanvasFeedFor(userA, GOOD)).toEqual({ ok: true });
+    const rows = await db.canvasDeadline.findMany({ where: { userId: userA } });
+    expect(rows.map((r) => r.uid)).toEqual(['event-assignment-1']);
+    // The welcome email still waits for the scheduled run.
+    expect((await db.canvasFeed.findUniqueOrThrow({ where: { userId: userA } })).firstSyncedAt).toBeNull();
+  });
+
   it('refuses a second attempt inside the cooldown, without fetching again', async () => {
     const { fetchFeed } = await import('@/canvas/fetch-feed');
     expect(await connectCanvasFeedFor(userA, GOOD)).toEqual({ ok: true });

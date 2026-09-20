@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { decryptFeedUrl } from '@/canvas/crypto';
 import { normalizeFeedUrl } from '@/canvas/feed-url';
 import { fetchFeed } from '@/canvas/fetch-feed';
-import { parseCanvasFeed } from '@/canvas/parse-ics';
+import { isCalendarBody, parseCanvasFeed } from '@/canvas/parse-ics';
 import { diffFeed, type FeedDiff } from '@/canvas/diff';
 
 export const BROKEN_AFTER_FAILURES = 3;
@@ -40,11 +40,9 @@ export async function syncFeedFor(userId: string, now: Date): Promise<SyncOutcom
   }
 
   const { status, body } = await fetchFeed(url.url);
-  // A 200 with no calendar in it (an HTML login page, an SSO redirect, a
-  // maintenance interstitial) is not a valid empty feed: parseCanvasFeed
-  // would happily return zero items and diffFeed would then mark every
-  // stored deadline removed. Treat it as a failure, same as a non-200.
-  const notCalendar = body === null || !/BEGIN:VCALENDAR/i.test(body);
+  // A 200 with no calendar in it is not a valid empty feed: diffFeed would
+  // mark every stored deadline removed. Treat it as a failure, like a non-200.
+  const notCalendar = !isCalendarBody(body);
   if (status !== 200 || notCalendar) {
     const failures = feed.failureCount + 1;
     const dead = status === 401 || status === 404 || failures >= BROKEN_AFTER_FAILURES;
@@ -72,7 +70,7 @@ export async function syncFeedFor(userId: string, now: Date): Promise<SyncOutcom
   const parsed = parseCanvasFeed(body);
   const stored = await db.canvasDeadline.findMany({
     where: { userId },
-    select: { id: true, uid: true, dueAt: true, removedAt: true },
+    select: { id: true, uid: true, dueAt: true, removedAt: true, title: true, courseName: true, url: true, allDay: true },
   });
   await applyDiff(userId, diffFeed(stored, parsed.items), now);
   await db.canvasFeed.update({
@@ -96,6 +94,12 @@ export async function applyDiff(userId: string, diff: FeedDiff, now: Date): Prom
       db.canvasDeadline.update({
         where: { id: m.id },
         data: { dueAt: m.to, movedFrom: m.from, movedAt: now, ...(m.restored ? { removedAt: null } : {}) },
+      }),
+    ),
+    ...diff.update.map((u) =>
+      db.canvasDeadline.update({
+        where: { id: u.id },
+        data: { title: u.title, courseName: u.courseName, url: u.url, allDay: u.allDay },
       }),
     ),
     ...(diff.restore.length

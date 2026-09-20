@@ -8,6 +8,7 @@ const item = (uid: string, iso: string): FeedItem => ({
 });
 const stored = (id: string, uid: string, iso: string, removed = false): StoredDeadline => ({
   id, uid, dueAt: new Date(iso), removedAt: removed ? new Date('2026-09-01T00:00:00Z') : null,
+  title: uid, courseName: 'C', url: null, allDay: false,
 });
 
 describe('diffFeed', () => {
@@ -20,7 +21,7 @@ describe('diffFeed', () => {
 
   it('does nothing for an unchanged deadline', () => {
     const d = diffFeed([stored('1', 'a', '2026-10-27T06:59:59Z')], [item('a', '2026-10-27T06:59:59Z')]);
-    expect(d).toEqual({ create: [], move: [], restore: [], remove: [] });
+    expect(d).toEqual({ create: [], move: [], update: [], restore: [], remove: [] });
   });
 
   it('records a move with where it moved from', () => {
@@ -48,6 +49,26 @@ describe('diffFeed', () => {
     expect(d.move).toEqual([
       { id: '1', from: new Date('2026-10-27T06:59:59Z'), to: new Date('2026-10-30T06:59:59Z'), restored: false },
     ]);
+  });
+
+  it('updates a renamed or relinked deadline without calling it moved', () => {
+    const d = diffFeed(
+      [stored('1', 'a', '2026-10-27T06:59:59Z')],
+      [{ ...item('a', '2026-10-27T06:59:59Z'), title: 'Problem Set 3', courseName: 'CPSC 110', url: 'https://canvas.ubc.ca/x', allDay: true }],
+    );
+    expect(d.move).toEqual([]);
+    expect(d.update).toEqual([
+      { id: '1', title: 'Problem Set 3', courseName: 'CPSC 110', url: 'https://canvas.ubc.ca/x', allDay: true },
+    ]);
+  });
+
+  it('records a rename and a move together, in their own buckets', () => {
+    const d = diffFeed(
+      [stored('1', 'a', '2026-10-27T06:59:59Z')],
+      [{ ...item('a', '2026-10-30T06:59:59Z'), title: 'Renamed' }],
+    );
+    expect(d.move).toHaveLength(1);
+    expect(d.update).toEqual([{ id: '1', title: 'Renamed', courseName: 'C', url: null, allDay: false }]);
   });
 
   it('restores a removed deadline the prof put back, unchanged or moved', () => {

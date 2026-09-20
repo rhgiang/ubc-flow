@@ -64,6 +64,27 @@ describe('syncFeedFor', () => {
     expect(back.removedAt).toBeNull();
   });
 
+  it('writes a renamed title, course, link and all-day flag through to the row', async () => {
+    await syncFeedFor(userId, NOW);
+    // Same UID, same DTSTART: only the details changed, so it is not a move.
+    feedResponse.body = cal([
+      [
+        'BEGIN:VEVENT',
+        'UID:event-assignment-1',
+        'SUMMARY:Problem Set 3 [CPSC 121 203]',
+        'URL:https://canvas.ubc.ca/courses/1/assignments/2',
+        'DTSTART:20261027T065959Z',
+        'END:VEVENT',
+      ].join('\r\n'),
+    ]);
+    expect(await syncFeedFor(userId, NOW)).toBe('ok');
+    const row = await db.canvasDeadline.findFirstOrThrow({ where: { userId, uid: 'event-assignment-1' } });
+    expect(row.title).toBe('Problem Set 3');
+    expect(row.courseName).toBe('CPSC 121 203');
+    expect(row.url).toBe('https://canvas.ubc.ca/courses/1/assignments/2');
+    expect(row.movedAt).toBeNull();
+  });
+
   it('treats a timeout as transient and does not touch deadlines', async () => {
     await syncFeedFor(userId, NOW);
     feedResponse.status = 0;

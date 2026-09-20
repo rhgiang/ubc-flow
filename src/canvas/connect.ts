@@ -3,7 +3,8 @@ import { db } from '@/lib/db';
 import { encryptFeedUrl } from '@/canvas/crypto';
 import { normalizeFeedUrl } from '@/canvas/feed-url';
 import { fetchFeed } from '@/canvas/fetch-feed';
-import { parseCanvasFeed } from '@/canvas/parse-ics';
+import { isCalendarBody } from '@/canvas/parse-ics';
+import { syncFeedFor } from '@/canvas/jobs/sync';
 
 export type Result = { ok: true } | { ok: false; error: string };
 
@@ -12,9 +13,10 @@ export type Result = { ok: true } | { ok: false; error: string };
 const COOLDOWN_MS = 60 * 1000;
 
 /**
- * Validates, proves the feed answers, encrypts, stores. The URL never appears
- * in a log line, an error string, or a response: failures name the HTTP
- * status and nothing else. Reconnecting replaces the URL and clears a broken
+ * Validates, proves the feed answers, encrypts, stores, and syncs once so the
+ * deadlines page is populated before the student gets there. The URL never
+ * appears in a log line, an error string, or a response: failures name the
+ * HTTP status and nothing else. Reconnecting replaces the URL and clears a broken
  * flag but keeps firstSyncedAt, so a reconnect does not send a second
  * welcome email.
  */
@@ -46,10 +48,9 @@ export async function connectCanvasFeedFor(userId: string, input: string): Promi
   if (status !== 200 || body === null) {
     return { ok: false, error: `Canvas answered ${status || 'with no response'}. Check the link and try again.` };
   }
-  if (!/BEGIN:VCALENDAR/i.test(body)) {
+  if (!isCalendarBody(body)) {
     return { ok: false, error: 'That link did not return a calendar. In Canvas, open Calendar and click Calendar Feed.' };
   }
-  parseCanvasFeed(body); // proves it parses; the job stores items, not this action
 
   const encryptedUrl = encryptFeedUrl(normalized.url);
   await db.$transaction([
@@ -60,6 +61,16 @@ export async function connectCanvasFeedFor(userId: string, input: string): Promi
     }),
     db.reminderPreference.upsert({ where: { userId }, create: { userId }, update: {} }),
   ]);
+
+  // Populate the page now rather than leaving "Nothing due yet" for up to
+  // four hours. Not notifyFor: the welcome email waits for the scheduled
+  // run, and an inline send would make the student wait for it. A failure
+  // here is not a failed connect, the row is stored and the job will retry.
+  try {
+    await syncFeedFor(userId, new Date());
+  } catch (e) {
+    console.error('canvas connect: first sync failed, leaving it to the job:', e instanceof Error ? e.message : e);
+  }
   return { ok: true };
 }
 

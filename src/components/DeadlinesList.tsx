@@ -103,7 +103,10 @@ export default function DeadlinesList({
     router.refresh();
   }
 
-  const courseNames = [...new Set(deadlines.map((d) => d.courseName))].sort();
+  // An event whose SUMMARY had no trailing [Course] has an empty name. It
+  // would render as a checkbox with no label, and ticking it would send '',
+  // which the action drops, so the tick would silently undo itself.
+  const courseNames = [...new Set(deadlines.map((d) => d.courseName))].filter(Boolean).sort();
 
   // Deadlines already arrive soonest first, so a run of the same Vancouver
   // day stays contiguous: one pass groups them without a re-sort.

@@ -715,15 +715,19 @@ git commit -m "feat: store a student's Canvas feed encrypted, with the host pinn
 - Modify: `src/app/onboarding/page.tsx` (one new section under the verified block)
 - Test: `tests/canvas-connect.test.ts`
 
-**Why two files.** Every exported function in a `'use server'` file is a
-callable endpoint, whether or not any component references it. A helper
-that takes a `userId` parameter must therefore never be exported from the
-actions file, or any client could act on any user by passing their id. The
-logic lives in `src/canvas/connect.ts`, tests import it from there, and the
-actions file exports only functions that read the session themselves.
-(`src/app/actions/account.ts` currently exports `deleteAccountFor(userId)`
-and `removeCourseFor(userId, ...)` this way; that is a pre-existing concern
-noted for the author, not this task's to fix.)
+**Why two files.** Next's rule, from its vendored docs: treat every Server
+Action as a public API endpoint. An export of a `'use server'` file becomes
+a callable endpoint the moment any client component references it, with an
+encrypted per-build ID; unreferenced exports are dead-code-eliminated and
+have no endpoint. So a helper that takes a `userId` parameter must never be
+exported from the actions file: it is safe only until the day someone
+imports it into a component, and then any client can act on any user by
+passing their id. The logic lives in `src/canvas/connect.ts`, tests import
+it from there, and the actions file exports only functions that read the
+session themselves. (Eleven existing `*For(userId, ...)` helpers across
+`src/app/actions/` are exported this way today. None is referenced by a
+component, so none is reachable now; it is a latent hazard noted for the
+author, not this task's to fix.)
 
 **Interfaces:**
 - Consumes: `normalizeFeedUrl`, `encryptFeedUrl` (Task 2); `parseCanvasFeed` (Task 1).

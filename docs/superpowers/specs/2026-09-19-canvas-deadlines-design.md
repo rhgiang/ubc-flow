@@ -141,9 +141,12 @@ model ReminderSent {
   userId     String
   deadlineId String
   deadline   CanvasDeadline @relation(fields: [deadlineId], references: [id], onDelete: Cascade)
-  /// "lead:72", "lead:24", "moved:<new dueAt ISO>", "removed". One row per
-  /// distinct notice, so a deadline that moves twice notices twice and a
-  /// lead that fired never fires again.
+  /// "lead:72:<dueAt ISO>", "lead:24:<dueAt ISO>", "moved:<new dueAt ISO>",
+  /// "removed". One row per distinct notice, so a deadline that moves twice
+  /// notices twice and a lead that fired for a given date never fires again.
+  /// The due date is in the lead key as well as the moved one: without it a
+  /// lead claimed for the old date silently blocks the reminder for the new
+  /// date after a prof moves the deadline.
   notice     String
   /// Written BEFORE the email is sent; the unique below is the guarantee that
   /// two overlapping runs cannot both send. Null deliveredAt means the send

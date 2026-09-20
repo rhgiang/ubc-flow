@@ -15,7 +15,7 @@ const keys = (n: ReturnType<typeof selectNotices>) => n.map((x) => x.key).sort()
 describe('selectNotices, lead reminders', () => {
   it('fires a lead whose window opened within the last 24 hours', () => {
     // Due in 70h: the 72h window opened 2h ago. The 24h window is not open.
-    expect(keys(selectNotices([dl({ id: 'a', dueAt: at(70) })], prefs, NOW))).toEqual(['lead:72']);
+    expect(keys(selectNotices([dl({ id: 'a', dueAt: at(70) })], prefs, NOW))).toEqual([`lead:72:${at(70).toISOString()}`]);
   });
 
   it('does not fire a window that has not opened', () => {
@@ -29,13 +29,25 @@ describe('selectNotices, lead reminders', () => {
 
   it('fires both leads when both windows opened recently', () => {
     // Due in 23h: 24h window opened 1h ago; 72h opened 49h ago (stale).
-    expect(keys(selectNotices([dl({ id: 'a', dueAt: at(23) })], prefs, NOW))).toEqual(['lead:24']);
+    expect(keys(selectNotices([dl({ id: 'a', dueAt: at(23) })], prefs, NOW))).toEqual([`lead:24:${at(23).toISOString()}`]);
   });
 
   it('never fires for something already due, removed, or in a muted course', () => {
     expect(selectNotices([dl({ id: 'a', dueAt: at(-1) })], prefs, NOW)).toEqual([]);
     expect(selectNotices([dl({ id: 'b', dueAt: at(70), removedAt: NOW })], prefs, NOW).filter((n) => n.kind === 'lead')).toEqual([]);
     expect(selectNotices([dl({ id: 'c', dueAt: at(70), courseName: 'MATH 200' })], { ...prefs, mutedCourses: ['MATH 200'] }, NOW)).toEqual([]);
+  });
+
+  it('gives a moved deadline a lead key the old date cannot have claimed', () => {
+    // Due Nov 10; the 72h lead fires and is claimed on Nov 7.
+    const nov7 = new Date('2026-11-07T12:00:00Z');
+    const before = selectNotices([dl({ id: 'a', dueAt: new Date('2026-11-10T08:00:00Z') })], prefs, nov7);
+    expect(before.map((n) => n.key)).toEqual(['lead:72:2026-11-10T08:00:00.000Z']);
+    // The prof moves it to Dec 1. On Nov 28 the 72h window reopens.
+    const nov28 = new Date('2026-11-28T12:00:00Z');
+    const after = selectNotices([dl({ id: 'a', dueAt: new Date('2026-12-01T08:00:00Z') })], prefs, nov28);
+    expect(after.map((n) => n.key)).toEqual(['lead:72:2026-12-01T08:00:00.000Z']);
+    expect(after[0].key).not.toBe(before[0].key);
   });
 
   it('fires nothing when reminders are disabled', () => {

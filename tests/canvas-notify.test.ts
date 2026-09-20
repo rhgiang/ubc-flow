@@ -53,7 +53,7 @@ describe('notifyFor', () => {
     expect(sent[0].body).toContain('a');
     expect(sent[0].body).toContain('b');
     const rows = await db.reminderSent.findMany({ where: { userId } });
-    expect(rows.map((x) => x.notice).sort()).toEqual(['lead:72', 'lead:72']);
+    expect(rows.map((x) => x.notice).sort()).toEqual([`lead:72:${at(70).toISOString()}`, `lead:72:${at(71).toISOString()}`]);
     expect(rows.every((x) => x.deliveredAt !== null)).toBe(true);
   });
 

@@ -33,6 +33,23 @@ describe('diffFeed', () => {
     expect(d.remove).toEqual(['1']); // '2' was already removed
   });
 
+  it('keeps only the first of two feed items sharing a uid', () => {
+    const d = diffFeed([], [item('a', '2026-10-27T06:59:59Z'), item('a', '2026-10-30T06:59:59Z')]);
+    expect(d.create).toHaveLength(1);
+    expect(d.create[0].dueAt.toISOString()).toBe('2026-10-27T06:59:59.000Z');
+  });
+
+  it('collapses a repeated uid into one move when the uid is already stored', () => {
+    const d = diffFeed(
+      [stored('1', 'a', '2026-10-27T06:59:59Z')],
+      [item('a', '2026-10-30T06:59:59Z'), item('a', '2026-11-02T06:59:59Z')],
+    );
+    expect(d.create).toEqual([]);
+    expect(d.move).toEqual([
+      { id: '1', from: new Date('2026-10-27T06:59:59Z'), to: new Date('2026-10-30T06:59:59Z'), restored: false },
+    ]);
+  });
+
   it('restores a removed deadline the prof put back, unchanged or moved', () => {
     const same = diffFeed([stored('1', 'a', '2026-10-27T06:59:59Z', true)], [item('a', '2026-10-27T06:59:59Z')]);
     expect(same.restore).toEqual(['1']);

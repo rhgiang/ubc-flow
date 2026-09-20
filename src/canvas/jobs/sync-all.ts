@@ -12,6 +12,15 @@ const SITE = process.env.NEXTAUTH_URL ?? 'https://ubcflow.com';
  *  stop everyone else's reminders. Nothing here logs a URL. */
 export async function syncAllFeeds(now = new Date()) {
   assertFeedKey();
+  // sendMail falls back to logging the whole message and reporting success
+  // when there is no Resend key. That is right for a teammate's laptop and
+  // wrong for an unattended run: every welcome would be "sent", firstSyncedAt
+  // stamped, every claim marked delivered, and each body, live mute token and
+  // all, printed into the job log. None of it is recoverable, so refuse to
+  // start instead. VITEST is set by the test runner, not by a caller.
+  if (!process.env.RESEND_API_KEY && !process.env.VITEST) {
+    throw new Error('RESEND_API_KEY is not set. Refusing to run the Canvas sync with mail going to the log.');
+  }
   const feeds = await db.canvasFeed.findMany({
     where: { brokenAt: null },
     select: { userId: true, brokenAt: true, user: { select: { email: true } } },

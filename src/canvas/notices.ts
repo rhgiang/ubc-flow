@@ -36,7 +36,11 @@ export function selectNotices(deadlines: DeadlineForNotice[], prefs: Prefs, now:
     for (const lead of prefs.leadHours) {
       const opens = due - lead * H;
       if (t >= opens && t < opens + WINDOW_GRACE_MS) {
-        out.push({ deadline: d, key: `lead:${lead}`, kind: 'lead', leadHours: lead });
+        // The due date is part of the key, the same shape as `moved:` above.
+        // Without it a lead claimed for the old date blocks the reminder for
+        // the new one after the prof moves the deadline, and the student is
+        // never told about the date that actually applies.
+        out.push({ deadline: d, key: `lead:${lead}:${d.dueAt.toISOString()}`, kind: 'lead', leadHours: lead });
       }
     }
   }

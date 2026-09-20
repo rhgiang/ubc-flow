@@ -27,4 +27,17 @@ describe('syncAllFeeds', () => {
     expect(notifyFor).toHaveBeenCalledWith('fine-one', expect.any(Date));
     expect(mails).toEqual(['Your Canvas feed stopped answering']);
   });
+
+  it('refuses to start when RESEND_API_KEY is missing, rather than logging every email', async () => {
+    const key = process.env.RESEND_API_KEY;
+    const vitest = process.env.VITEST;
+    delete process.env.RESEND_API_KEY;
+    delete process.env.VITEST; // the job only allows the log fallback under the test runner
+    try {
+      await expect(syncAllFeeds(new Date('2026-10-24T15:00:00Z'))).rejects.toThrow(/RESEND_API_KEY/);
+    } finally {
+      if (key !== undefined) process.env.RESEND_API_KEY = key;
+      if (vitest !== undefined) process.env.VITEST = vitest;
+    }
+  });
 });

@@ -756,7 +756,10 @@ model ReminderSent {
   userId      String
   deadlineId  String
   deadline    CanvasDeadline @relation(fields: [deadlineId], references: [id], onDelete: Cascade)
-  /// "lead:72", "lead:24", "moved:<new dueAt ISO>", "removed".
+  /// "lead:72:<dueAt ISO>", "lead:24:<dueAt ISO>", "moved:<new dueAt ISO>",
+  /// "removed". The due date is in the lead key so that a deadline the prof
+  /// moves earns a fresh claim, instead of the spent claim for the old date
+  /// blocking the reminder for the new one.
   notice      String
   claimedAt   DateTime       @default(now())
   deliveredAt DateTime?

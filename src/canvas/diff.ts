@@ -19,6 +19,12 @@ export function diffFeed(stored: StoredDeadline[], items: FeedItem[]): FeedDiff 
   const diff: FeedDiff = { create: [], move: [], restore: [], remove: [] };
 
   for (const it of items) {
+    // First occurrence wins. RFC 5545 lets a recurrence override repeat a UID
+    // with a RECURRENCE-ID, and the parser reads neither, so a feed can hand
+    // us the same uid twice. Two creates for one uid means P2002 on
+    // @@unique([userId, uid]), which aborts applyDiff's whole transaction and
+    // loses every other new deadline in the same run, every run, forever.
+    if (seen.has(it.uid)) continue;
     seen.add(it.uid);
     const s = byUid.get(it.uid);
     if (!s) {

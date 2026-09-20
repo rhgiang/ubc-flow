@@ -1,0 +1,52 @@
+// src/canvas/connect.ts  (plain module, no 'use server')
+import { db } from '@/lib/db';
+import { encryptFeedUrl } from '@/canvas/crypto';
+import { normalizeFeedUrl } from '@/canvas/feed-url';
+import { fetchFeed } from '@/canvas/fetch-feed';
+import { parseCanvasFeed } from '@/canvas/parse-ics';
+
+export type Result = { ok: true } | { ok: false; error: string };
+
+/**
+ * Validates, proves the feed answers, encrypts, stores. The URL never appears
+ * in a log line, an error string, or a response: failures name the HTTP
+ * status and nothing else. Reconnecting replaces the URL and clears a broken
+ * flag but keeps firstSyncedAt, so a reconnect does not send a second
+ * welcome email.
+ */
+export async function connectCanvasFeedFor(userId: string, input: string): Promise<Result> {
+  const normalized = normalizeFeedUrl(input);
+  if (!normalized.ok) return normalized;
+
+  const { status, body } = await fetchFeed(normalized.url);
+  if (status !== 200 || body === null) {
+    return { ok: false, error: `Canvas answered ${status || 'with no response'}. Check the link and try again.` };
+  }
+  if (!/BEGIN:VCALENDAR/i.test(body)) {
+    return { ok: false, error: 'That link did not return a calendar. In Canvas, open Calendar and click Calendar Feed.' };
+  }
+  parseCanvasFeed(body); // proves it parses; the job stores items, not this action
+
+  const encryptedUrl = encryptFeedUrl(normalized.url);
+  await db.$transaction([
+    db.canvasFeed.upsert({
+      where: { userId },
+      create: { userId, encryptedUrl },
+      update: { encryptedUrl, connectedAt: new Date(), brokenAt: null, failureCount: 0, lastStatus: null },
+    }),
+    db.reminderPreference.upsert({ where: { userId }, create: { userId }, update: {} }),
+  ]);
+  return { ok: true };
+}
+
+/** Deletes the feed and every deadline and sent-log row under it. Explicit
+ *  rather than cascade because deadlines hang off the user, not the feed. */
+export async function disconnectCanvasFeedFor(userId: string): Promise<Result> {
+  const feed = await db.canvasFeed.findUnique({ where: { userId }, select: { id: true } });
+  if (!feed) return { ok: false, error: 'Not found.' };
+  await db.$transaction([
+    db.canvasDeadline.deleteMany({ where: { userId } }), // ReminderSent cascades
+    db.canvasFeed.delete({ where: { id: feed.id } }),
+  ]);
+  return { ok: true };
+}

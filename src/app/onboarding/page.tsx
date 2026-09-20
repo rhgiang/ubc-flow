@@ -7,6 +7,7 @@ import SignOutButton from "@/components/SignOutButton";
 import UploadCoursesForm from "@/components/UploadCoursesForm";
 import DeleteAccountButton from "@/components/DeleteAccountButton";
 import EnrolledCourseCard from "@/components/EnrolledCourseCard";
+import CanvasConnect from "@/components/CanvasConnect";
 
 function courseHref(subjectCode: string, number: string): string {
   return `/course/${`${subjectCode} ${number}`.toLowerCase().replace(/\s+/g, "-")}`;
@@ -141,7 +142,7 @@ export default async function OnboardingPage() {
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
 
-  const [user, enrollments, myReviews, meetings, terms, transferCredits] =
+  const [user, enrollments, myReviews, meetings, terms, transferCredits, feed] =
     await Promise.all([
       db.user.findUnique({
         where: { id: userId },
@@ -173,6 +174,10 @@ export default async function OnboardingPage() {
             },
           },
         },
+      }),
+      db.canvasFeed.findUnique({
+        where: { userId },
+        select: { connectedAt: true, lastFetchedAt: true, brokenAt: true },
       }),
     ]);
 
@@ -343,6 +348,25 @@ export default async function OnboardingPage() {
                 </div>
               </section>
             )}
+
+            <section className="mt-6">
+              <h2 className="text-xl font-semibold text-foreground">Canvas deadlines</h2>
+              <p className="mt-1 text-sm text-text-secondary">
+                Connect your Canvas calendar and every assignment due date lands here, refreshes on its own, and reminds you by email before it is due.
+              </p>
+              <div className="mt-3">
+                <CanvasConnect
+                  connectedAt={feed?.connectedAt.toISOString() ?? null}
+                  lastFetchedAt={feed?.lastFetchedAt?.toISOString() ?? null}
+                  broken={Boolean(feed?.brokenAt)}
+                />
+              </div>
+              {feed && (
+                <p className="mt-2 text-sm">
+                  <Link href="/deadlines" className="text-brand-accent hover:underline">See your deadlines and reminder settings</Link>
+                </p>
+              )}
+            </section>
 
             <section className="mt-6">
               <h2 className="text-xl font-semibold text-foreground">

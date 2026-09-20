@@ -2,6 +2,18 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { db } from '@/lib/db';
 
+// connectCanvasFeedFor proves the feed answers and then syncs it. Stub the
+// fetch, never the network.
+vi.mock('@/canvas/fetch-feed', () => ({
+  fetchFeed: vi.fn(async () => ({
+    status: 200,
+    body: ['BEGIN:VCALENDAR', 'BEGIN:VEVENT', 'UID:event-assignment-1', 'SUMMARY:A [C 1]',
+      'DTSTART:20261127T065959Z', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n'),
+  })),
+  FEED_TIMEOUT_MS: 1,
+  FEED_MAX_BYTES: 1,
+}));
+
 const sent: { to: string; subject: string; body: string }[] = [];
 vi.mock('@/lib/mail', async (importOriginal) => {
   const real = await importOriginal<typeof import('@/lib/mail')>();
@@ -15,8 +27,10 @@ vi.mock('@/lib/mail', async (importOriginal) => {
 });
 
 import { notifyFor } from '@/canvas/jobs/notify';
+import { connectCanvasFeedFor } from '@/canvas/connect';
 
 const E = 'zz-canvas-notify@example.com';
+const FEED = 'https://canvas.ubc.ca/feeds/calendars/user_notify.ics';
 let userId: string;
 const NOW = new Date('2026-10-24T15:00:00Z');
 const H = 3600_000;
@@ -74,6 +88,26 @@ describe('notifyFor', () => {
     expect(sent[0].subject).toMatch(/connected/i);
     expect((await db.canvasFeed.findUniqueOrThrow({ where: { userId } })).firstSyncedAt).not.toBeNull();
     expect(await db.reminderSent.count({ where: { userId } })).toBe(0);
+  });
+
+  it('sends no welcome to a student with reminders off, and still stamps firstSyncedAt', async () => {
+    await db.canvasFeed.update({ where: { userId }, data: { firstSyncedAt: null } });
+    await db.reminderPreference.update({ where: { userId }, data: { enabled: false } });
+    await seed('a', at(70));
+    expect(await notifyFor(userId, NOW)).toEqual({ sent: 0 });
+    expect(sent).toHaveLength(0);
+    expect((await db.canvasFeed.findUniqueOrThrow({ where: { userId } })).firstSyncedAt).not.toBeNull();
+  });
+
+  it('does not send a second welcome after a reconnect', async () => {
+    await db.canvasFeed.deleteMany({ where: { userId } });
+    expect(await connectCanvasFeedFor(userId, FEED)).toEqual({ ok: true });
+    await notifyFor(userId, NOW);
+    expect(sent.map((m) => m.subject)).toEqual(['Canvas connected: your upcoming deadlines']);
+    // Pasting a fresh link keeps firstSyncedAt, so the welcome is not re-sent.
+    expect(await connectCanvasFeedFor(userId, FEED)).toEqual({ ok: true });
+    await notifyFor(userId, new Date(NOW.getTime() + H));
+    expect(sent.map((m) => m.subject)).toEqual(['Canvas connected: your upcoming deadlines']);
   });
 
   it('retries a claimed notice whose send failed', async () => {

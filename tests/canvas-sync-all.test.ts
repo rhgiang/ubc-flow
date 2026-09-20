@@ -4,12 +4,13 @@ vi.mock('@/canvas/jobs/sync', () => ({ syncFeedFor: vi.fn(async (id: string) => 
 vi.mock('@/canvas/jobs/notify', () => ({ notifyFor: vi.fn(async () => ({ sent: 1 })) }));
 const mails: string[] = [];
 vi.mock('@/lib/mail', () => ({ sendMail: vi.fn(async (_to: string, subject: string) => { mails.push(subject); return true; }) }));
+const brokenPrefs = { enabled: true };
 vi.mock('@/lib/db', () => ({
   db: {
     canvasFeed: {
       findMany: vi.fn(async () => [
-        { userId: 'fine-one', user: { email: 'a@x' }, brokenAt: null },
-        { userId: 'broken-one', user: { email: 'b@x' }, brokenAt: null },
+        { userId: 'fine-one', user: { email: 'a@x', reminderPreference: { enabled: true } }, brokenAt: null },
+        { userId: 'broken-one', user: { email: 'b@x', reminderPreference: brokenPrefs }, brokenAt: null },
       ]),
     },
   },
@@ -26,6 +27,17 @@ describe('syncAllFeeds', () => {
     expect(notifyFor).toHaveBeenCalledTimes(1);
     expect(notifyFor).toHaveBeenCalledWith('fine-one', expect.any(Date));
     expect(mails).toEqual(['Your Canvas feed stopped answering']);
+  });
+
+  it('sends no reconnect email to a student who turned reminders off', async () => {
+    mails.length = 0;
+    brokenPrefs.enabled = false;
+    try {
+      await syncAllFeeds(new Date('2026-10-24T15:00:00Z'));
+      expect(mails).toEqual([]);
+    } finally {
+      brokenPrefs.enabled = true;
+    }
   });
 
   it('refuses to start when RESEND_API_KEY is missing, rather than logging every email', async () => {

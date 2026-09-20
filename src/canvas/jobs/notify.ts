@@ -33,6 +33,15 @@ export async function notifyFor(userId: string, now: Date): Promise<{ sent: numb
   });
 
   if (!feed.firstSyncedAt) {
+    // A muted student is not welcomed. selectNotices guards the per-item path
+    // but this branch sits above it, and a student who muted, disconnected and
+    // reconnected gets a fresh feed row with firstSyncedAt null while
+    // connectCanvasFeedFor deliberately preserves enabled: false. Stamp
+    // anyway, so the welcome is spent rather than pending if they unmute.
+    if (!prefs.enabled) {
+      await db.canvasFeed.update({ where: { userId }, data: { firstSyncedAt: now } });
+      return { sent: 0 };
+    }
     // The welcome replaces every per-item reminder this run: a student who
     // connects with eight things due this week must not get eight emails.
     const upcoming = deadlines

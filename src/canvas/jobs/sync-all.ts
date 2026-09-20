@@ -23,7 +23,11 @@ export async function syncAllFeeds(now = new Date()) {
   }
   const feeds = await db.canvasFeed.findMany({
     where: { brokenAt: null },
-    select: { userId: true, brokenAt: true, user: { select: { email: true } } },
+    select: {
+      userId: true,
+      brokenAt: true,
+      user: { select: { email: true, reminderPreference: { select: { enabled: true } } } },
+    },
   });
   const counts = { feeds: feeds.length, ok: 0, broken: 0, transient: 0, notices: 0 };
 
@@ -36,8 +40,12 @@ export async function syncAllFeeds(now = new Date()) {
       } else if (outcome === 'broken') {
         counts.broken += 1;
         // Sent from here, once: brokenAt was null when this loop started.
-        const mail = reconnectEmail(`${SITE}/onboarding`);
-        await sendMail(feed.user.email, mail.subject, mail.body);
+        // A student with reminders off gets no mail from us at all, this one
+        // included; the connection block on their Account page says it broke.
+        if (feed.user.reminderPreference?.enabled !== false) {
+          const mail = reconnectEmail(`${SITE}/onboarding`);
+          await sendMail(feed.user.email, mail.subject, mail.body);
+        }
       } else if (outcome === 'transient') {
         counts.transient += 1;
       }

@@ -47,6 +47,14 @@ export default function NavLinks() {
     // syllabus is the means by which midterms appear on that tab, not a
     // destination, so it hangs off the exam list rather than the nav.
     { href: '/schedule', label: 'Schedules' },
+    // Deadlines earns a pill rather than a tab under Schedules or a link on
+    // Account. Account is where you set something up once; this is a page a
+    // student opens most days of the week, and burying a daily page inside a
+    // settings page inverts that. It had no nav entry at all at first, so the
+    // only ways in were a text link on Account and the footer of a reminder
+    // email. Like the two above, the page itself handles a signed-out
+    // visitor rather than the nav gating it.
+    { href: '/deadlines', label: 'Deadlines' },
     // Guidance needs no account either: the roadmap for a student starting
     // fresh is useful on its own, and is the page's best argument for signing
     // in. Personalisation is what login adds, not access.
@@ -123,18 +131,20 @@ export default function NavLinks() {
   return (
     <>
       {/*
-        Five pills plus the wordmark need 602px and a phone gives 390. They
-        did not wrap or scroll - they overflowed the document, which made
-        EVERY page on the site horizontally scrollable and pushed the Account
-        pill, the one control a signed-out visitor needs, off the right edge.
-        Below sm: the same five live in a menu instead.
+        Six pills plus the wordmark need about 710px. They do not wrap or
+        scroll - they overflow the document, which makes EVERY page on the
+        site horizontally scrollable and pushes the Account pill, the one
+        control a signed-out visitor needs, off the right edge.
+        That is why this is md (768px) and not sm (640px): five pills fit in
+        602 and sm was right for them, but Deadlines is the one that breaks
+        it. Below md the same six live in a menu instead.
       */}
-      <div className="hidden items-center gap-2 sm:flex">
+      <div className="hidden items-center gap-2 md:flex">
         {items.map((item) => render(item, 'pill'))}
       </div>
 
       <div
-        className="relative sm:hidden"
+        className="relative md:hidden"
         onKeyDown={(e) => {
           if (e.key === 'Escape') setMenuOpen(false);
         }}
@@ -166,9 +176,10 @@ export default function NavLinks() {
               onClick={() => setMenuOpen(false)}
             />
             {/* w-36, not the old w-56: at 224px the panel covered 57% of a
-                393px phone for five one-word labels, the longest of which
-                ("Schedules") sets type at 66px. 144 leaves it room to breathe
-                and still hands back a third of the width it was taking. */}
+                393px phone for one-word labels, the longest of which
+                ("Schedules" and now "Deadlines") sets type at 66px. 144
+                leaves room to breathe and still hands back a third of the
+                width it was taking. */}
             <div className="absolute right-0 top-full z-50 mt-1.5 w-36 rounded-card border border-border bg-surface p-1.5 shadow-lg">
               {items.map((item) => render(item, 'row'))}
             </div>

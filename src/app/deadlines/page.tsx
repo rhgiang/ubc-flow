@@ -1,6 +1,5 @@
 // src/app/deadlines/page.tsx
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { LEAD_CHOICES } from '@/canvas/prefs';
@@ -88,9 +87,33 @@ function relativeDue(ms: number): string {
   return past ? `${days} days ago` : `in ${days} days`;
 }
 
+/** What a signed-out visitor gets from the Deadlines pill. */
+function SignedOut() {
+  return (
+    <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6">
+      <h1 className="text-2xl font-semibold text-foreground">Deadlines</h1>
+      <p className="mt-3 text-sm text-text-secondary">
+        Connect your Canvas calendar once and every assignment due date across all your courses
+        lands here. It refreshes on its own, tells you when an instructor moves something, and can
+        email you before each deadline.
+      </p>
+      <p className="mt-4 text-sm">
+        <Link href="/login" className="font-medium text-brand-accent hover:underline">
+          Sign in to get started
+        </Link>
+      </p>
+    </main>
+  );
+}
+
 export default async function DeadlinesPage() {
   const session = await auth();
-  if (!session?.user?.id) redirect('/login');
+  // Not a redirect to /login. This is a nav pill now, so a signed-out
+  // visitor will click it, and bouncing them into a bare login form says
+  // nothing about what they would be signing in for. Same reasoning as
+  // /schedule and /guidance: the page explains itself and login is what
+  // personalises it, not what grants access.
+  if (!session?.user?.id) return <SignedOut />;
   const userId = session.user.id;
 
   const [feed, preference, deadlines] = await Promise.all([

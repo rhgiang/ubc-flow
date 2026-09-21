@@ -1,9 +1,25 @@
 name: Scrape UBC course data
 
 on:
+  # Weekly, not daily. One run is about five hours, because src/scrape/http.ts
+  # holds itself to one request a second out of politeness to UBC and there
+  # are roughly 15,000 pages. Daily came to ~8,800 minutes a month against the
+  # 2,000 this account gets, so the allowance ran out around the 7th and every
+  # job, this one and the others, was blocked for the rest of the month.
+  # Weekly is about 1,170, which leaves room for the reminders job.
+  #
+  # Monday 08:00 UTC is 01:00 in Vancouver, so the week opens on fresh data.
+  # Course data barely moves once add/drop has closed. During registration,
+  # when it does move, trigger this by hand rather than raising the schedule.
   schedule:
-    - cron: '0 8 * * *'
+    - cron: '0 8 * * 1'
   workflow_dispatch: {}
+
+# A five hour job must never overlap itself: a hand-triggered run during a
+# scheduled one would have two writers on the same tables.
+concurrency:
+  group: scrape
+  cancel-in-progress: false
 
 jobs:
   scrape:

@@ -31,6 +31,25 @@ const FONT =
  *  which is what made it read as a different wordmark. */
 const WORDMARK_FONT = `Outfit,${FONT}`;
 
+/**
+ * Absolute, and on the canonical host on purpose: ubcflow.com 308s to
+ * www.ubcflow.com, and a mail image proxy that declines to follow a redirect
+ * would simply show nothing.
+ *
+ * The mark cannot be inline SVG, which Gmail and Outlook strip, so it is a
+ * PNG at 3x from the same paths as the nav (src/lib/mark.ts). It loads only
+ * because of a Vercel firewall rule bypassing /email/: every other static
+ * asset answers 429 to a non-browser fetcher, and an image proxy is one.
+ *
+ * The img carries the wordmark's own type styles. A client with images off
+ * renders the alt text with them, so "UBC Flow" still arrives looking like
+ * the wordmark rather than as a broken-image stub.
+ */
+const SITE = (process.env.NEXTAUTH_URL ?? 'https://www.ubcflow.com').replace(
+  'https://ubcflow.com',
+  'https://www.ubcflow.com',
+);
+
 /** Escapes text going into HTML. Assignment titles come from Canvas, which is
  *  to say from professors, and nothing stops one containing an angle bracket. */
 export function esc(s: string): string {
@@ -143,7 +162,10 @@ export function renderEmail(opts: {
 
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:${PAPER};border:1px solid ${LINE};border-radius:14px;">
       <tr><td style="padding:22px 28px 0;">
-        <span style="font:700 18px/1 ${WORDMARK_FONT};letter-spacing:.015em;color:${BRAND};text-transform:uppercase;">UBC Flow</span>
+        <a href="${SITE}" style="text-decoration:none;">
+          <img src="${SITE}/email/logo.png" alt="UBC Flow" width="140" height="33"
+               style="display:block;width:140px;height:33px;border:0;outline:none;text-decoration:none;font:700 18px/33px ${WORDMARK_FONT};letter-spacing:.015em;color:${BRAND};text-transform:uppercase;">
+        </a>
       </td></tr>
 
       <tr><td style="padding:14px 28px 0;font:700 22px/1.3 ${FONT};color:${INK};">${esc(opts.heading)}</td></tr>

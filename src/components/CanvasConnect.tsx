@@ -14,6 +14,18 @@ import ConfirmDialog from '@/components/ConfirmDialog';
  * retries. Said plainly here, because lastFetchedAt is the last SUCCESSFUL
  * read and would otherwise sit there looking fine next to stale deadlines.
  */
+/** The step number beside each instruction. */
+function Step({ n }: { n: number }) {
+  return (
+    <span
+      aria-hidden
+      className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-muted text-xs font-semibold text-text-secondary"
+    >
+      {n}
+    </span>
+  );
+}
+
 export default function CanvasConnect({
   connectedLabel,
   lastReadLabel,
@@ -88,17 +100,53 @@ export default function CanvasConnect({
           Your Canvas feed stopped answering. Paste a fresh Calendar Feed link to reconnect.
         </p>
       )}
-      <p className="text-sm text-text-secondary">
-        In Canvas, open Calendar, click Calendar Feed at the bottom right, and copy the link.
-      </p>
+      {/* Three steps in another app, so they are numbered and the first one
+          is a link rather than a description of where to go. The old copy
+          said all of this in one sentence. */}
+      <ol className="space-y-2 text-sm text-text-secondary">
+        <li className="flex gap-2">
+          <Step n={1} />
+          <span>
+            Open{' '}
+            <a
+              href="https://canvas.ubc.ca/calendar"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-brand-accent hover:underline"
+            >
+              your Canvas calendar
+            </a>
+            . It opens in a new tab.
+          </span>
+        </li>
+        <li className="flex gap-2">
+          <Step n={2} />
+          <span>
+            Scroll to the bottom of the right sidebar and click{' '}
+            <strong className="font-medium text-foreground">Calendar Feed</strong>.
+          </span>
+        </li>
+        <li className="flex gap-2">
+          <Step n={3} />
+          <span>Copy the link it shows you and paste it below.</span>
+        </li>
+      </ol>
+
+      <label htmlFor="canvas-feed-url" className="block pt-1 text-xs font-medium text-text-secondary">
+        Calendar Feed link
+      </label>
       <input
+        id="canvas-feed-url"
         type="url"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="https://canvas.ubc.ca/feeds/calendars/..."
-        aria-label="Canvas Calendar Feed link"
-        className="block w-full rounded-input border border-border bg-surface px-2 py-1 text-sm text-foreground"
+        className="block w-full rounded-input border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-text-tertiary focus:border-foreground focus:outline-none"
       />
+      <p className="text-xs text-text-tertiary">
+        Treat this link like a password: anyone holding it can read your Canvas calendar. We store it
+        encrypted, never show it again, and you can disconnect at any time.
+      </p>
       <div className="flex items-center gap-3">
         <button disabled={busy || !value} className="rounded-pill bg-brand px-4 py-1.5 text-sm font-medium text-brand-foreground disabled:opacity-50">
           {busy ? 'Checking...' : 'Connect Canvas'}

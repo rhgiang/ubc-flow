@@ -29,6 +29,28 @@ describe('diffFeed', () => {
     expect(d.move).toEqual([{ id: '1', from: new Date('2026-10-27T06:59:59Z'), to: new Date('2026-10-30T06:59:59Z'), restored: false }]);
   });
 
+  // A tzdata update that changes America/Vancouver moves every all-day
+  // instant by an hour without the professor touching anything. See
+  // ALLDAY_SLOP_MS in src/canvas/diff.ts.
+  it('ignores an hour-sized shift on an all-day deadline', () => {
+    const wasUtc7 = { ...stored('1', 'a', '2026-11-03T06:59:59Z'), allDay: true };
+    const nowUtc8 = { ...item('a', '2026-11-03T07:59:59Z'), allDay: true };
+    const d = diffFeed([wasUtc7], [nowUtc8]);
+    expect(d.move).toEqual([]);
+    expect(d.update).toEqual([]);
+  });
+
+  it('still records a real all-day move of a whole day', () => {
+    const was = { ...stored('1', 'a', '2026-11-03T06:59:59Z'), allDay: true };
+    const moved = { ...item('a', '2026-11-04T06:59:59Z'), allDay: true };
+    expect(diffFeed([was], [moved]).move).toHaveLength(1);
+  });
+
+  it('holds a timed deadline to the exact instant, an hour is a real move', () => {
+    const d = diffFeed([stored('1', 'a', '2026-11-03T06:00:00Z')], [item('a', '2026-11-03T07:00:00Z')]);
+    expect(d.move).toHaveLength(1);
+  });
+
   it('marks a deadline the feed no longer lists, once', () => {
     const d = diffFeed([stored('1', 'a', '2026-10-27T06:59:59Z'), stored('2', 'b', '2026-10-27T06:59:59Z', true)], []);
     expect(d.remove).toEqual(['1']); // '2' was already removed

@@ -8,7 +8,7 @@ const notice = (i: number): Notice => {
   const deadline: DeadlineForNotice = {
     id: `d${i}`, title: `Assignment ${i}`, courseName: 'CPSC 110',
     dueAt: new Date(NOW.getTime() + (i + 1) * 3600_000), allDay: false, url: null,
-    movedFrom: null, movedAt: null, removedAt: null,
+    movedFrom: null, movedAt: null, removedAt: null, completedAt: null,
   };
   return { deadline, key: `lead:72:${deadline.dueAt.toISOString()}`, kind: 'lead', leadHours: 72 };
 };

@@ -34,7 +34,7 @@ export function stillWorthShowing(
 
 export type DeadlineForNotice = {
   id: string; title: string; courseName: string; dueAt: Date; allDay: boolean; url: string | null;
-  movedFrom: Date | null; movedAt: Date | null; removedAt: Date | null;
+  movedFrom: Date | null; movedAt: Date | null; removedAt: Date | null; completedAt: Date | null;
 };
 export type Prefs = { enabled: boolean; leadHours: number[]; mutedCourses: string[] };
 export type Notice = { deadline: DeadlineForNotice; key: string; kind: 'lead' | 'moved' | 'removed'; leadHours?: number };
@@ -50,6 +50,9 @@ export function selectNotices(deadlines: DeadlineForNotice[], prefs: Prefs, now:
 
   for (const d of deadlines) {
     if (muted.has(d.courseName)) continue;
+    // Ticked off. The work is in, so neither a reminder nor news that the
+    // professor moved or withdrew it is worth an email.
+    if (d.completedAt) continue;
     const due = d.dueAt.getTime();
 
     if (d.removedAt) {

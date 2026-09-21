@@ -49,3 +49,15 @@ export function formatVancouver(at: Date, allDay: boolean): string {
   if (allDay) return at.toLocaleDateString('en-CA', base);
   return at.toLocaleString('en-CA', { ...base, hour: 'numeric', minute: '2-digit' });
 }
+
+/**
+ * "2026-09-20", the Vancouver calendar day an instant falls on. Computed on
+ * the server and shipped as a string so the month grid can be built from
+ * plain numbers, with no Date or Intl in the browser. See the note on toRow
+ * in src/app/deadlines/page.tsx for why any date arithmetic in a client
+ * component is a hydration mismatch waiting to happen.
+ */
+export function vancouverDayKey(at: Date): string {
+  // en-CA formats as YYYY-MM-DD, which is also the sort order we want.
+  return at.toLocaleDateString('en-CA', { timeZone: VANCOUVER, year: 'numeric', month: '2-digit', day: '2-digit' });
+}

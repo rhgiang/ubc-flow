@@ -7,12 +7,26 @@ const NOW = new Date('2026-10-24T15:00:00Z');
 const at = (hoursFromNow: number) => new Date(NOW.getTime() + hoursFromNow * H);
 const dl = (over: Partial<DeadlineForNotice> & { id: string }): DeadlineForNotice => ({
   title: 'T', courseName: 'CPSC 110', dueAt: at(48), allDay: false, url: null,
-  movedFrom: null, movedAt: null, removedAt: null, ...over,
+  movedFrom: null, movedAt: null, removedAt: null, completedAt: null, ...over,
 });
 const prefs: Prefs = { enabled: true, leadHours: [72, 24], mutedCourses: [] };
 const keys = (n: ReturnType<typeof selectNotices>) => n.map((x) => x.key).sort();
 
 describe('selectNotices, lead reminders', () => {
+
+  it('says nothing at all about a deadline the student ticked off', () => {
+    // The work is handed in. Neither a lead reminder nor news that the
+    // professor moved or withdrew it is worth an email after that.
+    const done = { completedAt: new Date('2026-10-20T00:00:00Z') };
+    expect(selectNotices([dl({ id: 'a', dueAt: at(24), ...done })], prefs, NOW)).toEqual([]);
+    expect(selectNotices([dl({ id: 'b', dueAt: at(24), movedFrom: at(10), movedAt: NOW, ...done })], prefs, NOW)).toEqual([]);
+    expect(selectNotices([dl({ id: 'c', dueAt: at(24), removedAt: NOW, ...done })], prefs, NOW)).toEqual([]);
+  });
+
+  it('still notices the same deadline when it is not ticked off', () => {
+    // Guards the test above: it must fail for the right reason.
+    expect(selectNotices([dl({ id: 'a', dueAt: at(24) })], prefs, NOW).length).toBeGreaterThan(0);
+  });
   it('fires a lead whose window opened within the last 24 hours', () => {
     // Due in 70h: the 72h window opened 2h ago. The 24h window is not open.
     expect(keys(selectNotices([dl({ id: 'a', dueAt: at(70) })], prefs, NOW))).toEqual([`lead:72:${at(70).toISOString()}`]);

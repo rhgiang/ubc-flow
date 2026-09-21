@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { LEAD_CHOICES } from '@/canvas/prefs';
-import { formatVancouver } from '@/canvas/tz';
+import { formatVancouver, vancouverDayKey } from '@/canvas/tz';
+import { shortCourseLabel } from '@/canvas/course-label';
 import { RECENT_MS, stillWorthShowing } from '@/canvas/notices';
 import DeadlinesList from '@/components/DeadlinesList';
 
@@ -18,6 +19,7 @@ type DeadlineFields = {
   movedFrom: Date | null;
   movedAt: Date | null;
   removedAt: Date | null;
+  completedAt: Date | null;
 };
 
 /**
@@ -48,13 +50,42 @@ function toRow(d: DeadlineFields, now: number) {
   return {
     id: d.id,
     title: d.title,
+    /** The raw bracket from Canvas. The identity: the colour hashes from it
+     *  and a mute preference is stored under it. Never shown. */
     courseName: d.courseName,
+    /** What the badge shows. */
+    courseLabel: shortCourseLabel(d.courseName),
     url: d.url,
     removed: Boolean(d.removedAt),
+    done: Boolean(d.completedAt),
+    overdue: !d.completedAt && !d.removedAt && d.dueAt.getTime() < now,
     dueLabel: formatVancouver(d.dueAt, d.allDay),
     dayLabel: formatVancouver(d.dueAt, true),
+    /** "2026-09-20". Groups the list and places the calendar square. */
+    dayKey: vancouverDayKey(d.dueAt),
+    /** Just the clock, for the compact row. Empty for an all-day item, whose
+     *  11:59 p.m. is our convention rather than something a professor set. */
+    timeLabel: d.allDay ? '' : d.dueAt.toLocaleTimeString('en-CA', { timeZone: 'America/Vancouver', hour: 'numeric', minute: '2-digit' }),
+    relativeLabel: relativeDue(d.dueAt.getTime() - now),
     movedFromLabel: movedFrom ? formatVancouver(movedFrom, d.allDay) : null,
   };
+}
+
+const HOUR = 3600_000;
+
+/** "in 3 days", "tomorrow", "2 days ago". Computed on the server against the
+ *  same `now` the rest of the page uses, so it cannot drift from the list. */
+function relativeDue(ms: number): string {
+  const past = ms < 0;
+  const abs = Math.abs(ms);
+  const days = Math.round(abs / (24 * HOUR));
+  if (abs < HOUR) return past ? 'just passed' : 'within the hour';
+  if (abs < 24 * HOUR) {
+    const hours = Math.round(abs / HOUR);
+    return past ? `${hours}h ago` : `in ${hours}h`;
+  }
+  if (days === 1) return past ? 'yesterday' : 'tomorrow';
+  return past ? `${days} days ago` : `in ${days} days`;
 }
 
 export default async function DeadlinesPage() {
@@ -84,6 +115,7 @@ export default async function DeadlinesPage() {
         movedFrom: true,
         movedAt: true,
         removedAt: true,
+        completedAt: true,
       },
     }),
   ]);
@@ -106,9 +138,10 @@ export default async function DeadlinesPage() {
   const now = currentTimeMs();
   const rows = deadlines.filter((d) => stillWorthShowing(d, now)).map((d) => toRow(d, now));
 
+  // No max-width here: the list reads best narrow and a month grid needs the
+  // room, so DeadlinesList sets its own width from whichever view is showing.
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6">
-      <h1 className="text-2xl font-semibold text-foreground">Deadlines</h1>
+    <main className="w-full px-4 py-10 sm:px-6">
       <DeadlinesList
         connectedLabel={formatVancouver(feed.connectedAt, true)}
         lastReadLabel={feed.lastFetchedAt ? formatVancouver(feed.lastFetchedAt, false) : null}
@@ -119,6 +152,7 @@ export default async function DeadlinesPage() {
         mutedCourses={preference?.mutedCourses ?? []}
         leadChoices={LEAD_CHOICES}
         deadlines={rows}
+        todayKey={vancouverDayKey(new Date(now))}
       />
     </main>
   );

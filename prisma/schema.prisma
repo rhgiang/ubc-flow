@@ -742,6 +742,11 @@ model CanvasDeadline {
   /// Set when a poll no longer returned this uid. Kept and marked, never
   /// deleted: a prof deleting an assignment is a fact worth showing.
   removedAt   DateTime?
+  /// Ticked off by the student, never by a poll. A done deadline stops
+  /// generating notices of any kind, including "moved" and "removed": the
+  /// work is handed in, so what the professor does to the date afterwards is
+  /// not news worth an email.
+  completedAt DateTime?
   reminders   ReminderSent[]
 
   @@unique([userId, uid])

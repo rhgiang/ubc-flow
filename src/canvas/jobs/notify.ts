@@ -28,7 +28,7 @@ export async function notifyFor(userId: string, now: Date): Promise<{ sent: numb
 
   const deadlines: DeadlineForNotice[] = await db.canvasDeadline.findMany({
     where: { userId },
-    select: { id: true, title: true, courseName: true, dueAt: true, allDay: true, url: true, movedFrom: true, movedAt: true, removedAt: true },
+    select: { id: true, title: true, courseName: true, dueAt: true, allDay: true, url: true, movedFrom: true, movedAt: true, removedAt: true, completedAt: true },
   });
 
   if (!feed.firstSyncedAt) {

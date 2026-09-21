@@ -57,6 +57,27 @@ export async function muteReminders(formData: FormData): Promise<void> {
   redirect('/reminders/off');
 }
 
+/**
+ * Tick a deadline off, or un-tick it. Student-set only: no poll ever writes
+ * this, so a sync cannot undo it.
+ *
+ * The userId is part of the WHERE rather than checked first, so a request
+ * naming someone else's deadline id matches no row and changes nothing. That
+ * is also why it reports the same "Not found." either way: a caller must not
+ * be able to tell another student's real id from a made-up one.
+ */
+export async function setDeadlineDone(id: string, done: boolean): Promise<Result> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
+  const { count } = await db.canvasDeadline.updateMany({
+    where: { id, userId: session.user.id },
+    data: { completedAt: done ? new Date() : null },
+  });
+  if (count === 0) return { ok: false, error: 'Not found.' };
+  revalidatePath('/deadlines');
+  return { ok: true };
+}
+
 // Turns reminders back on (or off) for the signed-in student. muteReminders
 // above is the signed-out path, keyed on a token instead of a session.
 export async function setRemindersEnabled(enabled: boolean): Promise<Result> {

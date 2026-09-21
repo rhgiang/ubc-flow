@@ -180,58 +180,10 @@ export default function DeadlinesList({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-text-secondary">
-          {openCount === 0 ? 'Nothing outstanding.' : `${openCount} to go`}
-          {doneCount > 0 && <span className="text-text-tertiary">{` · ${doneCount} done`}</span>}
-        </p>
-      </div>
-
-      {failing && (
-        <p className="rounded-card border border-danger-border bg-danger-surface px-3 py-2 text-sm text-danger">
-          The last read of your Canvas feed failed. What is below is the last good read, so it may be
-          out of date.
-        </p>
-      )}
-
-      {error && (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      )}
-
-      {rows.length === 0 ? (
-        <p className="text-sm text-text-secondary">
-          Nothing due yet. New deadlines show up here once Canvas has them.
-        </p>
-      ) : view === 'calendar' ? (
-        <DeadlinesCalendar deadlines={visible} todayKey={todayKey} onToggle={toggleDone} busyId={busyId} />
-      ) : (
-        <div className="space-y-5">
-          {groups.map((g) => (
-            <div key={g.key}>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
-                {g.label}
-              </h3>
-              <ul className="mt-1.5 divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
-                {g.items.map((d) => (
-                  <DeadlineItem
-                    key={d.id}
-                    item={d}
-                    muted={mutedCourses.includes(d.courseName)}
-                    busy={busyId === d.id}
-                    onToggle={toggleDone}
-                  />
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Settings live below the work and closed by default. They are read
-          once and then never again, and they used to sit above the list and
-          push the actual deadlines off the first screen. */}
+      {/* Both closed by default. Open they would push the deadlines off the
+          first screen, which is what the original layout did; shut they are
+          two lines that say where the reminders stand and when the feed was
+          last read, which is worth having in reach. */}
       <details className="rounded-card border border-border bg-surface">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-foreground">
           Reminder settings
@@ -322,6 +274,56 @@ export default function DeadlinesList({
           <CanvasConnect connectedLabel={connectedLabel} lastReadLabel={lastReadLabel} broken={broken} />
         </div>
       </details>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-text-secondary">
+          {openCount === 0 ? 'Nothing outstanding.' : `${openCount} to go`}
+          {doneCount > 0 && <span className="text-text-tertiary">{` · ${doneCount} done`}</span>}
+        </p>
+      </div>
+
+      {failing && (
+        <p className="rounded-card border border-danger-border bg-danger-surface px-3 py-2 text-sm text-danger">
+          The last read of your Canvas feed failed. What is below is the last good read, so it may be
+          out of date.
+        </p>
+      )}
+
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      )}
+
+      {rows.length === 0 ? (
+        <p className="text-sm text-text-secondary">
+          Nothing due yet. New deadlines show up here once Canvas has them.
+        </p>
+      ) : view === 'calendar' ? (
+        <DeadlinesCalendar deadlines={visible} todayKey={todayKey} onToggle={toggleDone} busyId={busyId} />
+      ) : (
+        <div className="space-y-5">
+          {groups.map((g) => (
+            <div key={g.key}>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                {g.label}
+              </h3>
+              <ul className="mt-1.5 divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
+                {g.items.map((d) => (
+                  <DeadlineItem
+                    key={d.id}
+                    item={d}
+                    muted={mutedCourses.includes(d.courseName)}
+                    busy={busyId === d.id}
+                    onToggle={toggleDone}
+                  />
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
     </div>
   );
 }

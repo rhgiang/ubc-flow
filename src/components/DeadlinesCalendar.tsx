@@ -7,6 +7,11 @@ import type { DeadlineRow } from '@/components/DeadlinesList';
 /** Sunday first, matching the grid buildMonths produces. */
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
+/** Chips a square shows before it gives up and counts the rest. Every square
+ *  is the same height, so a Monday with seven things due must not be allowed
+ *  to stretch its whole row. */
+const MAX_CHIPS = 3;
+
 /**
  * A month view of everything due. The question a list cannot answer is "how
  * bad is that week", and this is the shape that answers it.
@@ -57,7 +62,9 @@ export default function DeadlinesCalendar({
               return (
                 <div
                   key={cell.key}
-                  className={`min-h-14 bg-surface p-1 align-top sm:min-h-20 ${cell.day === null ? 'opacity-40' : ''}`}
+                  // Fixed height, not min-height: every square the same size
+                  // is what makes the grid read as a calendar at a glance.
+                  className={`h-16 overflow-hidden bg-surface p-1 align-top sm:h-28 ${cell.day === null ? 'opacity-40' : ''}`}
                 >
                   {cell.day !== null && (
                     <div
@@ -83,9 +90,20 @@ export default function DeadlinesCalendar({
                   </div>
 
                   <div className="hidden space-y-1 sm:block">
-                    {cell.items.map((item) => (
+                    {cell.items.slice(0, MAX_CHIPS).map((item) => (
                       <Chip key={item.id} item={item} onToggle={onToggle} busy={busyId === item.id} />
                     ))}
+                    {cell.items.length > MAX_CHIPS && (
+                      <p
+                        className="px-1 text-xs text-text-tertiary"
+                        title={cell.items
+                          .slice(MAX_CHIPS)
+                          .map((i) => `${i.courseLabel}: ${i.title}`)
+                          .join(String.fromCharCode(10))}
+                      >
+                        {`+${cell.items.length - MAX_CHIPS} more`}
+                      </p>
+                    )}
                   </div>
                 </div>
               );

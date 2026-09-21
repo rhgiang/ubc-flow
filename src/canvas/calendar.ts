@@ -48,25 +48,6 @@ export function daysInMonth(y: number, m: number): number {
 }
 
 /**
- * Drops whole weeks at the start and end of a month that hold nothing. A
- * student who connects mid-September should not scroll past three blank rows
- * to reach the first thing they owe. The day numbers stay on every square, so
- * a part month still reads as the part of the month it is.
- *
- * Never returns fewer than one week, so a month that somehow has no items at
- * all still renders as a grid rather than nothing.
- */
-function trimEmptyWeeks<T>(cells: DayCell<T>[]): DayCell<T>[] {
-  const weeks: DayCell<T>[][] = [];
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-  const full = (w: DayCell<T>[]) => w.some((c) => c.items.length > 0);
-  let first = weeks.findIndex(full);
-  let last = weeks.length - 1 - [...weeks].reverse().findIndex(full);
-  if (first === -1) { first = 0; last = 0; }
-  return weeks.slice(first, last + 1).flat();
-}
-
-/**
  * Buckets items into month grids, one per month that actually holds
  * something. An empty month between two busy ones is skipped rather than
  * rendered blank: a student with nothing in October should not scroll past
@@ -99,6 +80,6 @@ export function buildMonths<T extends Dated>(items: T[]): Month<T>[] {
       }
       while (cells.length % 7 !== 0) cells.push({ day: null, key: `${monthKey}-tail-${cells.length}`, items: [] });
 
-      return { key: monthKey, label: `${MONTH_NAMES[m - 1]} ${y}`, cells: trimEmptyWeeks(cells) };
+      return { key: monthKey, label: `${MONTH_NAMES[m - 1]} ${y}`, cells };
     });
 }

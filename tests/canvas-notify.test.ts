@@ -112,7 +112,7 @@ describe('notifyFor', () => {
     await db.canvasFeed.update({ where: { userId }, data: { firstSyncedAt: null } });
     await db.reminderPreference.update({ where: { userId }, data: { enabled: false } });
     await seed('a', at(70));
-    expect(await notifyFor(userId, NOW)).toEqual({ sent: 0 });
+    expect(await notifyFor(userId, NOW)).toEqual({ sent: 0, outcome: 'welcome-skipped-muted' });
     expect(sent).toHaveLength(0);
     expect((await db.canvasFeed.findUniqueOrThrow({ where: { userId } })).firstSyncedAt).not.toBeNull();
   });

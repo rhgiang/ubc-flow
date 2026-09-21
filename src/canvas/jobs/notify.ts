@@ -18,13 +18,33 @@ async function muteUrl(userId: string): Promise<string> {
  * claim loses on the unique (deadlineId, notice). A claim whose send failed
  * keeps deliveredAt null and is retried while its window is still open.
  */
-export async function notifyFor(userId: string, now: Date): Promise<{ sent: number }> {
+/**
+ * Why a run sent nothing, so a quiet job can be told apart from a broken one.
+ * Three times during rollout the summary said zero and there was no way to
+ * learn whether that meant "nothing was due" or "the welcome silently did not
+ * fire", which is the same class of blindness that let a dead cron and three
+ * weeks of undeliverable mail go unnoticed.
+ */
+export type NotifyOutcome =
+  | 'welcomed'
+  | 'welcome-failed'
+  | 'welcome-skipped-muted'
+  | 'reminded'
+  | 'reminder-failed'
+  | 'nothing-due'
+  | 'reminders-off'
+  | 'no-feed';
+
+export async function notifyFor(
+  userId: string,
+  now: Date,
+): Promise<{ sent: number; outcome: NotifyOutcome }> {
   const [user, feed, prefs] = await Promise.all([
     db.user.findUnique({ where: { id: userId }, select: { email: true } }),
     db.canvasFeed.findUnique({ where: { userId }, select: { brokenAt: true, firstSyncedAt: true } }),
     db.reminderPreference.findUnique({ where: { userId } }),
   ]);
-  if (!user || !feed || feed.brokenAt || !prefs) return { sent: 0 };
+  if (!user || !feed || feed.brokenAt || !prefs) return { sent: 0, outcome: 'no-feed' };
 
   const deadlines: DeadlineForNotice[] = await db.canvasDeadline.findMany({
     where: { userId },
@@ -39,7 +59,7 @@ export async function notifyFor(userId: string, now: Date): Promise<{ sent: numb
     // anyway, so the welcome is spent rather than pending if they unmute.
     if (!prefs.enabled) {
       await db.canvasFeed.update({ where: { userId }, data: { firstSyncedAt: now } });
-      return { sent: 0 };
+      return { sent: 0, outcome: 'welcome-skipped-muted' };
     }
     // The welcome replaces every per-item reminder this run: a student who
     // connects with eight things due this week must not get eight emails.
@@ -58,8 +78,9 @@ export async function notifyFor(userId: string, now: Date): Promise<{ sent: numb
     // broken, and no reminder would have been delivered either.
     if (await sendMail(user.email, mail.subject, mail.body, mail.html)) {
       await db.canvasFeed.update({ where: { userId }, data: { firstSyncedAt: now } });
+      return { sent: 0, outcome: 'welcomed' };
     }
-    return { sent: 0 };
+    return { sent: 0, outcome: 'welcome-failed' };
   }
 
   // Claim first. Undelivered earlier claims are picked up again here too.
@@ -83,12 +104,12 @@ export async function notifyFor(userId: string, now: Date): Promise<{ sent: numb
       throw e;
     }
   }
-  if (claimed.length === 0) return { sent: 0 };
+  if (claimed.length === 0) return { sent: 0, outcome: prefs.enabled ? 'nothing-due' : 'reminders-off' };
 
   const mail = reminderEmail(claimed.map((c) => c.notice), await muteUrl(userId));
   const delivered = await sendMail(user.email, mail.subject, mail.body, mail.html);
   if (delivered) {
     await db.reminderSent.updateMany({ where: { id: { in: claimed.map((c) => c.rowId) } }, data: { deliveredAt: now } });
   }
-  return { sent: delivered ? claimed.length : 0 };
+  return { sent: delivered ? claimed.length : 0, outcome: delivered ? 'reminded' : 'reminder-failed' };
 }

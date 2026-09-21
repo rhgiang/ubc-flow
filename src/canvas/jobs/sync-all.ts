@@ -27,13 +27,18 @@ export async function syncAllFeeds(now = new Date()) {
     },
   });
   const counts = { feeds: feeds.length, ok: 0, broken: 0, transient: 0, notices: 0 };
+  const outcomes: Record<string, number> = {};
 
   for (const feed of feeds) {
     try {
       const outcome = await syncFeedFor(feed.userId, now);
       if (outcome === 'ok') {
         counts.ok += 1;
-        counts.notices += (await notifyFor(feed.userId, now)).sent;
+        const n = await notifyFor(feed.userId, now);
+        counts.notices += n.sent;
+        // Named, not just counted: "notices: 0" alone cannot say whether
+        // nothing was due or the welcome quietly failed to fire.
+        outcomes[n.outcome] = (outcomes[n.outcome] ?? 0) + 1;
       } else if (outcome === 'broken') {
         counts.broken += 1;
         // Sent from here, once: brokenAt was null when this loop started.
@@ -51,5 +56,6 @@ export async function syncAllFeeds(now = new Date()) {
     }
   }
   console.log(`canvas sync: ${JSON.stringify(counts)}`);
+  console.log(`canvas notify: ${JSON.stringify(outcomes)}`);
   return counts;
 }

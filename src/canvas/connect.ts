@@ -20,6 +20,21 @@ const COOLDOWN_MS = 60 * 1000;
  * flag but keeps firstSyncedAt, so a reconnect does not send a second
  * welcome email.
  */
+/**
+ * Status 0 out of fetchFeed means the request never completed: a DNS failure,
+ * a connect timeout, a reset. That is almost always our side or the network,
+ * not the link, so it must not tell the student to go check their link. The
+ * old copy read "Canvas answered with no response. Check the link and try
+ * again." and sent someone hunting a fault in a URL that was perfectly good.
+ */
+function describeFetchFailure(status: number, body: string | null): string {
+  if (status === 0) return 'Could not reach Canvas just now. That is usually a passing network problem, not your link. Wait a moment and try again.';
+  if (status === 401 || status === 403) return `Canvas refused that link (${status}). Open Calendar in Canvas, click Calendar Feed, and copy a fresh link.`;
+  if (status === 404) return 'Canvas does not recognise that link any more (404). It was probably reset. Open Calendar in Canvas, click Calendar Feed, and copy the new one.';
+  if (status === 200 && body === null) return 'That feed is too large to read. Please get in touch so we can take a look.';
+  return `Canvas answered ${status}. That is usually temporary, so try again in a moment.`;
+}
+
 export async function connectCanvasFeedFor(userId: string, input: string): Promise<Result> {
   const normalized = normalizeFeedUrl(input);
   if (!normalized.ok) return normalized;
@@ -46,7 +61,7 @@ export async function connectCanvasFeedFor(userId: string, input: string): Promi
 
   const { status, body } = await fetchFeed(normalized.url);
   if (status !== 200 || body === null) {
-    return { ok: false, error: `Canvas answered ${status || 'with no response'}. Check the link and try again.` };
+    return { ok: false, error: describeFetchFailure(status, body) };
   }
   if (!isCalendarBody(body)) {
     return { ok: false, error: 'That link did not return a calendar. In Canvas, open Calendar and click Calendar Feed.' };

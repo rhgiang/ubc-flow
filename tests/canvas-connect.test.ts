@@ -6,6 +6,8 @@ vi.mock('@/canvas/fetch-feed', () => ({
   fetchFeed: vi.fn(async (url: string) =>
     url.includes('dead')
       ? { status: 404, body: null }
+      : url.includes('unreachable')
+      ? { status: 0, body: null } // a DNS failure, connect timeout or reset
       : { status: 200, body: 'BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:event-assignment-1\r\nSUMMARY:A [C 1]\r\nDTSTART:20261027T065959Z\r\nEND:VEVENT\r\nEND:VCALENDAR' },
   ),
   FEED_TIMEOUT_MS: 1,
@@ -62,6 +64,19 @@ describe('connectCanvasFeedFor', () => {
     if (!r.ok) {
       expect(r.error).toMatch(/404/);
       expect(r.error).not.toContain('user_dead');
+    }
+  });
+
+  it('blames the network, not the link, when the request never completed', async () => {
+    // fetchFeed returns status 0 for a DNS failure, a connect timeout or a
+    // reset. The old copy said "Canvas answered with no response. Check the
+    // link and try again." on a link that was perfectly good, which is what
+    // it looked like in practice on a brief outage.
+    const r = await connectCanvasFeedFor(userA, 'https://canvas.ubc.ca/feeds/calendars/user_unreachable.ics');
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error).toMatch(/could not reach canvas/i);
+      expect(r.error).not.toMatch(/check the link/i);
     }
   });
 

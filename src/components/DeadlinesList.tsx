@@ -366,14 +366,20 @@ function DeadlineItem({
   const struck = item.done || item.removed;
   return (
     <li className={`flex items-start gap-3 px-3 py-2.5 ${muted ? 'opacity-60' : ''} ${busy ? 'opacity-50' : ''}`}>
-      <input
-        type="checkbox"
-        checked={item.done}
-        disabled={busy || item.removed}
-        onChange={() => onToggle(item)}
-        aria-label={`Mark "${item.title}" ${item.done ? 'not done' : 'done'}`}
-        className="mt-0.5 h-4 w-4 shrink-0 rounded border-border"
-      />
+      {/* The box stays 16px because that is what a checkbox looks like, but
+          the padded label around it gives a finger roughly 40px to land on.
+          A mobile audit found the bare input was a 16px target, and ticking
+          things off is the main thing this page is for. */}
+      <label className="-m-3.5 flex shrink-0 cursor-pointer items-start p-3.5">
+        <input
+          type="checkbox"
+          checked={item.done}
+          disabled={busy || item.removed}
+          onChange={() => onToggle(item)}
+          aria-label={`Mark "${item.title}" ${item.done ? 'not done' : 'done'}`}
+          className="mt-0.5 h-4 w-4 rounded border-border"
+        />
+      </label>
 
       <div className="min-w-0 flex-1">
         {item.url && !item.removed ? (

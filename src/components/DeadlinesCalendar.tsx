@@ -1,6 +1,7 @@
 'use client';
 
-import { buildMonths } from '@/canvas/calendar';
+import { useState } from 'react';
+import { buildMonths, type DayCell } from '@/canvas/calendar';
 import { courseColorIndex } from '@/schedule/colors';
 import type { DeadlineRow } from '@/components/DeadlinesList';
 
@@ -35,6 +36,11 @@ export default function DeadlinesCalendar({
   onToggle: (d: DeadlineRow) => void;
   busyId: string | null;
 }) {
+  // Which square is open. At phone width a square is a handful of dots and
+  // nothing else fits, so tapping one has to be how you read it: the dots
+  // said something was due and refused to say what. On a wide screen the
+  // chips carry their own titles, and this is what "+2 more" opens.
+  const [openDay, setOpenDay] = useState<string | null>(null);
   const months = buildMonths(deadlines);
 
   if (months.length === 0) {
@@ -43,74 +49,202 @@ export default function DeadlinesCalendar({
 
   return (
     <div className="space-y-8">
-      {months.map((month) => (
-        <section key={month.key}>
-          <h3 className="text-base font-semibold text-foreground">{month.label}</h3>
+      {months.map((month) => {
+        const open = month.cells.find((c) => c.key === openDay && c.items.length > 0) ?? null;
+        return (
+          <section key={month.key}>
+            <h3 className="text-base font-semibold text-foreground">{month.label}</h3>
 
-          <div className="mt-3 grid grid-cols-7 gap-px overflow-hidden rounded-card border border-border bg-border">
-            {WEEKDAYS.map((w, i) => (
-              <div
-                key={i}
-                className="bg-surface-muted py-1.5 text-center text-xs font-medium text-text-secondary"
-              >
-                {w}
-              </div>
-            ))}
-
-            {month.cells.map((cell) => {
-              const isToday = cell.key === todayKey;
-              return (
+            <div className="mt-3 grid grid-cols-7 gap-px overflow-hidden rounded-card border border-border bg-border">
+              {WEEKDAYS.map((w, i) => (
                 <div
-                  key={cell.key}
-                  // Fixed height, not min-height: every square the same size
-                  // is what makes the grid read as a calendar at a glance.
-                  className={`h-16 overflow-hidden bg-surface p-1 align-top sm:h-28 ${cell.day === null ? 'opacity-40' : ''}`}
+                  key={i}
+                  className="bg-surface-muted py-1.5 text-center text-xs font-medium text-text-secondary"
                 >
-                  {cell.day !== null && (
-                    <div
-                      className={
-                        isToday
-                          ? 'mb-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-accent text-xs font-semibold text-brand-foreground'
-                          : 'mb-1 inline-block px-1 text-xs text-text-tertiary'
-                      }
-                    >
-                      {cell.day}
-                    </div>
-                  )}
-
-                  {/* A seven column grid cannot hold a readable title at
-                      phone width: every chip truncated to "Wri...". Phones get
-                      a dot per deadline, which is what a month view is for
-                      anyway, and the list view is where you read and tick
-                      things off. */}
-                  <div className="flex flex-wrap gap-1 sm:hidden">
-                    {cell.items.map((item) => (
-                      <Dot key={item.id} item={item} />
-                    ))}
-                  </div>
-
-                  <div className="hidden space-y-1 sm:block">
-                    {cell.items.slice(0, MAX_CHIPS).map((item) => (
-                      <Chip key={item.id} item={item} onToggle={onToggle} busy={busyId === item.id} />
-                    ))}
-                    {cell.items.length > MAX_CHIPS && (
-                      <p
-                        className="px-1 text-xs text-text-tertiary"
-                        title={cell.items
-                          .slice(MAX_CHIPS)
-                          .map((i) => `${i.courseLabel}: ${i.title}`)
-                          .join(String.fromCharCode(10))}
-                      >
-                        {`+${cell.items.length - MAX_CHIPS} more`}
-                      </p>
-                    )}
-                  </div>
+                  {w}
                 </div>
-              );
-            })}
-          </div>
-        </section>
-      ))}
+              ))}
+
+              {month.cells.map((cell) => (
+                <Cell
+                  key={cell.key}
+                  cell={cell}
+                  today={cell.key === todayKey}
+                  selected={cell.key === openDay}
+                  onOpen={() => setOpenDay(cell.key === openDay ? null : cell.key)}
+                  onToggle={onToggle}
+                  busyId={busyId}
+                />
+              ))}
+            </div>
+
+            {open && (
+              <DayPanel
+                cell={open}
+                onClose={() => setOpenDay(null)}
+                onToggle={onToggle}
+                busyId={busyId}
+              />
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function Cell({
+  cell,
+  today,
+  selected,
+  onOpen,
+  onToggle,
+  busyId,
+}: {
+  cell: DayCell<DeadlineRow>;
+  today: boolean;
+  selected: boolean;
+  onOpen: () => void;
+  onToggle: (d: DeadlineRow) => void;
+  busyId: string | null;
+}) {
+  return (
+    // Fixed height, not min-height: every square the same size is what makes
+    // the grid read as a calendar at a glance.
+    <div
+      className={`relative h-16 overflow-hidden bg-surface p-1 align-top sm:h-28 ${
+        cell.day === null ? 'opacity-40' : ''
+      } ${selected ? 'ring-2 ring-inset ring-brand-accent' : ''}`}
+    >
+      {cell.day !== null && (
+        <div
+          className={
+            today
+              ? 'mb-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-accent text-xs font-semibold text-brand-foreground'
+              : 'mb-1 inline-block px-1 text-xs text-text-tertiary'
+          }
+        >
+          {cell.day}
+        </div>
+      )}
+
+      {/* Phone: the whole square is the button, because a handful of two
+          pixel dots is not a tap target and the dots cannot say what is due.
+          Covers the square so the finger has the full 16 by 50 to aim at. */}
+      {cell.items.length > 0 && (
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-expanded={selected}
+          aria-label={`${cell.items.length} due on the ${cell.day}. Show them.`}
+          className="absolute inset-0 flex flex-wrap content-start gap-1 p-1 pt-6 text-left sm:hidden"
+        >
+          {cell.items.map((item) => (
+            <Dot key={item.id} item={item} />
+          ))}
+        </button>
+      )}
+
+      <div className="hidden space-y-1 sm:block">
+        {cell.items.slice(0, MAX_CHIPS).map((item) => (
+          <Chip key={item.id} item={item} onToggle={onToggle} busy={busyId === item.id} />
+        ))}
+        {cell.items.length > MAX_CHIPS && (
+          <button
+            type="button"
+            onClick={onOpen}
+            aria-expanded={selected}
+            className="block w-full px-1 text-left text-xs text-text-tertiary hover:text-foreground hover:underline"
+          >
+            {`+${cell.items.length - MAX_CHIPS} more`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Everything due on one day, opened by tapping its square. Also what the
+ *  "+2 more" on a crowded desktop square opens, since those items are
+ *  otherwise unreachable from the calendar. */
+function DayPanel({
+  cell,
+  onClose,
+  onToggle,
+  busyId,
+}: {
+  cell: DayCell<DeadlineRow>;
+  onClose: () => void;
+  onToggle: (d: DeadlineRow) => void;
+  busyId: string | null;
+}) {
+  return (
+    <div className="mt-3 rounded-card border border-border bg-surface">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+        <p className="text-sm font-semibold text-foreground">{cell.items[0].dayLabel}</p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="-m-2 p-2 text-sm font-medium text-text-secondary hover:text-foreground"
+        >
+          Close
+        </button>
+      </div>
+
+      <ul className="divide-y divide-border">
+        {cell.items.map((item) => {
+          const struck = item.done || item.removed;
+          const slot = courseColorIndex(item.courseName);
+          return (
+            <li
+              key={item.id}
+              className={`flex items-start gap-2 px-3 py-2.5 ${busyId === item.id ? 'opacity-50' : ''}`}
+            >
+              <label className="-m-3.5 flex cursor-pointer items-start p-3.5">
+                <input
+                  type="checkbox"
+                  checked={item.done}
+                  disabled={busyId === item.id || item.removed}
+                  onChange={() => onToggle(item)}
+                  aria-label={`Mark "${item.title}" ${item.done ? 'not done' : 'done'}`}
+                  className="h-4 w-4 rounded border-border"
+                />
+              </label>
+
+              <div className="min-w-0 flex-1">
+                {item.url && !item.removed ? (
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`block py-0.5 text-sm font-medium text-foreground hover:text-brand-accent hover:underline ${struck ? 'line-through' : ''}`}
+                  >
+                    {item.title}
+                  </a>
+                ) : (
+                  <p className={`py-0.5 text-sm font-medium text-foreground ${struck ? 'line-through' : ''}`}>
+                    {item.title}
+                  </p>
+                )}
+                <span
+                  className="mt-1 inline-block rounded-pill px-1.5 py-0.5 text-xs font-medium"
+                  style={{
+                    background: `var(--course-${slot}-bg)`,
+                    color: `var(--course-${slot}-accent)`,
+                  }}
+                >
+                  {item.courseLabel}
+                </span>
+                {item.removed && <p className="mt-1 text-xs text-danger">Removed by your instructor</p>}
+              </div>
+
+              {item.timeLabel && (
+                <div className="shrink-0 pt-0.5 text-sm text-text-secondary">{item.timeLabel}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -153,12 +287,12 @@ function Chip({
   );
 }
 
-/** The phone-width stand-in for a chip: presence and course, nothing else. */
+/** The phone-width stand-in for a chip: presence and course, nothing else.
+ *  Not a button itself; the square around it is. */
 function Dot({ item }: { item: DeadlineRow }) {
   const slot = courseColorIndex(item.courseName);
   return (
     <span
-      title={`${item.courseLabel}: ${item.title}`}
       className={`h-2 w-2 rounded-full ${item.done || item.removed ? 'opacity-30' : ''}`}
       style={{ background: `var(--course-${slot}-accent)` }}
     />

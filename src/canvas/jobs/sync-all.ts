@@ -41,7 +41,7 @@ export async function syncAllFeeds(now = new Date()) {
         // included; the connection block on their Account page says it broke.
         if (feed.user.reminderPreference?.enabled !== false) {
           const mail = reconnectEmail(`${SITE}/onboarding`);
-          await sendMail(feed.user.email, mail.subject, mail.body);
+          await sendMail(feed.user.email, mail.subject, mail.body, mail.html);
         }
       } else if (outcome === 'transient') {
         counts.transient += 1;

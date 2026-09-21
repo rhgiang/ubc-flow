@@ -56,7 +56,7 @@ export async function notifyFor(userId: string, now: Date): Promise<{ sent: numb
     // to vanish. A send that keeps failing retries every run and holds the
     // per-item notices behind it, which is the honest outcome: mail is
     // broken, and no reminder would have been delivered either.
-    if (await sendMail(user.email, mail.subject, mail.body)) {
+    if (await sendMail(user.email, mail.subject, mail.body, mail.html)) {
       await db.canvasFeed.update({ where: { userId }, data: { firstSyncedAt: now } });
     }
     return { sent: 0 };
@@ -86,7 +86,7 @@ export async function notifyFor(userId: string, now: Date): Promise<{ sent: numb
   if (claimed.length === 0) return { sent: 0 };
 
   const mail = reminderEmail(claimed.map((c) => c.notice), await muteUrl(userId));
-  const delivered = await sendMail(user.email, mail.subject, mail.body);
+  const delivered = await sendMail(user.email, mail.subject, mail.body, mail.html);
   if (delivered) {
     await db.reminderSent.updateMany({ where: { id: { in: claimed.map((c) => c.rowId) } }, data: { deliveredAt: now } });
   }

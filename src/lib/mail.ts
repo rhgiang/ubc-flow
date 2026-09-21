@@ -36,7 +36,12 @@ const TTL_MS: Record<TokenPurpose, number> = {
  * Canvas notify job can decide whether to mark its sent-log delivered or
  * leave it to retry. Existing callers ignore the return value.
  */
-export async function sendMail(to: string, subject: string, body: string): Promise<boolean> {
+export async function sendMail(
+  to: string,
+  subject: string,
+  body: string,
+  html?: string,
+): Promise<boolean> {
   if (!resend || process.env.VITEST) {
     console.log(`\n--- MAIL ---\nTo: ${to}\nSubject: ${subject}\n\n${body}\n------------\n`);
     return true;
@@ -46,7 +51,12 @@ export async function sendMail(to: string, subject: string, body: string): Promi
     from: process.env.MAIL_FROM ?? 'UBC Flow <onboarding@resend.dev>',
     to,
     subject,
+    // Both parts, always. The plain text is what a screen reader and a
+    // text-only client read, and a message carrying only an HTML part scores
+    // worse with spam filters. The console path above logs the text for the
+    // same reason: it is the readable one.
     text: body,
+    ...(html ? { html } : {}),
   });
   if (error) {
     console.error('sendMail failed:', error);

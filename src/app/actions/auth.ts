@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 import { hashPassword } from '@/lib/hash';
 import { createVerificationToken, sendMail } from '@/lib/mail';
+import { verifyEmail } from '@/lib/account-emails';
 
 const MIN_PASSWORD = 10;
 
@@ -45,11 +46,8 @@ export async function registerUser(
 
   const token = await createVerificationToken(user.id);
   const link = `${process.env.NEXTAUTH_URL ?? 'http://localhost:3000'}/verify?token=${token}`;
-  await sendMail(
-    normalized,
-    'Verify your UBC Flow account',
-    `Confirm your email by visiting:\n\n${link}\n\nThis link expires in 24 hours.`,
-  );
+  const mail = verifyEmail(link);
+  await sendMail(normalized, mail.subject, mail.body, mail.html);
 
   return { ok: true, userId: user.id };
 }

@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 import { hashPassword } from '@/lib/hash';
 import { createToken, consumeToken, lastTokenIssuedAt, revokeTokens, sendMail } from '@/lib/mail';
+import { passwordResetEmail } from '@/lib/account-emails';
 
 const MIN_PASSWORD = 10;
 
@@ -36,13 +37,8 @@ export async function requestPasswordReset(email: string): Promise<{ ok: true }>
       // works and an older message in the inbox is inert.
       await revokeTokens(user.id, 'reset');
       const token = await createToken(user.id, 'reset');
-      await sendMail(
-        normalized,
-        'Reset your UBC Flow password',
-        `Set a new password by visiting:\n\n${resetLink(token)}\n\n` +
-          `This link expires in 1 hour and can only be used once.\n\n` +
-          `If you did not ask for this, you can ignore it. Nothing has changed.`,
-      );
+      const mail = passwordResetEmail(resetLink(token));
+      await sendMail(normalized, mail.subject, mail.body, mail.html);
     }
   }
 

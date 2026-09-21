@@ -24,6 +24,12 @@ const PAPER = '#ffffff';
 const WELL = '#f7f6f4'; // --surface
 const FONT =
   "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+/** The wordmark is set in Outfit on the site (see .nav-logo in globals.css):
+ *  700, uppercase, 0.015em tracking. Email cannot load a webfont, so Outfit
+ *  is named first for the desktop clients that have it and the system stack
+ *  catches everyone else. The tracking was .14em here, ten times the site's,
+ *  which is what made it read as a different wordmark. */
+const WORDMARK_FONT = `Outfit,${FONT}`;
 
 /** Escapes text going into HTML. Assignment titles come from Canvas, which is
  *  to say from professors, and nothing stops one containing an angle bracket. */
@@ -137,7 +143,7 @@ export function renderEmail(opts: {
 
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:${PAPER};border:1px solid ${LINE};border-radius:14px;">
       <tr><td style="padding:22px 28px 0;">
-        <span style="font:700 15px/1 ${FONT};letter-spacing:.14em;color:${BRAND};">UBC FLOW</span>
+        <span style="font:700 18px/1 ${WORDMARK_FONT};letter-spacing:.015em;color:${BRAND};text-transform:uppercase;">UBC Flow</span>
       </td></tr>
 
       <tr><td style="padding:14px 28px 0;font:700 22px/1.3 ${FONT};color:${INK};">${esc(opts.heading)}</td></tr>

@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setRemindersEnabled, updateReminderPreferences } from '@/app/actions/canvas';
-import { formatVancouver } from '@/canvas/tz';
 import CanvasConnect from '@/components/CanvasConnect';
 
 // Labels for src/canvas/prefs.ts's LEAD_CHOICES ([24, 48, 72, 168]). The
@@ -15,18 +14,21 @@ export type DeadlineRow = {
   id: string;
   title: string;
   courseName: string;
-  dueAt: string;
-  allDay: boolean;
   url: string | null;
   /** True only when removedAt is set and within the last 14 days: the page
    *  never sends an older removed row at all. */
   removed: boolean;
-  /** The old due date, ISO, only when the move happened in the last 14 days. */
-  movedFrom: string | null;
+  /** Already formatted for Vancouver by the server. See the note on toRow in
+   *  src/app/deadlines/page.tsx: formatting here instead would leave the page
+   *  an hour off from the email for any browser whose tzdata differs. */
+  dueLabel: string;
+  /** The same instant as a bare day, used to group the list. */
+  dayLabel: string;
+  /** The old due date, only when the move happened in the last 14 days. */
+  movedFromLabel: string | null;
 };
 
 function DeadlineCard({ item, muted }: { item: DeadlineRow; muted: boolean }) {
-  const due = formatVancouver(new Date(item.dueAt), item.allDay);
   return (
     <li
       className={`rounded-card border border-border bg-surface p-4 ${muted ? 'opacity-50' : ''}`}
@@ -34,13 +36,13 @@ function DeadlineCard({ item, muted }: { item: DeadlineRow; muted: boolean }) {
       <div className={item.removed ? 'line-through decoration-2' : ''}>
         <div className="flex items-start justify-between gap-2">
           <span className="font-medium text-foreground">{item.courseName}</span>
-          <span className="text-sm text-text-secondary">{due}</span>
+          <span className="text-sm text-text-secondary">{item.dueLabel}</span>
         </div>
         <p className="mt-1 text-sm text-text-secondary">{item.title}</p>
       </div>
-      {item.movedFrom && (
+      {item.movedFromLabel && (
         <p className="mt-1 text-xs text-text-tertiary">
-          Moved from {formatVancouver(new Date(item.movedFrom), item.allDay)}
+          Moved from {item.movedFromLabel}
         </p>
       )}
       {item.removed && <p className="mt-1 text-xs text-danger">Removed by your instructor</p>}
@@ -59,8 +61,8 @@ function DeadlineCard({ item, muted }: { item: DeadlineRow; muted: boolean }) {
 }
 
 export default function DeadlinesList({
-  connectedAt,
-  lastFetchedAt,
+  connectedLabel,
+  lastReadLabel,
   broken,
   failing,
   enabled,
@@ -69,8 +71,8 @@ export default function DeadlinesList({
   leadChoices,
   deadlines,
 }: {
-  connectedAt: string | null;
-  lastFetchedAt: string | null;
+  connectedLabel: string | null;
+  lastReadLabel: string | null;
   broken: boolean;
   /** Last read failed, but the feed has retries left. The dates below are
    *  the last good ones, so say so rather than letting them look current. */
@@ -112,7 +114,7 @@ export default function DeadlinesList({
   // day stays contiguous: one pass groups them without a re-sort.
   const groups: { key: string; items: DeadlineRow[] }[] = [];
   for (const d of deadlines) {
-    const key = formatVancouver(new Date(d.dueAt), true);
+    const key = d.dayLabel;
     const current = groups[groups.length - 1];
     if (current && current.key === key) current.items.push(d);
     else groups.push({ key, items: [d] });
@@ -197,7 +199,7 @@ export default function DeadlinesList({
         <h2 className="text-sm font-semibold text-foreground">Your Canvas connection</h2>
         <div className="mt-2">
           {/* No failing prop: this page says it once, below, next to the list it affects. */}
-          <CanvasConnect connectedAt={connectedAt} lastFetchedAt={lastFetchedAt} broken={broken} />
+          <CanvasConnect connectedLabel={connectedLabel} lastReadLabel={lastReadLabel} broken={broken} />
         </div>
       </section>
 

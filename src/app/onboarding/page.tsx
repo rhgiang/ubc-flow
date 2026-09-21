@@ -8,6 +8,7 @@ import UploadCoursesForm from "@/components/UploadCoursesForm";
 import DeleteAccountButton from "@/components/DeleteAccountButton";
 import EnrolledCourseCard from "@/components/EnrolledCourseCard";
 import CanvasConnect from "@/components/CanvasConnect";
+import { formatVancouver } from "@/canvas/tz";
 
 function courseHref(subjectCode: string, number: string): string {
   return `/course/${`${subjectCode} ${number}`.toLowerCase().replace(/\s+/g, "-")}`;
@@ -356,8 +357,8 @@ export default async function OnboardingPage() {
               </p>
               <div className="mt-3">
                 <CanvasConnect
-                  connectedAt={feed?.connectedAt.toISOString() ?? null}
-                  lastFetchedAt={feed?.lastFetchedAt?.toISOString() ?? null}
+                  connectedLabel={feed ? formatVancouver(feed.connectedAt, true) : null}
+                  lastReadLabel={feed?.lastFetchedAt ? formatVancouver(feed.lastFetchedAt, false) : null}
                   broken={Boolean(feed?.brokenAt)}
                   failing={Boolean(feed && feed.failureCount > 0 && !feed.brokenAt)}
                 />

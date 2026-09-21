@@ -15,13 +15,18 @@ import ConfirmDialog from '@/components/ConfirmDialog';
  * read and would otherwise sit there looking fine next to stale deadlines.
  */
 export default function CanvasConnect({
-  connectedAt,
-  lastFetchedAt,
+  connectedLabel,
+  lastReadLabel,
   broken,
   failing = false,
 }: {
-  connectedAt: string | null;
-  lastFetchedAt: string | null;
+  /** Formatted for Vancouver on the server, not an ISO string. Formatting a
+   *  date in here would use the browser's own tzdata, which disagrees with
+   *  Node's about America/Vancouver after November 2026: the same instant
+   *  renders an hour apart on the server and in the browser, which React
+   *  reports as a hydration mismatch. See toRow in src/app/deadlines/page.tsx. */
+  connectedLabel: string | null;
+  lastReadLabel: string | null;
   broken: boolean;
   failing?: boolean;
 }) {
@@ -51,12 +56,13 @@ export default function CanvasConnect({
     router.refresh();
   }
 
-  if (connectedAt && !broken) {
+  if (connectedLabel && !broken) {
     return (
       <div className="space-y-2 text-sm text-text-secondary">
         <p>
-          Connected {new Date(connectedAt).toLocaleDateString('en-CA')}
-          {lastFetchedAt ? `, last read ${new Date(lastFetchedAt).toLocaleString('en-CA')}` : ', not read yet'}.
+          {/* No period after the read time: en-CA renders it as "4:56 p.m.",
+              which already ends in one. */}
+          Connected {connectedLabel}. {lastReadLabel ? `Last read ${lastReadLabel}` : 'Not read yet.'}
         </p>
         {failing && (
           <p className="text-sm text-danger">

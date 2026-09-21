@@ -115,15 +115,17 @@ export default function CanvasConnect({
               className="font-medium text-brand-accent hover:underline"
             >
               your Canvas calendar
-            </a>
-            . It opens in a new tab.
+            </a>{' '}
+            in a new tab, or click{' '}
+            <strong className="font-medium text-foreground">Calendar</strong> in Canvas&apos;s left
+            sidebar.
           </span>
         </li>
         <li className="flex gap-2">
           <Step n={2} />
           <span>
-            Scroll to the bottom of the right sidebar and click{' '}
-            <strong className="font-medium text-foreground">Calendar Feed</strong>.
+            On that page, click{' '}
+            <strong className="font-medium text-foreground">Calendar Feed</strong> on the right.
           </span>
         </li>
         <li className="flex gap-2">

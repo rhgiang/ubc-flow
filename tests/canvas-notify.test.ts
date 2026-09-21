@@ -90,6 +90,24 @@ describe('notifyFor', () => {
     expect(await db.reminderSent.count({ where: { userId } })).toBe(0);
   });
 
+  it('retries the welcome when the send failed, rather than spending it', async () => {
+    // This happened on the first live run. Resend returned 403 because
+    // MAIL_FROM was still the sandbox sender, firstSyncedAt was stamped
+    // anyway, and the welcome was gone with nothing to retry from.
+    await db.canvasFeed.update({ where: { userId }, data: { firstSyncedAt: null } });
+    await seed('a', at(70));
+    const { sendMail } = await import('@/lib/mail');
+    (sendMail as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
+
+    await notifyFor(userId, NOW);
+    expect((await db.canvasFeed.findUniqueOrThrow({ where: { userId } })).firstSyncedAt).toBeNull();
+
+    // Next run, mail is working again: the welcome arrives and is spent once.
+    await notifyFor(userId, new Date(NOW.getTime() + H));
+    expect(sent.map((m) => m.subject)).toEqual(['Canvas connected: your upcoming deadlines']);
+    expect((await db.canvasFeed.findUniqueOrThrow({ where: { userId } })).firstSyncedAt).not.toBeNull();
+  });
+
   it('sends no welcome to a student with reminders off, and still stamps firstSyncedAt', async () => {
     await db.canvasFeed.update({ where: { userId }, data: { firstSyncedAt: null } });
     await db.reminderPreference.update({ where: { userId }, data: { enabled: false } });

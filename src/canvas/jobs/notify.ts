@@ -47,8 +47,18 @@ export async function notifyFor(userId: string, now: Date): Promise<{ sent: numb
       .filter((d) => !d.removedAt && d.dueAt > now && d.dueAt.getTime() - now.getTime() <= 14 * DAY)
       .sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime());
     const mail = welcomeEmail(upcoming, prefs, await muteUrl(userId));
-    await sendMail(user.email, mail.subject, mail.body);
-    await db.canvasFeed.update({ where: { userId }, data: { firstSyncedAt: now } });
+    // Stamped only when the send actually worked. Stamping regardless spends
+    // the welcome on a failed send and it is never retried, which is exactly
+    // what happened on the first live run: Resend returned 403 because
+    // MAIL_FROM was still the sandbox sender, and the welcome was gone. The
+    // per-item path is built around this same retry guarantee through
+    // ReminderSent; there is no reason the welcome is the one email allowed
+    // to vanish. A send that keeps failing retries every run and holds the
+    // per-item notices behind it, which is the honest outcome: mail is
+    // broken, and no reminder would have been delivered either.
+    if (await sendMail(user.email, mail.subject, mail.body)) {
+      await db.canvasFeed.update({ where: { userId }, data: { firstSyncedAt: now } });
+    }
     return { sent: 0 };
   }
 

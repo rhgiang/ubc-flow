@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import { db } from '@/lib/db';
 
 const feedResponse = { status: 200, body: '' };
-const fetchFeed = vi.fn(async () => feedResponse);
+const fetchFeed = vi.fn(async (_url: string) => feedResponse);
 vi.mock('@/canvas/fetch-feed', () => ({ fetchFeed: (u: string) => fetchFeed(u), FEED_TIMEOUT_MS: 1, FEED_MAX_BYTES: 1 }));
 
 const sent: unknown[] = [];

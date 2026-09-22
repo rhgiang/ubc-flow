@@ -4,7 +4,7 @@ import { encryptFeedUrl } from '@/canvas/crypto';
 import { normalizeFeedUrl } from '@/canvas/feed-url';
 import { fetchFeed } from '@/canvas/fetch-feed';
 import { isCalendarBody } from '@/canvas/parse-ics';
-import { applyFeedBody } from '@/canvas/jobs/sync';
+import { applyFeedBody, syncFeedFor } from '@/canvas/jobs/sync';
 
 export type Result = { ok: true } | { ok: false; error: string };
 
@@ -35,6 +35,38 @@ function describeFetchFailure(status: number, body: string | null): string {
   return `Canvas answered ${status}. That is usually temporary, so try again in a moment.`;
 }
 
+export const COOLING_DOWN: Result = { ok: false, error: 'Give that a minute, then try again.' };
+
+/**
+ * One outbound fetch at canvas.ubc.ca per account per minute, shared by
+ * connecting and refreshing: both cost the same request on our IP, and
+ * signup is open.
+ *
+ * One statement tests and stamps, the same shape as the syllabus cap in
+ * src/app/api/syllabus/extract/route.ts. The WHERE re-encodes the condition,
+ * so two concurrent submits contend on the row and the loser gets count 0
+ * back rather than both reading "clear" first. A read followed by a write
+ * would let both through.
+ *
+ * The slot is spent whether or not Canvas answers. The resource being capped
+ * is the request, which happened either way, and refunding on failure is the
+ * hole an attacker would drive through, failure being the cheap outcome to
+ * induce.
+ */
+async function claimFetchSlot(userId: string): Promise<boolean> {
+  const { count } = await db.user.updateMany({
+    where: {
+      id: userId,
+      OR: [
+        { canvasConnectAttemptAt: null },
+        { canvasConnectAttemptAt: { lt: new Date(Date.now() - COOLDOWN_MS) } },
+      ],
+    },
+    data: { canvasConnectAttemptAt: new Date() },
+  });
+  return count > 0;
+}
+
 export async function connectCanvasFeedFor(userId: string, input: string): Promise<Result> {
   const normalized = normalizeFeedUrl(input);
   if (!normalized.ok) return normalized;
@@ -45,19 +77,7 @@ export async function connectCanvasFeedFor(userId: string, input: string): Promi
   // WHERE re-encodes the condition, so two concurrent submits contend on the
   // row and the loser gets count 0 back rather than both reading "clear"
   // first. A read followed by a write would let both through.
-  const claim = await db.user.updateMany({
-    where: {
-      id: userId,
-      OR: [
-        { canvasConnectAttemptAt: null },
-        { canvasConnectAttemptAt: { lt: new Date(Date.now() - COOLDOWN_MS) } },
-      ],
-    },
-    data: { canvasConnectAttemptAt: new Date() },
-  });
-  if (claim.count === 0) {
-    return { ok: false, error: 'Give that a minute, then try again.' };
-  }
+  if (!(await claimFetchSlot(userId))) return COOLING_DOWN;
 
   const { status, body } = await fetchFeed(normalized.url);
   if (status !== 200 || body === null) {
@@ -113,4 +133,30 @@ export async function disconnectCanvasFeedFor(userId: string): Promise<Result> {
     db.canvasFeed.delete({ where: { id: feed.id } }),
   ]);
   return { ok: true };
+}
+
+/**
+ * Re-read the feed now, for a student who just added something in Canvas and
+ * does not want to wait up to four hours.
+ *
+ * Deliberately not disconnect-and-reconnect, which is what people were doing:
+ * that throws away every stored deadline and clears firstSyncedAt, so the
+ * next job run sends the whole welcome email over again. This changes nothing
+ * but the deadlines themselves and sends no mail at all; a move found here
+ * still earns its notice on the next scheduled run.
+ */
+export async function refreshCanvasFeedFor(userId: string): Promise<Result> {
+  const feed = await db.canvasFeed.findUnique({ where: { userId }, select: { brokenAt: true } });
+  if (!feed) return { ok: false, error: 'Not found.' };
+  if (feed.brokenAt) {
+    return { ok: false, error: 'Canvas stopped answering this link. Paste a fresh Calendar Feed link to reconnect.' };
+  }
+  if (!(await claimFetchSlot(userId))) return COOLING_DOWN;
+
+  const outcome = await syncFeedFor(userId, new Date());
+  if (outcome === 'ok') return { ok: true };
+  if (outcome === 'broken') {
+    return { ok: false, error: 'Canvas stopped answering this link. Paste a fresh Calendar Feed link to reconnect.' };
+  }
+  return { ok: false, error: 'Could not read Canvas just now. Your deadlines are unchanged. Try again in a moment.' };
 }

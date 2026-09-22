@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { consumeToken } from '@/lib/mail';
-import { connectCanvasFeedFor, disconnectCanvasFeedFor, type Result } from '@/canvas/connect';
+import { connectCanvasFeedFor, disconnectCanvasFeedFor, refreshCanvasFeedFor, type Result } from '@/canvas/connect';
 import { updateReminderPreferencesFor } from '@/canvas/prefs';
 
 // Only session-reading functions are exported here. Anything that takes a
@@ -23,6 +23,17 @@ export async function connectCanvasFeed(input: string): Promise<Result> {
   if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
   const result = await connectCanvasFeedFor(session.user.id, input);
   if (result.ok) revalidatePath('/onboarding');
+  return result;
+}
+
+export async function refreshCanvasFeed(): Promise<Result> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
+  const result = await refreshCanvasFeedFor(session.user.id);
+  if (result.ok) {
+    revalidatePath('/deadlines');
+    revalidatePath('/onboarding');
+  }
   return result;
 }
 

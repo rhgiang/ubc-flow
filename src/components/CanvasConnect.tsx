@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { connectCanvasFeed, disconnectCanvasFeed } from '@/app/actions/canvas';
+import { connectCanvasFeed, disconnectCanvasFeed, refreshCanvasFeed } from '@/app/actions/canvas';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
 /**
@@ -47,6 +47,7 @@ export default function CanvasConnect({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [refreshed, setRefreshed] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,6 +57,17 @@ export default function CanvasConnect({
     setBusy(false);
     if (!r.ok) return setError(r.error);
     setValue('');
+    router.refresh();
+  }
+
+  async function refresh() {
+    setBusy(true);
+    setError(null);
+    setRefreshed(false);
+    const r = await refreshCanvasFeed();
+    setBusy(false);
+    if (!r.ok) return setError(r.error);
+    setRefreshed(true);
     router.refresh();
   }
 
@@ -81,9 +93,26 @@ export default function CanvasConnect({
             The last read of your Canvas feed failed, so your deadlines may be out of date. We keep trying.
           </p>
         )}
-        <button type="button" onClick={() => setConfirming(true)} className="text-sm font-medium text-danger hover:underline">
-          Disconnect Canvas
-        </button>
+        {refreshed && (
+          <p className="text-sm text-text-secondary">Read Canvas just now. Anything new is below.</p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-4 pt-1">
+          {/* Refreshing used to mean disconnect and reconnect, which throws
+              away every stored deadline and re-sends the whole welcome
+              email. This just re-reads the feed. */}
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={busy}
+            className="rounded-pill border border-border px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-surface-muted disabled:opacity-50"
+          >
+            {busy ? 'Reading...' : 'Refresh now'}
+          </button>
+          <button type="button" onClick={() => setConfirming(true)} className="text-sm font-medium text-danger hover:underline">
+            Disconnect Canvas
+          </button>
+        </div>
         <ConfirmDialog open={confirming} title="Disconnect Canvas?" confirmLabel="Disconnect" destructive busy={busy}
           onConfirm={disconnect} onCancel={() => setConfirming(false)}>
           <p>This forgets your feed link and every deadline read from it. Reminders stop. You can reconnect any time.</p>

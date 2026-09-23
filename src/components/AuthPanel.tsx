@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { announceSignIn } from '@/components/use-signed-in';
-import { registerUser } from '@/app/actions/auth';
+import { registerUser, resendVerification } from '@/app/actions/auth';
 import { requestPasswordReset } from '@/app/actions/password-reset';
 
-type Mode = 'login' | 'signup' | 'forgot';
+type Mode = 'login' | 'signup' | 'forgot' | 'resend';
 
 // One panel, two modes, switched entirely with local state - never a
 // navigation. Used inline on the homepage, inside the global overlay
@@ -120,6 +120,23 @@ export default function AuthPanel({
     }
   }
 
+  async function onResendSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    try {
+      await resendVerification(String(form.get('email')));
+      // Same acknowledgement whatever the truth, for the same reason the
+      // reset flow gives one: anything else confirms the address exists.
+      setSent(true);
+    } catch {
+      setError('Could not send the link. Try again in a moment.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function onForgotSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -146,7 +163,13 @@ export default function AuthPanel({
     >
       <div className="flex items-center justify-between">
         <p className="text-lg font-semibold text-foreground">
-          {mode === 'login' ? 'Log In' : mode === 'signup' ? 'Sign Up' : 'Reset Password'}
+          {mode === 'login'
+            ? 'Log In'
+            : mode === 'signup'
+              ? 'Sign Up'
+              : mode === 'resend'
+                ? 'Confirm Your Email'
+                : 'Reset Password'}
         </p>
         {onClose && (
           <button
@@ -162,7 +185,28 @@ export default function AuthPanel({
         )}
       </div>
 
-      {mode === 'forgot' ? (
+      {mode === 'resend' ? (
+        sent ? (
+          <p className="mt-4 text-sm text-text-secondary">
+            If that address needs confirming, a new link is on its way. It expires in 24 hours.
+          </p>
+        ) : (
+          <form key="resend" onSubmit={onResendSubmit} className="mt-4 space-y-3">
+            <p className="text-sm text-text-secondary">
+              New accounts have to confirm their email before signing in. Enter your address and
+              we&rsquo;ll send the link again.
+            </p>
+            <input name="email" type="email" required placeholder="Email" className={inputClass} />
+            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+            <button
+              disabled={busy}
+              className="w-full min-h-11 rounded-pill bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground transition duration-150 ease-out hover:scale-[1.02] hover:bg-brand-hover active:scale-100 disabled:opacity-50"
+            >
+              {busy ? 'Sending...' : 'Send the link again'}
+            </button>
+          </form>
+        )
+      ) : mode === 'forgot' ? (
         sent ? (
           <p className="mt-4 text-sm text-text-secondary">
             If an account exists for that address, a reset link is on its way. It works once and
@@ -206,6 +250,17 @@ export default function AuthPanel({
             className="block w-full text-center text-sm text-text-secondary hover:text-foreground hover:underline"
           >
             Forgot password?
+          </button>
+          {/* Offered to everyone, not just to accounts that need it. Sign-in
+              refuses an unverified address without saying so, because saying
+              so would confirm the address has an account; this is the way
+              back that does not leak the same thing. */}
+          <button
+            type="button"
+            onClick={() => go('resend')}
+            className="block w-full text-center text-sm text-text-secondary hover:text-foreground hover:underline"
+          >
+            Need a new confirmation email?
           </button>
         </form>
       ) : (

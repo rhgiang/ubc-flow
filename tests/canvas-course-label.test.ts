@@ -2,13 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { shortCourseLabel } from '@/canvas/course-label';
 
 describe('shortCourseLabel', () => {
-  it('shortens the real shapes from the captured feed', () => {
-    // Every one of these is verbatim from tests/fixtures/canvas-feed.ics.
-    expect(shortCourseLabel('MUSC_V 103 002 2026W1')).toBe('MUSC 103 002');
-    expect(shortCourseLabel('GEOG_V 122 004/005 2026W1')).toBe('CPSC 110');
-    expect(shortCourseLabel('HIST_V 102 101/102/103 2026W1')).toBe('DSCI 100');
+  it('shortens every shape the captured feed contains', () => {
+    // These are the five course shapes in tests/fixtures/canvas-feed.ics:
+    // a single section, two widths of cross-listing, and a lettered one.
     expect(shortCourseLabel('ASTR_V 101 001 2026W1')).toBe('ASTR 101 001');
-    expect(shortCourseLabel('PHIL_V 120 12A 2026W1')).toBe('BIOL 121 124');
+    expect(shortCourseLabel('HIST_V 102 101/102/103 2026W1')).toBe('HIST 102');
+    expect(shortCourseLabel('GEOG_V 122 004/005 2026W1')).toBe('GEOG 122');
+    expect(shortCourseLabel('PHIL_V 120 12A 2026W1')).toBe('PHIL 120 12A');
+    expect(shortCourseLabel('MUSC_V 103 002 2026W1')).toBe('MUSC 103 002');
   });
 
   it('keeps a single section, because a student wants to know which one', () => {

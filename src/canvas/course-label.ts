@@ -4,9 +4,9 @@
  * Shortens the course name Canvas puts in a SUMMARY's trailing bracket, for
  * display only.
  *
- *   "MUSC_V 103 002 2026W1"              -> "MUSC 103 002"
- *   "GEOG_V 122 004/005 2026W1"      -> "CPSC 110"
- *   "HIST_V 102 101/102/103 2026W1"  -> "DSCI 100"
+ *   "ASTR_V 101 001 2026W1"              -> "ASTR 101 001"
+ *   "HIST_V 102 101/102/103 2026W1"      -> "HIST 102"
+ *   "GEOG_V 122 004/005 2026W1"          -> "GEOG 122"
  *
  * UBC's Canvas writes "<SUBJ>_V <NUMBER> <SECTIONS> <TERM>". The "_V" is the
  * Vancouver campus marker, the term repeats on every row of a page a student

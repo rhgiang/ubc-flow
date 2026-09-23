@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db';
 import { hashPassword } from '@/lib/hash';
-import { createVerificationToken, sendMail } from '@/lib/mail';
+import { createVerificationToken, lastTokenIssuedAt, revokeTokens, sendMail } from '@/lib/mail';
 import { verifyEmail } from '@/lib/account-emails';
 
 const MIN_PASSWORD = 10;
@@ -45,9 +45,52 @@ export async function registerUser(
   });
 
   const token = await createVerificationToken(user.id);
-  const link = `${process.env.NEXTAUTH_URL ?? 'http://localhost:3000'}/verify?token=${token}`;
+  const link = verifyLink(token);
   const mail = verifyEmail(link);
   await sendMail(normalized, mail.subject, mail.body, mail.html);
 
   return { ok: true, userId: user.id };
+}
+
+/** One verification email a minute per account, matching password reset. */
+const RESEND_COOLDOWN_MS = 60 * 1000;
+
+function verifyLink(token: string): string {
+  return `${process.env.NEXTAUTH_URL ?? 'http://localhost:3000'}/verify?token=${token}`;
+}
+
+/**
+ * Send the confirmation link again.
+ *
+ * Sign-in refuses an unverified account and gives no hint why, because saying
+ * so would confirm the address has an account. This is the way back, and it
+ * has to be offered to everyone rather than surfaced only to people who need
+ * it, for exactly the same reason.
+ *
+ * Returns the same value whether or not the address has an account, whether
+ * or not it is already verified, and whether or not the cooldown swallowed
+ * the request. requestPasswordReset is built the same way and for the same
+ * reason; see its note.
+ */
+export async function resendVerification(email: string): Promise<{ ok: true }> {
+  const normalized = email.trim().toLowerCase();
+  if (!EMAIL_RE.test(normalized)) return { ok: true };
+
+  const user = await db.user.findUnique({
+    where: { email: normalized },
+    select: { id: true, emailVerified: true },
+  });
+
+  if (user && !user.emailVerified) {
+    const last = await lastTokenIssuedAt(user.id, 'verify');
+    if (!last || Date.now() - last.getTime() >= RESEND_COOLDOWN_MS) {
+      // Retire the earlier link so the newest email is the only one that
+      // works, matching the reset flow.
+      await revokeTokens(user.id, 'verify');
+      const mail = verifyEmail(verifyLink(await createVerificationToken(user.id)));
+      await sendMail(normalized, mail.subject, mail.body, mail.html);
+    }
+  }
+
+  return { ok: true };
 }

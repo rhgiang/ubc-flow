@@ -51,6 +51,22 @@ export async function authorizeCredentials(creds: Record<string, unknown> | unde
     return null;
   }
 
+  // An unverified address cannot sign in. Nothing checked this before, so
+  // anyone could hold an account on somebody else's email: harmless while the
+  // account is empty, but it squats the address and, since Canvas reminders
+  // shipped, points our mail at an inbox that never asked for it.
+  //
+  // Deliberately indistinguishable from a wrong password. Saying "verify your
+  // email" would confirm the address has an account, which is the enumeration
+  // every other branch here is built to deny, down to the dummy bcrypt hash.
+  // The way back is the resend link on the login form, which is offered to
+  // everyone and says the same thing either way.
+  //
+  // Existing accounts were stamped by
+  // prisma/migrations/20260922000000_grandfather_email_verified, so this
+  // refuses only people who signed up after it and have not confirmed.
+  if (!user.emailVerified) return null;
+
   if (user.failedLogins > 0 || user.lockedUntil) {
     await db.user.update({
       where: { id: user.id },

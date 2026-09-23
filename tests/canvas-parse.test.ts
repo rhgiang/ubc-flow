@@ -168,9 +168,11 @@ describe('parseCanvasFeed on the synthetic feed', () => {
   });
 });
 
-// The student's own feed, captured 2026-09-20 and sanitized only by replacing
-// the calendar owner's name in X-WR-CALNAME and X-WR-CALDESC. Every line the
-// parser reads is verbatim Canvas output, because the shapes are the point.
+// A real Canvas feed, captured 2026-09-20 and put through
+// scripts/make-canvas-fixture.ts: courses, titles, ids and instructor prose
+// are fabricated, and every shape the parser reads is verbatim Canvas output,
+// because the shapes are the point. The raw feed named a real student's term
+// and is not in this repository.
 const REAL = 'tests/fixtures/canvas-feed.ics';
 describe.skipIf(!existsSync(REAL))('parseCanvasFeed on the real feed', () => {
   // describe.skipIf still runs this factory body during collection even when
@@ -208,9 +210,10 @@ describe.skipIf(!existsSync(REAL))('parseCanvasFeed on the real feed', () => {
     // never did. An all-day item is due at the end of that day in Vancouver.
     const allDay = parsed.items.filter((i) => i.allDay);
     expect(allDay).toHaveLength(29);
-    const one = allDay.find((i) => i.title === 'Quiz 3: Concepts and Applications');
+    const one = allDay.find((i) => i.uid === 'event-assignment-2500518');
     expect(one).toBeDefined();
-    expect(one!.dueAt.toISOString()).toBe('2026-09-29T06:59:59.000Z');
+    // End of that day in Vancouver, as a UTC instant.
+    expect(one!.dueAt.toISOString()).toBe('2026-09-22T06:59:59.000Z');
   });
 
   it('reads a section override as an ordinary assignment', () => {

@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  addDeadline,
+  removeDeadline,
   setDeadlineDone,
   setRemindersEnabled,
   updateReminderPreferences,
@@ -18,6 +20,9 @@ const LEAD_LABELS: Record<number, string> = { 24: '1 day', 48: '2 days', 72: '3 
 
 export type DeadlineRow = {
   id: string;
+  /** Typed in by the student rather than read out of the feed. Those are
+   *  theirs to delete; a feed row is only ever marked removed. */
+  manual: boolean;
   title: string;
   /** Canvas's raw bracket. The identity behind the colour and the mute list,
    *  never rendered; courseLabel is what a student reads. */
@@ -73,6 +78,7 @@ export default function DeadlinesList({
   const router = useRouter();
   const [view, setView] = useState<View>('list');
   const [hideDone, setHideDone] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +106,15 @@ export default function DeadlinesList({
       });
       return setError(r.error);
     }
+    startTransition(() => router.refresh());
+  }
+
+  async function removeOne(item: DeadlineRow) {
+    setBusyId(item.id);
+    setError(null);
+    const r = await removeDeadline(item.id);
+    setBusyId(null);
+    if (!r.ok) return setError(r.error);
     startTransition(() => router.refresh());
   }
 
@@ -280,7 +295,28 @@ export default function DeadlinesList({
           {openCount === 0 ? 'Nothing outstanding.' : `${openCount} to go`}
           {doneCount > 0 && <span className="text-text-tertiary">{` · ${doneCount} done`}</span>}
         </p>
+        {!adding && (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="text-sm font-medium text-brand-accent hover:underline"
+          >
+            Add a deadline
+          </button>
+        )}
       </div>
+
+      {adding && (
+        <AddDeadlineForm
+          courseNames={courseNames}
+          labelFor={labelFor}
+          onCancel={() => setAdding(false)}
+          onDone={() => {
+            setAdding(false);
+            startTransition(() => router.refresh());
+          }}
+        />
+      )}
 
       {failing && (
         <p className="rounded-card border border-danger-border bg-danger-surface px-3 py-2 text-sm text-danger">
@@ -316,6 +352,7 @@ export default function DeadlinesList({
                     muted={mutedCourses.includes(d.courseName)}
                     busy={busyId === d.id}
                     onToggle={toggleDone}
+                    onRemove={removeOne}
                   />
                 ))}
               </ul>
@@ -357,11 +394,13 @@ function DeadlineItem({
   muted,
   busy,
   onToggle,
+  onRemove,
 }: {
   item: DeadlineRow;
   muted: boolean;
   busy: boolean;
   onToggle: (d: DeadlineRow) => void;
+  onRemove: (d: DeadlineRow) => void;
 }) {
   const struck = item.done || item.removed;
   return (
@@ -398,7 +437,20 @@ function DeadlineItem({
         )}
 
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <CoursePill name={item.courseName} label={item.courseLabel} />
+          {/* An item with no course - the feed's un-bracketed events, and
+              anything added without picking one - would otherwise render an
+              empty coloured pill. */}
+          {item.courseName && <CoursePill name={item.courseName} label={item.courseLabel} />}
+          {item.manual && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onRemove(item)}
+              className="text-xs text-text-tertiary hover:text-danger hover:underline disabled:opacity-50"
+            >
+              Remove
+            </button>
+          )}
           {item.movedFromLabel && (
             <span className="text-xs text-text-tertiary">Moved from {item.movedFromLabel}</span>
           )}
@@ -415,5 +467,116 @@ function DeadlineItem({
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * Something Canvas does not know about: a midterm, a club meeting, a form the
+ * department wants by Friday.
+ *
+ * It writes a real CanvasDeadline, so the added item is a deadline in every
+ * sense the rest of this page already means - it groups by day, ticks off,
+ * shows on the month grid, rides the subscribed feed, and earns the same
+ * reminder emails. The one difference is the Remove control on its row.
+ *
+ * Course is a pick from the ones already in the feed rather than free text:
+ * the colour hashes from that exact string and a mute is stored under it, so
+ * a typed "CPSC 110" that does not match the bracket Canvas sends would get
+ * its own colour and dodge the mute. No course is a fine answer.
+ */
+function AddDeadlineForm({
+  courseNames,
+  labelFor,
+  onCancel,
+  onDone,
+}: {
+  courseNames: string[];
+  labelFor: Map<string, string>;
+  onCancel: () => void;
+  onDone: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(form: FormData) {
+    setSaving(true);
+    setError(null);
+    const r = await addDeadline({
+      title: String(form.get('title') ?? ''),
+      courseName: String(form.get('courseName') ?? ''),
+      date: String(form.get('date') ?? ''),
+      // Blank means all day, which is stored as 11:59 p.m. Vancouver, the
+      // same convention every all-day feed item lands on.
+      time: String(form.get('time') ?? ''),
+    });
+    setSaving(false);
+    if (!r.ok) return setError(r.error);
+    onDone();
+  }
+
+  const field = 'mt-1 w-full rounded-input border border-border bg-surface px-2 py-1.5 text-sm text-foreground';
+
+  return (
+    <form action={submit} className="rounded-card border border-border bg-surface p-4">
+      <p className="text-sm font-medium text-foreground">Add a deadline</p>
+      <p className="mt-1 text-xs text-text-tertiary">
+        For anything Canvas does not carry. It is yours: nothing from your feed will move or
+        remove it, and you can take it off again from its row.
+      </p>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label className="block sm:col-span-2">
+          <span className="text-xs text-text-tertiary">What is due</span>
+          <input type="text" name="title" required maxLength={200} className={field} />
+        </label>
+
+        <label className="block">
+          <span className="text-xs text-text-tertiary">Course (optional)</span>
+          <select name="courseName" className={field} defaultValue="">
+            <option value="">No course</option>
+            {courseNames.map((c) => (
+              <option key={c} value={c}>
+                {labelFor.get(c) ?? c}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {/* Native date and time inputs: the browser already knows this
+            student's locale and gives them a picker for free. */}
+        <label className="block">
+          <span className="text-xs text-text-tertiary">Due</span>
+          <input type="date" name="date" required className={field} />
+        </label>
+
+        <label className="block">
+          <span className="text-xs text-text-tertiary">Time (optional)</span>
+          <input type="time" name="time" className={field} />
+        </label>
+      </div>
+
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-danger">
+          {error}
+        </p>
+      )}
+
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-pill bg-brand px-4 py-2 text-sm font-medium text-brand-foreground disabled:opacity-50"
+        >
+          {saving ? 'Adding…' : 'Add deadline'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-sm font-medium text-text-secondary hover:underline"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }

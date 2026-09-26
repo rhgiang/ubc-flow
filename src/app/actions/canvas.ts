@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { consumeToken } from '@/lib/mail';
 import { connectCanvasFeedFor, disconnectCanvasFeedFor, refreshCanvasFeedFor, type Result } from '@/canvas/connect';
+import { addManualDeadlineFor, removeManualDeadlineFor, type ManualDeadlineInput } from '@/canvas/manual';
 import { updateReminderPreferencesFor } from '@/canvas/prefs';
 
 // Only session-reading functions are exported here. Anything that takes a
@@ -87,6 +88,29 @@ export async function setDeadlineDone(id: string, done: boolean): Promise<Result
   if (count === 0) return { ok: false, error: 'Not found.' };
   revalidatePath('/deadlines');
   return { ok: true };
+}
+
+/**
+ * Adds a deadline the student typed themselves - a midterm, a club meeting,
+ * anything Canvas does not carry. Session-reading wrapper only; the
+ * validation and the write are in src/canvas/manual.ts.
+ */
+export async function addDeadline(input: ManualDeadlineInput): Promise<Result> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
+  const result = await addManualDeadlineFor(session.user.id, input);
+  if (result.ok) revalidatePath('/deadlines');
+  return result;
+}
+
+/** Deletes one the student added. Only those: a feed row is marked removed,
+ *  never deleted, and removeManualDeadlineFor enforces that. */
+export async function removeDeadline(id: string): Promise<Result> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
+  const result = await removeManualDeadlineFor(session.user.id, id);
+  if (result.ok) revalidatePath('/deadlines');
+  return result;
 }
 
 // Turns reminders back on (or off) for the signed-in student. muteReminders

@@ -4,7 +4,7 @@ import { decryptFeedUrl } from '@/canvas/crypto';
 import { normalizeFeedUrl } from '@/canvas/feed-url';
 import { fetchFeed } from '@/canvas/fetch-feed';
 import { isCalendarBody, parseCanvasFeed } from '@/canvas/parse-ics';
-import { diffFeed, type FeedDiff } from '@/canvas/diff';
+import { diffFeed, MANUAL_UID_PREFIX, type FeedDiff } from '@/canvas/diff';
 
 export const BROKEN_AFTER_FAILURES = 3;
 export type SyncOutcome = 'ok' | 'transient' | 'broken' | 'skipped';
@@ -89,7 +89,11 @@ export async function applyFeedBody(userId: string, body: string, now: Date): Pr
     console.warn(`canvas sync: feed repeated ${parsed.items.length - unique} uid(s); kept the first of each`);
   }
   const stored = await db.canvasDeadline.findMany({
-    where: { userId },
+    // The rows the student added by hand are not in the feed and never will
+    // be, so a diff against the feed would mark every one of them removed on
+    // the very next poll. They are excluded here rather than inside diffFeed:
+    // this is the only place feed rows and hand-added rows share a table.
+    where: { userId, NOT: { uid: { startsWith: MANUAL_UID_PREFIX } } },
     select: { id: true, uid: true, dueAt: true, removedAt: true, title: true, courseName: true, url: true, allDay: true },
   });
   await applyDiff(userId, diffFeed(stored, parsed.items), now);

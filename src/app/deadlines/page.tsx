@@ -4,12 +4,14 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { LEAD_CHOICES } from '@/canvas/prefs';
 import { formatVancouver, vancouverDayKey } from '@/canvas/tz';
+import { isManualUid } from '@/canvas/diff';
 import { shortCourseLabel } from '@/canvas/course-label';
 import { RECENT_MS, stillWorthShowing } from '@/canvas/notices';
 import DeadlinesList from '@/components/DeadlinesList';
 
 type DeadlineFields = {
   id: string;
+  uid: string;
   title: string;
   courseName: string;
   dueAt: Date;
@@ -48,6 +50,9 @@ function toRow(d: DeadlineFields, now: number) {
     d.movedAt && now - d.movedAt.getTime() <= RECENT_MS && d.movedFrom ? d.movedFrom : null;
   return {
     id: d.id,
+    /** Added by the student rather than read out of the feed. What it buys the
+     *  list: a Remove control, since those rows are theirs to delete. */
+    manual: isManualUid(d.uid),
     title: d.title,
     /** The raw bracket from Canvas. The identity: the colour hashes from it
      *  and a mute preference is stored under it. Never shown. */
@@ -130,6 +135,7 @@ export default async function DeadlinesPage() {
       orderBy: { dueAt: 'asc' },
       select: {
         id: true,
+        uid: true,
         title: true,
         courseName: true,
         dueAt: true,

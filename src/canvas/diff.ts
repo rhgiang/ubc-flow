@@ -1,6 +1,22 @@
 // src/canvas/diff.ts
 import type { FeedItem } from './parse-ics';
 
+/**
+ * The uid prefix on a deadline the student added themselves. Canvas's own
+ * uids are opaque strings from the feed, and nothing there ever starts with
+ * this, so the prefix is enough to tell the two apart.
+ *
+ * It is load-bearing: `diffFeed` marks every stored row the feed did not
+ * return as removed, so a hand-added row must never reach it. Callers filter
+ * on this before diffing rather than diffFeed skipping them, because a row
+ * the feed cannot confirm has no business in a feed diff at all.
+ */
+export const MANUAL_UID_PREFIX = 'manual:';
+
+export function isManualUid(uid: string): boolean {
+  return uid.startsWith(MANUAL_UID_PREFIX);
+}
+
 /** The fields a poll can change without the deadline having moved. */
 export type Details = { title: string; courseName: string; url: string | null; allDay: boolean };
 

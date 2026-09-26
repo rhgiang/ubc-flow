@@ -36,14 +36,16 @@ export default function HomeHero() {
         // Signed out, the sign-in panel hangs below and the stack is taller
         // than a phone screen, so nothing can be centred; without a nudge
         // the heading starts hard against the nav bar. Push it down instead.
-        //
-        // Both nudges shrink on phones (smaller lift signed in, bigger push
-        // signed out): dead-centre reads as too high on a phone screen.
+        // mt-6 was that nudge and it was not enough on a short-but-wide
+        // screen: an iPad in landscape (820 tall) left 33px between the nav
+        // and the heading, measured, because the panel eats the free space
+        // centring would have spent above. mt-20 puts that at 88px, and
+        // costs a taller screen half of it, which those have to spare.
         //
         // While the session is unknown the signed-in spacing stands: it is
         // the layout with nothing below the field, so the panel appearing is
         // the only shift a signed-out visitor sees.
-        loggedIn === false ? 'mt-24 sm:mt-6' : 'mb-16 sm:mb-40'
+        loggedIn === false ? 'mt-24 sm:mt-20' : 'mb-16 sm:mb-40'
       }`}
     >
       {/* text-2xl on phones: at 30px the headline ran four lines and owned

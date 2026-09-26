@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { normalizeManualExam } from '@/syllabus/schema';
+import { normalizeExamLocation, normalizeManualExam } from '@/syllabus/schema';
 
 /**
  * Add and remove exams from the exam views.
@@ -94,6 +94,38 @@ export async function POST(req: Request) {
   });
 
   return NextResponse.json({ ok: true });
+}
+
+/**
+ * Sets where an exam is, for the student's own rows only.
+ *
+ * A `FinalExam` is UBC's row, shared by everyone in the course, so there is
+ * nothing here to edit: one student typing a room would move it for the whole
+ * class. Those rows are not writable and this says so rather than pretending.
+ *
+ * `ids` rather than one id, for the same reason DELETE takes a list: the
+ * overlay edits the exam the student is looking at, which is a group.
+ */
+export async function PUT(req: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Not signed in.' }, { status: 401 });
+  }
+
+  const ids = idsFrom(req);
+  if (ids.length === 0) {
+    return NextResponse.json({ error: 'Missing ids.' }, { status: 400 });
+  }
+  const body = await req.json().catch(() => null);
+
+  // Scoped to this user in the WHERE, so someone else's row is simply not
+  // found rather than refused - same reasoning as DELETE above.
+  const { count } = await db.syllabusAssessment.updateMany({
+    where: { id: { in: ids }, userId: session.user.id },
+    data: { location: normalizeExamLocation(body?.location), editedByUser: true },
+  });
+  if (count === 0) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
+  return NextResponse.json({ ok: true, updated: count });
 }
 
 /** Removes an exam: deletes the student's own row, hides a scraped one. */

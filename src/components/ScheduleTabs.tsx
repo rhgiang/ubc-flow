@@ -14,7 +14,7 @@ import ExamDetailOverlay from '@/components/ExamDetailOverlay';
 import { useRemoveExam } from '@/components/use-remove-exam';
 import { AddExamButton, HiddenExams } from '@/components/ExamActions';
 import SyllabusList, { type SyllabusListItem } from '@/components/SyllabusList';
-import { examsEmptyReason, type ExamCoverage, type ExamListItem, type ExamsEmptyReason } from '@/schedule/exams';
+import { examsEmptyReason, groupExams, type ExamCoverage, type ExamListItem, type ExamsEmptyReason } from '@/schedule/exams';
 import {
   getEnrolledSubscribeUrl,
   enableEnrollmentSharing,
@@ -317,9 +317,15 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
   // tab rather than a sixth tab in the strip above. TabButton is reused so it
   // reads as the same control, one level down.
   const [view, setView] = useState<'list' | 'calendar'>('list');
-  // The clicked exam, as the grouped rows both views hand over - one exam
-  // split across rooms by surname is one selection, same as it is one card.
-  const [selected, setSelected] = useState<ExamListItem[] | null>(null);
+  // The clicked exam, held as an ID rather than as the rows themselves - one
+  // exam split across rooms by surname is one selection, same as it is one
+  // card, and the group is looked back up from the current items below.
+  //
+  // Holding the rows would freeze them: the overlay lets a student set where
+  // their exam is, and after the save router.refresh() brings new rows down
+  // while a captured array would still read "Location TBA" until the overlay
+  // was closed and reopened.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   // Same removal the overlay offers, reached from the hover x on a card or
   // a chip without opening it first.
   const { remove: removeExam, dialog: removeDialog } = useRemoveExam();
@@ -344,6 +350,14 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
     itemCount: exams.items.length,
     published: exams.coverage.published,
   });
+
+  // The same grouping both views do, over the rows this render was given:
+  // whatever the overlay shows is what the page shows. Null once the exam is
+  // gone, which is also how a removal closes the overlay.
+  const selected = selectedId
+    ? groupExams(exams.items).find((g) => g.some((r) => r.id === selectedId)) ?? null
+    : null;
+  const select = (group: ExamListItem[]) => setSelectedId(group[0].id);
 
   return (
     <div>
@@ -397,9 +411,9 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
         {emptyReason ? (
           <ExamsEmptyState reason={emptyReason} />
         ) : view === 'list' ? (
-          <ExamList items={exams.items} onSelect={setSelected} onRemove={removeExam} />
+          <ExamList items={exams.items} onSelect={select} onRemove={removeExam} />
         ) : (
-          <ExamCalendar items={exams.items} onSelect={setSelected} onRemove={removeExam} />
+          <ExamCalendar items={exams.items} onSelect={select} onRemove={removeExam} />
         )}
       </div>
 
@@ -413,7 +427,7 @@ function ExamsTab({ exams }: { exams: ExamsTabData | null }) {
           UBC's schedule would be answering a question nobody asked. */}
       {!emptyReason && <ExamCoverageNote coverage={exams.coverage} />}
 
-      <ExamDetailOverlay group={selected} onClose={() => setSelected(null)} />
+      <ExamDetailOverlay group={selected} onClose={() => setSelectedId(null)} />
       {/* The confirm behind the hover x on a card or a chip; the overlay carries its own. */}
       {removeDialog}
 

@@ -213,6 +213,13 @@ function examTitle(kind: unknown): string {
   return kind === 'final' ? 'Final exam' : 'Midterm';
 }
 
+/** A room the student typed, from either the add form or the detail overlay's
+ *  edit. Capped because it is rendered; blank means "no location", which is
+ *  how a student clears one they got wrong. */
+export function normalizeExamLocation(raw: unknown): string | null {
+  return typeof raw === 'string' && raw.trim() !== '' ? raw.trim().slice(0, 120) : null;
+}
+
 /**
  * One exam typed straight into the exam view. The manual path through
  * `normalizeSavedAssessment` - no quote, no page, `editedByUser` true, because
@@ -225,8 +232,5 @@ export function normalizeManualExam(raw: unknown): (SavedAssessmentRow & { locat
   const r = raw as Record<string, unknown>;
   const row = normalizeSavedAssessment({ ...r, manual: true, title: examTitle(r?.kind) });
   if (!row || (row.kind !== 'midterm' && row.kind !== 'final')) return null;
-  const location = typeof r?.location === 'string' && r.location.trim() !== ''
-    ? r.location.trim().slice(0, 120)
-    : null;
-  return { ...row, location };
+  return { ...row, location: normalizeExamLocation(r?.location) };
 }

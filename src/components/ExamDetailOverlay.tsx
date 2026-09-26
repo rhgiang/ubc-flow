@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { courseColorIndex } from '@/schedule/colors';
 import { AmbiguousSectionNote, formatAlphaSplit, formatDate, sourceLabel } from '@/components/ExamList';
 import { useRemoveExam } from '@/components/use-remove-exam';
@@ -132,7 +133,7 @@ export default function ExamDetailOverlay({
             </dt>
             {group.length === 1 ? (
               <dd className="text-sm text-foreground">
-                {item.location ?? 'Location TBA. Check with your instructor.'}
+                <ExamLocation group={group} />
                 {item.alphaSplit ? ` · ${formatAlphaSplit(item.alphaSplit)}` : ''}
               </dd>
             ) : (
@@ -198,5 +199,108 @@ export default function ExamDetailOverlay({
       </div>
       {dialog}
     </div>
+  );
+}
+
+/**
+ * Where the exam is, and for the student's own rows, a way to say so.
+ *
+ * "Location TBA" is the usual state of a midterm somebody typed in September
+ * and of a syllabus that said "room to be announced": the room turns up on
+ * Canvas weeks later, and until now the only way to record it was to delete
+ * the exam and add it again.
+ *
+ * Only `source: 'syllabus'` rows are editable. A scraped row is UBC's, shared
+ * by everyone in the course, so there is nothing to edit here - the route
+ * refuses it too, this is not the only guard.
+ */
+function ExamLocation({ group }: { group: ExamListItem[] }) {
+  const router = useRouter();
+  const item = group[0];
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(item.location ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const shown = item.location ?? 'Location TBA. Check with your instructor.';
+  if (item.source !== 'syllabus') return <>{shown}</>;
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      // Every row of the group: a group is one exam, the same rule remove
+      // follows. Blank clears the location, which is how a wrong one goes.
+      const ids = group.map((r) => r.id).join(',');
+      const res = await fetch(`/api/exams?ids=${encodeURIComponent(ids)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location: value }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.error ?? 'Could not save that location.');
+        return;
+      }
+      setEditing(false);
+      router.refresh();
+    } catch {
+      setError('Could not save that location. Check your connection and try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <>
+        {shown}{' '}
+        <button
+          type="button"
+          onClick={() => {
+            setValue(item.location ?? '');
+            setError(null);
+            setEditing(true);
+          }}
+          className="font-medium text-brand-accent hover:underline"
+        >
+          Edit
+        </button>
+      </>
+    );
+  }
+
+  return (
+    <form onSubmit={save} className="mt-1 flex flex-wrap items-center gap-2">
+      <input
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        maxLength={120}
+        placeholder="e.g. BUCH A101"
+        aria-label="Where this exam is"
+        className="min-w-0 flex-1 rounded-input border border-border bg-surface px-2 py-1 text-sm text-foreground"
+      />
+      <button
+        type="submit"
+        disabled={saving}
+        className="rounded-pill bg-brand px-3 py-1 text-sm font-medium text-brand-foreground disabled:opacity-50"
+      >
+        {saving ? 'Saving…' : 'Save'}
+      </button>
+      <button
+        type="button"
+        onClick={() => setEditing(false)}
+        className="text-sm font-medium text-text-secondary hover:underline"
+      >
+        Cancel
+      </button>
+      {error && (
+        <p role="alert" className="w-full text-sm text-danger">
+          {error}
+        </p>
+      )}
+    </form>
   );
 }

@@ -28,6 +28,31 @@ import { type Instrumentation } from 'next';
 const ALERT_COOLDOWN_MS = 15 * 60 * 1000;
 let lastAlertAt = 0;
 
+/**
+ * The few request headers worth reporting, as "name: value" lines.
+ *
+ * An allow list, never the whole header bag: these reports go to an inbox,
+ * and `cookie` and `authorization` are in there. Nothing here carries a
+ * credential.
+ *
+ * These four are the ones that identify the error this was added for.
+ * "Invalid Server Actions request." (digest @E80) is Next.js refusing a
+ * Server Action whose `origin` disagrees with the host it arrived at, which
+ * it treats as CSRF. Which two values disagreed is the whole diagnosis, and
+ * the report used to carry neither, so every one of those alerts was a
+ * question nobody could answer: the console line Next logs beside it names
+ * them, and Vercel drops console logs after about an hour.
+ */
+const REPORTED_HEADERS = ['origin', 'host', 'x-forwarded-host', 'user-agent'] as const;
+
+function headerLines(headers: NodeJS.Dict<string | string[]>): string[] {
+  return REPORTED_HEADERS.flatMap((name) => {
+    const value = headers[name];
+    if (value === undefined) return [];
+    return [`${name}: ${Array.isArray(value) ? value.join(', ') : value}`];
+  });
+}
+
 export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
   const message = err instanceof Error ? err.message : String(err);
   // The same digest app/error.tsx prints to the user as "Reference". It is the
@@ -45,6 +70,7 @@ export const onRequestError: Instrumentation.onRequestError = async (err, reques
       method: request.method,
       digest,
       message,
+      headers: headerLines(request.headers),
       stack: err instanceof Error ? err.stack : undefined,
     }),
   );
@@ -65,6 +91,8 @@ export const onRequestError: Instrumentation.onRequestError = async (err, reques
         `Route: ${context.routeType} ${context.routePath}`,
         `Path:  ${request.method} ${request.path}`,
         digest ? `Reference shown to the user: ${digest}` : null,
+        '',
+        ...headerLines(request.headers),
         '',
         message,
         '',

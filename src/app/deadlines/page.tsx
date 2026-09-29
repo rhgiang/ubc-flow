@@ -6,6 +6,7 @@ import { LEAD_CHOICES } from '@/canvas/prefs';
 import { formatVancouver, vancouverDayKey } from '@/canvas/tz';
 import { isManualUid } from '@/canvas/diff';
 import {
+  isComingUp,
   stillOnBoard,
   todosForBoard,
   vancouverWeekEndUtc,
@@ -64,6 +65,9 @@ function toRow(d: DeadlineFields, now: number, weekStart: Date) {
      *  by having been finished in an earlier week. One rule for both kinds of
      *  board row, so a todo and a deadline cannot disagree about Monday. */
     onBoard: d.onBoardAt !== null && stillOnBoard(d, weekStart),
+    /** Near enough to offer for the board. Computed here with every other
+     *  date on this page, never in the browser: see the note on toRow. */
+    comingUp: isComingUp(d.dueAt, new Date(now)),
     title: d.title,
     /** The raw bracket from Canvas. The identity: the colour hashes from it
      *  and a mute preference is stored under it. Never shown. */

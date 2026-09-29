@@ -31,6 +31,9 @@ export type DeadlineRow = {
   /** On this week's todo board. The page applies the week rule; this is just
    *  the answer. */
   onBoard: boolean;
+  /** Due soon enough (or already overdue) to be worth offering for the board.
+   *  Decided on the server, like every other date-derived field here. */
+  comingUp: boolean;
   title: string;
   /** Canvas's raw bracket. The identity behind the colour and the mute list,
    *  never rendered; courseLabel is what a student reads. */
@@ -220,7 +223,7 @@ export default function DeadlinesList({
     // A month grid needs about twice the width a readable list wants, so the
     // container follows the view rather than splitting the difference and
     // serving both badly.
-    <div className={`mx-auto w-full space-y-5 ${view === 'calendar' ? 'max-w-5xl' : 'max-w-2xl'}`}>
+    <div className={`mx-auto w-full space-y-5 ${view === 'list' ? 'max-w-2xl' : 'max-w-5xl'}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="sky-hero text-2xl font-semibold">Deadlines</h1>
         <div className="flex items-center gap-3">
@@ -400,10 +403,14 @@ export default function DeadlinesList({
         <TodoBoard
           weekLabel={weekLabel}
           deadlines={rows.filter((d) => d.onBoard)}
+          // What the student can put on the board without leaving this view:
+          // near-term, still outstanding, and not already on it.
+          comingUp={rows.filter((d) => d.comingUp && !d.onBoard && !d.done && !d.removed)}
           todos={todoRows}
           busyId={busyId}
           onToggleDeadline={toggleDone}
           onRemoveFromBoard={toggleOnBoard}
+          onAddToBoard={toggleOnBoard}
           onAddTodo={addTodoItem}
           onToggleTodo={toggleTodo}
           onRemoveTodo={removeTodoItem}

@@ -68,6 +68,26 @@ export function stillOnBoard(row: { completedAt: Date | null }, weekStart: Date)
   return row.completedAt === null || row.completedAt >= weekStart;
 }
 
+/**
+ * How far ahead the board offers deadlines to put on it.
+ *
+ * Not "this week": by Friday there is almost nothing left in the current week,
+ * and Friday is exactly when someone is deciding what next week looks like.
+ * Two weeks keeps that decision possible all week long.
+ */
+const COMING_UP_DAYS = 14;
+
+/**
+ * Whether a deadline is worth offering for the board yet.
+ *
+ * Overdue counts, and deliberately so: something already blown past is the
+ * first thing that belongs on this week's board, and a window that only
+ * looked forward would hide exactly the row the student most needs to see.
+ */
+export function isComingUp(dueAt: Date, now: Date): boolean {
+  return dueAt.getTime() <= now.getTime() + COMING_UP_DAYS * 24 * 3600_000;
+}
+
 /** The end of the board's week, for the date range in its header. */
 export function vancouverWeekEndUtc(weekStart: Date): Date {
   return new Date(weekStart.getTime() + 7 * 24 * 3600_000 - 1);

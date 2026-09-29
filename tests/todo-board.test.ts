@@ -6,6 +6,7 @@ import {
   removeTodoFor,
   setDeadlineOnBoardFor,
   setTodoDoneFor,
+  isComingUp,
   stillOnBoard,
   todosForBoard,
   vancouverWeekEndUtc,
@@ -73,6 +74,25 @@ describe('what the board shows', () => {
 
   it('keeps one finished in the first second of the week, not just after it', () => {
     expect(stillOnBoard({ completedAt: weekStart }, weekStart)).toBe(true);
+  });
+});
+
+describe('what the board offers to put on it', () => {
+  const now = new Date('2026-09-30T20:00:00Z');
+  const inDays = (n: number) => new Date(now.getTime() + n * 24 * 3600_000);
+
+  it('offers the next two weeks', () => {
+    expect(isComingUp(inDays(1), now)).toBe(true);
+    expect(isComingUp(inDays(13), now)).toBe(true);
+  });
+
+  it('offers something already overdue, which is the row that matters most', () => {
+    expect(isComingUp(inDays(-3), now)).toBe(true);
+  });
+
+  it('leaves the far end of term alone', () => {
+    expect(isComingUp(inDays(15), now)).toBe(false);
+    expect(isComingUp(inDays(60), now)).toBe(false);
   });
 });
 

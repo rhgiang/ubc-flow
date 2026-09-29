@@ -4,14 +4,19 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   addDeadline,
+  addTodo,
   removeDeadline,
+  removeTodo,
   setDeadlineDone,
+  setDeadlineOnBoard,
   setRemindersEnabled,
+  setTodoDone,
   updateReminderPreferences,
 } from '@/app/actions/canvas';
 import { courseColorIndex } from '@/schedule/colors';
 import CanvasConnect from '@/components/CanvasConnect';
 import DeadlinesCalendar from '@/components/DeadlinesCalendar';
+import TodoBoard, { type TodoRow } from '@/components/TodoBoard';
 
 // Labels for src/canvas/prefs.ts's LEAD_CHOICES ([24, 48, 72, 168]). The
 // values themselves come in as a prop rather than an import: prefs.ts also
@@ -23,6 +28,12 @@ export type DeadlineRow = {
   /** Typed in by the student rather than read out of the feed. Those are
    *  theirs to delete; a feed row is only ever marked removed. */
   manual: boolean;
+  /** On this week's todo board. The page applies the week rule; this is just
+   *  the answer. */
+  onBoard: boolean;
+  /** Due soon enough (or already overdue) to be worth offering for the board.
+   *  Decided on the server, like every other date-derived field here. */
+  comingUp: boolean;
   title: string;
   /** Canvas's raw bracket. The identity behind the colour and the mute list,
    *  never rendered; courseLabel is what a student reads. */
@@ -48,7 +59,7 @@ export type DeadlineRow = {
   movedFromLabel: string | null;
 };
 
-type View = 'list' | 'calendar';
+type View = 'list' | 'calendar' | 'todo';
 
 export default function DeadlinesList({
   connectedLabel,
@@ -60,6 +71,8 @@ export default function DeadlinesList({
   mutedCourses,
   leadChoices,
   deadlines,
+  todos,
+  weekLabel,
   todayKey,
 }: {
   connectedLabel: string | null;
@@ -73,6 +86,9 @@ export default function DeadlinesList({
   mutedCourses: string[];
   leadChoices: readonly number[];
   deadlines: DeadlineRow[];
+  todos: TodoRow[];
+  /** "Sep 28 to Oct 4", formatted on the server with every other date here. */
+  weekLabel: string;
   todayKey: string;
 }) {
   const router = useRouter();
@@ -113,6 +129,54 @@ export default function DeadlinesList({
     setBusyId(item.id);
     setError(null);
     const r = await removeDeadline(item.id);
+    setBusyId(null);
+    if (!r.ok) return setError(r.error);
+    startTransition(() => router.refresh());
+  }
+
+  // Optimistic like toggleDone above: the board is for ticking things off,
+  // and a checkbox that waits on a round trip feels broken.
+  const [optimisticTodo, setOptimisticTodo] = useState<Record<string, boolean>>({});
+  const todoRows = todos.map((t) => (t.id in optimisticTodo ? { ...t, done: optimisticTodo[t.id] } : t));
+
+  async function toggleTodo(item: TodoRow) {
+    const next = !item.done;
+    setOptimisticTodo((o) => ({ ...o, [item.id]: next }));
+    setBusyId(item.id);
+    setError(null);
+    const r = await setTodoDone(item.id, next);
+    setBusyId(null);
+    if (!r.ok) {
+      setOptimisticTodo((o) => {
+        const rest = { ...o };
+        delete rest[item.id];
+        return rest;
+      });
+      return setError(r.error);
+    }
+    startTransition(() => router.refresh());
+  }
+
+  async function addTodoItem(title: string) {
+    setError(null);
+    const r = await addTodo(title);
+    if (!r.ok) return setError(r.error);
+    startTransition(() => router.refresh());
+  }
+
+  async function removeTodoItem(item: TodoRow) {
+    setBusyId(item.id);
+    setError(null);
+    const r = await removeTodo(item.id);
+    setBusyId(null);
+    if (!r.ok) return setError(r.error);
+    startTransition(() => router.refresh());
+  }
+
+  async function toggleOnBoard(item: DeadlineRow) {
+    setBusyId(item.id);
+    setError(null);
+    const r = await setDeadlineOnBoard(item.id, !item.onBoard);
     setBusyId(null);
     if (!r.ok) return setError(r.error);
     startTransition(() => router.refresh());
@@ -159,12 +223,12 @@ export default function DeadlinesList({
     // A month grid needs about twice the width a readable list wants, so the
     // container follows the view rather than splitting the difference and
     // serving both badly.
-    <div className={`mx-auto w-full space-y-5 ${view === 'calendar' ? 'max-w-5xl' : 'max-w-2xl'}`}>
+    <div className={`mx-auto w-full space-y-5 ${view === 'list' ? 'max-w-2xl' : 'max-w-5xl'}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-foreground">Deadlines</h1>
+        <h1 className="sky-hero text-2xl font-semibold">Deadlines</h1>
         <div className="flex items-center gap-3">
           {doneCount > 0 && (
-            <label className="flex items-center gap-1.5 text-sm text-text-secondary">
+            <label className="sky-hero flex items-center gap-1.5 text-sm">
               <input
                 type="checkbox"
                 checked={hideDone}
@@ -174,8 +238,8 @@ export default function DeadlinesList({
               Hide done
             </label>
           )}
-          <div className="flex rounded-pill border border-border p-0.5" role="tablist">
-            {(['list', 'calendar'] as const).map((v) => (
+          <div className="sky-hero flex rounded-pill border border-border p-0.5" role="tablist">
+            {(['list', 'calendar', 'todo'] as const).map((v) => (
               <button
                 key={v}
                 type="button"
@@ -291,15 +355,15 @@ export default function DeadlinesList({
       </details>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-text-secondary">
+        <p className="sky-hero text-sm">
           {openCount === 0 ? 'Nothing outstanding.' : `${openCount} to go`}
-          {doneCount > 0 && <span className="text-text-tertiary">{` · ${doneCount} done`}</span>}
+          {doneCount > 0 && <span className="opacity-75">{` · ${doneCount} done`}</span>}
         </p>
         {!adding && (
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="text-sm font-medium text-brand-accent hover:underline"
+            className="sky-hero text-sm font-medium underline-offset-2 hover:underline"
           >
             Add a deadline
           </button>
@@ -332,16 +396,32 @@ export default function DeadlinesList({
       )}
 
       {rows.length === 0 ? (
-        <p className="text-sm text-text-secondary">
+        <p className="sky-hero text-sm">
           Nothing due yet. New deadlines show up here once Canvas has them.
         </p>
+      ) : view === 'todo' ? (
+        <TodoBoard
+          weekLabel={weekLabel}
+          deadlines={rows.filter((d) => d.onBoard)}
+          // What the student can put on the board without leaving this view:
+          // near-term, still outstanding, and not already on it.
+          comingUp={rows.filter((d) => d.comingUp && !d.onBoard && !d.done && !d.removed)}
+          todos={todoRows}
+          busyId={busyId}
+          onToggleDeadline={toggleDone}
+          onRemoveFromBoard={toggleOnBoard}
+          onAddToBoard={toggleOnBoard}
+          onAddTodo={addTodoItem}
+          onToggleTodo={toggleTodo}
+          onRemoveTodo={removeTodoItem}
+        />
       ) : view === 'calendar' ? (
         <DeadlinesCalendar deadlines={visible} todayKey={todayKey} onToggle={toggleDone} busyId={busyId} />
       ) : (
         <div className="space-y-5">
           {groups.map((g) => (
             <div key={g.key}>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+              <h3 className="sky-hero text-xs font-semibold uppercase tracking-wide opacity-90">
                 {g.label}
               </h3>
               <ul className="mt-1.5 divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
@@ -353,6 +433,7 @@ export default function DeadlinesList({
                     busy={busyId === d.id}
                     onToggle={toggleDone}
                     onRemove={removeOne}
+                    onToggleBoard={toggleOnBoard}
                   />
                 ))}
               </ul>
@@ -395,12 +476,14 @@ function DeadlineItem({
   busy,
   onToggle,
   onRemove,
+  onToggleBoard,
 }: {
   item: DeadlineRow;
   muted: boolean;
   busy: boolean;
   onToggle: (d: DeadlineRow) => void;
   onRemove: (d: DeadlineRow) => void;
+  onToggleBoard: (d: DeadlineRow) => void;
 }) {
   const struck = item.done || item.removed;
   return (
@@ -449,6 +532,18 @@ function DeadlineItem({
               className="text-xs text-text-tertiary hover:text-danger hover:underline disabled:opacity-50"
             >
               Remove
+            </button>
+          )}
+          {/* Not offered on a withdrawn deadline: there is nothing left to
+              plan a week around. */}
+          {!item.removed && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onToggleBoard(item)}
+              className="text-xs text-text-tertiary hover:text-brand-accent hover:underline disabled:opacity-50"
+            >
+              {item.onBoard ? 'On your board' : 'Add to board'}
             </button>
           )}
           {item.movedFromLabel && (

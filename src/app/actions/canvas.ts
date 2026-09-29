@@ -9,6 +9,12 @@ import { consumeToken } from '@/lib/mail';
 import { connectCanvasFeedFor, disconnectCanvasFeedFor, refreshCanvasFeedFor, type Result } from '@/canvas/connect';
 import { addManualDeadlineFor, removeManualDeadlineFor, type ManualDeadlineInput } from '@/canvas/manual';
 import { updateReminderPreferencesFor } from '@/canvas/prefs';
+import {
+  addTodoFor,
+  removeTodoFor,
+  setDeadlineOnBoardFor,
+  setTodoDoneFor,
+} from '@/canvas/todos';
 
 // Only session-reading functions are exported here. Anything that takes a
 // userId lives in src/canvas/connect.ts: an export from this file is an
@@ -109,6 +115,42 @@ export async function removeDeadline(id: string): Promise<Result> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
   const result = await removeManualDeadlineFor(session.user.id, id);
+  if (result.ok) revalidatePath('/deadlines');
+  return result;
+}
+
+// The todo board. Session-reading wrappers only; the rules and the writes
+// live in src/canvas/todos.ts, which a test can call with no request context.
+
+export async function addTodo(title: string): Promise<Result> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
+  const result = await addTodoFor(session.user.id, title);
+  if (result.ok) revalidatePath('/deadlines');
+  return result;
+}
+
+export async function setTodoDone(id: string, done: boolean): Promise<Result> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
+  const result = await setTodoDoneFor(session.user.id, id, done);
+  if (result.ok) revalidatePath('/deadlines');
+  return result;
+}
+
+export async function removeTodo(id: string): Promise<Result> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
+  const result = await removeTodoFor(session.user.id, id);
+  if (result.ok) revalidatePath('/deadlines');
+  return result;
+}
+
+/** Puts a deadline on the board, or takes it off. Never removes the deadline. */
+export async function setDeadlineOnBoard(id: string, onBoard: boolean): Promise<Result> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
+  const result = await setDeadlineOnBoardFor(session.user.id, id, onBoard);
   if (result.ok) revalidatePath('/deadlines');
   return result;
 }

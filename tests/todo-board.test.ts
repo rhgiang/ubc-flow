@@ -1,0 +1,149 @@
+// tests/todo-board.test.ts
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { db } from '@/lib/db';
+import {
+  addTodoFor,
+  removeTodoFor,
+  setDeadlineOnBoardFor,
+  setTodoDoneFor,
+  stillOnBoard,
+  todosForBoard,
+  vancouverWeekEndUtc,
+  vancouverWeekStartUtc,
+} from '@/canvas/todos';
+
+const E = 'zz-todo-board@example.com';
+let userId: string;
+
+beforeAll(async () => {
+  await db.user.deleteMany({ where: { email: E } });
+  userId = (await db.user.create({ data: { email: E } })).id;
+});
+afterAll(async () => {
+  await db.user.deleteMany({ where: { email: E } });
+  await db.$disconnect();
+});
+beforeEach(async () => {
+  await db.todo.deleteMany({ where: { userId } });
+  await db.canvasDeadline.deleteMany({ where: { userId } });
+});
+
+describe('vancouverWeekStartUtc', () => {
+  it('lands on Monday 00:00 Vancouver, whatever day of the week it is asked', () => {
+    // Mon Sep 28 through Sun Oct 4 2026 is one week. Every day in it must
+    // answer with the same Monday. 07:00Z is midnight Pacific on that date.
+    const monday = '2026-09-28T07:00:00.000Z';
+    for (const day of ['2026-09-28', '2026-09-30', '2026-10-04']) {
+      expect(vancouverWeekStartUtc(new Date(`${day}T20:00:00Z`)).toISOString()).toBe(monday);
+    }
+    // The next Monday opens the next week, not the same one.
+    expect(vancouverWeekStartUtc(new Date('2026-10-05T20:00:00Z')).toISOString())
+      .toBe('2026-10-05T07:00:00.000Z');
+  });
+
+  it('reads the weekday off the Vancouver day, not off the UTC instant', () => {
+    // Sunday 5pm Pacific is already MONDAY in UTC. Reading the weekday off
+    // the instant would roll the board over on Sunday afternoon and drop
+    // everything the student finished that weekend.
+    const sundayEvening = new Date('2026-10-05T00:00:00Z'); // Sun Oct 4, 5pm PDT
+    expect(vancouverWeekStartUtc(sundayEvening).toISOString()).toBe('2026-09-28T07:00:00.000Z');
+  });
+
+  it('spans exactly seven days, for the range the board prints', () => {
+    const start = vancouverWeekStartUtc(new Date('2026-09-30T20:00:00Z'));
+    const end = vancouverWeekEndUtc(start);
+    expect(end.getTime() - start.getTime()).toBe(7 * 24 * 3600_000 - 1);
+  });
+});
+
+describe('what the board shows', () => {
+  const weekStart = vancouverWeekStartUtc(new Date('2026-09-30T20:00:00Z'));
+
+  it('keeps an unfinished item, so it rolls over without anything running', () => {
+    expect(stillOnBoard({ completedAt: null }, weekStart)).toBe(true);
+  });
+
+  it('keeps one finished this week', () => {
+    expect(stillOnBoard({ completedAt: new Date('2026-09-29T18:00:00Z') }, weekStart)).toBe(true);
+  });
+
+  it('drops one finished before Monday', () => {
+    expect(stillOnBoard({ completedAt: new Date('2026-09-27T18:00:00Z') }, weekStart)).toBe(false);
+  });
+
+  it('keeps one finished in the first second of the week, not just after it', () => {
+    expect(stillOnBoard({ completedAt: weekStart }, weekStart)).toBe(true);
+  });
+});
+
+describe('a todo', () => {
+  it('goes on the board, ticks off, and stays there for the rest of the week', async () => {
+    expect(await addTodoFor(userId, '  Email prof about lab swap ')).toEqual({ ok: true });
+    const [todo] = await todosForBoard(userId, new Date());
+    expect(todo.title).toBe('Email prof about lab swap');
+    expect(todo.completedAt).toBeNull();
+
+    expect(await setTodoDoneFor(userId, todo.id, true)).toEqual({ ok: true });
+    // Ticked just now, so it is still this week's and still on the board.
+    expect(await todosForBoard(userId, new Date())).toHaveLength(1);
+  });
+
+  it('drops off the board once the week has turned, without being deleted', async () => {
+    await addTodoFor(userId, 'Readings ch. 4-6');
+    const [todo] = await todosForBoard(userId, new Date());
+    await setTodoDoneFor(userId, todo.id, true);
+
+    // Same data, read from a week later: gone from the board, still on record.
+    const nextWeek = new Date(Date.now() + 8 * 24 * 3600_000);
+    expect(await todosForBoard(userId, nextWeek)).toHaveLength(0);
+    expect(await db.todo.count({ where: { id: todo.id } })).toBe(1);
+  });
+
+  it('refuses a blank title', async () => {
+    expect(await addTodoFor(userId, '   ')).toEqual({ ok: false, error: 'Give it a name.' });
+    expect(await todosForBoard(userId, new Date())).toHaveLength(0);
+  });
+
+  it('belongs to whoever wrote it', async () => {
+    await addTodoFor(userId, 'Mine');
+    const [todo] = await todosForBoard(userId, new Date());
+    expect(await setTodoDoneFor('someone-else', todo.id, true)).toEqual({ ok: false, error: 'Not found.' });
+    expect(await removeTodoFor('someone-else', todo.id)).toEqual({ ok: false, error: 'Not found.' });
+    expect(await db.todo.count({ where: { id: todo.id } })).toBe(1);
+    expect(await removeTodoFor(userId, todo.id)).toEqual({ ok: true });
+  });
+});
+
+describe('a deadline pulled onto the board', () => {
+  async function aDeadline() {
+    return db.canvasDeadline.create({
+      data: {
+        userId, uid: 'demo-board-1', kind: 'assignment', title: 'PSet 3',
+        courseName: 'CPSC 110 101', dueAt: new Date('2026-10-01T06:59:59Z'), allDay: false,
+      },
+    });
+  }
+
+  it('goes on and comes off without the deadline itself changing', async () => {
+    const d = await aDeadline();
+    expect(await setDeadlineOnBoardFor(userId, d.id, true)).toEqual({ ok: true });
+    const on = await db.canvasDeadline.findUniqueOrThrow({ where: { id: d.id } });
+    expect(on.onBoardAt).not.toBeNull();
+
+    expect(await setDeadlineOnBoardFor(userId, d.id, false)).toEqual({ ok: true });
+    const off = await db.canvasDeadline.findUniqueOrThrow({ where: { id: d.id } });
+    // Taking it off the board is not removing the deadline: everything that
+    // makes it a deadline has to survive it.
+    expect(off.onBoardAt).toBeNull();
+    expect(off.title).toBe('PSet 3');
+    expect(off.dueAt).toEqual(d.dueAt);
+    expect(off.removedAt).toBeNull();
+    expect(off.completedAt).toBeNull();
+  });
+
+  it('is not somebody else to put on their board', async () => {
+    const d = await aDeadline();
+    expect(await setDeadlineOnBoardFor('someone-else', d.id, true)).toEqual({ ok: false, error: 'Not found.' });
+    expect((await db.canvasDeadline.findUniqueOrThrow({ where: { id: d.id } })).onBoardAt).toBeNull();
+  });
+});

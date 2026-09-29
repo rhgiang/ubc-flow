@@ -118,11 +118,17 @@ function Cell({
     >
       {cell.day !== null && (
         <div
-          className={
+          // The two states are the SAME 20px box, one of them filled. They
+          // used to differ: today was a 20px circle and every other day a
+          // ~16px line of text, so the dots overlay below (whose top padding
+          // has to clear this) could only be right for one of them. It was
+          // tuned for the plain day, which left today's circle sitting 4px on
+          // top of the first dot.
+          className={`mb-1 inline-flex h-5 w-5 items-center justify-center text-xs ${
             today
-              ? 'mb-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-accent text-xs font-semibold text-brand-foreground'
-              : 'mb-1 inline-block px-1 text-xs text-text-tertiary'
-          }
+              ? 'rounded-full bg-brand-accent font-semibold text-brand-foreground'
+              : 'text-text-tertiary'
+          }`}
         >
           {cell.day}
         </div>
@@ -137,7 +143,10 @@ function Cell({
           onClick={onOpen}
           aria-expanded={selected}
           aria-label={`${cell.items.length} due on the ${cell.day}. Show them.`}
-          className="absolute inset-0 flex flex-wrap content-start gap-1 p-1 pt-6 text-left sm:hidden"
+          // pt-7 clears the 20px date box above plus the square's own padding.
+          // Tied to that box's height, which is now the same whichever day
+          // this is, so there is one number to keep in step rather than two.
+          className="absolute inset-0 flex flex-wrap content-start gap-1 p-1 pt-7 text-left sm:hidden"
         >
           {cell.items.map((item) => (
             <Dot key={item.id} item={item} />

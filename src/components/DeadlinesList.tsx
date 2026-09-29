@@ -222,10 +222,10 @@ export default function DeadlinesList({
     // serving both badly.
     <div className={`mx-auto w-full space-y-5 ${view === 'calendar' ? 'max-w-5xl' : 'max-w-2xl'}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-foreground">Deadlines</h1>
+        <h1 className="sky-hero text-2xl font-semibold">Deadlines</h1>
         <div className="flex items-center gap-3">
           {doneCount > 0 && (
-            <label className="flex items-center gap-1.5 text-sm text-text-secondary">
+            <label className="sky-hero flex items-center gap-1.5 text-sm">
               <input
                 type="checkbox"
                 checked={hideDone}
@@ -235,7 +235,7 @@ export default function DeadlinesList({
               Hide done
             </label>
           )}
-          <div className="flex rounded-pill border border-border p-0.5" role="tablist">
+          <div className="sky-hero flex rounded-pill border border-border p-0.5" role="tablist">
             {(['list', 'calendar', 'todo'] as const).map((v) => (
               <button
                 key={v}
@@ -352,15 +352,15 @@ export default function DeadlinesList({
       </details>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-text-secondary">
+        <p className="sky-hero text-sm">
           {openCount === 0 ? 'Nothing outstanding.' : `${openCount} to go`}
-          {doneCount > 0 && <span className="text-text-tertiary">{` · ${doneCount} done`}</span>}
+          {doneCount > 0 && <span className="opacity-75">{` · ${doneCount} done`}</span>}
         </p>
         {!adding && (
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="text-sm font-medium text-brand-accent hover:underline"
+            className="sky-hero text-sm font-medium underline-offset-2 hover:underline"
           >
             Add a deadline
           </button>
@@ -393,7 +393,7 @@ export default function DeadlinesList({
       )}
 
       {rows.length === 0 ? (
-        <p className="text-sm text-text-secondary">
+        <p className="sky-hero text-sm">
           Nothing due yet. New deadlines show up here once Canvas has them.
         </p>
       ) : view === 'todo' ? (
@@ -414,7 +414,7 @@ export default function DeadlinesList({
         <div className="space-y-5">
           {groups.map((g) => (
             <div key={g.key}>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+              <h3 className="sky-hero text-xs font-semibold uppercase tracking-wide opacity-90">
                 {g.label}
               </h3>
               <ul className="mt-1.5 divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">

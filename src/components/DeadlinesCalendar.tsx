@@ -44,7 +44,7 @@ export default function DeadlinesCalendar({
   const months = buildMonths(deadlines);
 
   if (months.length === 0) {
-    return <p className="text-sm text-text-secondary">Nothing to put on a calendar yet.</p>;
+    return <p className="sky-hero text-sm">Nothing to put on a calendar yet.</p>;
   }
 
   return (
@@ -53,7 +53,7 @@ export default function DeadlinesCalendar({
         const open = month.cells.find((c) => c.key === openDay && c.items.length > 0) ?? null;
         return (
           <section key={month.key}>
-            <h3 className="text-base font-semibold text-foreground">{month.label}</h3>
+            <h3 className="sky-hero text-base font-semibold">{month.label}</h3>
 
             <div className="mt-3 grid grid-cols-7 gap-px overflow-hidden rounded-card border border-border bg-border">
               {WEEKDAYS.map((w, i) => (

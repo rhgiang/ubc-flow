@@ -178,6 +178,7 @@ model User {
   canvasFeed         CanvasFeed?
   canvasDeadlines    CanvasDeadline[]
   reminderPreference ReminderPreference?
+  todos              Todo[]
 }
 
 model Enrollment {
@@ -747,10 +748,34 @@ model CanvasDeadline {
   /// work is handed in, so what the professor does to the date afterwards is
   /// not news worth an email.
   completedAt DateTime?
+  /// Set when the student put this deadline on their todo board, cleared when
+  /// they take it off. The board holds a reference rather than a copy, so a
+  /// title or date the professor changes still reaches it.
+  onBoardAt   DateTime?
   reminders   ReminderSent[]
 
   @@unique([userId, uid])
   @@index([userId, dueAt])
+}
+
+/// One thing the student wrote on their todo board: the work that has no
+/// Canvas assignment behind it and no due date worth reminding against.
+///
+/// There is deliberately no week column. The board shows unfinished todos
+/// plus whatever was finished since Monday, so an unfinished item rolls over
+/// by simply never leaving, and a finished one drops off when the week turns.
+/// A stored week would need a job to advance it, and a job that did not run
+/// is a board that is silently wrong.
+model Todo {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  createdAt   DateTime  @default(now())
+  /// Ticked off by the student. Null is what keeps it on the board.
+  completedAt DateTime?
+
+  @@index([userId])
 }
 
 model ReminderPreference {

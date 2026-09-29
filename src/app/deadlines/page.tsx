@@ -5,6 +5,12 @@ import { db } from '@/lib/db';
 import { LEAD_CHOICES } from '@/canvas/prefs';
 import { formatVancouver, vancouverDayKey } from '@/canvas/tz';
 import { isManualUid } from '@/canvas/diff';
+import {
+  stillOnBoard,
+  todosForBoard,
+  vancouverWeekEndUtc,
+  vancouverWeekStartUtc,
+} from '@/canvas/todos';
 import { shortCourseLabel } from '@/canvas/course-label';
 import { RECENT_MS, stillWorthShowing } from '@/canvas/notices';
 import DeadlinesList from '@/components/DeadlinesList';
@@ -21,6 +27,7 @@ type DeadlineFields = {
   movedAt: Date | null;
   removedAt: Date | null;
   completedAt: Date | null;
+  onBoardAt: Date | null;
 };
 
 /**
@@ -45,7 +52,7 @@ function currentTimeMs(): number {
  * which formats with the same helper on the server. Formatting once, server
  * side, is the only way the page, the email and every browser agree.
  */
-function toRow(d: DeadlineFields, now: number) {
+function toRow(d: DeadlineFields, now: number, weekStart: Date) {
   const movedFrom =
     d.movedAt && now - d.movedAt.getTime() <= RECENT_MS && d.movedFrom ? d.movedFrom : null;
   return {
@@ -53,6 +60,10 @@ function toRow(d: DeadlineFields, now: number) {
     /** Added by the student rather than read out of the feed. What it buys the
      *  list: a Remove control, since those rows are theirs to delete. */
     manual: isManualUid(d.uid),
+    /** On the todo board: pulled there by the student, and not yet dropped off
+     *  by having been finished in an earlier week. One rule for both kinds of
+     *  board row, so a todo and a deadline cannot disagree about Monday. */
+    onBoard: d.onBoardAt !== null && stillOnBoard(d, weekStart),
     title: d.title,
     /** The raw bracket from Canvas. The identity: the colour hashes from it
      *  and a mute preference is stored under it. Never shown. */
@@ -90,6 +101,16 @@ function relativeDue(ms: number): string {
   }
   if (days === 1) return past ? 'yesterday' : 'tomorrow';
   return past ? `${days} days ago` : `in ${days} days`;
+}
+
+/** "Sep 28 to Oct 4", the week the board covers. Formatted here with the rest
+ *  of the dates, for the reason toRow explains: a browser's tzdata and Node's
+ *  disagree about Vancouver after November 2026. */
+function weekRange(weekStart: Date): string {
+  const opts: Intl.DateTimeFormatOptions = { timeZone: 'America/Vancouver', month: 'short', day: 'numeric' };
+  const start = weekStart.toLocaleDateString('en-CA', opts);
+  const end = vancouverWeekEndUtc(weekStart).toLocaleDateString('en-CA', opts);
+  return `${start} to ${end}`;
 }
 
 /** What a signed-out visitor gets from the Deadlines pill. */
@@ -145,6 +166,7 @@ export default async function DeadlinesPage() {
         movedAt: true,
         removedAt: true,
         completedAt: true,
+        onBoardAt: true,
       },
     }),
   ]);
@@ -165,7 +187,11 @@ export default async function DeadlinesPage() {
   }
 
   const now = currentTimeMs();
-  const rows = deadlines.filter((d) => stillWorthShowing(d, now)).map((d) => toRow(d, now));
+  const weekStart = vancouverWeekStartUtc(new Date(now));
+  const rows = deadlines.filter((d) => stillWorthShowing(d, now)).map((d) => toRow(d, now, weekStart));
+  // The board's own rows. Fetched after the feed check above, so a student
+  // with no Canvas connection never pays for the query.
+  const todos = await todosForBoard(userId, new Date(now));
 
   // No max-width here: the list reads best narrow and a month grid needs the
   // room, so DeadlinesList sets its own width from whichever view is showing.
@@ -181,6 +207,8 @@ export default async function DeadlinesPage() {
         mutedCourses={preference?.mutedCourses ?? []}
         leadChoices={LEAD_CHOICES}
         deadlines={rows}
+        todos={todos.map((t) => ({ id: t.id, title: t.title, done: t.completedAt !== null }))}
+        weekLabel={weekRange(weekStart)}
         todayKey={vancouverDayKey(new Date(now))}
       />
     </main>

@@ -4,14 +4,19 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   addDeadline,
+  addTodo,
   removeDeadline,
+  removeTodo,
   setDeadlineDone,
+  setDeadlineOnBoard,
   setRemindersEnabled,
+  setTodoDone,
   updateReminderPreferences,
 } from '@/app/actions/canvas';
 import { courseColorIndex } from '@/schedule/colors';
 import CanvasConnect from '@/components/CanvasConnect';
 import DeadlinesCalendar from '@/components/DeadlinesCalendar';
+import TodoBoard, { type TodoRow } from '@/components/TodoBoard';
 
 // Labels for src/canvas/prefs.ts's LEAD_CHOICES ([24, 48, 72, 168]). The
 // values themselves come in as a prop rather than an import: prefs.ts also
@@ -23,6 +28,9 @@ export type DeadlineRow = {
   /** Typed in by the student rather than read out of the feed. Those are
    *  theirs to delete; a feed row is only ever marked removed. */
   manual: boolean;
+  /** On this week's todo board. The page applies the week rule; this is just
+   *  the answer. */
+  onBoard: boolean;
   title: string;
   /** Canvas's raw bracket. The identity behind the colour and the mute list,
    *  never rendered; courseLabel is what a student reads. */
@@ -48,7 +56,7 @@ export type DeadlineRow = {
   movedFromLabel: string | null;
 };
 
-type View = 'list' | 'calendar';
+type View = 'list' | 'calendar' | 'todo';
 
 export default function DeadlinesList({
   connectedLabel,
@@ -60,6 +68,8 @@ export default function DeadlinesList({
   mutedCourses,
   leadChoices,
   deadlines,
+  todos,
+  weekLabel,
   todayKey,
 }: {
   connectedLabel: string | null;
@@ -73,6 +83,9 @@ export default function DeadlinesList({
   mutedCourses: string[];
   leadChoices: readonly number[];
   deadlines: DeadlineRow[];
+  todos: TodoRow[];
+  /** "Sep 28 to Oct 4", formatted on the server with every other date here. */
+  weekLabel: string;
   todayKey: string;
 }) {
   const router = useRouter();
@@ -113,6 +126,54 @@ export default function DeadlinesList({
     setBusyId(item.id);
     setError(null);
     const r = await removeDeadline(item.id);
+    setBusyId(null);
+    if (!r.ok) return setError(r.error);
+    startTransition(() => router.refresh());
+  }
+
+  // Optimistic like toggleDone above: the board is for ticking things off,
+  // and a checkbox that waits on a round trip feels broken.
+  const [optimisticTodo, setOptimisticTodo] = useState<Record<string, boolean>>({});
+  const todoRows = todos.map((t) => (t.id in optimisticTodo ? { ...t, done: optimisticTodo[t.id] } : t));
+
+  async function toggleTodo(item: TodoRow) {
+    const next = !item.done;
+    setOptimisticTodo((o) => ({ ...o, [item.id]: next }));
+    setBusyId(item.id);
+    setError(null);
+    const r = await setTodoDone(item.id, next);
+    setBusyId(null);
+    if (!r.ok) {
+      setOptimisticTodo((o) => {
+        const rest = { ...o };
+        delete rest[item.id];
+        return rest;
+      });
+      return setError(r.error);
+    }
+    startTransition(() => router.refresh());
+  }
+
+  async function addTodoItem(title: string) {
+    setError(null);
+    const r = await addTodo(title);
+    if (!r.ok) return setError(r.error);
+    startTransition(() => router.refresh());
+  }
+
+  async function removeTodoItem(item: TodoRow) {
+    setBusyId(item.id);
+    setError(null);
+    const r = await removeTodo(item.id);
+    setBusyId(null);
+    if (!r.ok) return setError(r.error);
+    startTransition(() => router.refresh());
+  }
+
+  async function toggleOnBoard(item: DeadlineRow) {
+    setBusyId(item.id);
+    setError(null);
+    const r = await setDeadlineOnBoard(item.id, !item.onBoard);
     setBusyId(null);
     if (!r.ok) return setError(r.error);
     startTransition(() => router.refresh());
@@ -175,7 +236,7 @@ export default function DeadlinesList({
             </label>
           )}
           <div className="flex rounded-pill border border-border p-0.5" role="tablist">
-            {(['list', 'calendar'] as const).map((v) => (
+            {(['list', 'calendar', 'todo'] as const).map((v) => (
               <button
                 key={v}
                 type="button"
@@ -335,6 +396,18 @@ export default function DeadlinesList({
         <p className="text-sm text-text-secondary">
           Nothing due yet. New deadlines show up here once Canvas has them.
         </p>
+      ) : view === 'todo' ? (
+        <TodoBoard
+          weekLabel={weekLabel}
+          deadlines={rows.filter((d) => d.onBoard)}
+          todos={todoRows}
+          busyId={busyId}
+          onToggleDeadline={toggleDone}
+          onRemoveFromBoard={toggleOnBoard}
+          onAddTodo={addTodoItem}
+          onToggleTodo={toggleTodo}
+          onRemoveTodo={removeTodoItem}
+        />
       ) : view === 'calendar' ? (
         <DeadlinesCalendar deadlines={visible} todayKey={todayKey} onToggle={toggleDone} busyId={busyId} />
       ) : (
@@ -353,6 +426,7 @@ export default function DeadlinesList({
                     busy={busyId === d.id}
                     onToggle={toggleDone}
                     onRemove={removeOne}
+                    onToggleBoard={toggleOnBoard}
                   />
                 ))}
               </ul>
@@ -395,12 +469,14 @@ function DeadlineItem({
   busy,
   onToggle,
   onRemove,
+  onToggleBoard,
 }: {
   item: DeadlineRow;
   muted: boolean;
   busy: boolean;
   onToggle: (d: DeadlineRow) => void;
   onRemove: (d: DeadlineRow) => void;
+  onToggleBoard: (d: DeadlineRow) => void;
 }) {
   const struck = item.done || item.removed;
   return (
@@ -449,6 +525,18 @@ function DeadlineItem({
               className="text-xs text-text-tertiary hover:text-danger hover:underline disabled:opacity-50"
             >
               Remove
+            </button>
+          )}
+          {/* Not offered on a withdrawn deadline: there is nothing left to
+              plan a week around. */}
+          {!item.removed && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onToggleBoard(item)}
+              className="text-xs text-text-tertiary hover:text-brand-accent hover:underline disabled:opacity-50"
+            >
+              {item.onBoard ? 'On your board' : 'Add to board'}
             </button>
           )}
           {item.movedFromLabel && (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type Dispatch, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   addDeadline,
@@ -22,6 +22,14 @@ import TodoBoard, { type TodoRow } from '@/components/TodoBoard';
 // values themselves come in as a prop rather than an import: prefs.ts also
 // exports a db-touching function, and this is a client component.
 const LEAD_LABELS: Record<number, string> = { 24: '1 day', 48: '2 days', 72: '3 days', 168: '1 week' };
+
+/** What every action on this page answers with. Spelled out here rather than
+ *  imported from src/canvas/connect.ts, which is where it is declared: that
+ *  module reaches the database, and a value import of it from a client
+ *  component drags pg into the browser bundle and fails the build on `dns`.
+ *  A type import would erase, but this is one line and leaves nothing to
+ *  get wrong later. */
+type Result = { ok: true } | { ok: false; error: string };
 
 export type DeadlineRow = {
   id: string;
@@ -104,34 +112,73 @@ export default function DeadlinesList({
   // catches up. router.refresh() then replaces this with the truth; on a
   // failure the override is dropped and the real value comes back.
   const [optimistic, setOptimistic] = useState<Record<string, boolean>>({});
-  const rows = deadlines.map((d) => (d.id in optimistic ? { ...d, done: optimistic[d.id] } : d));
+  // The same trick for putting a deadline on the board. It matters more here
+  // than for a checkbox: this moves the row between the two columns of the
+  // Todo view, and without it nothing happens at all until the action AND the
+  // refresh have both come back, which measured about 1.4s of a click that
+  // looked ignored.
+  const [optimisticBoard, setOptimisticBoard] = useState<Record<string, boolean>>({});
+  const rows = deadlines.map((d) => {
+    if (!(d.id in optimistic) && !(d.id in optimisticBoard)) return d;
+    return {
+      ...d,
+      ...(d.id in optimistic ? { done: optimistic[d.id] } : {}),
+      ...(d.id in optimisticBoard ? { onBoard: optimisticBoard[d.id] } : {}),
+    };
+  });
+
+  /**
+   * Every action this page calls goes through here.
+   *
+   * The point is the catch. A Server Action whose request never lands rejects
+   * rather than returning { ok: false }, and each handler used to await the
+   * call bare - so a dropped connection threw past the revert, left the
+   * optimistic change on screen, showed no error, and surfaced as an
+   * unhandled "Failed to fetch". The row then claimed to be ticked, or on
+   * your board, when the server had never heard of it, until something
+   * happened to reload the page. On campus wifi that is not a rare path.
+   *
+   * A rejection has to land exactly where { ok: false } lands, and the only
+   * way to be sure of that for every caller is for there to be one place.
+   * `revert` undoes whatever the handler did optimistically.
+   */
+  async function submit(call: Promise<Result>, revert?: () => void): Promise<void> {
+    setError(null);
+    let result: Result;
+    try {
+      result = await call;
+    } catch {
+      result = { ok: false, error: 'Could not reach the server. Check your connection and try again.' };
+    }
+    if (!result.ok) {
+      revert?.();
+      return setError(result.error);
+    }
+    startTransition(() => router.refresh());
+  }
+
+  /** Drops an optimistic override, so the row snaps back to the server's answer. */
+  function forget(set: Dispatch<SetStateAction<Record<string, boolean>>>, id: string) {
+    return () =>
+      set((o) => {
+        const rest = { ...o };
+        delete rest[id];
+        return rest;
+      });
+  }
 
   async function toggleDone(item: DeadlineRow) {
     const next = !item.done;
     setOptimistic((o) => ({ ...o, [item.id]: next }));
     setBusyId(item.id);
-    setError(null);
-    const r = await setDeadlineDone(item.id, next);
+    await submit(setDeadlineDone(item.id, next), forget(setOptimistic, item.id));
     setBusyId(null);
-    if (!r.ok) {
-      // Drop the override so the row snaps back to what the server has.
-      setOptimistic((o) => {
-        const rest = { ...o };
-        delete rest[item.id];
-        return rest;
-      });
-      return setError(r.error);
-    }
-    startTransition(() => router.refresh());
   }
 
   async function removeOne(item: DeadlineRow) {
     setBusyId(item.id);
-    setError(null);
-    const r = await removeDeadline(item.id);
+    await submit(removeDeadline(item.id));
     setBusyId(null);
-    if (!r.ok) return setError(r.error);
-    startTransition(() => router.refresh());
   }
 
   // Optimistic like toggleDone above: the board is for ticking things off,
@@ -143,61 +190,43 @@ export default function DeadlinesList({
     const next = !item.done;
     setOptimisticTodo((o) => ({ ...o, [item.id]: next }));
     setBusyId(item.id);
-    setError(null);
-    const r = await setTodoDone(item.id, next);
+    await submit(setTodoDone(item.id, next), forget(setOptimisticTodo, item.id));
     setBusyId(null);
-    if (!r.ok) {
-      setOptimisticTodo((o) => {
-        const rest = { ...o };
-        delete rest[item.id];
-        return rest;
-      });
-      return setError(r.error);
-    }
-    startTransition(() => router.refresh());
   }
 
   async function addTodoItem(title: string) {
-    setError(null);
-    const r = await addTodo(title);
-    if (!r.ok) return setError(r.error);
-    startTransition(() => router.refresh());
+    await submit(addTodo(title));
   }
 
   async function removeTodoItem(item: TodoRow) {
     setBusyId(item.id);
-    setError(null);
-    const r = await removeTodo(item.id);
+    await submit(removeTodo(item.id));
     setBusyId(null);
-    if (!r.ok) return setError(r.error);
-    startTransition(() => router.refresh());
   }
 
   async function toggleOnBoard(item: DeadlineRow) {
-    setBusyId(item.id);
-    setError(null);
-    const r = await setDeadlineOnBoard(item.id, !item.onBoard);
-    setBusyId(null);
-    if (!r.ok) return setError(r.error);
-    startTransition(() => router.refresh());
+    const next = !item.onBoard;
+    // Moves columns immediately; the server catches up behind it.
+    //
+    // No busyId here, unlike the tick handlers. Those leave the row where it
+    // is, so dimming it reads as "working on it"; this one has already jumped
+    // to the other column, and dimming the row that just arrived reads as a
+    // glitch. There is nothing to protect against a second click either: the
+    // Add button went with it, and the control it turned into undoes it.
+    setOptimisticBoard((o) => ({ ...o, [item.id]: next }));
+    await submit(setDeadlineOnBoard(item.id, next), forget(setOptimisticBoard, item.id));
   }
 
   async function toggleEnabled() {
     setBusy(true);
-    setError(null);
-    const r = await setRemindersEnabled(!enabled);
+    await submit(setRemindersEnabled(!enabled));
     setBusy(false);
-    if (!r.ok) return setError(r.error);
-    router.refresh();
   }
 
   async function savePrefs(next: { leadHours: number[]; mutedCourses: string[] }) {
     setBusy(true);
-    setError(null);
-    const r = await updateReminderPreferences(next);
+    await submit(updateReminderPreferences(next));
     setBusy(false);
-    if (!r.ok) return setError(r.error);
-    router.refresh();
   }
 
   // An event whose SUMMARY had no trailing [Course] has an empty name. It

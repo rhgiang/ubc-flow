@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   addDeadline,
   addTodo,
+  reorderBoard,
   removeDeadline,
   removeTodo,
   setDeadlineDone,
@@ -42,6 +43,11 @@ export type DeadlineRow = {
   /** Due soon enough (or already overdue) to be worth offering for the board.
    *  Decided on the server, like every other date-derived field here. */
   comingUp: boolean;
+  /** Where the student dragged this row on the board, and when it is due as a
+   *  plain number. Both feed the board's comparator, which runs here so the
+   *  order can follow an optimistic tick. */
+  boardOrder: number | null;
+  dueAtMs: number;
   title: string;
   /** Canvas's raw bracket. The identity behind the colour and the mute list,
    *  never rendered; courseLabel is what a student reads. */
@@ -202,6 +208,13 @@ export default function DeadlinesList({
     setBusyId(item.id);
     await submit(removeTodo(item.id));
     setBusyId(null);
+  }
+
+  // No optimistic bookkeeping and no refresh: the board already shows the
+  // new order, because the drag is what put it there. Only the failure needs
+  // saying, and submit() handles that.
+  async function reorder(order: { id: string; kind: 'deadline' | 'todo' }[]) {
+    await submit(reorderBoard(order));
   }
 
   async function toggleOnBoard(item: DeadlineRow) {
@@ -443,6 +456,7 @@ export default function DeadlinesList({
           onAddTodo={addTodoItem}
           onToggleTodo={toggleTodo}
           onRemoveTodo={removeTodoItem}
+          onReorder={reorder}
         />
       ) : view === 'calendar' ? (
         <DeadlinesCalendar deadlines={visible} todayKey={todayKey} onToggle={toggleDone} busyId={busyId} />

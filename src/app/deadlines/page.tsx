@@ -29,6 +29,7 @@ type DeadlineFields = {
   removedAt: Date | null;
   completedAt: Date | null;
   onBoardAt: Date | null;
+  boardOrder: number | null;
 };
 
 /**
@@ -68,6 +69,12 @@ function toRow(d: DeadlineFields, now: number, weekStart: Date) {
     /** Near enough to offer for the board. Computed here with every other
      *  date on this page, never in the browser: see the note on toRow. */
     comingUp: isComingUp(d.dueAt, new Date(now)),
+    /** Where the student dragged this row on the board, and when it is due as
+     *  a plain number. Both feed compareBoardItems, which runs in the browser
+     *  so the order can follow an optimistic tick without waiting on a
+     *  refresh. A number, not a Date: nothing here formats it. */
+    boardOrder: d.boardOrder,
+    dueAtMs: d.dueAt.getTime(),
     title: d.title,
     /** The raw bracket from Canvas. The identity: the colour hashes from it
      *  and a mute preference is stored under it. Never shown. */
@@ -171,6 +178,7 @@ export default async function DeadlinesPage() {
         removedAt: true,
         completedAt: true,
         onBoardAt: true,
+        boardOrder: true,
       },
     }),
   ]);
@@ -211,7 +219,12 @@ export default async function DeadlinesPage() {
         mutedCourses={preference?.mutedCourses ?? []}
         leadChoices={LEAD_CHOICES}
         deadlines={rows}
-        todos={todos.map((t) => ({ id: t.id, title: t.title, done: t.completedAt !== null }))}
+        todos={todos.map((t) => ({
+          id: t.id,
+          title: t.title,
+          done: t.completedAt !== null,
+          boardOrder: t.boardOrder,
+        }))}
         weekLabel={weekRange(weekStart)}
         todayKey={vancouverDayKey(new Date(now))}
       />

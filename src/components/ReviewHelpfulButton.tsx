@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { toggleReviewVote, type VoteKind } from '@/app/actions/review-votes';
 import { useAuthOverlay } from '@/components/AuthOverlayContext';
 import { useViewer } from '@/components/ViewerContext';
+import { settled } from '@/lib/action-result';
 
 /**
  * "Helpful" on someone else's review - UW Flow's upvote, under a name that
@@ -52,9 +53,11 @@ export default function ReviewHelpfulButton({
     const previous = state;
     setState(next);
     startTransition(async () => {
-      const result = await toggleReviewVote(reviewId, kind);
-      // Server disagrees (or refuses): take the optimistic change back rather
-      // than leaving a number nobody else can see.
+      const result = await settled(toggleReviewVote(reviewId, kind));
+      // Server disagrees, refuses, or was never reached: take the optimistic
+      // change back rather than leaving a number nobody else can see. The
+      // third case is why this goes through settled - a dropped request used
+      // to throw past this line, leaving the vote looking counted.
       if (!result.ok) setState(previous);
       else setState({ voted: result.voted, votes: result.votes });
     });

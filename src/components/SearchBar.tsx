@@ -33,8 +33,12 @@ export default function SearchBar({ defaultValue }: { defaultValue: string }) {
 
     let cancelled = false;
     const timer = setTimeout(async () => {
-      const r = await liveSearch(query);
-      if (!cancelled) setResult(r);
+      // Null rather than a rejection, and then left alone: a dropped request
+      // keeps whatever suggestions are already up rather than blanking them,
+      // and nothing reaches the console as an unhandled rejection. The next
+      // keystroke retries anyway.
+      const r = await liveSearch(query).catch(() => null);
+      if (!cancelled && r) setResult(r);
     }, DEBOUNCE_MS);
     return () => {
       cancelled = true;

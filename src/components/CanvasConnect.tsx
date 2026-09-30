@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { settled } from '@/lib/action-result';
 import { connectCanvasFeed, disconnectCanvasFeed, refreshCanvasFeed } from '@/app/actions/canvas';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -53,7 +54,7 @@ export default function CanvasConnect({
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const r = await connectCanvasFeed(value);
+    const r = await settled(connectCanvasFeed(value));
     setBusy(false);
     if (!r.ok) return setError(r.error);
     setValue('');
@@ -64,7 +65,7 @@ export default function CanvasConnect({
     setBusy(true);
     setError(null);
     setRefreshed(false);
-    const r = await refreshCanvasFeed();
+    const r = await settled(refreshCanvasFeed());
     setBusy(false);
     if (!r.ok) return setError(r.error);
     setRefreshed(true);
@@ -73,7 +74,7 @@ export default function CanvasConnect({
 
   async function disconnect() {
     setBusy(true);
-    const r = await disconnectCanvasFeed();
+    const r = await settled(disconnectCanvasFeed());
     setBusy(false);
     setConfirming(false);
     if (!r.ok) return setError(r.error);

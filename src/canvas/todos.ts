@@ -100,7 +100,7 @@ export async function todosForBoard(userId: string, now: Date) {
   return db.todo.findMany({
     where: { userId, OR: [{ completedAt: null }, { completedAt: { gte: weekStart } }] },
     orderBy: { createdAt: 'asc' },
-    select: { id: true, title: true, completedAt: true },
+    select: { id: true, title: true, completedAt: true, boardOrder: true },
   });
 }
 
@@ -131,6 +131,37 @@ export async function setTodoDoneFor(userId: string, id: string, done: boolean):
     data: { completedAt: done ? new Date() : null },
   });
   return count === 0 ? { ok: false, error: 'Not found.' } : { ok: true };
+}
+
+/**
+ * Writes the order the student just dragged the board into.
+ *
+ * Takes the whole list rather than "move row X to slot 3": positions are
+ * rewritten from the array index, so there is no fractional-index arithmetic
+ * to drift and no way for two rows to end up claiming the same slot. The
+ * board is a handful of rows, so writing all of them costs nothing.
+ *
+ * Both tables in one transaction, because a half-applied order is a board
+ * that reads as neither the old one nor the new one.
+ */
+export async function reorderBoardFor(
+  userId: string,
+  order: { id: string; kind: 'deadline' | 'todo' }[],
+): Promise<Result> {
+  if (order.length === 0) return { ok: true };
+  if (order.length > MAX_TODOS) return { ok: false, error: 'That is more rows than one board can hold.' };
+
+  // Scoped to this user in each WHERE, so a request naming someone else's row
+  // updates nothing rather than being refused - the same shape every other
+  // write on this page uses.
+  await db.$transaction(
+    order.map(({ id, kind }, index) =>
+      kind === 'todo'
+        ? db.todo.updateMany({ where: { id, userId }, data: { boardOrder: index } })
+        : db.canvasDeadline.updateMany({ where: { id, userId }, data: { boardOrder: index } }),
+    ),
+  );
+  return { ok: true };
 }
 
 export async function removeTodoFor(userId: string, id: string): Promise<Result> {

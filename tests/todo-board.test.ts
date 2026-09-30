@@ -12,6 +12,7 @@ import {
   vancouverWeekEndUtc,
   vancouverWeekStartUtc,
 } from '@/canvas/todos';
+import { sortBoard, type BoardItem } from '@/canvas/board-order';
 
 const E = 'zz-todo-board@example.com';
 let userId: string;
@@ -165,5 +166,78 @@ describe('a deadline pulled onto the board', () => {
     const d = await aDeadline();
     expect(await setDeadlineOnBoardFor('someone-else', d.id, true)).toEqual({ ok: false, error: 'Not found.' });
     expect((await db.canvasDeadline.findUniqueOrThrow({ where: { id: d.id } })).onBoardAt).toBeNull();
+  });
+});
+
+describe('the order the board renders in', () => {
+  const item = (o: Partial<BoardItem> & { id: string }): BoardItem => ({
+    kind: 'todo', title: o.id, done: false, boardOrder: null, dueAtMs: null, ...o,
+  });
+  const ids = (list: BoardItem[]) => sortBoard(list).map((i) => i.id);
+
+  it('sinks finished rows to the bottom, whatever else they have going for them', () => {
+    const out = ids([
+      item({ id: 'done-first', title: 'A', done: true }),
+      item({ id: 'open-last', title: 'Z' }),
+    ]);
+    expect(out).toEqual(['open-last', 'done-first']);
+  });
+
+  it('sinks a finished row even when it was dragged to the top', () => {
+    const out = ids([
+      item({ id: 'dragged-done', boardOrder: 0, done: true }),
+      item({ id: 'untouched-open' }),
+    ]);
+    expect(out).toEqual(['untouched-open', 'dragged-done']);
+  });
+
+  it('puts dated things first, by when, then the rest by name', () => {
+    const out = ids([
+      item({ id: 'zebra-todo', title: 'Zebra' }),
+      item({ id: 'later', kind: 'deadline', title: 'B', dueAtMs: 2000 }),
+      item({ id: 'apple-todo', title: 'Apple' }),
+      item({ id: 'sooner', kind: 'deadline', title: 'A', dueAtMs: 1000 }),
+    ]);
+    expect(out).toEqual(['sooner', 'later', 'apple-todo', 'zebra-todo']);
+  });
+
+  it('sorts todo names case-insensitively and numerically', () => {
+    // "Reading 10" after "Reading 2", which a plain string compare gets wrong.
+    const out = ids([
+      item({ id: 'r10', title: 'reading 10' }),
+      item({ id: 'r2', title: 'Reading 2' }),
+    ]);
+    expect(out).toEqual(['r2', 'r10']);
+  });
+
+  it('lets a hand-placed row beat the default order entirely', () => {
+    const out = ids([
+      item({ id: 'urgent-deadline', kind: 'deadline', dueAtMs: 1, title: 'A' }),
+      item({ id: 'dragged-to-top', title: 'Zzz', boardOrder: 0 }),
+    ]);
+    expect(out).toEqual(['dragged-to-top', 'urgent-deadline']);
+  });
+
+  it('keeps hand-placed rows above anything added since, in the order chosen', () => {
+    const out = ids([
+      item({ id: 'new-since', title: 'Aaa' }),
+      item({ id: 'placed-2nd', title: 'Yyy', boardOrder: 1 }),
+      item({ id: 'placed-1st', title: 'Zzz', boardOrder: 0 }),
+    ]);
+    expect(out).toEqual(['placed-1st', 'placed-2nd', 'new-since']);
+  });
+
+  it('is a total order, so equal-looking rows cannot swap between renders', () => {
+    const twins = [
+      item({ id: 'b', title: 'Same' }),
+      item({ id: 'a', title: 'Same' }),
+    ];
+    expect(ids(twins)).toEqual(ids([...twins].reverse()));
+  });
+
+  it('does not mutate what it was given', () => {
+    const list = [item({ id: 'z', title: 'Z' }), item({ id: 'a', title: 'A' })];
+    sortBoard(list);
+    expect(list.map((i) => i.id)).toEqual(['z', 'a']);
   });
 });

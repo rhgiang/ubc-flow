@@ -12,6 +12,7 @@ import { updateReminderPreferencesFor } from '@/canvas/prefs';
 import {
   addTodoFor,
   removeTodoFor,
+  reorderBoardFor,
   setDeadlineOnBoardFor,
   setTodoDoneFor,
 } from '@/canvas/todos';
@@ -144,6 +145,22 @@ export async function removeTodo(id: string): Promise<Result> {
   const result = await removeTodoFor(session.user.id, id);
   if (result.ok) revalidatePath('/deadlines');
   return result;
+}
+
+/**
+ * Saves the order the student dragged the board into.
+ *
+ * No revalidatePath. The board already shows the new order, because the drag
+ * is what put it there, and the client's own refresh runs after this has
+ * returned - so by the time the page is read again the new order is what is
+ * in the table. Busting the cache on top of that would buy nothing.
+ */
+export async function reorderBoard(
+  order: { id: string; kind: 'deadline' | 'todo' }[],
+): Promise<Result> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
+  return reorderBoardFor(session.user.id, order);
 }
 
 /** Puts a deadline on the board, or takes it off. Never removes the deadline. */

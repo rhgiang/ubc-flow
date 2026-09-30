@@ -14,6 +14,7 @@ import {
   setTodoDone,
   updateReminderPreferences,
 } from '@/app/actions/canvas';
+import { settled } from '@/lib/action-result';
 import { courseColorIndex } from '@/schedule/colors';
 import CanvasConnect from '@/components/CanvasConnect';
 import DeadlinesCalendar from '@/components/DeadlinesCalendar';
@@ -150,12 +151,7 @@ export default function DeadlinesList({
    */
   async function submit(call: Promise<Result>, revert?: () => void): Promise<void> {
     setError(null);
-    let result: Result;
-    try {
-      result = await call;
-    } catch {
-      result = { ok: false, error: 'Could not reach the server. Check your connection and try again.' };
-    }
+    const result = await settled(call);
     if (!result.ok) {
       revert?.();
       return setError(result.error);

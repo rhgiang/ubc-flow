@@ -37,7 +37,9 @@ export function useCourseDetail(
     setLoading(true);
     setDetail(null);
     (async () => {
-      const result = await getCourseDetail(courseId, termId);
+      // Null on a dropped request rather than a rejection, which used to
+      // skip setLoading(false) and leave the overlay loading for ever.
+      const result = await getCourseDetail(courseId, termId).catch(() => null);
       // Cache regardless of cancellation - a response is still valid data even
       // if this component no longer wants to render it.
       if (result) cache.set(key, result);

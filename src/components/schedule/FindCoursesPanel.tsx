@@ -55,7 +55,9 @@ export default function FindCoursesPanel({
     let cancelled = false;
     setSearching(true);
     const timer = setTimeout(async () => {
-      const hits = await searchSections(trimmed, termId);
+      // Empty on a dropped request, not a rejection: the throw skipped
+      // setSearching(false) below and left the panel spinning for good.
+      const hits = await searchSections(trimmed, termId).catch(() => []);
       // A slower earlier request must never overwrite a newer one's results.
       if (cancelled) return;
       setResults(hits);

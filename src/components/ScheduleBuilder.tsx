@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { settled } from '@/lib/action-result';
 import ScheduleHeader from '@/components/schedule/ScheduleHeader';
 import SchedulePanelTabs from '@/components/schedule/SchedulePanelTabs';
 import ScheduleCalendar, { type CalendarEntry } from '@/components/schedule/ScheduleCalendar';
@@ -350,7 +351,7 @@ export default function ScheduleBuilder({
   async function onDelete() {
     if (!scheduleId) return;
     setConfirmingDelete(false);
-    const result = await deleteSchedule(scheduleId);
+    const result = await settled(deleteSchedule(scheduleId));
     if (!result.ok) {
       setError(result.error);
       return;

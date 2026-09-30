@@ -1,22 +1,47 @@
 'use client';
 
 import { useState } from 'react';
+import {
+  DndContext,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { sortBoard, type BoardItem } from '@/canvas/board-order';
 import type { DeadlineRow } from '@/components/DeadlinesList';
 
-export type TodoRow = { id: string; title: string; done: boolean };
+export type TodoRow = { id: string; title: string; done: boolean; boardOrder: number | null };
+
+/** Unique across both tables, since a Todo and a CanvasDeadline could in
+ *  principle share an id and the drag list needs one key space. */
+function keyOf(item: { kind: string; id: string }): string {
+  return `${item.kind}:${item.id}`;
+}
 
 /**
  * This week's work, in one list: the deadlines the student pulled over from
- * the other two views, and the things they wrote themselves.
+ * the other views, and the things they wrote themselves.
  *
  * Deliberately not a third rendering of a deadline. A deadline on the board
  * is the SAME row as in the list, ticked with the same action, so ticking it
  * here ticks it there; what the board adds is which ones the student decided
- * were this week's problem.
+ * were this week's problem, and what order they want to work through them in.
  *
- * Nothing here knows about weeks. The page decides what is on the board (see
- * src/canvas/todos.ts) and hands it over already filtered, so the rollover
- * rule lives in one place and this only draws.
+ * The order comes from compareBoardItems (src/canvas/todos.ts), applied HERE
+ * rather than on the server: a tick has to sink a row immediately, and the
+ * tick is optimistic, so the sort has to see the optimistic value.
  */
 export default function TodoBoard({
   weekLabel,
@@ -30,6 +55,7 @@ export default function TodoBoard({
   onAddTodo,
   onToggleTodo,
   onRemoveTodo,
+  onReorder,
 }: {
   weekLabel: string;
   /** Only the ones on the board; the page has already applied the week rule. */
@@ -45,9 +71,94 @@ export default function TodoBoard({
   onAddTodo: (title: string) => Promise<void>;
   onToggleTodo: (t: TodoRow) => void;
   onRemoveTodo: (t: TodoRow) => void;
+  onReorder: (order: { id: string; kind: 'deadline' | 'todo' }[]) => void;
 }) {
   const [title, setTitle] = useState('');
   const [saving, setSaving] = useState(false);
+  // The order the student just dragged into, held until the next server read
+  // carries it. Without it the row springs back to its old slot the moment
+  // this component re-renders, which is every tick.
+  const [dragged, setDragged] = useState<string[] | null>(null);
+
+  const sensors = useSensors(
+    // A few pixels of travel before a drag starts, so a click on the checkbox
+    // or the Delete link is still a click.
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    // Touch holds instead of moves: a swipe on a list has to stay a scroll,
+    // so this is a press-and-hold, the way it is in Notes.
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const items: BoardItem[] = [
+    ...deadlines.map((d) => ({
+      id: d.id, kind: 'deadline' as const, title: d.title,
+      done: d.done, boardOrder: d.boardOrder, dueAtMs: d.dueAtMs,
+    })),
+    ...todos.map((t) => ({
+      id: t.id, kind: 'todo' as const, title: t.title,
+      done: t.done, boardOrder: t.boardOrder, dueAtMs: null,
+    })),
+  ];
+
+  const sorted = sortBoard(items);
+  const open = sorted.filter((i) => !i.done);
+  const finished = sorted.filter((i) => i.done);
+
+  // The held order is dropped the moment it stops describing the list: an
+  // item added, ticked or removed changes which rows are open, and applying
+  // a stale order would drop the new one at the top.
+  const openKeys = open.map(keyOf);
+  const usable =
+    dragged !== null &&
+    dragged.length === openKeys.length &&
+    openKeys.every((k) => dragged.includes(k));
+  const ordered = usable
+    ? [...open].sort((a, b) => dragged!.indexOf(keyOf(a)) - dragged!.indexOf(keyOf(b)))
+    : open;
+
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const keys = ordered.map(keyOf);
+    const from = keys.indexOf(String(active.id));
+    const to = keys.indexOf(String(over.id));
+    if (from === -1 || to === -1) return;
+
+    const next = [...keys];
+    next.splice(to, 0, ...next.splice(from, 1));
+    setDragged(next);
+    onReorder(
+      next.map((k) => {
+        const [kind, ...rest] = k.split(':');
+        return { kind: kind as 'deadline' | 'todo', id: rest.join(':') };
+      }),
+    );
+  }
+
+  const byKey = new Map<string, DeadlineRow | TodoRow>([
+    ...deadlines.map((d) => [`deadline:${d.id}`, d] as [string, DeadlineRow]),
+    ...todos.map((t) => [`todo:${t.id}`, t] as [string, TodoRow]),
+  ]);
+
+  function rowFor(item: BoardItem) {
+    const source = byKey.get(keyOf(item));
+    if (!source) return null;
+    const isDeadline = item.kind === 'deadline';
+    const d = source as DeadlineRow;
+    return {
+      title: item.title,
+      done: item.done,
+      busy: busyId === item.id,
+      meta: isDeadline
+        ? `${d.courseLabel}${d.timeLabel ? ` · ${d.timeLabel}` : ''} · ${d.relativeLabel}`
+        : undefined,
+      overdue: isDeadline ? d.overdue : false,
+      onToggle: () => (isDeadline ? onToggleDeadline(d) : onToggleTodo(source as TodoRow)),
+      removeLabel: isDeadline ? 'Take off board' : 'Delete',
+      onRemove: () => (isDeadline ? onRemoveFromBoard(d) : onRemoveTodo(source as TodoRow)),
+    };
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,9 +170,6 @@ export default function TodoBoard({
     // failure the list above says why, with the text still in the error.
     setTitle('');
   }
-
-  // Both kinds carry `done`, which is what lets the board count them as one.
-  const left = [...deadlines, ...todos].filter((r) => !r.done).length;
 
   return (
     // Two columns where there is room, board first on a phone. The board is
@@ -75,41 +183,46 @@ export default function TodoBoard({
             <span className="ml-2 font-normal normal-case opacity-80">{weekLabel}</span>
           </h2>
           <p className="sky-hero text-sm opacity-80">
-            {left === 0 ? 'Nothing left.' : `${left} left`}
+            {open.length === 0 ? 'Nothing left.' : `${open.length} left`}
           </p>
         </div>
 
-        {deadlines.length === 0 && todos.length === 0 ? (
+        {items.length === 0 ? (
           <p className="sky-hero text-sm opacity-90">
             Nothing on your board yet. Write a todo below, or add one of the deadlines beside it.
           </p>
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
-            {deadlines.map((d) => (
-              <BoardItem
-                key={d.id}
-                title={d.title}
-                done={d.done}
-                busy={busyId === d.id}
-                meta={`${d.courseLabel}${d.timeLabel ? ` · ${d.timeLabel}` : ''} · ${d.relativeLabel}`}
-                overdue={d.overdue}
-                onToggle={() => onToggleDeadline(d)}
-                removeLabel="Take off board"
-                onRemove={() => onRemoveFromBoard(d)}
-              />
-            ))}
-            {todos.map((t) => (
-              <BoardItem
-                key={t.id}
-                title={t.title}
-                done={t.done}
-                busy={busyId === t.id}
-                onToggle={() => onToggleTodo(t)}
-                removeLabel="Delete"
-                onRemove={() => onRemoveTodo(t)}
-              />
-            ))}
-          </ul>
+          <div className="divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              // A list only moves up and down, and a row dragged out of the
+              // card has nowhere to land.
+              modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+              onDragEnd={onDragEnd}
+            >
+              {/* Only the unfinished rows are sortable. Finished ones live
+                  below, outside this context, so a row cannot be dropped into
+                  the done section: ticking it is what puts it there. */}
+              <SortableContext items={ordered.map(keyOf)} strategy={verticalListSortingStrategy}>
+                <ul className="divide-y divide-border">
+                  {ordered.map((item) => {
+                    const row = rowFor(item);
+                    return row && <SortableRow key={keyOf(item)} id={keyOf(item)} {...row} />;
+                  })}
+                </ul>
+              </SortableContext>
+            </DndContext>
+
+            {finished.length > 0 && (
+              <ul className="divide-y divide-border">
+                {finished.map((item) => {
+                  const row = rowFor(item);
+                  return row && <BoardItemRow key={keyOf(item)} {...row} />;
+                })}
+              </ul>
+            )}
+          </div>
         )}
 
         <form onSubmit={submit} className="flex gap-2">
@@ -133,6 +246,132 @@ export default function TodoBoard({
 
       <ComingUp items={comingUp} busyId={busyId} onAdd={onAddToBoard} />
     </div>
+  );
+}
+
+type RowProps = {
+  title: string;
+  done: boolean;
+  busy: boolean;
+  meta?: string;
+  overdue?: boolean;
+  onToggle: () => void;
+  removeLabel: string;
+  onRemove: () => void;
+};
+
+/**
+ * An unfinished row, which can be dragged.
+ *
+ * The pointer listeners go on the whole row, so a press-and-hold anywhere
+ * drags it and there is no 20px target to find on a phone. dnd-kit's
+ * `attributes` do NOT: they carry role="button" and tabIndex, and this row
+ * contains a checkbox and a Delete button. Interactive controls nested inside
+ * something claiming to be a button is how a screen reader ends up unable to
+ * reach the checkbox, which is the one control on the row that matters.
+ *
+ * So they go on a real handle instead, which is also the accessible way to
+ * drive this from a keyboard: tab to the grip, space to lift, arrows to move.
+ */
+function SortableRow({ id, ...row }: RowProps & { id: string }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <BoardItemRow
+      {...row}
+      dragging={isDragging}
+      innerRef={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      handleProps={listeners}
+      grip={
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label={`Reorder "${row.title}"`}
+          className="-my-1 shrink-0 cursor-grab touch-none rounded p-1 text-text-tertiary hover:text-foreground active:cursor-grabbing"
+        >
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden>
+            <circle cx="6" cy="4" r="1.3" /><circle cx="10" cy="4" r="1.3" />
+            <circle cx="6" cy="8" r="1.3" /><circle cx="10" cy="8" r="1.3" />
+            <circle cx="6" cy="12" r="1.3" /><circle cx="10" cy="12" r="1.3" />
+          </svg>
+        </button>
+      }
+    />
+  );
+}
+
+/** One line on the board. Same row whichever table it came from: on the board
+ *  they are the same thing, which is the point of the board. */
+function BoardItemRow({
+  title,
+  done,
+  busy,
+  meta,
+  overdue,
+  onToggle,
+  removeLabel,
+  onRemove,
+  dragging,
+  innerRef,
+  style,
+  handleProps,
+  grip,
+}: RowProps & {
+  dragging?: boolean;
+  innerRef?: (node: HTMLElement | null) => void;
+  style?: React.CSSProperties;
+  handleProps?: Record<string, unknown>;
+  grip?: React.ReactNode;
+}) {
+  return (
+    <li
+      ref={innerRef}
+      style={style}
+      // No touch-action: none here. That is what PointerSensor would need,
+      // and it would stop a swipe on a row from scrolling the page. The
+      // delayed TouchSensor above is chosen so the hold, not the CSS, is
+      // what tells a scroll from a drag.
+      className={`flex items-start gap-3 bg-surface px-3 py-2.5 ${busy ? 'opacity-50' : ''} ${
+        dragging ? 'relative z-10 shadow-lg' : ''
+      }`}
+      {...handleProps}
+    >
+      {/* The box stays 16px because that is what a checkbox looks like, but
+          the padded label around it gives a finger roughly 40px to land on. */}
+      <label className="-m-3.5 flex shrink-0 cursor-pointer items-start p-3.5">
+        <input
+          type="checkbox"
+          checked={done}
+          disabled={busy}
+          onChange={onToggle}
+          aria-label={`Mark "${title}" ${done ? 'not done' : 'done'}`}
+          className="mt-0.5 h-4 w-4 rounded border-border"
+        />
+      </label>
+
+      <div className="min-w-0 flex-1">
+        <p className={`text-sm font-medium text-foreground ${done ? 'line-through' : ''}`}>
+          {title}
+        </p>
+        {meta && (
+          <p className={`mt-0.5 text-xs ${overdue && !done ? 'text-danger' : 'text-text-tertiary'}`}>
+            {meta}
+          </p>
+        )}
+      </div>
+
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onRemove}
+        className="shrink-0 text-xs text-text-tertiary hover:text-danger hover:underline disabled:opacity-50"
+      >
+        {removeLabel}
+      </button>
+
+      {grip}
+    </li>
   );
 }
 
@@ -195,65 +434,5 @@ function ComingUp({
         </ul>
       )}
     </div>
-  );
-}
-
-/** One line on the board. Same row shape whichever kind it came from: on the
- *  board they are the same thing, which is the point of the board. */
-function BoardItem({
-  title,
-  done,
-  busy,
-  meta,
-  overdue,
-  onToggle,
-  removeLabel,
-  onRemove,
-}: {
-  title: string;
-  done: boolean;
-  busy: boolean;
-  meta?: string;
-  overdue?: boolean;
-  onToggle: () => void;
-  removeLabel: string;
-  onRemove: () => void;
-}) {
-  return (
-    <li className={`flex items-start gap-3 px-3 py-2.5 ${busy ? 'opacity-50' : ''}`}>
-      {/* The same padded hit area the deadlines list uses: the box stays 16px
-          because that is what a checkbox looks like, and the label around it
-          gives a finger roughly 40px to land on. */}
-      <label className="-m-3.5 flex shrink-0 cursor-pointer items-start p-3.5">
-        <input
-          type="checkbox"
-          checked={done}
-          disabled={busy}
-          onChange={onToggle}
-          aria-label={`Mark "${title}" ${done ? 'not done' : 'done'}`}
-          className="mt-0.5 h-4 w-4 rounded border-border"
-        />
-      </label>
-
-      <div className="min-w-0 flex-1">
-        <p className={`text-sm font-medium text-foreground ${done ? 'line-through' : ''}`}>
-          {title}
-        </p>
-        {meta && (
-          <p className={`mt-0.5 text-xs ${overdue && !done ? 'text-danger' : 'text-text-tertiary'}`}>
-            {meta}
-          </p>
-        )}
-      </div>
-
-      <button
-        type="button"
-        disabled={busy}
-        onClick={onRemove}
-        className="shrink-0 text-xs text-text-tertiary hover:text-danger hover:underline disabled:opacity-50"
-      >
-        {removeLabel}
-      </button>
-    </li>
   );
 }

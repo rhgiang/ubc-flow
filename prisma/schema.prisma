@@ -752,6 +752,10 @@ model CanvasDeadline {
   /// they take it off. The board holds a reference rather than a copy, so a
   /// title or date the professor changes still reaches it.
   onBoardAt   DateTime?
+  /// Where the student dragged this row on the board. Null means they never
+  /// moved it, and the board's default order decides where it sits. See
+  /// compareBoardItems in src/canvas/todos.ts.
+  boardOrder  Int?
   reminders   ReminderSent[]
 
   @@unique([userId, uid])
@@ -774,6 +778,10 @@ model Todo {
   createdAt   DateTime  @default(now())
   /// Ticked off by the student. Null is what keeps it on the board.
   completedAt DateTime?
+  /// Where the student dragged this row. Null means never moved; the board's
+  /// default order decides. Same column and same rule as CanvasDeadline's,
+  /// because the board sorts both kinds through one comparator.
+  boardOrder  Int?
 
   @@index([userId])
 }

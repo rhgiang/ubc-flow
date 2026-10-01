@@ -1,4 +1,12 @@
-# Nightly dump of the production database to a workflow artifact.
+# Weekly dump of the production database to a workflow artifact, encrypted.
+#
+# The artifact is AES-256 encrypted before it leaves the runner, because a
+# workflow artifact inherits the REPOSITORY's visibility: on a public repo any
+# signed-in GitHub user can download it, and this one is every account, every
+# review joined to an email, and every calendar and share token in plaintext.
+# Encrypting here means the artifact is harmless whatever the repo visibility.
+# Decrypt with:
+#   openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -md sha512 #     -in ubcflow-DATE.sql.gz.enc -out ubcflow-DATE.sql.gz -pass file:pass.txt
 #
 # The catalogue is rebuildable by the scrapers; accounts, reviews, and
 # enrollments are not, and Neon's free-tier restore window is measured in
@@ -26,17 +34,35 @@ jobs:
         run: |
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y --no-install-recommends postgresql-client-18
-      - name: Dump
+      - name: Dump and encrypt
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
+          set -euo pipefail
+          # Refuse rather than quietly upload a readable dump. Without this a
+          # missing secret becomes an empty passphrase and an artifact anyone
+          # could open, which is the exact failure this step exists to prevent.
+          if [ -z "${BACKUP_PASSPHRASE:-}" ]; then
+            echo "BACKUP_PASSPHRASE is not set. Refusing to write an unencrypted backup." >&2
+            exit 1
+          fi
           DIRECT_URL="${DATABASE_URL/-pooler/}"
+          OUT="ubcflow-$(date -u +%Y%m%d).sql.gz.enc"
+          # One pipeline, so the readable dump is never written to the runner's
+          # disk at all. pipefail makes a pg_dump failure fail the job rather
+          # than encrypting a truncated file and calling it a backup.
           /usr/lib/postgresql/18/bin/pg_dump "$DIRECT_URL" \
             --no-owner --no-privileges \
-            | gzip > "ubcflow-$(date -u +%Y%m%d).sql.gz"
-          ls -lh ubcflow-*.sql.gz
+            | gzip \
+            | openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -md sha512 -salt \
+                -pass env:BACKUP_PASSPHRASE -out "$OUT"
+          ls -lh "$OUT"
+          # This database dumps to tens of megabytes. Anything tiny means the
+          # dump failed in a way that still produced a file.
+          [ "$(stat -c%s "$OUT")" -gt 1000000 ] || { echo "Backup suspiciously small." >&2; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: db-backup-${{ github.run_id }}
-          path: ubcflow-*.sql.gz
+          path: ubcflow-*.sql.gz.enc
           retention-days: 90

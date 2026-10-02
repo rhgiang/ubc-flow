@@ -9,7 +9,7 @@ import {
   getOrCreateTokenFor,
   getEnrolledTokenFor,
   replaceScheduleSectionsFor,
-} from '@/app/actions/schedule';
+} from '@/schedule/mutations';
 
 const OWNER = 'zz-sched-owner@example.com';
 const STRANGER = 'zz-sched-stranger@example.com';

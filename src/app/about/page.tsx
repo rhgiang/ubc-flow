@@ -104,6 +104,30 @@ export default function AboutPage() {
                   GitHub ↗
                 </a>
               </p>
+              {/* UBC Flow is AGPL, and the point of that licence is that
+                  anyone using the running site can get the source it runs on.
+                  A link to the author's profile is not that; this is. */}
+              <p className="mt-4 text-sm text-text-secondary">
+                UBC Flow is open source under the{' '}
+                <a
+                  href="https://github.com/rhgiang/ubc-flow/blob/main/LICENSE"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-accent hover:underline"
+                >
+                  GNU AGPL v3
+                </a>
+                . Read the code, file an issue, or run your own copy:{' '}
+                <a
+                  href="https://github.com/rhgiang/ubc-flow"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-accent hover:underline"
+                >
+                  github.com/rhgiang/ubc-flow
+                </a>
+                .
+              </p>
             </div>
           </div>
         </section>

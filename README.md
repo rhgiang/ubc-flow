@@ -29,7 +29,12 @@ npm run dev
 | `SERVER_SECRET` | Server-side token signing |
 | `NEXTAUTH_URL` | **Public origin.** Verification and password-reset emails are built from it; leave it unset in production and every link points at the recipient's own machine |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth. Redirect URI is `<origin>/api/auth/callback/google` |
-| `RESEND_API_KEY` / `MAIL_FROM` | Transactional email |
+| `RESEND_API_KEY` / `MAIL_FROM` | Transactional email. `MAIL_FROM` must be an address on a domain verified in Resend; the sandbox sender only delivers to the Resend account owner, which fails silently for everyone else |
+| `FEED_ENCRYPTION_KEY` | 32 hex bytes, encrypts stored Canvas feed URLs. `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Not rotatable without every student reconnecting |
+| `ANTHROPIC_API_KEY` | Syllabus assessment extraction. Costs real money per call; the feature is capped per user per day |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob, private store, holds uploaded syllabus PDFs |
+| `NEXT_PUBLIC_GA_ID` | Google Analytics. The only `NEXT_PUBLIC_` variable, and the only one that reaches the browser |
+| `ALERT_EMAIL` | Optional. Where `src/instrumentation.ts` sends server errors |
 
 ### After pulling schema changes
 
@@ -119,6 +124,8 @@ prerequisite and never places a course in a term it isn't offered.**
 ---
 
 ## Licence
+
+Copyright (C) 2026 Ryan Giang.
 
 [GNU AGPL v3](LICENSE). Read it, run it, learn from it, fork it. If you run a
 modified copy as a service other people can reach, publish your changes.

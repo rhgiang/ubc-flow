@@ -1,0 +1,1149 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:icalendar-ruby
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Test Student Calendar (Canvas)
+X-WR-CALDESC:Calendar events for the user\, Test Student
+BEGIN:VEVENT
+DTSTAMP:20260910T204400Z
+UID:event-assignment-2500037
+DTSTART:20260912T050000Z
+DTEND:20260912T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Pre-class: Reading Response 1 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260914T184600Z
+UID:event-assignment-2500074
+DTSTART:20260914T050000Z
+DTEND:20260914T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:worksheet_topic_2 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260920T160200Z
+UID:event-assignment-override-2500111
+DTSTART:20260915T070100Z
+DTEND:20260915T070100Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Quiz 3: Concepts and Applications [HIST_V 102 101/102/103 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260920T160200Z
+UID:event-assignment-override-2500148
+DTSTART:20260915T070100Z
+DTEND:20260915T070100Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:#4 ASSIGNMENT [HIST_V 102 101/102/103 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260909T070000Z
+UID:event-assignment-2500185
+DTSTART:20260916T050000Z
+DTEND:20260916T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Writing Exercise: Draft 5 [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260914T071200Z
+UID:event-assignment-2500222
+DTSTART:20260916T050000Z
+DTEND:20260916T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Problem Set 6 [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260911T222900Z
+UID:event-assignment-2500259
+DTSTART:20260916T050000Z
+DTEND:20260916T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Pre-class: Reading Response 7 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260911T222900Z
+UID:event-assignment-2500296
+DTSTART:20260916T050000Z
+DTEND:20260916T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:worksheet_topic_8 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260911T223000Z
+UID:event-assignment-2500333
+DTSTART:20260916T050000Z
+DTEND:20260916T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Quiz 9: Concepts and Applications [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260911T223000Z
+UID:event-assignment-2500370
+DTSTART:20260916T050000Z
+DTEND:20260916T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:#10 ASSIGNMENT [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260920T160200Z
+UID:event-assignment-override-2500407
+DTSTART:20260920T070100Z
+DTEND:20260920T070100Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Writing Exercise: Draft 11 [HIST_V 102 101/102/103 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260920T160200Z
+UID:event-assignment-override-2500444
+DTSTART:20260920T070100Z
+DTEND:20260920T070100Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Problem Set 12 [HIST_V 102 101/102/103 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260920T231200Z
+UID:event-assignment-2500481
+DTSTART:20260921T050000Z
+DTEND:20260921T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Pre-class: Reading Response 13 [GEOG_V 122 004/005 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260914T070000Z
+UID:event-assignment-2500518
+DTSTART;VALUE=DATE;VALUE=DATE:20260921
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:worksheet_topic_14 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260914T070000Z
+UID:event-assignment-2500555
+DTSTART;VALUE=DATE;VALUE=DATE:20260921
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Quiz 15: Concepts and Applications [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260822T021900Z
+UID:event-assignment-2500592
+DTSTART:20260923T050000Z
+DTEND:20260923T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:#16 ASSIGNMENT [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260916T183100Z
+UID:event-assignment-2500629
+DTSTART:20260928T050000Z
+DTEND:20260928T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Writing Exercise: Draft 17 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260918T225400Z
+UID:event-assignment-2500666
+DTSTART:20260928T050000Z
+DTEND:20260928T050000Z
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Problem Set 18 [GEOG_V 122 004/005 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260918T225700Z
+UID:event-assignment-2500703
+DTSTART:20260928T050000Z
+DTEND:20260928T050000Z
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Pre-class: Reading Response 19 [GEOG_V 122 004/005 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260804T073900Z
+UID:event-assignment-2500740
+DTSTART;VALUE=DATE;VALUE=DATE:20260928
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:worksheet_topic_20 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260906T002300Z
+UID:event-assignment-2500777
+DTSTART;VALUE=DATE;VALUE=DATE:20260928
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Quiz 21: Concepts and Applications [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260813T212600Z
+UID:event-assignment-2500814
+DTSTART;VALUE=DATE;VALUE=DATE:20260928
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:#22 ASSIGNMENT [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260813T212800Z
+UID:event-assignment-2500851
+DTSTART;VALUE=DATE;VALUE=DATE:20260928
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Writing Exercise: Draft 23 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260813T212400Z
+UID:event-assignment-2500888
+DTSTART;VALUE=DATE;VALUE=DATE:20260928
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Problem Set 24 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260813T212700Z
+UID:event-assignment-2500925
+DTSTART;VALUE=DATE;VALUE=DATE:20260928
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Pre-class: Reading Response 25 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260822T022000Z
+UID:event-assignment-2500962
+DTSTART:20260930T050000Z
+DTEND:20260930T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:worksheet_topic_26 [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260914T060700Z
+UID:event-assignment-2500999
+DTSTART:20261005T050000Z
+DTEND:20261005T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Quiz 27: Concepts and Applications [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260918T201200Z
+UID:event-assignment-2501036
+DTSTART:20261005T050000Z
+DTEND:20261005T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:#28 ASSIGNMENT [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T195300Z
+UID:event-assignment-2501073
+DTSTART;VALUE=DATE;VALUE=DATE:20261005
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Writing Exercise: Draft 29 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260813T220200Z
+UID:event-assignment-2501110
+DTSTART;VALUE=DATE;VALUE=DATE:20261005
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Problem Set 30 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260813T223000Z
+UID:event-assignment-2501147
+DTSTART;VALUE=DATE;VALUE=DATE:20261005
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Pre-class: Reading Response 31 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260813T220300Z
+UID:event-assignment-2501184
+DTSTART;VALUE=DATE;VALUE=DATE:20261005
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:worksheet_topic_32 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260813T222900Z
+UID:event-assignment-2501221
+DTSTART;VALUE=DATE;VALUE=DATE:20261005
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Quiz 33: Concepts and Applications [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260822T022000Z
+UID:event-assignment-2501258
+DTSTART:20261008T050000Z
+DTEND:20261008T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:#34 ASSIGNMENT [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260822T022300Z
+UID:event-assignment-2501295
+DTSTART:20261009T010000Z
+DTEND:20261009T010000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Writing Exercise: Draft 35 [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260908T052000Z
+UID:event-assignment-2501332
+DTSTART:20261012T050000Z
+DTEND:20261012T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Problem Set 36 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260904T004300Z
+UID:event-assignment-2501369
+DTSTART:20261016T050000Z
+DTEND:20261016T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Pre-class: Reading Response 37 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260904T004300Z
+UID:event-assignment-2501406
+DTSTART:20261016T050000Z
+DTEND:20261016T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:worksheet_topic_38 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260908T055400Z
+UID:event-assignment-2501443
+DTSTART:20261017T050000Z
+DTEND:20261017T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Quiz 39: Concepts and Applications [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260914T184800Z
+UID:event-assignment-2501480
+DTSTART;VALUE=DATE;VALUE=DATE:20261018
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:#40 ASSIGNMENT [GEOG_V 122 004/005 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260822T022000Z
+UID:event-assignment-2501517
+DTSTART:20261020T050000Z
+DTEND:20261020T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Writing Exercise: Draft 41 [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T204500Z
+UID:event-assignment-2501554
+DTSTART;VALUE=DATE;VALUE=DATE:20261019
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Problem Set 42 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T204400Z
+UID:event-assignment-2501591
+DTSTART;VALUE=DATE;VALUE=DATE:20261019
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Pre-class: Reading Response 43 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260822T022000Z
+UID:event-assignment-2501628
+DTSTART:20261027T050000Z
+DTEND:20261027T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:worksheet_topic_44 [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T230800Z
+UID:event-assignment-2501665
+DTSTART;VALUE=DATE;VALUE=DATE:20261026
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Quiz 45: Concepts and Applications [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T225900Z
+UID:event-assignment-2501702
+DTSTART;VALUE=DATE;VALUE=DATE:20261026
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:#46 ASSIGNMENT [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T230000Z
+UID:event-assignment-2501739
+DTSTART;VALUE=DATE;VALUE=DATE:20261026
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Writing Exercise: Draft 47 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260904T004300Z
+UID:event-assignment-2501776
+DTSTART:20261031T050000Z
+DTEND:20261031T050000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Problem Set 48 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260822T022000Z
+UID:event-assignment-2501813
+DTSTART:20261103T060000Z
+DTEND:20261103T060000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Pre-class: Reading Response 49 [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T231100Z
+UID:event-assignment-2501850
+DTSTART;VALUE=DATE;VALUE=DATE:20261102
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:worksheet_topic_50 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T231100Z
+UID:event-assignment-2501887
+DTSTART;VALUE=DATE;VALUE=DATE:20261102
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Quiz 51: Concepts and Applications [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T231000Z
+UID:event-assignment-2501924
+DTSTART;VALUE=DATE;VALUE=DATE:20261102
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:#52 ASSIGNMENT [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T230900Z
+UID:event-assignment-2501961
+DTSTART;VALUE=DATE;VALUE=DATE:20261102
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Writing Exercise: Draft 53 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260908T055800Z
+UID:event-assignment-2501998
+DTSTART:20261104T060000Z
+DTEND:20261104T060000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Problem Set 54 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260822T022100Z
+UID:event-assignment-2502035
+DTSTART:20261109T060000Z
+DTEND:20261109T060000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Pre-class: Reading Response 55 [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260908T061300Z
+UID:event-assignment-2502072
+DTSTART:20261109T060000Z
+DTEND:20261109T060000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:worksheet_topic_56 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T232500Z
+UID:event-assignment-2502109
+DTSTART;VALUE=DATE;VALUE=DATE:20261109
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Quiz 57: Concepts and Applications [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260822T022300Z
+UID:event-assignment-2502146
+DTSTART:20261113T020000Z
+DTEND:20261113T020000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:#58 ASSIGNMENT [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260908T061500Z
+UID:event-assignment-2502183
+DTSTART:20261117T060000Z
+DTEND:20261117T060000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Writing Exercise: Draft 59 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260904T004300Z
+UID:event-assignment-2502220
+DTSTART:20261117T060000Z
+DTEND:20261117T060000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Problem Set 60 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T233400Z
+UID:event-assignment-2502257
+DTSTART;VALUE=DATE;VALUE=DATE:20261116
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Pre-class: Reading Response 61 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T233300Z
+UID:event-assignment-2502294
+DTSTART;VALUE=DATE;VALUE=DATE:20261116
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:worksheet_topic_62 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260822T022100Z
+UID:event-assignment-2502331
+DTSTART:20261124T060000Z
+DTEND:20261124T060000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Quiz 63: Concepts and Applications [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260819T235300Z
+UID:event-assignment-2502368
+DTSTART;VALUE=DATE;VALUE=DATE:20261123
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:#64 ASSIGNMENT [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260904T004300Z
+UID:event-assignment-2502405
+DTSTART:20261128T060000Z
+DTEND:20261128T060000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Writing Exercise: Draft 65 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260916T034400Z
+UID:event-assignment-2502442
+DTSTART:20261130T060000Z
+DTEND:20261130T060000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Problem Set 66 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260822T022100Z
+UID:event-assignment-2502479
+DTSTART:20261201T060000Z
+DTEND:20261201T060000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Pre-class: Reading Response 67 [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100222
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260916T034200Z
+UID:event-assignment-2502516
+DTSTART:20261207T060000Z
+DTEND:20261207T060000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:worksheet_topic_68 [ASTR_V 101 001 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100333
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260822T022100Z
+UID:event-assignment-2502553
+DTSTART:20261208T060000Z
+DTEND:20261208T060000Z
+CLASS:PUBLIC
+DESCRIPTION:Submit your work through the assignment page before the deadli
+ ne. Late submissions are handled under the policy in the course syllabus.
+  Read the rubric before you start\, and bring questions to office hours. 
+ This text stands in for the instructor prose a real feed carries\, at a s
+ imilar length so the folding behaves the same way.
+SEQUENCE:0
+SUMMARY:Quiz 69: Concepts and Applications [PHIL_V 120 12A 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100444
+X-ALT-DESC;FMTTYPE=text/html:Submit your work through the assignment page 
+ before the deadline. Late submissions are handled under the policy in the
+  course syllabus. Read the rubric before you start\, and bring questions 
+ to office hours. This text stands in for the instructor prose a real feed
+  carries\, at a similar length so the folding behaves the same way.
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260820T003400Z
+UID:event-assignment-2502590
+DTSTART;VALUE=DATE;VALUE=DATE:20261207
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:#70 ASSIGNMENT [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100000
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260820T000900Z
+UID:event-assignment-2502627
+DTSTART;VALUE=DATE;VALUE=DATE:20261207
+CLASS:PUBLIC
+SEQUENCE:0
+SUMMARY:Writing Exercise: Draft 71 [MUSC_V 103 002 2026W1]
+URL;VALUE=URI:https://canvas.ubc.ca/calendar?include_contexts=course_100111
+END:VEVENT
+END:VCALENDAR

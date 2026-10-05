@@ -815,3 +815,21 @@ model ReminderSent {
   @@unique([deadlineId, notice])
   @@index([userId, deliveredAt])
 }
+
+/// One row per kind of error that has alerted, so the fifteen-minute cooldown
+/// on alert emails is shared by every server instance instead of each holding
+/// its own timer in memory.
+///
+/// The memory version looked fine at one instance and fell apart at several:
+/// errors coming from five deployments at once each got a fresh timer, so
+/// twelve errors in a day sent roughly twelve emails. Keyed per error rather
+/// than globally, so a noisy one cannot mute a new and different one.
+model ErrorAlert {
+  /// The error's digest when it has one, else its message. Its identity.
+  key        String   @id
+  lastSentAt DateTime
+  /// How many of this error have happened since the last email went out, so
+  /// the next one can say how much it is standing in for. Reading an inbox
+  /// should not be how you estimate volume.
+  suppressed Int      @default(0)
+}

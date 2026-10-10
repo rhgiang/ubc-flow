@@ -110,9 +110,16 @@ function Cell({
 }) {
   return (
     // Fixed height, not min-height: every square the same size is what makes
-    // the grid read as a calendar at a glance.
+    // the grid read as a calendar at a glance. A column layout with it, so the
+    // "+N more" below can be pinned rather than left to fall off the bottom.
+    //
+    // sm:h-32, not h-28. At h-28 the usable space came to 80px and three chips
+    // plus the "+N more" line want about 82, so the line that says there IS
+    // more was itself the thing clipped off - on every screen, not just small
+    // ones. 128px leaves room to spare, and the flex below means a larger
+    // system font eats into the chips instead of hiding that line again.
     <div
-      className={`relative h-16 overflow-hidden bg-surface p-1 align-top sm:h-28 ${
+      className={`relative flex h-16 flex-col overflow-hidden bg-surface p-1 align-top sm:h-32 ${
         cell.day === null ? 'opacity-40' : ''
       } ${selected ? 'ring-2 ring-inset ring-brand-accent' : ''}`}
     >
@@ -154,16 +161,21 @@ function Cell({
         </button>
       )}
 
-      <div className="hidden space-y-1 sm:block">
-        {cell.items.slice(0, MAX_CHIPS).map((item) => (
-          <Chip key={item.id} item={item} onToggle={onToggle} busy={busyId === item.id} />
-        ))}
+      <div className="hidden min-h-0 flex-1 flex-col sm:flex">
+        {/* The chips give up room first. Whatever happens to them, the line
+            below stays readable, because a cut-off "+2 more" is worse than
+            one fewer chip: it is the only thing telling you to look. */}
+        <div className="min-h-0 flex-1 space-y-1 overflow-hidden">
+          {cell.items.slice(0, MAX_CHIPS).map((item) => (
+            <Chip key={item.id} item={item} onToggle={onToggle} busy={busyId === item.id} />
+          ))}
+        </div>
         {cell.items.length > MAX_CHIPS && (
           <button
             type="button"
             onClick={onOpen}
             aria-expanded={selected}
-            className="block w-full px-1 text-left text-xs text-text-tertiary hover:text-foreground hover:underline"
+            className="block w-full shrink-0 px-1 text-left text-xs text-text-tertiary hover:text-foreground hover:underline"
           >
             {`+${cell.items.length - MAX_CHIPS} more`}
           </button>

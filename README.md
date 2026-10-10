@@ -1,4 +1,9 @@
-# UBC Flow
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-dark.png">
+    <img src="docs/brand/logo-light.png" alt="UBC Flow" width="320">
+  </picture>
+</p>
 
 Course planning for UBC students: course and professor reviews, real grade
 distributions, a schedule builder that syncs to your calendar, and term-by-term

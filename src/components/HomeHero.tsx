@@ -50,7 +50,7 @@ export default function HomeHero() {
     >
       {/* text-2xl on phones: at 30px the headline ran four lines and owned
           most of the first screen, reading oversized next to other apps. */}
-      <h1 className="sky-hero text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
+      <h1 className="sky-hero sky-hero-photo text-2xl font-semibold tracking-tight sm:text-4xl">
         Search and explore course and professor reviews from UBC students
       </h1>
 

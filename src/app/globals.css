@@ -642,6 +642,31 @@ body {
 }
 
 /*
+ * The home headline stays white on every sky, by choice.
+ *
+ * It is the one place the sky is shown at FULL strength - every other page
+ * dims it to a backdrop - and white over the photograph is the look the front
+ * door is built around. The headline is also large and bold, so its floor is
+ * WCAG's 3:1 rather than 4.5:1, which white clears on the blue skies.
+ *
+ * It does not clear it on the pale grey weathers, where white measures about
+ * 2.27:1. That is a known, deliberate exception on one heading, not an
+ * oversight: the rest of the site, and everything anyone has to READ rather
+ * than glance at, takes the navy above.
+ *
+ * A class rather than :root:not([data-sky-dim]), which would be the obvious
+ * hook: that attribute is set in a client effect, so scoping to it would
+ * paint every content page's heading white and then flip it to navy.
+ */
+.sky-hero-photo {
+  --foreground: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.88);
+  --text-tertiary: rgba(255, 255, 255, 0.72);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(6, 12, 28, 0.45), 0 1px 24px rgba(12, 18, 40, 0.5);
+}
+
+/*
  * Row height for the week calendar, as a variable rather than a number in the
  * component, so the phone's shorter hour is a media query and never a second
  * server/client render.

@@ -418,17 +418,26 @@ export default function DeadlinesList({
         </div>
       </details>
 
-      {/* Shown in every view, including a week already gone. It is page
-          chrome rather than part of the week below it: the counts are your
-          deadlines overall and Add a deadline adds to them, neither of which
-          changes with the week you happen to be looking at. Hiding it in a
-          past week also took its height with it, so the two columns jumped
-          up the moment you pressed the back arrow. */}
+      {/* The row itself is shown in every view, including a week already
+          gone: Add a deadline adds to your deadlines, not to the week on
+          screen, and hiding the row took its height with it, so both columns
+          jumped the moment you pressed the back arrow.
+
+          The COUNT sits out the Todo tab. It is every outstanding deadline
+          you have, which read as a contradiction directly above a heading
+          saying "Week of Oct 12" - and the board already carries the right
+          number for whichever week is open, in that heading. An empty span
+          rather than nothing, so justify-between still has two children and
+          the button does not slide to the left. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="sky-hero text-sm">
-          {openCount === 0 ? 'Nothing outstanding.' : `${openCount} to go`}
-          {doneCount > 0 && <span className="opacity-75">{` · ${doneCount} done`}</span>}
-        </p>
+        {view === 'todo' ? (
+          <span aria-hidden />
+        ) : (
+          <p className="sky-hero text-sm">
+            {openCount === 0 ? 'Nothing outstanding.' : `${openCount} to go`}
+            {doneCount > 0 && <span className="opacity-75">{` · ${doneCount} done`}</span>}
+          </p>
+        )}
         {!adding && (
           <button
             type="button"

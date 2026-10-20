@@ -196,23 +196,29 @@ export default function TodoBoard({
     setTitle('');
   }
 
-  // A week already gone is a record, not a plan: one column, no Coming up,
-  // nothing to add and nothing to drag.
+  // A week already gone is a record, not a plan, so the left column loses the
+  // add box and the dragging. Coming up stays: the two columns answer
+  // different questions, and the right one is always about now - you look
+  // back at what you did, then put the next thing on today's board.
   if (!isCurrentWeek && finished !== null) {
     return (
-      <div className="space-y-5">
-        <WeekNav
-          weekLabel={weekLabel}
-          isCurrentWeek={false}
-          prevWeek={prevWeek}
-          nextWeek={nextWeek}
-          trailing={
-            <p className="sky-hero text-sm opacity-80">
-              {finished.length === 0 ? 'Nothing finished.' : `${finished.length} finished`}
-            </p>
-          }
-        />
-        <FinishedWeek rows={finished} busyId={busyId} onToggle={onToggleFinished} />
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="space-y-5">
+          <WeekNav
+            weekLabel={weekLabel}
+            isCurrentWeek={false}
+            prevWeek={prevWeek}
+            nextWeek={nextWeek}
+            trailing={
+              <p className="sky-hero text-sm opacity-80">
+                {finished.length === 0 ? 'Nothing finished.' : `${finished.length} finished`}
+              </p>
+            }
+          />
+          <FinishedWeek rows={finished} busyId={busyId} onToggle={onToggleFinished} />
+        </div>
+
+        <ComingUp items={comingUp} busyId={busyId} onAdd={onAddToBoard} />
       </div>
     );
   }

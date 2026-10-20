@@ -283,9 +283,9 @@ export default function DeadlinesList({
     // serving both badly.
     <div
       className={`mx-auto w-full space-y-5 ${
-        // The month grid and the live board want the room; the list and a
-        // past week's record both read better narrow.
-        view === 'list' || (view === 'todo' && !isCurrentWeek) ? 'max-w-2xl' : 'max-w-5xl'
+        // The month grid and the board both want the room - a past week keeps
+        // the two columns, since Coming up stays beside it.
+        view === 'list' ? 'max-w-2xl' : 'max-w-5xl'
       }`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">

@@ -418,11 +418,13 @@ export default function DeadlinesList({
         </div>
       </details>
 
-      <div
-        className={`flex flex-wrap items-center justify-between gap-3 ${
-          view === 'todo' && !isCurrentWeek ? 'hidden' : ''
-        }`}
-      >
+      {/* Shown in every view, including a week already gone. It is page
+          chrome rather than part of the week below it: the counts are your
+          deadlines overall and Add a deadline adds to them, neither of which
+          changes with the week you happen to be looking at. Hiding it in a
+          past week also took its height with it, so the two columns jumped
+          up the moment you pressed the back arrow. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="sky-hero text-sm">
           {openCount === 0 ? 'Nothing outstanding.' : `${openCount} to go`}
           {doneCount > 0 && <span className="opacity-75">{` · ${doneCount} done`}</span>}

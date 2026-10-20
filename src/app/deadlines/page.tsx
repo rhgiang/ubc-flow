@@ -6,8 +6,12 @@ import { LEAD_CHOICES } from '@/canvas/prefs';
 import { formatVancouver, vancouverDayKey } from '@/canvas/tz';
 import { isManualUid } from '@/canvas/diff';
 import {
+  adjacentWeeks,
+  finishedInWeek,
   isComingUp,
   stillOnBoard,
+  weekParam,
+  weekStartFromParam,
   todosForBoard,
   vancouverWeekEndUtc,
   vancouverWeekStartUtc,
@@ -143,7 +147,14 @@ function SignedOut() {
   );
 }
 
-export default async function DeadlinesPage() {
+export default async function DeadlinesPage({
+  searchParams,
+}: {
+  /** ?week=YYYY-MM-DD, the Monday of a week already finished. Absent is this
+   *  week. In the URL rather than in state so the back button works, the view
+   *  can be linked, and the date maths all happens here - see toRow. */
+  searchParams: Promise<{ week?: string | string[] }>;
+}) {
   const session = await auth();
   // Not a redirect to /login. This is a nav pill now, so a signed-out
   // visitor will click it, and bouncing them into a bare login form says
@@ -199,11 +210,20 @@ export default async function DeadlinesPage() {
   }
 
   const now = currentTimeMs();
-  const weekStart = vancouverWeekStartUtc(new Date(now));
+  const asked = (await searchParams).week;
+  const thisWeek = vancouverWeekStartUtc(new Date(now));
+  // An unreadable or future week falls back to this one rather than erroring:
+  // a bad link should land somewhere useful.
+  const weekStart = weekStartFromParam(Array.isArray(asked) ? asked[0] : asked, new Date(now)) ?? thisWeek;
+  const isCurrentWeek = weekStart.getTime() === thisWeek.getTime();
   const rows = deadlines.filter((d) => stillWorthShowing(d, now)).map((d) => toRow(d, now, weekStart));
   // The board's own rows. Fetched after the feed check above, so a student
   // with no Canvas connection never pays for the query.
-  const todos = await todosForBoard(userId, new Date(now));
+  // This week shows the live board; a past week shows what was finished in
+  // it. Only one of the two queries ever runs.
+  const todos = isCurrentWeek ? await todosForBoard(userId, new Date(now)) : [];
+  const finished = isCurrentWeek ? null : await finishedInWeek(userId, weekStart);
+  const { prev, next } = adjacentWeeks(weekStart, new Date(now));
 
   // No max-width here: the list reads best narrow and a month grid needs the
   // room, so DeadlinesList sets its own width from whichever view is showing.
@@ -226,6 +246,34 @@ export default async function DeadlinesPage() {
           boardOrder: t.boardOrder,
         }))}
         weekLabel={weekRange(weekStart)}
+        isCurrentWeek={isCurrentWeek}
+        prevWeek={weekParam(prev)}
+        nextWeek={next ? weekParam(next) : null}
+        finished={
+          finished === null
+            ? null
+            : [
+                ...finished.deadlines.map((d) => ({
+                  id: d.id,
+                  kind: 'deadline' as const,
+                  title: d.title,
+                  courseLabel: shortCourseLabel(d.courseName),
+                  courseName: d.courseName,
+                  // Formatted here with every other date on this page.
+                  dayLabel: formatVancouver(d.completedAt!, true),
+                  at: d.completedAt!.getTime(),
+                })),
+                ...finished.todos.map((t) => ({
+                  id: t.id,
+                  kind: 'todo' as const,
+                  title: t.title,
+                  courseLabel: '',
+                  courseName: '',
+                  dayLabel: formatVancouver(t.completedAt!, true),
+                  at: t.completedAt!.getTime(),
+                })),
+              ].sort((a, b) => a.at - b.at)
+        }
         todayKey={vancouverDayKey(new Date(now))}
       />
     </main>

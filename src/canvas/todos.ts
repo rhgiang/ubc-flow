@@ -104,6 +104,74 @@ export async function todosForBoard(userId: string, now: Date) {
   });
 }
 
+/**
+ * The Monday of the week a `?week=YYYY-MM-DD` parameter names, or null if it
+ * names nothing we can use.
+ *
+ * Deliberately strict rather than forgiving: a week the student did not ask
+ * for, silently substituted for one they did, is worse than falling back to
+ * this week. Any date inside the week resolves to its Monday, so a link to
+ * mid-week still lands somewhere sensible.
+ */
+export function weekStartFromParam(raw: string | undefined, now: Date): Date | null {
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const [y, m, d] = raw.split('-').map(Number);
+  // Noon, not midnight: the parameter is a calendar day, and noon in
+  // Vancouver is the same calendar day whatever the offset does around it.
+  const at = zonedToUtc(y, m, d, 12, 0, 0, VANCOUVER);
+  if (Number.isNaN(at.getTime())) return null;
+  const start = vancouverWeekStartUtc(at);
+  // A week in the future has nothing finished in it and no board to plan, so
+  // it is not a week this view can show.
+  return start > vancouverWeekStartUtc(now) ? null : start;
+}
+
+/** "2026-10-12", the value `?week=` wants for a given Monday. */
+export function weekParam(weekStart: Date): string {
+  return vancouverDayKey(weekStart);
+}
+
+/** The Monday before and after, for the arrows. `next` is null in the current
+ *  week, which is what disables the forward arrow. */
+export function adjacentWeeks(weekStart: Date, now: Date): { prev: Date; next: Date | null } {
+  const shift = (days: number) => vancouverWeekStartUtc(new Date(weekStart.getTime() + days * 24 * 3600_000 + 12 * 3600_000));
+  const next = shift(7);
+  return { prev: shift(-7), next: next > vancouverWeekStartUtc(now) ? null : next };
+}
+
+/**
+ * Everything the student finished during one week - both tables, regardless
+ * of whether it ever sat on the board.
+ *
+ * Only completions, and that is not a shortfall. An unfinished row has no
+ * week to belong to: it never leaves, so it is equally a member of every week
+ * since it was written, and filing it under one of them would be a small lie.
+ * What it means in practice is that nothing falls through the gap - anything
+ * unfinished from a past week is still on the CURRENT board, in front of you.
+ *
+ * The window is inclusive at both ends, which is the whole subtlety: a thing
+ * ticked off at 00:00:00 on the Monday belongs to that week, and so does one
+ * ticked at 23:59:59 on the Sunday.
+ */
+export async function finishedInWeek(userId: string, weekStart: Date) {
+  const weekEnd = vancouverWeekEndUtc(weekStart);
+  const window = { gte: weekStart, lte: weekEnd };
+
+  const [todos, deadlines] = await Promise.all([
+    db.todo.findMany({
+      where: { userId, completedAt: window },
+      orderBy: { completedAt: 'asc' },
+      select: { id: true, title: true, completedAt: true },
+    }),
+    db.canvasDeadline.findMany({
+      where: { userId, completedAt: window },
+      orderBy: { completedAt: 'asc' },
+      select: { id: true, title: true, courseName: true, completedAt: true },
+    }),
+  ]);
+  return { todos, deadlines };
+}
+
 export async function addTodoFor(userId: string, rawTitle: string): Promise<Result> {
   const title = rawTitle.trim().slice(0, MAX_TITLE);
   if (title === '') return { ok: false, error: 'Give it a name.' };

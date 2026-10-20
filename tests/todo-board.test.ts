@@ -6,8 +6,12 @@ import {
   removeTodoFor,
   setDeadlineOnBoardFor,
   setTodoDoneFor,
+  adjacentWeeks,
+  finishedInWeek,
   isComingUp,
   stillOnBoard,
+  weekParam,
+  weekStartFromParam,
   todosForBoard,
   vancouverWeekEndUtc,
   vancouverWeekStartUtc,
@@ -239,5 +243,93 @@ describe('the order the board renders in', () => {
     const list = [item({ id: 'z', title: 'Z' }), item({ id: 'a', title: 'A' })];
     sortBoard(list);
     expect(list.map((i) => i.id)).toEqual(['z', 'a']);
+  });
+});
+
+describe('moving between weeks', () => {
+  // Mon Oct 12 2026 is a Monday; 07:00Z is midnight Pacific on it.
+  const NOW = new Date('2026-10-14T20:00:00Z'); // a Wednesday
+  const THIS_MONDAY = '2026-10-12T07:00:00.000Z';
+
+  it('takes a Monday, and any day inside a week, back to that Monday', () => {
+    expect(weekStartFromParam('2026-10-05', NOW)?.toISOString()).toBe('2026-10-05T07:00:00.000Z');
+    // A link to mid-week still lands somewhere sensible rather than nowhere.
+    expect(weekStartFromParam('2026-10-08', NOW)?.toISOString()).toBe('2026-10-05T07:00:00.000Z');
+  });
+
+  it('refuses a week that has not happened, and anything it cannot read', () => {
+    // A future week has nothing finished in it and no board to plan.
+    expect(weekStartFromParam('2026-10-19', NOW)).toBeNull();
+    expect(weekStartFromParam('next monday', NOW)).toBeNull();
+    expect(weekStartFromParam('2026-13-45', NOW)).toBeNull();
+    expect(weekStartFromParam(undefined, NOW)).toBeNull();
+  });
+
+  it('allows the current week itself', () => {
+    expect(weekStartFromParam('2026-10-12', NOW)?.toISOString()).toBe(THIS_MONDAY);
+  });
+
+  it('steps back a week at a time and stops going forward at the current one', () => {
+    const current = vancouverWeekStartUtc(NOW);
+    expect(adjacentWeeks(current, NOW).prev.toISOString()).toBe('2026-10-05T07:00:00.000Z');
+    // No forward arrow in the current week: there is nothing ahead to show.
+    expect(adjacentWeeks(current, NOW).next).toBeNull();
+    const past = vancouverWeekStartUtc(new Date('2026-10-07T20:00:00Z'));
+    expect(adjacentWeeks(past, NOW).next?.toISOString()).toBe(THIS_MONDAY);
+  });
+
+  it('round-trips a Monday through the url parameter', () => {
+    const current = vancouverWeekStartUtc(NOW);
+    expect(weekStartFromParam(weekParam(current), NOW)?.toISOString()).toBe(current.toISOString());
+  });
+});
+
+describe('what a past week shows', () => {
+  const MONDAY = vancouverWeekStartUtc(new Date('2026-10-14T20:00:00Z'));
+  const at = (ms: number) => new Date(MONDAY.getTime() + ms);
+
+  beforeEach(async () => {
+    await db.todo.deleteMany({ where: { userId } });
+    await db.canvasDeadline.deleteMany({ where: { userId } });
+  });
+
+  async function todoDoneAt(title: string, when: Date | null) {
+    return db.todo.create({ data: { userId, title, completedAt: when } });
+  }
+  async function deadlineDoneAt(uid: string, title: string, when: Date | null, onBoard = false) {
+    return db.canvasDeadline.create({
+      data: { userId, uid, kind: 'assignment', title, courseName: 'CPSC 110 101',
+        dueAt: at(0), allDay: false, completedAt: when, onBoardAt: onBoard ? new Date() : null },
+    });
+  }
+
+  it('includes both ends of the week and excludes a second either side', async () => {
+    await todoDoneAt('first instant', MONDAY);
+    await todoDoneAt('last instant', vancouverWeekEndUtc(MONDAY));
+    await todoDoneAt('a second early', new Date(MONDAY.getTime() - 1000));
+    await todoDoneAt('a second late', new Date(vancouverWeekEndUtc(MONDAY).getTime() + 1000));
+
+    const { todos } = await finishedInWeek(userId, MONDAY);
+    expect(todos.map((t) => t.title).sort()).toEqual(['first instant', 'last instant']);
+  });
+
+  it('ignores whether it was ever on the board, which is the point', async () => {
+    await deadlineDoneAt('d-board', 'Ticked from the board', at(3600_000), true);
+    await deadlineDoneAt('d-list', 'Ticked from the List', at(7200_000), false);
+
+    const { deadlines } = await finishedInWeek(userId, MONDAY);
+    expect(deadlines.map((d) => d.title).sort()).toEqual(['Ticked from the List', 'Ticked from the board']);
+  });
+
+  it('leaves unfinished work out, because it belongs to no week', async () => {
+    // It has not gone anywhere: it is still on the CURRENT board, which is
+    // what makes showing only completions honest rather than lossy.
+    await todoDoneAt('still open', null);
+    await deadlineDoneAt('d-open', 'Also still open', null);
+
+    const { todos, deadlines } = await finishedInWeek(userId, MONDAY);
+    expect(todos).toHaveLength(0);
+    expect(deadlines).toHaveLength(0);
+    expect(await db.todo.count({ where: { userId, completedAt: null } })).toBe(1);
   });
 });

@@ -602,37 +602,41 @@ body {
 /*
  * Text sitting straight on the sky, with no panel behind it.
  *
- * It takes the brand navy on a light sky and white on a dark one, because a
- * shadow cannot rescue the wrong colour. Measured on a phone, against the sky
+ * It takes black on a light sky and white on a dark one, because a shadow
+ * cannot rescue the wrong colour. Measured on a phone, against the sky
  * actually behind the smallest on-sky text:
  *
- *            white      navy
- *   clear     2.56:1    6.29:1
- *   overcast  1.76:1    9.17:1
- *   fog/rain  1.72:1    9.34:1
- *   snow      1.71:1    9.44:1
- *   storm     2.48:1    6.50:1
+ *            white     black
+ *   clear     2.56:1    8.20:1
+ *   overcast  1.76:1   11.95:1
+ *   fog/rain  1.72:1   12.18:1
+ *   snow      1.71:1   12.31:1
+ *   storm     2.48:1    8.48:1
  *
  * White failed WCAG AA (4.5:1) on every light sky and failed the 3:1 large
- * text floor on most, which is what "hard to read in fog" actually was. Navy
- * clears AA everywhere and AAA on the grey weathers. The grey skies are the
+ * text floor on most, which is what "hard to read in fog" actually was. Black
+ * clears AAA (7:1) on every one of them. The grey skies are the
  * worst because the dimming veil on content pages is WHITE: it lightens the
  * very background the white text had to stand out from.
  *
- * The halo flips with it. A dark glow under dark text is just mud, so on a
- * light sky it becomes a soft white one, which is what lifts navy off a
- * cloud edge in the photo.
+ * The halo goes entirely. It existed to lift text off a cloud edge, and at
+ * this contrast there is nothing to lift it from - it only read as a smudge
+ * around the letters.
  */
 .sky-hero {
-  --foreground: #002145;
-  --text-secondary: rgba(0, 33, 69, 0.84);
-  --text-tertiary: rgba(0, 33, 69, 0.7);
-  color: #002145;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.55), 0 0 18px rgba(255, 255, 255, 0.45);
+  --foreground: #000000;
+  --text-secondary: rgba(0, 0, 0, 0.82);
+  --text-tertiary: rgba(0, 0, 0, 0.68);
+  color: #000000;
+  /* No halo. The white one was there to lift navy off a cloud edge, and it
+     read as a smudge around every letter. Black does not need it: it is the
+     darkest thing available, so it holds against any part of a light sky,
+     including a blown-out white cloud, where it is 21:1. */
+  text-shadow: none;
 }
 
-/* The dark sky keeps what it had: white measured 18.38:1 there, and navy
-   would be 1.14:1, which is no text at all. */
+/* The dark sky keeps what it had: white measured 18.38:1 there, and black
+   would be close to invisible on it. */
 :root[data-theme="dark"] .sky-hero {
   --foreground: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.88);
@@ -808,14 +812,15 @@ a.capsule-chip:hover {
    nav's halo treatment. The high-contrast rules further down give it ink
    on paper once the sky is switched off. */
 /* The same flip as .sky-hero, for the same measured reason: the footer sits
-   on the PALEST band of the sky, so white is at its worst exactly here. Only
-   the bare line (the copyright) is affected - .capsule-chip below carries its
-   own dark background and sets its own white, so the links are unchanged. */
+   on the PALEST band of the sky, so white is at its worst exactly here - and
+   black at its best. Only the bare line (the copyright) is affected:
+   .capsule-chip below carries its own dark background and its own white, so
+   the links are unchanged. */
 .sky-footer {
-  --foreground: #002145;
-  --text-secondary: rgba(0, 33, 69, 0.86);
+  --foreground: #000000;
+  --text-secondary: rgba(0, 0, 0, 0.84);
   color: var(--text-secondary);
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6), 0 0 10px rgba(255, 255, 255, 0.45);
+  text-shadow: none;
 }
 
 :root[data-theme="dark"] .sky-footer {

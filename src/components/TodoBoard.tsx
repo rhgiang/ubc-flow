@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   DndContext,
   KeyboardSensor,
@@ -20,9 +21,23 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { sortBoard, type BoardItem } from '@/canvas/board-order';
+import CoursePill from '@/components/CoursePill';
 import type { DeadlineRow } from '@/components/DeadlinesList';
 
 export type TodoRow = { id: string; title: string; done: boolean; boardOrder: number | null };
+
+/** One thing ticked off during a week already finished. Flat and already
+ *  formatted: a past week is a record, so nothing here needs a due date, an
+ *  order, or any of the board's machinery. */
+export type FinishedRow = {
+  id: string;
+  kind: 'deadline' | 'todo';
+  title: string;
+  courseName: string;
+  courseLabel: string;
+  /** "Mon, Oct 12" - the day it was ticked off, formatted on the server. */
+  dayLabel: string;
+};
 
 /** Unique across both tables, since a Todo and a CanvasDeadline could in
  *  principle share an id and the drag list needs one key space. */
@@ -45,6 +60,11 @@ function keyOf(item: { kind: string; id: string }): string {
  */
 export default function TodoBoard({
   weekLabel,
+  isCurrentWeek,
+  prevWeek,
+  nextWeek,
+  finished,
+  onToggleFinished,
   deadlines,
   comingUp,
   todos,
@@ -58,6 +78,11 @@ export default function TodoBoard({
   onReorder,
 }: {
   weekLabel: string;
+  isCurrentWeek: boolean;
+  prevWeek: string;
+  nextWeek: string | null;
+  finished: FinishedRow[] | null;
+  onToggleFinished: (row: FinishedRow) => void;
   /** Only the ones on the board; the page has already applied the week rule. */
   deadlines: DeadlineRow[];
   /** Deadlines near enough to be worth putting on the board, already filtered
@@ -103,7 +128,7 @@ export default function TodoBoard({
 
   const sorted = sortBoard(items);
   const open = sorted.filter((i) => !i.done);
-  const finished = sorted.filter((i) => i.done);
+  const doneThisWeek = sorted.filter((i) => i.done);
 
   // The held order is dropped the moment it stops describing the list: an
   // item added, ticked or removed changes which rows are open, and applying
@@ -171,21 +196,50 @@ export default function TodoBoard({
     setTitle('');
   }
 
+  // A week already gone is a record, not a plan, so the left column loses the
+  // add box and the dragging. Coming up stays: the two columns answer
+  // different questions, and the right one is always about now - you look
+  // back at what you did, then put the next thing on today's board.
+  if (!isCurrentWeek && finished !== null) {
+    return (
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="space-y-5">
+          <WeekNav
+            weekLabel={weekLabel}
+            isCurrentWeek={false}
+            prevWeek={prevWeek}
+            nextWeek={nextWeek}
+            trailing={
+              <p className="sky-hero text-sm opacity-80">
+                {finished.length === 0 ? 'Nothing finished.' : `${finished.length} finished`}
+              </p>
+            }
+          />
+          <FinishedWeek rows={finished} busyId={busyId} onToggle={onToggleFinished} />
+        </div>
+
+        <ComingUp items={comingUp} busyId={busyId} onAdd={onAddToBoard} />
+      </div>
+    );
+  }
+
   return (
     // Two columns where there is room, board first on a phone. The board is
     // the point; Coming up is the drawer you reach into, so it never goes
     // above the thing it feeds.
     <div className="grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <div className="space-y-5">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="sky-hero text-sm font-semibold uppercase tracking-wide">
-            This week
-            <span className="ml-2 font-normal normal-case opacity-80">{weekLabel}</span>
-          </h2>
-          <p className="sky-hero text-sm opacity-80">
-            {open.length === 0 ? 'Nothing left.' : `${open.length} left`}
-          </p>
-        </div>
+        <WeekNav
+          weekLabel={weekLabel}
+          isCurrentWeek={isCurrentWeek}
+          prevWeek={prevWeek}
+          nextWeek={nextWeek}
+          trailing={
+            <p className="sky-hero text-sm opacity-80">
+              {open.length === 0 ? 'Nothing left.' : `${open.length} left`}
+            </p>
+          }
+        />
 
         {items.length === 0 ? (
           <p className="sky-hero text-sm opacity-90">
@@ -214,9 +268,9 @@ export default function TodoBoard({
               </SortableContext>
             </DndContext>
 
-            {finished.length > 0 && (
+            {doneThisWeek.length > 0 && (
               <ul className="divide-y divide-border">
-                {finished.map((item) => {
+                {doneThisWeek.map((item) => {
                   const row = rowFor(item);
                   return row && <BoardItemRow key={keyOf(item)} {...row} />;
                 })}
@@ -245,6 +299,127 @@ export default function TodoBoard({
       </div>
 
       <ComingUp items={comingUp} busyId={busyId} onAdd={onAddToBoard} />
+    </div>
+  );
+}
+
+/**
+ * The week this view is showing, with a way back and forward.
+ *
+ * Links, not buttons: the week lives in the URL, so the back button works,
+ * a week can be sent to someone, and the server does every date calculation.
+ * Forward is absent in the current week rather than disabled - there is no
+ * week ahead to look at, and a dead control invites clicking.
+ */
+function WeekNav({
+  weekLabel,
+  isCurrentWeek,
+  prevWeek,
+  nextWeek,
+  trailing,
+}: {
+  weekLabel: string;
+  isCurrentWeek: boolean;
+  prevWeek: string;
+  nextWeek: string | null;
+  trailing: React.ReactNode;
+}) {
+  const arrow = 'sky-hero rounded-pill px-2 py-1 text-sm leading-none hover:bg-white/15';
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center gap-1">
+        <Link href={`/deadlines?week=${prevWeek}`} aria-label="The week before" className={arrow}>
+          ‹
+        </Link>
+        <h2 className="sky-hero text-sm font-semibold uppercase tracking-wide">
+          {isCurrentWeek ? 'This week' : 'Week of'}
+          <span className="ml-2 font-normal normal-case opacity-80">{weekLabel}</span>
+        </h2>
+        {nextWeek ? (
+          <Link href={`/deadlines?week=${nextWeek}`} aria-label="The week after" className={arrow}>
+            ›
+          </Link>
+        ) : (
+          // Holds the space so the heading does not shift when you step back.
+          <span className={`${arrow} invisible`} aria-hidden>
+            ›
+          </span>
+        )}
+      </div>
+      {trailing}
+    </div>
+  );
+}
+
+/**
+ * A week already finished: what was ticked off in it, by the day it was
+ * ticked. Read only by design - there is no board to plan in a week that has
+ * gone, and no Coming up, no add box and nothing to drag.
+ *
+ * Unticking is the one thing left, and it does the obvious thing: the row
+ * stops being done, so it reappears on the current board.
+ */
+function FinishedWeek({
+  rows,
+  busyId,
+  onToggle,
+}: {
+  rows: FinishedRow[];
+  busyId: string | null;
+  onToggle: (row: FinishedRow) => void;
+}) {
+  if (rows.length === 0) {
+    return (
+      <p className="sky-hero text-sm opacity-90">
+        Nothing was ticked off this week. Anything you did not finish is still on your
+        current board.
+      </p>
+    );
+  }
+  // Grouped by the day STRING the server sent, never by a Date parsed here.
+  const days: { label: string; rows: FinishedRow[] }[] = [];
+  for (const r of rows) {
+    const last = days[days.length - 1];
+    if (last && last.label === r.dayLabel) last.rows.push(r);
+    else days.push({ label: r.dayLabel, rows: [r] });
+  }
+
+  return (
+    <div className="space-y-5">
+      {days.map((day) => (
+        <div key={day.label}>
+          <h3 className="sky-hero text-xs font-semibold uppercase tracking-wide opacity-90">
+            {day.label}
+          </h3>
+          <ul className="mt-1.5 divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
+            {day.rows.map((r) => (
+              <li
+                key={`${r.kind}:${r.id}`}
+                className={`flex items-start gap-3 px-3 py-2.5 ${busyId === r.id ? 'opacity-50' : ''}`}
+              >
+                <label className="-m-3.5 flex shrink-0 cursor-pointer items-start p-3.5">
+                  <input
+                    type="checkbox"
+                    checked
+                    disabled={busyId === r.id}
+                    onChange={() => onToggle(r)}
+                    aria-label={`Mark "${r.title}" not done`}
+                    className="mt-0.5 h-4 w-4 rounded border-border"
+                  />
+                </label>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground line-through">{r.title}</p>
+                  {r.courseName && (
+                    <div className="mt-1">
+                      <CoursePill name={r.courseName} label={r.courseLabel} />
+                    </div>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }

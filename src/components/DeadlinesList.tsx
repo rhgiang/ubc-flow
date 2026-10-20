@@ -15,10 +15,10 @@ import {
   updateReminderPreferences,
 } from '@/app/actions/canvas';
 import { settled } from '@/lib/action-result';
-import { courseColorIndex } from '@/schedule/colors';
+import CoursePill from '@/components/CoursePill';
 import CanvasConnect from '@/components/CanvasConnect';
 import DeadlinesCalendar from '@/components/DeadlinesCalendar';
-import TodoBoard, { type TodoRow } from '@/components/TodoBoard';
+import TodoBoard, { type FinishedRow, type TodoRow } from '@/components/TodoBoard';
 
 // Labels for src/canvas/prefs.ts's LEAD_CHOICES ([24, 48, 72, 168]). The
 // values themselves come in as a prop rather than an import: prefs.ts also
@@ -88,6 +88,10 @@ export default function DeadlinesList({
   deadlines,
   todos,
   weekLabel,
+  isCurrentWeek,
+  prevWeek,
+  nextWeek,
+  finished,
   todayKey,
 }: {
   connectedLabel: string | null;
@@ -104,6 +108,13 @@ export default function DeadlinesList({
   todos: TodoRow[];
   /** "Sep 28 to Oct 4", formatted on the server with every other date here. */
   weekLabel: string;
+  /** False when ?week= points at a week already finished, which makes the
+   *  board a read-only record rather than something to plan with. */
+  isCurrentWeek: boolean;
+  prevWeek: string;
+  nextWeek: string | null;
+  /** Null in the current week; otherwise what was ticked off in that one. */
+  finished: FinishedRow[] | null;
   todayKey: string;
 }) {
   const router = useRouter();
@@ -213,6 +224,15 @@ export default function DeadlinesList({
     await submit(reorderBoard(order));
   }
 
+  // Un-ticking something in a past week puts it back among the unfinished,
+  // which means it reappears on the CURRENT board. That is the honest result:
+  // it is not done, and the current board is where not-done things live.
+  async function toggleFinished(row: FinishedRow) {
+    setBusyId(row.id);
+    await submit(row.kind === 'todo' ? setTodoDone(row.id, false) : setDeadlineDone(row.id, false));
+    setBusyId(null);
+  }
+
   async function toggleOnBoard(item: DeadlineRow) {
     const next = !item.onBoard;
     // Moves columns immediately; the server catches up behind it.
@@ -261,7 +281,13 @@ export default function DeadlinesList({
     // A month grid needs about twice the width a readable list wants, so the
     // container follows the view rather than splitting the difference and
     // serving both badly.
-    <div className={`mx-auto w-full space-y-5 ${view === 'list' ? 'max-w-2xl' : 'max-w-5xl'}`}>
+    <div
+      className={`mx-auto w-full space-y-5 ${
+        // The month grid and the board both want the room - a past week keeps
+        // the two columns, since Coming up stays beside it.
+        view === 'list' ? 'max-w-2xl' : 'max-w-5xl'
+      }`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="sky-hero text-2xl font-semibold">Deadlines</h1>
         <div className="flex items-center gap-3">
@@ -392,6 +418,12 @@ export default function DeadlinesList({
         </div>
       </details>
 
+      {/* Shown in every view, including a week already gone. It is page
+          chrome rather than part of the week below it: the counts are your
+          deadlines overall and Add a deadline adds to them, neither of which
+          changes with the week you happen to be looking at. Hiding it in a
+          past week also took its height with it, so the two columns jumped
+          up the moment you pressed the back arrow. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="sky-hero text-sm">
           {openCount === 0 ? 'Nothing outstanding.' : `${openCount} to go`}
@@ -440,6 +472,11 @@ export default function DeadlinesList({
       ) : view === 'todo' ? (
         <TodoBoard
           weekLabel={weekLabel}
+          isCurrentWeek={isCurrentWeek}
+          prevWeek={prevWeek}
+          nextWeek={nextWeek}
+          finished={finished}
+          onToggleFinished={toggleFinished}
           deadlines={rows.filter((d) => d.onBoard)}
           // What the student can put on the board without leaving this view:
           // near-term, still outstanding, and not already on it.
@@ -482,24 +519,6 @@ export default function DeadlinesList({
       )}
 
     </div>
-  );
-}
-
-/**
- * The course badge, in the colour that course carries everywhere else. The
- * colour is hashed from the raw name, not the shortened one, so two courses
- * that shorten alike still differ and a course keeps its colour if the
- * shortening rules ever change.
- */
-function CoursePill({ name, label }: { name: string; label: string }) {
-  const slot = courseColorIndex(name);
-  return (
-    <span
-      className="inline-block shrink-0 rounded-pill px-1.5 py-0.5 text-xs font-medium"
-      style={{ background: `var(--course-${slot}-bg)`, color: `var(--course-${slot}-accent)` }}
-    >
-      {label}
-    </span>
   );
 }
 

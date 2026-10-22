@@ -64,8 +64,11 @@ scrape:catalog        terms and subjects
 ```
 
 `npm run scrape:all` runs the chain correctly. It is also what
-`.github/workflows/scrape.yml` runs daily. Running them out of order does not
+`.github/workflows/scrape.yml` runs weekly. Running them out of order does not
 error. It silently writes against missing foreign rows.
+
+`scrape:exams` (UBC's final exam table) runs on its own, daily, from
+`.github/workflows/exams.yml`. It needs courses and the term to already exist.
 
 Separate, run manually:
 

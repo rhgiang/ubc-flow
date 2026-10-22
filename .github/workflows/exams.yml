@@ -1,0 +1,26 @@
+name: Scrape UBC exam schedule
+
+on:
+  # Its own job, not a step at the end of scrape.yml. That job runs into
+  # GitHub's six-hour limit and is cancelled most weeks, and anything chained
+  # after it never ran: the exam table sat unscraped. This is one request plus
+  # npm ci, a few minutes, so daily costs well under 100 of the 2,000 monthly
+  # Actions minutes. Daily matters here:
+  # UBC publishes the dates first and fills in rooms and changes later.
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  exams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run scrape:exams
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

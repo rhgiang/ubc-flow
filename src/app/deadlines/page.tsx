@@ -34,6 +34,7 @@ type DeadlineFields = {
   completedAt: Date | null;
   onBoardAt: Date | null;
   boardOrder: number | null;
+  note: string | null;
 };
 
 /**
@@ -79,6 +80,7 @@ function toRow(d: DeadlineFields, now: number, weekStart: Date) {
      *  refresh. A number, not a Date: nothing here formats it. */
     boardOrder: d.boardOrder,
     dueAtMs: d.dueAt.getTime(),
+    note: d.note,
     title: d.title,
     /** The raw bracket from Canvas. The identity: the colour hashes from it
      *  and a mute preference is stored under it. Never shown. */
@@ -190,6 +192,7 @@ export default async function DeadlinesPage({
         completedAt: true,
         onBoardAt: true,
         boardOrder: true,
+        note: true,
       },
     }),
   ]);
@@ -244,6 +247,7 @@ export default async function DeadlinesPage({
           title: t.title,
           done: t.completedAt !== null,
           boardOrder: t.boardOrder,
+          note: t.note,
         }))}
         weekLabel={weekRange(weekStart)}
         isCurrentWeek={isCurrentWeek}

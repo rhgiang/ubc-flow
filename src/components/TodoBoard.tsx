@@ -24,7 +24,13 @@ import { sortBoard, type BoardItem } from '@/canvas/board-order';
 import CoursePill from '@/components/CoursePill';
 import type { DeadlineRow } from '@/components/DeadlinesList';
 
-export type TodoRow = { id: string; title: string; done: boolean; boardOrder: number | null };
+export type TodoRow = {
+  id: string;
+  title: string;
+  done: boolean;
+  boardOrder: number | null;
+  note: string | null;
+};
 
 /** One thing ticked off during a week already finished. Flat and already
  *  formatted: a past week is a record, so nothing here needs a due date, an
@@ -76,6 +82,7 @@ export default function TodoBoard({
   onToggleTodo,
   onRemoveTodo,
   onReorder,
+  onSaveNote,
 }: {
   weekLabel: string;
   isCurrentWeek: boolean;
@@ -97,6 +104,7 @@ export default function TodoBoard({
   onToggleTodo: (t: TodoRow) => void;
   onRemoveTodo: (t: TodoRow) => void;
   onReorder: (order: { id: string; kind: 'deadline' | 'todo' }[]) => void;
+  onSaveNote: (kind: 'deadline' | 'todo', id: string, note: string) => void;
 }) {
   const [title, setTitle] = useState('');
   const [saving, setSaving] = useState(false);
@@ -182,6 +190,8 @@ export default function TodoBoard({
       onToggle: () => (isDeadline ? onToggleDeadline(d) : onToggleTodo(source as TodoRow)),
       removeLabel: isDeadline ? 'Take off board' : 'Delete',
       onRemove: () => (isDeadline ? onRemoveFromBoard(d) : onRemoveTodo(source as TodoRow)),
+      note: source.note,
+      onSaveNote: (note: string) => onSaveNote(item.kind, item.id, note),
     };
   }
 
@@ -433,6 +443,8 @@ type RowProps = {
   onToggle: () => void;
   removeLabel: string;
   onRemove: () => void;
+  note: string | null;
+  onSaveNote: (note: string) => void;
 };
 
 /**
@@ -487,6 +499,8 @@ function BoardItemRow({
   onToggle,
   removeLabel,
   onRemove,
+  note,
+  onSaveNote,
   dragging,
   innerRef,
   style,
@@ -499,6 +513,13 @@ function BoardItemRow({
   handleProps?: Record<string, unknown>;
   grip?: React.ReactNode;
 }) {
+  const [editing, setEditing] = useState(false);
+
+  function finishNote(value: string) {
+    setEditing(false);
+    if (value.trim() !== (note ?? '')) onSaveNote(value);
+  }
+
   return (
     <li
       ref={innerRef}
@@ -534,7 +555,50 @@ function BoardItemRow({
             {meta}
           </p>
         )}
+        {editing ? (
+          <textarea
+            autoFocus
+            defaultValue={note ?? ''}
+            maxLength={500}
+            rows={2}
+            placeholder="A note to yourself"
+            aria-label={`Note for "${title}"`}
+            onBlur={(e) => finishNote(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              // Kept off the row: the row's drag listeners treat space and
+              // enter as "pick this up", which would hijack typing.
+              e.stopPropagation();
+              if (e.key === 'Escape') setEditing(false);
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) e.currentTarget.blur();
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="mt-1.5 block w-full resize-y rounded-input border border-border bg-surface px-2 py-1 text-xs text-foreground"
+          />
+        ) : (
+          note && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              aria-label={`Edit note for "${title}"`}
+              className="mt-1 block w-full whitespace-pre-wrap text-left text-xs text-text-secondary hover:text-foreground"
+            >
+              {note}
+            </button>
+          )
+        )}
       </div>
+
+      {!note && !editing && (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          aria-label={`Add a note to "${title}"`}
+          className="shrink-0 text-xs text-text-tertiary hover:text-foreground hover:underline"
+        >
+          Note
+        </button>
+      )}
 
       <button
         type="button"

@@ -8,6 +8,7 @@ import {
   reorderBoard,
   removeDeadline,
   removeTodo,
+  setBoardNote,
   setDeadlineDone,
   setDeadlineOnBoard,
   setRemindersEnabled,
@@ -49,6 +50,8 @@ export type DeadlineRow = {
    *  order can follow an optimistic tick. */
   boardOrder: number | null;
   dueAtMs: number;
+  /** The student's own jot on the board row, or null. */
+  note: string | null;
   title: string;
   /** Canvas's raw bracket. The identity behind the colour and the mute list,
    *  never rendered; courseLabel is what a student reads. */
@@ -222,6 +225,12 @@ export default function DeadlinesList({
   // saying, and submit() handles that.
   async function reorder(order: { id: string; kind: 'deadline' | 'todo' }[]) {
     await submit(reorderBoard(order));
+  }
+
+  // No optimistic state: the row keeps showing what was typed while this
+  // saves, and the refresh after it brings back the same text.
+  async function saveNote(kind: 'deadline' | 'todo', id: string, note: string) {
+    await submit(setBoardNote(kind, id, note));
   }
 
   // Un-ticking something in a past week puts it back among the unfinished,
@@ -499,6 +508,7 @@ export default function DeadlinesList({
           onToggleTodo={toggleTodo}
           onRemoveTodo={removeTodoItem}
           onReorder={reorder}
+          onSaveNote={saveNote}
         />
       ) : view === 'calendar' ? (
         <DeadlinesCalendar deadlines={visible} todayKey={todayKey} onToggle={toggleDone} busyId={busyId} />

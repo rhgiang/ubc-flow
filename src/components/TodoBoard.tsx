@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   DndContext,
@@ -514,6 +514,7 @@ function BoardItemRow({
   grip?: React.ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
+  const noteBox = useRef<HTMLTextAreaElement>(null);
 
   function finishNote(value: string) {
     setEditing(false);
@@ -556,25 +557,46 @@ function BoardItemRow({
           </p>
         )}
         {editing ? (
-          <textarea
-            autoFocus
-            defaultValue={note ?? ''}
-            maxLength={500}
-            rows={2}
-            placeholder="A note to yourself"
-            aria-label={`Note for "${title}"`}
-            onBlur={(e) => finishNote(e.currentTarget.value)}
-            onKeyDown={(e) => {
-              // Kept off the row: the row's drag listeners treat space and
-              // enter as "pick this up", which would hijack typing.
-              e.stopPropagation();
-              if (e.key === 'Escape') setEditing(false);
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) e.currentTarget.blur();
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-            className="mt-1.5 block w-full resize-y rounded-input border border-border bg-surface px-2 py-1 text-xs text-foreground"
-          />
+          <div className="mt-1.5 flex items-end gap-1.5">
+            <textarea
+              ref={noteBox}
+              autoFocus
+              defaultValue={note ?? ''}
+              maxLength={500}
+              rows={2}
+              placeholder="A note to yourself"
+              aria-label={`Note for "${title}"`}
+              onBlur={(e) => finishNote(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                // Kept off the row: the row's drag listeners treat space and
+                // enter as "pick this up", which would hijack typing.
+                e.stopPropagation();
+                if (e.key === 'Escape') setEditing(false);
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) e.currentTarget.blur();
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              className="block min-w-0 flex-1 resize-y rounded-input border border-border bg-surface px-2 py-1 text-xs text-foreground"
+            />
+            {/* Saving is the box's blur; this just gives it something to press.
+                preventDefault on mousedown keeps focus in the box until the
+                click, so the save happens once, here. */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onTouchStart={(e) => e.stopPropagation()}
+              onClick={() => noteBox.current?.blur()}
+              aria-label="Save note"
+              className="shrink-0 rounded-pill border border-border p-1 text-text-tertiary hover:bg-surface-muted hover:text-foreground"
+            >
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3 8.5l3.5 3.5L13 4.5" />
+              </svg>
+            </button>
+          </div>
         ) : (
           note && (
             <button

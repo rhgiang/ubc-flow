@@ -6,6 +6,7 @@ import {
   removeTodoFor,
   setDeadlineOnBoardFor,
   setTodoDoneFor,
+  setBoardNoteFor,
   adjacentWeeks,
   finishedInWeek,
   isComingUp,
@@ -331,5 +332,35 @@ describe('what a past week shows', () => {
     expect(todos).toHaveLength(0);
     expect(deadlines).toHaveLength(0);
     expect(await db.todo.count({ where: { userId, completedAt: null } })).toBe(1);
+  });
+});
+
+describe('a note on a board row', () => {
+  it('saves on a todo and on a deadline, trimmed, and clears when emptied', async () => {
+    await addTodoFor(userId, 'Lab report');
+    const [todo] = await todosForBoard(userId, new Date());
+    const d = await db.canvasDeadline.create({
+      data: {
+        userId, uid: 'demo-note-1', kind: 'assignment', title: 'PSet 6',
+        courseName: 'CPSC 110 101', dueAt: new Date('2026-10-01T06:59:59Z'), allDay: false,
+      },
+    });
+
+    expect(await setBoardNoteFor(userId, 'todo', todo.id, '  do this today  ')).toEqual({ ok: true });
+    expect(await setBoardNoteFor(userId, 'deadline', d.id, 'q3 is the hard one')).toEqual({ ok: true });
+    expect((await todosForBoard(userId, new Date()))[0].note).toBe('do this today');
+    expect((await db.canvasDeadline.findUniqueOrThrow({ where: { id: d.id } })).note).toBe('q3 is the hard one');
+
+    // Emptying the box is how a note is deleted, so it goes back to null
+    // rather than leaving an empty string that still renders.
+    expect(await setBoardNoteFor(userId, 'todo', todo.id, '   ')).toEqual({ ok: true });
+    expect((await todosForBoard(userId, new Date()))[0].note).toBeNull();
+  });
+
+  it('belongs to whoever owns the row', async () => {
+    await addTodoFor(userId, 'Mine');
+    const [todo] = await todosForBoard(userId, new Date());
+    expect(await setBoardNoteFor('someone-else', 'todo', todo.id, 'hi')).toEqual({ ok: false, error: 'Not found.' });
+    expect((await todosForBoard(userId, new Date()))[0].note).toBeNull();
   });
 });

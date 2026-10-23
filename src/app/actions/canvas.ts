@@ -13,6 +13,7 @@ import {
   addTodoFor,
   removeTodoFor,
   reorderBoardFor,
+  setBoardNoteFor,
   setDeadlineOnBoardFor,
   setTodoDoneFor,
 } from '@/canvas/todos';
@@ -161,6 +162,19 @@ export async function reorderBoard(
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
   return reorderBoardFor(session.user.id, order);
+}
+
+/** Saves the student's note on a board row, either kind. */
+export async function setBoardNote(
+  kind: 'deadline' | 'todo',
+  id: string,
+  note: string,
+): Promise<Result> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'Not signed in.' };
+  if (kind !== 'deadline' && kind !== 'todo') return { ok: false, error: 'Not found.' };
+  if (typeof id !== 'string' || typeof note !== 'string') return { ok: false, error: 'Not found.' };
+  return setBoardNoteFor(session.user.id, kind, id, note);
 }
 
 /** Puts a deadline on the board, or takes it off. Never removes the deadline. */

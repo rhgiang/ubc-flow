@@ -34,6 +34,9 @@ const MAX_TODOS = 200;
  *  a hand-added deadline, since they are the same kind of thing typed twice. */
 const MAX_TITLE = 200;
 
+/** A jot, not a document: a few lines under the title. */
+const MAX_NOTE = 500;
+
 /**
  * Monday 00:00 Vancouver of the week containing `now`, as a UTC instant.
  *
@@ -100,7 +103,7 @@ export async function todosForBoard(userId: string, now: Date) {
   return db.todo.findMany({
     where: { userId, OR: [{ completedAt: null }, { completedAt: { gte: weekStart } }] },
     orderBy: { createdAt: 'asc' },
-    select: { id: true, title: true, completedAt: true, boardOrder: true },
+    select: { id: true, title: true, completedAt: true, boardOrder: true, note: true },
   });
 }
 
@@ -230,6 +233,28 @@ export async function reorderBoardFor(
     ),
   );
   return { ok: true };
+}
+
+/**
+ * Writes the student's note on a board row, either kind.
+ *
+ * Emptying the box is how a note is deleted, so blank becomes null rather
+ * than an empty string the board would still draw. Scoped to this user in the
+ * WHERE, like every other write here.
+ */
+export async function setBoardNoteFor(
+  userId: string,
+  kind: 'deadline' | 'todo',
+  id: string,
+  rawNote: string,
+): Promise<Result> {
+  const note = rawNote.trim().slice(0, MAX_NOTE) || null;
+  const where = { id, userId };
+  const { count } =
+    kind === 'todo'
+      ? await db.todo.updateMany({ where, data: { note } })
+      : await db.canvasDeadline.updateMany({ where, data: { note } });
+  return count === 0 ? { ok: false, error: 'Not found.' } : { ok: true };
 }
 
 export async function removeTodoFor(userId: string, id: string): Promise<Result> {

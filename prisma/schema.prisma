@@ -756,6 +756,9 @@ model CanvasDeadline {
   /// moved it, and the board's default order decides where it sits. See
   /// compareBoardItems in src/canvas/todos.ts.
   boardOrder  Int?
+  /// The student's own jot on the board row ("start this today"). Never
+  /// touched by a poll, so it survives Canvas changing the title or date.
+  note        String?
   reminders   ReminderSent[]
 
   @@unique([userId, uid])
@@ -782,6 +785,8 @@ model Todo {
   /// default order decides. Same column and same rule as CanvasDeadline's,
   /// because the board sorts both kinds through one comparator.
   boardOrder  Int?
+  /// Same as CanvasDeadline.note: a jot under the title, null when empty.
+  note        String?
 
   @@index([userId])
 }

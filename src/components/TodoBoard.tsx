@@ -603,7 +603,7 @@ function BoardItemRow({
               type="button"
               onClick={() => setEditing(true)}
               aria-label={`Edit note for "${title}"`}
-              className="mt-1 block w-full whitespace-pre-wrap text-left text-xs text-text-secondary hover:text-foreground"
+              className="mt-1.5 block w-full whitespace-pre-wrap rounded-input border border-border bg-surface-muted px-2 py-1.5 text-left text-xs text-foreground shadow-sm hover:border-text-tertiary"
             >
               {note}
             </button>

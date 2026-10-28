@@ -115,7 +115,7 @@ export default function TodoBoard({
 
   const sensors = useSensors(
     // A few pixels of travel before a drag starts, so a click on the checkbox
-    // or the Delete link is still a click.
+    // or the Take off board link is still a click.
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
     // Touch holds instead of moves: a swipe on a list has to stay a scroll,
     // so this is a press-and-hold, the way it is in Notes.
@@ -188,7 +188,10 @@ export default function TodoBoard({
         : undefined,
       overdue: isDeadline ? d.overdue : false,
       onToggle: () => (isDeadline ? onToggleDeadline(d) : onToggleTodo(source as TodoRow)),
-      removeLabel: isDeadline ? 'Take off board' : 'Delete',
+      // One label for both: a todo lives only on the board, so taking it off
+      // is the same act as deleting it, and two words for one action read as
+      // two different things.
+      removeLabel: 'Take off board',
       onRemove: () => (isDeadline ? onRemoveFromBoard(d) : onRemoveTodo(source as TodoRow)),
       note: source.note,
       onSaveNote: (note: string) => onSaveNote(item.kind, item.id, note),
